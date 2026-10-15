@@ -1,0 +1,81 @@
+import type { LucideIcon } from "lucide-react";
+import type { ReactNode } from "react";
+import { TrendingUp } from "lucide-react";
+import { cn } from "@/lib/utils";
+
+type Tone = "primary" | "success" | "warning" | "info" | "destructive";
+
+const TONE_CLASSES: Record<Tone, string> = {
+  primary: "bg-lime-100 text-emerald-700",
+  success: "bg-emerald-100 text-emerald-600",
+  warning: "bg-amber-100 text-amber-600",
+  info: "bg-blue-100 text-blue-600",
+  destructive: "bg-red-100 text-red-600",
+};
+
+const BAR_CLASSES: Record<Tone, string> = {
+  primary: "bg-lime-400",
+  success: "bg-emerald-400",
+  warning: "bg-amber-400",
+  info: "bg-blue-400",
+  destructive: "bg-red-400",
+};
+
+export const StatCard = ({
+  label,
+  value,
+  hint,
+  icon: Icon,
+  tone = "primary",
+  className,
+  trend,
+}: {
+  label: string;
+  value: ReactNode;
+  hint?: ReactNode;
+  icon?: LucideIcon;
+  tone?: Tone;
+  className?: string;
+  trend?: string;
+}) => (
+  <div
+    className={cn(
+      "group relative overflow-hidden nx-stat-card rounded-2xl border border-border/60 bg-card p-5 shadow-[0_18px_45px_-25px_rgba(15,23,42,.20)] transition hover:-translate-y-1",
+      className,
+    )}
+  >
+    <div className="relative z-10 pr-14">
+      <p className="nx-stat-label text-xs font-semibold uppercase tracking-wide text-muted-foreground">{label}</p>
+      <div className="mt-4 flex items-center gap-2">
+        <p className="font-tabular text-3xl font-extrabold leading-none">{value}</p>
+        {trend ? (
+          <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-1 text-xs font-semibold text-emerald-600">
+            <TrendingUp className="h-3 w-3" />
+            {trend}
+          </span>
+        ) : null}
+      </div>
+      {hint ? <p className="mt-3 max-w-[28ch] text-xs leading-5 text-muted-foreground">{hint}</p> : null}
+    </div>
+
+    <div className="pointer-events-none absolute inset-y-5 right-5 flex flex-col items-end justify-between">
+      {Icon ? (
+        <span className={cn("rounded-xl p-3", TONE_CLASSES[tone])}>
+          <Icon className="h-5 w-5" />
+        </span>
+      ) : (
+        <span />
+      )}
+
+      <div className="flex h-10 items-end gap-1 opacity-90">
+        {[12, 20, 28, 36].map((h, index) => (
+          <span
+            key={h}
+            className={cn("w-1.5 rounded-full transition-all", BAR_CLASSES[tone])}
+            style={{ height: h, opacity: 0.35 + index * 0.16 }}
+          />
+        ))}
+      </div>
+    </div>
+  </div>
+);

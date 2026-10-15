@@ -1,0 +1,527 @@
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* ===== Nexora — Emerald Tech claro (refinado) ===== */
+    --background: 145 29% 96%;
+    --foreground: 169 31% 10%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 169 31% 10%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 169 31% 10%;
+
+    --primary: 160 84% 39%;
+    --primary-foreground: 165 35% 8%;
+    --primary-glow: 159 80% 49%;
+
+    --secondary: 148 26% 92%;
+    --secondary-foreground: 165 32% 16%;
+
+    --muted: 145 20% 92%;
+    --muted-foreground: 155 13% 40%;
+
+    --accent: 148 55% 92%;
+    --accent-foreground: 161 68% 27%;
+
+    --destructive: 355 66% 55%;
+    --destructive-foreground: 0 0% 100%;
+
+    --success: 155 62% 34%;
+    --success-foreground: 0 0% 100%;
+
+    --warning: 44 90% 32%;
+    --warning-foreground: 0 0% 100%;
+
+    --info: 218 77% 50%;
+    --info-foreground: 0 0% 100%;
+
+    --border: 150 20% 87%;
+    --input: 150 20% 87%;
+    --ring: 160 84% 39%;
+
+    --chart-1: 160 84% 39%;
+    --chart-2: 190 74% 45%;
+    --chart-3: 78 86% 69%;
+    --chart-4: 45 87% 57%;
+    --chart-5: 265 57% 61%;
+
+    --radius: 1rem;
+
+    --gradient-primary: linear-gradient(160deg, hsl(var(--primary-glow)), hsl(var(--primary)));
+    --shadow-elegant: 0 4px 18px -8px rgba(34, 24, 12, 0.22), 0 18px 45px -20px hsl(var(--primary) / 0.35);
+    --shadow-glow: 0 0 32px hsl(var(--primary-glow) / 0.25);
+    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+    --sidebar-background: 183 33% 9%;
+    --sidebar-foreground: 151 27% 90%;
+    --sidebar-primary: 78 86% 69%;
+    --sidebar-primary-foreground: 165 35% 8%;
+    --sidebar-accent: 163 26% 18%;
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-border: 162 24% 19%;
+    --sidebar-ring: 160 84% 39%;
+  }
+
+  .dark {
+    /* ===== Nexora — Emerald Tech oscuro ===== */
+    --background: 183 33% 9%;
+    --foreground: 145 29% 96%;
+
+    --card: 164 24% 13%;
+    --card-foreground: 145 29% 96%;
+
+    --popover: 164 24% 13%;
+    --popover-foreground: 145 29% 96%;
+
+    --primary: 160 84% 39%;
+    --primary-foreground: 165 35% 8%;
+    --primary-glow: 159 80% 49%;
+
+    --secondary: 164 24% 18%;
+    --secondary-foreground: 145 29% 96%;
+
+    --muted: 163 20% 18%;
+    --muted-foreground: 150 15% 69%;
+
+    --accent: 164 24% 20%;
+    --accent-foreground: 145 29% 96%;
+
+    --destructive: 354 82% 70%;
+    --destructive-foreground: 351 56% 12%;
+
+    --success: 155 75% 58%;
+    --success-foreground: 155 45% 10%;
+
+    --warning: 47 95% 65%;
+    --warning-foreground: 42 50% 12%;
+
+    --info: 214 92% 69%;
+    --info-foreground: 214 55% 10%;
+
+    --border: 164 20% 25%;
+    --input: 164 20% 25%;
+    --ring: 160 84% 39%;
+
+    --chart-1: 160 84% 39%;
+    --chart-2: 190 74% 55%;
+    --chart-3: 78 86% 69%;
+    --chart-4: 45 87% 57%;
+    --chart-5: 265 57% 70%;
+
+    --sidebar-background: 183 33% 9%;
+    --sidebar-foreground: 151 27% 90%;
+    --sidebar-primary: 78 86% 69%;
+    --sidebar-primary-foreground: 165 35% 8%;
+    --sidebar-accent: 163 26% 18%;
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-border: 162 24% 19%;
+    --sidebar-ring: 160 84% 39%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  /* Los controles nativos del navegador (selector de fecha, listas, casillas) siguen el tema. */
+  :root {
+    color-scheme: light;
+  }
+  .dark {
+    color-scheme: dark;
+  }
+
+  /* Foco visible con teclado en enlaces simples. Los que ya traen su propio aro (botones
+     hechos con enlaces) se excluyen para no duplicarlo. */
+  a:not([class*="focus-visible:"]):focus-visible {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 2px;
+    border-radius: 0.25rem;
+  }
+
+  html {
+    font-family: "Inter", ui-sans-serif, system-ui, sans-serif;
+    text-rendering: optimizeLegibility;
+    /* Sin el destello gris al tocar botones en el celular */
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* En el celular, un toque rápido actúa de inmediato (sin zoom por doble toque) */
+  button,
+  a,
+  [role="button"],
+  [role="tab"] {
+    touch-action: manipulation;
+  }
+
+  /* Resaltado de texto a juego con la marca */
+  ::selection {
+    background-color: hsl(var(--primary) / 0.3);
+  }
+
+  /* Barras de desplazamiento discretas, del color del tema */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--muted-foreground) / 0.35) transparent;
+  }
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background-color: hsl(var(--muted-foreground) / 0.3);
+    border-radius: 9999px;
+    border: 3px solid transparent;
+    background-clip: content-box;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background-color: hsl(var(--primary) / 0.55);
+  }
+
+  h1,
+  h2,
+  h3 {
+    font-family: "Space Grotesk", "Inter", ui-sans-serif, system-ui, sans-serif;
+    letter-spacing: -0.01em;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    background-image: radial-gradient(120% 55% at 50% -10%, hsl(var(--primary) / 0.07), transparent 60%);
+    background-repeat: no-repeat;
+  }
+
+  .font-tabular {
+    font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum";
+  }
+}
+
+html,
+body,
+#root {
+  width: 100%;
+  height: 100%;
+}
+
+@layer utilities {
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  .safe-top {
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+}
+
+/* Transición de tema: la animación del círculo se controla desde theme-toggle.tsx */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+
+::view-transition-old(root) {
+  z-index: 1;
+}
+
+::view-transition-new(root) {
+  z-index: 2;
+}
+
+/*
+ * Autocompletado del navegador (correo y contraseña guardados): Chrome lo pinta de amarillo.
+ * Se cubre con el color de los campos del tema y se mantiene el texto legible.
+ */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active {
+  -webkit-text-fill-color: hsl(var(--foreground));
+  caret-color: hsl(var(--foreground));
+  box-shadow: 0 0 0 1000px hsl(var(--secondary)) inset;
+  -webkit-box-shadow: 0 0 0 1000px hsl(var(--secondary)) inset;
+  transition: background-color 9999s ease-out 0s;
+}
+
+input:autofill {
+  background-color: hsl(var(--secondary)) !important;
+  color: hsl(var(--foreground)) !important;
+}
+
+/* ---------------------------------------------------------------------------
+ * Animaciones de entrada. Todo va dentro de "no-preference": quien tiene activado
+ * "reducir movimiento" en su equipo no ve ninguna.
+ * ------------------------------------------------------------------------- */
+@keyframes stagger-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  /* Las secciones de una pantalla (título, resumen, filtros, tabla) aparecen en cascada.
+     "backwards": al terminar no queda ningún estilo pegado a los elementos. */
+  .stagger > * {
+    animation: stagger-in 0.5s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+  }
+  .stagger > :nth-child(2) { animation-delay: 60ms; }
+  .stagger > :nth-child(3) { animation-delay: 120ms; }
+  .stagger > :nth-child(4) { animation-delay: 180ms; }
+  .stagger > :nth-child(5) { animation-delay: 240ms; }
+  .stagger > :nth-child(6) { animation-delay: 300ms; }
+  .stagger > :nth-child(n + 7) { animation-delay: 360ms; }
+
+  /* Campos de texto: el borde y el aro de enfoque cambian suave, no de golpe. */
+  input,
+  textarea,
+  select,
+  [role="combobox"] {
+    transition:
+      border-color 0.2s ease,
+      box-shadow 0.2s ease;
+  }
+}
+
+/* En el celular la cascada es un poco más corta para que no se sienta lenta. */
+@media (prefers-reduced-motion: no-preference) and (max-width: 640px) {
+  .stagger > * {
+    animation-duration: 0.4s;
+  }
+}
+
+/* Esqueleto de carga: un brillo suave cruza el bloque gris. Sin movimiento queda fijo. */
+@keyframes skeleton-shimmer {
+  to {
+    transform: translateX(100%);
+  }
+}
+
+.skeleton-shimmer {
+  position: relative;
+  overflow: hidden;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .skeleton-shimmer::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    transform: translateX(-100%);
+    background: linear-gradient(90deg, transparent, hsl(var(--background) / 0.6), transparent);
+    animation: skeleton-shimmer 1.4s ease-in-out infinite;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+ * Pulido visual: transición entre páginas y respuesta al pasar el cursor.
+ * El movimiento va dentro de "no-preference"; con "reducir movimiento" solo queda el cambio
+ * de color, sin animación.
+ * ------------------------------------------------------------------------- */
+@keyframes page-enter {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  /* Solo opacidad (sin transform): no altera el posicionamiento de nada dentro de la página. */
+  .page-enter {
+    animation: page-enter 0.28s ease-out backwards;
+  }
+}
+
+@layer components {
+  .premium-surface {
+    border: 1px solid hsl(var(--border));
+    background: hsl(var(--card));
+    border-radius: calc(var(--radius) + .15rem);
+    box-shadow: var(--shadow-elegant);
+  }
+
+  /* Tarjeta con acciones: el borde y la sombra responden al pasar el cursor (solo con ratón). */
+  .surface-hover {
+    transition:
+      border-color 0.2s ease,
+      box-shadow 0.2s ease;
+  }
+
+  @media (hover: hover) {
+    .surface-hover:hover {
+      border-color: hsl(var(--primary) / 0.45);
+      box-shadow: var(--shadow-elegant);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .surface-hover {
+      transition: none;
+    }
+  }
+}
+
+/* Despliegue de un lote de garantías: la altura crece de 0 a su tamaño. Si el navegador no
+   anima filas de cuadrícula, el contenido simplemente aparece (con el fundido de siempre). */
+@keyframes lote-expand {
+  from {
+    grid-template-rows: 0fr;
+  }
+  to {
+    grid-template-rows: 1fr;
+  }
+}
+
+/* Mientras dura el despliegue se recorta el contenido; al terminar vuelve a "visible", así no
+   se corta ninguna sombra ni aro de enfoque de las tarjetas. */
+@keyframes lote-clip {
+  from,
+  to {
+    overflow: hidden;
+  }
+}
+
+.lote-expand {
+  display: grid;
+  grid-template-rows: 1fr;
+}
+
+.lote-expand > * {
+  min-height: 0;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .lote-expand {
+    animation: lote-expand 0.32s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  .lote-expand > * {
+    animation:
+      lote-clip 0.32s linear,
+      fade-in 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+}
+
+/* Nexora v5.0 — capa de acabado visual sin alterar lógica de negocio */
+@layer base { body { background: hsl(var(--background)); } }
+@layer components {
+  .nexora-surface { @apply rounded-2xl border border-border bg-card shadow-sm; }
+  .nexora-heading { @apply font-bold tracking-tight text-foreground; }
+}
+:focus-visible { outline: 2px solid hsl(var(--ring)); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; transition-duration: .01ms !important; } }
+
+
+/* Nexora v5.0 fase 2 — dashboard visual (sin alterar la lógica de datos) */
+.nx-dashboard-heading{display:flex;align-items:center;justify-content:space-between;gap:1.5rem;flex-wrap:wrap}
+.nx-dashboard-heading h1{font-size:clamp(1.8rem,2.5vw,2.45rem);font-weight:800;letter-spacing:-.045em;line-height:1.2}
+.nx-dashboard-heading p{font-size:.875rem}.nx-eyebrow{display:flex;align-items:center;gap:.5rem;margin-bottom:.75rem;color:hsl(var(--primary));font-size:.67rem;font-weight:800;letter-spacing:.18em}
+.nx-live-pill{display:inline-flex;align-items:center;gap:.55rem;padding:.55rem .85rem;border:1px solid hsl(var(--primary)/.2);background:hsl(var(--primary)/.07);color:hsl(var(--foreground));border-radius:99px;font-size:.7rem;font-weight:600}
+.nx-live-dot{width:7px;height:7px;border-radius:50%;background:#10B981;box-shadow:0 0 0 3px #10B98120}
+.nx-hero-strip{display:flex;align-items:center;gap:1rem;flex-wrap:wrap;padding:1.2rem 1.4rem;border:1px solid hsl(var(--primary)/.16);border-radius:1rem;background:linear-gradient(110deg,hsl(var(--primary)/.11),hsl(var(--chart-3)/.13));color:hsl(var(--foreground))}
+.nx-hero-strip>div:nth-child(2){min-width:180px}.nx-hero-strip p:first-child{font-size:.87rem}.nx-hero-icon{display:grid;place-items:center;width:42px;height:42px;border-radius:12px;background:hsl(var(--primary)/.14);color:hsl(var(--primary))}.nx-hero-link{display:inline-flex;align-items:center;gap:.5rem;border-radius:10px;background:hsl(var(--card));padding:.7rem .9rem;font-size:.75rem;font-weight:700;color:hsl(var(--foreground));transition:transform .2s}.nx-hero-link:hover{transform:translateX(2px)}
+.nx-kpi-section{display:block}.nx-stat-card{min-height:174px;isolation:isolate;box-shadow:0 12px 30px -20px rgba(12,54,39,.2)}.nx-stat-card:before{content:"";position:absolute;inset:auto -32px -55px auto;width:150px;height:150px;border-radius:50%;background:radial-gradient(circle,hsl(var(--primary)/.075),transparent 72%);pointer-events:none}.nx-stat-label{font-size:.65rem;letter-spacing:.065em;line-height:1.45}.nx-wide-stat{display:flex;align-items:center;gap:1.2rem;min-height:125px;border:1px solid hsl(var(--border));border-radius:1rem;background:hsl(var(--card));padding:1.25rem 1.5rem;box-shadow:0 12px 30px -20px rgba(12,54,39,.2);transition:transform .2s,border-color .2s}.nx-wide-stat:hover{transform:translateY(-2px);border-color:hsl(var(--primary)/.4)}.nx-wide-icon{display:grid;place-items:center;width:58px;height:58px;flex:none;border-radius:15px;background:hsl(var(--primary)/.12);color:hsl(var(--primary))}.nx-wide-icon-blue{background:hsl(var(--info)/.1);color:hsl(var(--info))}.nx-wide-label{font-size:.68rem;font-weight:750;letter-spacing:.06em;text-transform:uppercase;color:hsl(var(--muted-foreground))}.nx-wide-value{font-size:2rem;font-weight:850;line-height:1.25}.nx-wide-hint{font-size:.72rem;color:hsl(var(--muted-foreground));line-height:1.5}
+.nx-actions-section{border:1px solid hsl(var(--border));background:hsl(var(--card));border-radius:1.1rem;padding:1.5rem;box-shadow:0 12px 30px -20px rgba(12,54,39,.2)}.nx-section-heading{display:flex;align-items:center;gap:.85rem}.nx-section-icon{display:grid;place-items:center;width:40px;height:40px;border-radius:12px;background:hsl(var(--primary)/.09);color:hsl(var(--primary))}.nx-section-heading h2{font-size:1.02rem;font-weight:750}.nx-section-heading p{font-size:.72rem;color:hsl(var(--muted-foreground));margin-top:2px}.nx-action-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:.75rem;margin-top:1.2rem}.nx-action-tile{display:flex;align-items:center;gap:.7rem;min-width:0;padding:.85rem .7rem;border:1px solid hsl(var(--border));border-radius:.85rem;background:hsl(var(--background)/.5);transition:transform .18s,box-shadow .18s,border-color .18s}.nx-action-tile:hover{transform:translateY(-3px);box-shadow:0 10px 20px #102F2015;border-color:hsl(var(--primary)/.4)}.nx-action-tile>span:nth-child(2){display:flex;flex:1;min-width:0;flex-direction:column;gap:.2rem}.nx-action-tile strong{font-size:.68rem;font-weight:750;line-height:1.3}.nx-action-tile small{font-size:.6rem;color:hsl(var(--muted-foreground));line-height:1.35}.nx-action-icon{display:grid;place-items:center;width:38px;height:38px;flex:none;border-radius:10px;background:hsl(var(--primary)/.11);color:hsl(var(--primary))}.nx-action-icon svg{width:19px;height:19px}.nx-action-blue{background:hsl(var(--info)/.11);color:hsl(var(--info))}.nx-action-purple{background:#9062D31A;color:#9062D3}.nx-action-gold{background:#D9A53B1B;color:#BA8A26}.nx-action-arrow{width:14px;height:14px;flex:none;color:hsl(var(--primary))}.nx-ranking-card,.nx-operation-card{border-radius:1.05rem;box-shadow:0 12px 30px -20px rgba(12,54,39,.2)}
+@media(max-width:1450px){.nx-action-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}@media(max-width:1000px){.nx-action-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:640px){.nx-dashboard-heading h1{font-size:1.8rem}.nx-hero-strip{padding:1rem}.nx-hero-link{width:100%;justify-content:center}.nx-actions-section{padding:1rem}.nx-action-grid{grid-template-columns:1fr}.nx-wide-stat{padding:1rem;min-height:110px}.nx-wide-icon{width:46px;height:46px}.nx-wide-value{font-size:1.6rem}}@media(prefers-reduced-motion:reduce){.nx-action-tile,.nx-wide-stat,.nx-hero-link{transition:none}}
+
+
+/* Nexora Fase 3 — Operations design system. Scoped; no data logic changes. */
+.nx-operations{--nx-emerald:#10b981;--nx-lime:#d4f36b;max-width:1700px;margin-inline:auto;padding-bottom:2rem}
+.nx-operations .nx-page-header{position:relative;isolation:isolate;overflow:hidden;padding:1.55rem 1.7rem;border-radius:1.15rem;border:1px solid hsl(var(--primary)/.17);background:linear-gradient(115deg,hsl(var(--card)) 15%,hsl(var(--primary)/.075) 100%);box-shadow:0 15px 40px -33px #0a3326a6;gap:1.3rem}
+.nx-operations .nx-page-header:after{content:"";position:absolute;right:12%;top:-90px;width:220px;height:220px;border-radius:50%;background:radial-gradient(circle,hsl(var(--primary)/.11),transparent 70%);z-index:-1;pointer-events:none}
+.nx-operations .nx-page-header h1{font-size:clamp(1.5rem,2.25vw,2.1rem);letter-spacing:-.045em;font-weight:800;line-height:1.15;white-space:normal}
+.nx-operations .nx-page-header p{margin-top:.5rem;line-height:1.6;max-width:55ch}
+.nx-operations .nx-page-header button,.nx-operations .nx-page-header a{border-radius:.75rem;min-height:40px;font-weight:650}
+.nx-operations .nx-page-header button:not([data-variant]),.nx-operations .nx-page-header a{transition:transform .18s,box-shadow .18s}
+.nx-operations .nx-page-header button:hover,.nx-operations .nx-page-header a:hover{transform:translateY(-1px)}
+.nx-operations>div.grid>div{border-radius:1rem;border-color:hsl(var(--border)/.9);padding:1.15rem 1.3rem;box-shadow:0 12px 30px -24px #0a33267a;position:relative;overflow:hidden}
+.nx-operations>div.grid>div:before{content:"";position:absolute;left:0;top:15%;bottom:15%;width:3px;border-radius:5px;background:var(--nx-emerald);opacity:.85}
+.nx-operations>div.grid>div p:first-child{font-size:.68rem;letter-spacing:.09em;font-weight:750}
+.nx-operations>div.grid>div p.font-tabular{font-size:clamp(1.6rem,2vw,2.15rem);font-weight:800;letter-spacing:-.045em;margin-top:.35rem}
+.nx-operations .rounded-lg.border.bg-card{border-radius:1rem;box-shadow:0 10px 30px -28px #0a332699}
+.nx-operations input,.nx-operations [role=combobox]{border-radius:.7rem;min-height:39px}
+.nx-operations button{transition:background-color .16s,border-color .16s,transform .16s}
+.nx-operations [data-state=active]{font-weight:750}
+.nx-operations table{border-collapse:separate;border-spacing:0}
+.nx-operations thead{background:hsl(var(--muted)/.58)}
+.nx-operations th{font-size:.68rem;letter-spacing:.055em;text-transform:uppercase;font-weight:750;color:hsl(var(--muted-foreground));height:45px}
+.nx-operations tbody tr{transition:background .15s}
+.nx-operations tbody tr:hover{background:hsl(var(--primary)/.045)}
+.nx-operations td{padding-top:.9rem;padding-bottom:.9rem}
+.nx-operations .rounded-full{letter-spacing:.01em}
+@media(max-width:640px){.nx-operations .nx-page-header{padding:1.15rem;border-radius:1rem}.nx-operations .nx-page-header>div:last-child{width:100%}.nx-operations .nx-page-header>div:last-child>div{width:100%}.nx-operations .nx-page-header>div:last-child button,.nx-operations .nx-page-header>div:last-child a{flex:1;justify-content:center}.nx-operations>div.grid>div{padding:1rem}}
+@media(prefers-reduced-motion:reduce){.nx-operations button,.nx-operations tbody tr{transition:none!important}}
+
+/* Nexora fase 4: superficies administrativas y garantías; no altera comportamiento. */
+.nx-management{max-width:1700px;margin-inline:auto;padding-bottom:2rem}
+.nx-management .nx-page-header{position:relative;overflow:hidden;border:1px solid hsl(var(--primary)/.16);border-radius:1.15rem;padding:1.4rem 1.6rem;background:linear-gradient(115deg,hsl(var(--card)) 20%,hsl(var(--primary)/.075));box-shadow:0 14px 36px -30px #0a3326a0}
+.nx-management .nx-page-header:after{content:"";position:absolute;right:6%;top:-65px;width:190px;height:190px;border-radius:50%;background:radial-gradient(circle,hsl(var(--primary)/.13),transparent 70%);pointer-events:none}
+.nx-management .nx-page-header h1{font-size:clamp(1.55rem,2.3vw,2.15rem);font-weight:800;letter-spacing:-.045em;line-height:1.18}
+.nx-management .nx-page-header p{line-height:1.55;margin-top:.4rem}
+.nx-management [role=tablist]{border:1px solid hsl(var(--border));background:hsl(var(--card));border-radius:.95rem;padding:.4rem;box-shadow:0 10px 25px -25px #0a3326a0}
+.nx-management [role=tab]{border-radius:.7rem;font-weight:650;transition:background .16s,color .16s,box-shadow .16s}
+.nx-management [role=tab][data-state=active]{box-shadow:0 5px 14px -10px #103b2d}
+.nx-management [role=tabpanel]>.rounded-lg,.nx-management [role=tabpanel]>.border{border-radius:1rem}
+.nx-management .rounded-lg.border.bg-card,.nx-management .rounded-lg.border{border-radius:.95rem}
+.nx-management input,.nx-management textarea,.nx-management [role=combobox]{border-radius:.7rem}
+.nx-management table{border-collapse:separate;border-spacing:0}
+.nx-management thead{background:hsl(var(--muted)/.55)}
+.nx-management th{font-size:.69rem;font-weight:750;letter-spacing:.045em;text-transform:uppercase;color:hsl(var(--muted-foreground))}
+.nx-management tbody tr{transition:background-color .15s}
+.nx-management tbody tr:hover{background:hsl(var(--primary)/.045)}
+.nx-management button{transition:background-color .15s,border-color .15s,transform .15s}
+.nx-management button:focus-visible{outline:2px solid hsl(var(--ring));outline-offset:2px}
+.nx-warranties>.flex.flex-wrap.gap-2{border-radius:1rem;padding:.7rem;gap:.45rem;background:hsl(var(--card))}
+.nx-warranties>.flex.flex-wrap.gap-2 button{border-radius:.7rem}
+.nx-admin [role=tablist]{width:fit-content;max-width:100%}
+@media(max-width:640px){.nx-management .nx-page-header{padding:1.1rem}.nx-management [role=tablist]{width:100%;display:flex;overflow-x:auto;flex-wrap:nowrap;justify-content:flex-start}.nx-management [role=tab]{flex-shrink:0}.nx-warranties>.flex.flex-wrap.gap-2{padding:.55rem}}
+@media(prefers-reduced-motion:reduce){.nx-management button,.nx-management tbody tr,.nx-management [role=tab]{transition:none!important}}
+
+
+/* NEXORA FASE 5 — acabado transversal, accesibilidad y responsive. */
+@layer base {
+  body { min-width:320px; background-image:radial-gradient(ellipse 70% 35% at 95% 0%,hsl(var(--primary)/.045),transparent 75%); }
+  h1,h2,h3 { text-wrap:balance; }
+  input,textarea,select { accent-color:hsl(var(--primary)); }
+  input::placeholder,textarea::placeholder { color:hsl(var(--muted-foreground)/.78); }
+  ::selection { background:hsl(var(--primary)/.2); color:hsl(var(--foreground)); }
+}
+@layer components {
+  .nx-operations,.nx-management { animation:nx-enter .3s ease-out both; }
+  .nx-operations .nx-page-header,.nx-management .nx-page-header { backdrop-filter:blur(8px); }
+  .nx-operations table,.nx-management table { font-variant-numeric:tabular-nums; }
+  .nx-operations td,.nx-management td { vertical-align:middle; }
+  .nx-operations :is(button,a,[role=tab]),.nx-management :is(button,a,[role=tab]) { -webkit-tap-highlight-color:transparent; }
+  .nx-operations :is(button,a,[role=tab]):focus-visible,.nx-management :is(button,a,[role=tab]):focus-visible { outline:2px solid hsl(var(--ring));outline-offset:3px; }
+  .nx-operations :is(input,textarea,[role=combobox]):focus-visible,.nx-management :is(input,textarea,[role=combobox]):focus-visible { box-shadow:0 0 0 3px hsl(var(--ring)/.13); }
+  .nx-operations :is(button,[role=tab]):disabled,.nx-management :is(button,[role=tab]):disabled { cursor:not-allowed;transform:none; }
+  .nx-operations :is(.rounded-lg.border.bg-card,.nx-page-header),.nx-management :is(.rounded-lg.border.bg-card,.nx-page-header) { transition:border-color .2s,box-shadow .2s; }
+  .nx-operations .rounded-lg.border.bg-card:hover,.nx-management .rounded-lg.border.bg-card:hover { border-color:hsl(var(--primary)/.25); }
+}
+@keyframes nx-enter { from { opacity:.7;transform:translateY(5px); } to { opacity:1;transform:translateY(0); } }
+@media (max-width:768px) {
+  .nx-operations,.nx-management { min-width:0; }
+  .nx-operations .nx-page-header,.nx-management .nx-page-header { padding:1rem; }
+  .nx-operations :is(table),.nx-management :is(table) { white-space:nowrap; }
+  .nx-operations :is(input,[role=combobox]),.nx-management :is(input,[role=combobox]) { max-width:100%; }
+}
+@media (prefers-reduced-motion:reduce) {
+  .nx-operations,.nx-management { animation:none!important; }
+  .nx-operations *, .nx-management * { scroll-behavior:auto!important; }
+}
