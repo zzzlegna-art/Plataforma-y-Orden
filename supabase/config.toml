@@ -1,0 +1,4 @@
+project_id = "kiizldurgjtorxpzebpm"
+
+[functions.bodega-gestion-usuarios]
+verify_jwt = true
