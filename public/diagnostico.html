@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex" />
+  <title>Diagnóstico de instalación</title>
+  <link rel="manifest" href="/manifest.webmanifest" />
+  <meta name="theme-color" content="#F2802B" />
+  <style>
+    :root { color-scheme: dark; }
+    * { box-sizing: border-box; }
+    body { margin: 0; padding: 20px 16px 48px; background: #0e0c0a; color: #f3efe9;
+      font: 15px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+    h1 { font-size: 20px; margin: 0 0 4px; }
+    p.sub { margin: 0 0 16px; color: #a9a29a; font-size: 13px; }
+    .fila { display: flex; gap: 10px; padding: 10px 12px; margin-bottom: 8px; border-radius: 10px;
+      background: #1a1714; border: 1px solid #2a2622; }
+    .icono { flex: none; width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center;
+      font-size: 13px; font-weight: 700; color: #0e0c0a; }
+    .ok .icono { background: #4cc38a; } .fail .icono { background: #ff6b6b; }
+    .warn .icono { background: #f5c451; } .info .icono { background: #7aa2ff; }
+    .titulo { font-weight: 600; }
+    .detalle { color: #b9b2a9; font-size: 13px; word-break: break-word; }
+    .resumen { margin: 16px 0; padding: 14px; border-radius: 12px; border: 1px solid #f2802b; background: #241a12; }
+    .resumen h2 { margin: 0 0 6px; font-size: 16px; }
+    .resumen ul { margin: 6px 0 0; padding-left: 18px; }
+    button { width: 100%; margin-top: 10px; padding: 13px; border: 0; border-radius: 10px; font: inherit;
+      font-weight: 600; color: #0e0c0a; background: #f2802b; }
+    button.sec { background: #2a2622; color: #f3efe9; }
+    button[disabled] { opacity: .45; }
+    .oculto { display: none; }
+  </style>
+</head>
+<body>
+  <h1>Diagnóstico de instalación</h1>
+  <p class="sub">Revisa por qué el navegador ofrece (o no) instalar la app. Espera unos segundos a que termine.</p>
+
+  <div id="resultados"></div>
+  <div id="resumen" class="resumen oculto"></div>
+
+  <button id="btnInstalar" class="oculto">Instalar ahora</button>
+  <button id="btnCopiar" class="sec">Copiar resultados</button>
+
+<script>
+  var contenedor = document.getElementById("resultados");
+  var lineas = [];
+  var estadoGlobal = { manifest: false, iconos: false, sw: false, evento: false };
+  var eventoInstalar = null;
+
+  function fila(tipo, titulo, detalle) {
+    var marca = { ok: "✓", fail: "✕", warn: "!", info: "i" }[tipo];
+    var div = document.createElement("div");
+    div.className = "fila " + tipo;
+    div.innerHTML = '<div class="icono">' + marca + '</div><div><div class="titulo"></div><div class="detalle"></div></div>';
+    div.querySelector(".titulo").textContent = titulo;
+    div.querySelector(".detalle").textContent = detalle || "";
+    contenedor.appendChild(div);
+    lineas.push("[" + marca + "] " + titulo + (detalle ? " — " + detalle : ""));
+  }
+
+  // El evento se escucha desde el inicio para no perderlo.
+  window.addEventListener("beforeinstallprompt", function (e) {
+    e.preventDefault();
+    eventoInstalar = e;
+    estadoGlobal.evento = true;
+    var b = document.getElementById("btnInstalar");
+    b.classList.remove("oculto");
+  });
+
+  document.getElementById("btnInstalar").addEventListener("click", async function () {
+    if (!eventoInstalar) return;
+    eventoInstalar.prompt();
+    var r = await eventoInstalar.userChoice;
+    fila(r.outcome === "accepted" ? "ok" : "warn", "Resultado de la instalación", r.outcome);
+  });
+
+  document.getElementById("btnCopiar").addEventListener("click", async function () {
+    try {
+      await navigator.clipboard.writeText(lineas.join("\n"));
+      this.textContent = "Copiado ✓";
+    } catch (e) {
+      this.textContent = "No se pudo copiar: haz una captura de pantalla";
+    }
+  });
+
+  function esperar(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
+
+  async function verificarIconos(manifest, base) {
+    var tiene192 = false, tiene512 = false, todosBien = true;
+    var iconos = manifest.icons || [];
+    for (var i = 0; i < iconos.length; i++) {
+      var ic = iconos[i];
+      try {
+        var url = new URL(ic.src, base).href;
+        var res = await fetch(url, { cache: "no-store" });
+        var tipo = res.headers.get("content-type") || "";
+        if (!res.ok || tipo.indexOf("image/") !== 0) {
+          todosBien = false;
+          fila("fail", "Icono " + ic.sizes + " (" + (ic.purpose || "any") + ")", "Respuesta " + res.status + " · " + tipo);
+          continue;
+        }
+        var bmp = await createImageBitmap(await res.blob());
+        var real = bmp.width + "x" + bmp.height;
+        var coincide = real === ic.sizes;
+        if (!coincide) todosBien = false;
+        fila(coincide ? "ok" : "warn", "Icono " + ic.sizes + " (" + (ic.purpose || "any") + ")",
+          "Tamaño real " + real + " · " + tipo);
+        if (ic.sizes === "192x192" && real === "192x192") tiene192 = true;
+        if (ic.sizes === "512x512" && real === "512x512") tiene512 = true;
+      } catch (e) {
+        todosBien = false;
+        fila("fail", "Icono " + ic.src, String(e));
+      }
+    }
+    estadoGlobal.iconos = todosBien && tiene192 && tiene512;
+    if (!tiene192 || !tiene512) fila("fail", "Iconos requeridos", "Faltan iconos PNG de 192x192 y 512x512 válidos");
+  }
+
+  async function ejecutar() {
+    fila("info", "Dirección", location.origin);
+    fila(window.isSecureContext ? "ok" : "fail", "Conexión segura (HTTPS)", String(window.isSecureContext));
+
+    var ua = navigator.userAgent;
+    fila("info", "Navegador", ua);
+    try {
+      if (navigator.userAgentData && navigator.userAgentData.getHighEntropyValues) {
+        var d = await navigator.userAgentData.getHighEntropyValues(["model", "platformVersion", "fullVersionList"]);
+        var chrome = (d.fullVersionList || []).filter(function (b) { return /chrome/i.test(b.brand); })[0];
+        fila("info", "Equipo", (d.model || "modelo no visible") + " · Android " + (d.platformVersion || "?") +
+          (chrome ? " · Chrome " + chrome.version : ""));
+      }
+    } catch (e) { /* no disponible */ }
+
+    var standalone = window.matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
+    fila(standalone ? "warn" : "info", "Modo de la ventana",
+      standalone ? "Abierta como app instalada (ya está instalada)" : "Pestaña normal del navegador");
+
+    // Manifest
+    var link = document.querySelector('link[rel="manifest"]');
+    var manifest = null;
+    if (!link) {
+      fila("fail", "Manifest", "La página no enlaza ningún manifest");
+    } else {
+      try {
+        var res = await fetch(link.href, { cache: "no-store" });
+        var tipo = res.headers.get("content-type") || "";
+        if (!res.ok) throw new Error("Respuesta " + res.status);
+        manifest = await res.json();
+        fila("ok", "Manifest cargado", tipo);
+        var okDisplay = ["standalone", "fullscreen", "minimal-ui"].indexOf(manifest.display) >= 0;
+        fila(manifest.name || manifest.short_name ? "ok" : "fail", "Nombre", manifest.name || manifest.short_name || "sin nombre");
+        fila(manifest.start_url ? "ok" : "fail", "start_url", manifest.start_url || "falta");
+        fila(okDisplay ? "ok" : "fail", "display", manifest.display || "falta");
+        fila(manifest.id ? "ok" : "warn", "id de la app", manifest.id || "falta (recomendado)");
+        estadoGlobal.manifest = Boolean(manifest.name || manifest.short_name) && Boolean(manifest.start_url) && okDisplay;
+        await verificarIconos(manifest, link.href);
+      } catch (e) {
+        fila("fail", "Manifest", String(e));
+      }
+    }
+
+    // Service worker
+    if (!("serviceWorker" in navigator)) {
+      fila("fail", "Service worker", "Este navegador no lo soporta");
+    } else {
+      try {
+        var reg = await navigator.serviceWorker.register("/sw.js");
+        await navigator.serviceWorker.ready;
+        var activo = reg.active ? reg.active.state : "sin activar";
+        fila(reg.active ? "ok" : "warn", "Service worker registrado", "Estado: " + activo + " · alcance " + reg.scope);
+        var texto = await (await fetch("/sw.js", { cache: "no-store" })).text();
+        var tieneFetch = /addEventListener\(\s*["']fetch["']/.test(texto);
+        fila(tieneFetch ? "ok" : "fail", "Manejador «fetch» en sw.js", tieneFetch ? "presente" : "falta");
+        estadoGlobal.sw = Boolean(reg.active) && tieneFetch;
+      } catch (e) {
+        fila("fail", "Service worker", String(e));
+      }
+    }
+
+    // Señal de instalación de Chrome
+    fila("info", "Esperando la señal de instalación…", "Hasta 15 segundos");
+    for (var i = 0; i < 30 && !estadoGlobal.evento; i++) await esperar(500);
+    fila(estadoGlobal.evento ? "ok" : "warn", "Señal de instalación del navegador",
+      estadoGlobal.evento ? "Recibida: puedes instalar con el botón de abajo" : "No llegó");
+
+    resumen(standalone);
+  }
+
+  function resumen(standalone) {
+    var caja = document.getElementById("resumen");
+    caja.classList.remove("oculto");
+    var todoOk = estadoGlobal.manifest && estadoGlobal.iconos && estadoGlobal.sw;
+    var html;
+    if (estadoGlobal.evento) {
+      html = "<h2>Todo bien: se puede instalar</h2><p>Toca «Instalar ahora» aquí abajo.</p>";
+    } else if (standalone) {
+      html = "<h2>La app ya está instalada</h2><p>Estás dentro de la app instalada, por eso el navegador no ofrece instalar de nuevo.</p>";
+    } else if (todoOk) {
+      html = "<h2>La página cumple todo, pero este navegador no ofrece instalar</h2>" +
+        "<p>Ya no falta nada de la página: el límite está en el teléfono o en el navegador. Prueba, en este orden:</p><ul>" +
+        "<li>Actualiza Chrome y «Google Play Services» desde Play Store.</li>" +
+        "<li>Reinicia el teléfono.</li>" +
+        "<li>Chrome → ⋮ → Configuración → Configuración de sitios → Todos los sitios → borrar datos de este sitio, y vuelve a abrir esta página.</li>" +
+        "<li>Comprueba que la app no esté ya instalada (búscala en el cajón de aplicaciones).</li>" +
+        "<li>Si nada funciona: el teléfono no permite que Chrome cree la app. Envíame estos resultados y buscamos otra vía (por ejemplo un APK).</li></ul>";
+    } else {
+      html = "<h2>Hay algo en la página que impide instalar</h2><p>Mira las filas con ✕ o ! arriba: esas son las que hay que corregir. Envíame los resultados.</p>";
+    }
+    caja.innerHTML = html;
+    lineas.push("RESUMEN: " + caja.textContent);
+  }
+
+  ejecutar();
+</script>
+</body>
+</html>
