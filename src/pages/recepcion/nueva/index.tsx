@@ -1,0 +1,607 @@
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useTranslation } from "react-i18next";
+import { ArrowLeft, Boxes, Check, ClipboardList, Info, PackagePlus, Plus, Power, ScanLine, Trash2 } from "lucide-react";
+import { Link, useNavigate, useParams } from "react-router-dom";
+
+import { ProductPicker } from "@/components/shared/product-picker";
+import { SerialScanInput } from "@/components/shared/serial-scan-input";
+import { EmptyState } from "@/components/shared/empty-state";
+import { ConfirmDialog } from "@/components/shared/confirm-dialog";
+import { PageHeader } from "@/components/shared/page-header";
+import { Badge, ConditionBadge } from "@/components/shared/status-badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { useRunAction } from "@/hooks/use-run-action";
+import { useStore } from "@/hooks/use-store";
+import {
+  addReceptionItem,
+  confirmReception,
+  createReception,
+  discardReception,
+  removeReceptionItem,
+  updateReception,
+  updateReceptionItem,
+} from "@/lib/actions/receptions";
+import { todayIso } from "@/lib/format";
+import { errorDeSerialCelular, esCodigoInterno, generarCodigoInterno } from "@/lib/imei";
+import { esProductoRepuesto, etiquetaTipoProducto, tiposProductoOrdenados } from "@/lib/products";
+import type { Product, ProductCategory, UnitCondition } from "@/lib/types";
+import { ReceptionItemChip } from "./ReceptionItemChip";
+
+/**
+ * Captura de una recepción: se elige producto y condición y cada lectura agrega
+ * un serial/IMEI. La recepción se crea en la primera lectura y se confirma al final.
+ */
+/** Ícono dentro de un cuadro de color, para los títulos de cada sección. */
+const IconoSeccion = ({ children }: { children: ReactNode }) => (
+  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary [&>svg]:h-4 [&>svg]:w-4">
+    {children}
+  </span>
+);
+
+const NuevaRecepcion = () => {
+  const { t } = useTranslation();
+  const { db } = useStore();
+  const runAction = useRunAction();
+  const navigate = useNavigate();
+  const { receptionId: routeId } = useParams();
+
+  const [receptionId, setReceptionId] = useState<string | null>(routeId ?? null);
+  const [productId, setProductId] = useState("");
+  const [catFilter, setCatFilter] = useState<"" | ProductCategory>("");
+  const categoriaFiltros = useMemo(
+    () => [
+      { value: "" as const, label: t("common.all") },
+      ...tiposProductoOrdenados(db).map((tipo) => ({ value: tipo.key, label: etiquetaTipoProducto(t, tipo) })),
+    ],
+    [db, t],
+  );
+  const [condition, setCondition] = useState<UnitCondition>("nuevo");
+  const [cost, setCost] = useState("");
+  const [repuestoQty, setRepuestoQty] = useState("1");
+  const [reference, setReference] = useState("");
+  const [receivedAt, setReceivedAt] = useState(todayIso());
+  const [notes, setNotes] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const busyRef = useRef(false);
+
+  const reception = useMemo(
+    () => db.receptions.find((item) => item.id === receptionId),
+    [db.receptions, receptionId],
+  );
+
+  // Al continuar una recepción en captura se cargan sus datos en el formulario.
+  useEffect(() => {
+    if (!reception) return;
+    setReference(reception.reference ?? "");
+    setReceivedAt(reception.receivedAt.slice(0, 10));
+    setNotes(reception.notes ?? "");
+  }, [reception?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const items = useMemo(
+    () => db.receptionItems.filter((item) => item.receptionId === receptionId),
+    [db.receptionItems, receptionId],
+  );
+  const products = db.products.filter((product) => product.isActive);
+  const productosFiltrados = products.filter((product) => {
+    if (!catFilter) return true;
+    if (catFilter === "repuesto") return esProductoRepuesto(db, product);
+    return product.categoria === catFilter;
+  });
+  const selectedProduct = products.find((product) => product.id === productId);
+  const esRepuesto = esProductoRepuesto(db, selectedProduct);
+  const newCount = items.filter((item) => item.condition === "nuevo").length;
+  const usedCount = items.length - newCount;
+  const confirmed = reception?.status === "confirmada";
+
+  /** Al cambiar de categoría se limpia el producto si ya no aplica al filtro. */
+  const cambiarCategoria = (value: "" | ProductCategory) => {
+    setCatFilter(value);
+    if (!value || !selectedProduct) return;
+    const sigueVisible =
+      value === "repuesto"
+        ? esProductoRepuesto(db, selectedProduct)
+        : selectedProduct.categoria === value;
+    if (!sigueVisible) setProductId("");
+  };
+
+  const persistHeader = async () => {
+    if (!receptionId) return;
+    await runAction((db2, actor) =>
+      updateReception(db2, actor, {
+        id: receptionId,
+        reference,
+        receivedAt: `${receivedAt}T09:00:00.000Z`,
+        notes,
+      }),
+    );
+  };
+
+  /**
+   * Evita dobles ejecuciones (doble clic o lecturas muy seguidas): mientras una
+   * operación está en curso, las demás se ignoran.
+   */
+  const runExclusivo = async (fn: () => Promise<void>) => {
+    if (busyRef.current) return;
+    busyRef.current = true;
+    setBusy(true);
+    try {
+      await fn();
+    } finally {
+      busyRef.current = false;
+      setBusy(false);
+    }
+  };
+
+  const handleScan = (serial: string) =>
+    runExclusivo(async () => {
+      if (!productId) return;
+      if (receptionId && confirmed) return;
+      let targetId = receptionId;
+      if (!targetId) {
+        const created = await runAction((db2, actor) =>
+          createReception(db2, actor, {
+            reference,
+            receivedAt: `${receivedAt}T09:00:00.000Z`,
+            notes,
+          }),
+        );
+        if (!created) return;
+        targetId = created.id;
+        setReceptionId(created.id);
+      }
+      const result = await runAction((db2, actor) =>
+        addReceptionItem(db2, actor, {
+          receptionId: targetId as string,
+          productId,
+          serial,
+          condition,
+          cost: cost ? Number(cost) : undefined,
+        }),
+      );
+      if (result) setCost("");
+    });
+
+  /**
+   * Celular recibido apagado: no se puede leer el IMEI todavía. Se registra con un
+   * serial temporal (prefijo "PEND-") para no perder el conteo, y se completa después
+   * editando la unidad (aquí mismo o desde Inventario) cuando se encienda.
+   */
+  const handleAgregarSinSerie = () => {
+    const codigo = generarCodigoInterno(
+      (serial) =>
+        db.units.some((unit) => unit.serial === serial) ||
+        items.some((item) => item.serial === serial),
+    );
+    return handleScan(codigo);
+  };
+
+  /** Los repuestos entran por cantidad: se genera un serial interno por unidad. */
+  const handleAgregarRepuesto = () =>
+    runExclusivo(async () => {
+      if (!productId) return;
+      if (receptionId && confirmed) return;
+      const quantity = Math.min(Math.max(Math.trunc(Number(repuestoQty) || 1), 1), 500);
+      let targetId = receptionId;
+      if (!targetId) {
+        const created = await runAction((db2, actor) =>
+          createReception(db2, actor, {
+            reference,
+            receivedAt: `${receivedAt}T09:00:00.000Z`,
+            notes,
+          }),
+        );
+        if (!created) return;
+        targetId = created.id;
+        setReceptionId(created.id);
+      }
+      const result = await runAction((db2, actor) =>
+        addReceptionItem(db2, actor, {
+          receptionId: targetId as string,
+          productId,
+          condition,
+          cost: cost ? Number(cost) : undefined,
+          quantity,
+        }),
+      );
+      if (result) {
+        setCost("");
+        setRepuestoQty("1");
+      }
+    });
+
+  const handleConfirm = () =>
+    runExclusivo(async () => {
+      if (!receptionId) return;
+      setSaving(true);
+      const result = await runAction(
+        (db2, actor) => confirmReception(db2, actor, { id: receptionId }),
+        { success: "receptions.confirmed" },
+      );
+      setSaving(false);
+      if (result) navigate("/recepcion");
+    });
+
+  const handleDiscard = () =>
+    runExclusivo(async () => {
+      if (!receptionId) {
+        navigate("/recepcion");
+        return;
+      }
+      const result = await runAction(
+        (db2, actor) => discardReception(db2, actor, { id: receptionId }),
+        { success: "receptions.discarded" },
+      );
+      if (result !== null) navigate("/recepcion");
+    });
+
+  /** Acciones de cierre: en escritorio van en el encabezado, en móvil en la barra inferior. */
+  const actionButtons = (
+    <>
+      <ConfirmDialog
+        trigger={
+          <Button variant="outline" type="button">
+            <Trash2 />
+            <span className="hidden sm:inline">{t("receptions.discard")}</span>
+          </Button>
+        }
+        title={t("receptions.discardTitle")}
+        description={t("receptions.discardDescription")}
+        confirmLabel={t("receptions.discard")}
+        destructive
+        onConfirm={handleDiscard}
+      />
+      <Button
+        type="button"
+        disabled={items.length === 0 || saving || busy}
+        onClick={() => void handleConfirm()}
+      >
+        <Check />
+        {t("receptions.confirm")}
+      </Button>
+    </>
+  );
+
+  // Las unidades se agrupan por referencia y condición, en el orden en que se fueron capturando.
+  const grupos = useMemo(() => {
+    const mapa = new Map<
+      string,
+      { clave: string; product?: Product; esRepuesto: boolean; condition: UnitCondition; items: typeof items }
+    >();
+    for (const item of items) {
+      const product = db.products.find((p) => p.id === item.productId);
+      const esRepuesto = product?.categoria === "repuesto";
+      const clave = `${item.productId}|${esRepuesto ? "" : item.condition}`;
+      const grupo = mapa.get(clave);
+      if (grupo) grupo.items.push(item);
+      else mapa.set(clave, { clave, product, esRepuesto, condition: item.condition, items: [item] });
+    }
+    return [...mapa.values()];
+  }, [items, db.products]);
+
+  // Cuando se agrega una unidad, la lista se desplaza hasta la última capturada.
+  const listaRef = useRef<HTMLDivElement>(null);
+  const cantidadAnterior = useRef(items.length);
+  useEffect(() => {
+    if (items.length > cantidadAnterior.current) {
+      const ultima = items[items.length - 1];
+      listaRef.current
+        ?.querySelector(`[data-item-id="${ultima?.id}"]`)
+        ?.scrollIntoView?.({ block: "nearest", behavior: "smooth" });
+    }
+    cantidadAnterior.current = items.length;
+  }, [items.length]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  return (
+    <div className="flex flex-1 flex-col gap-5 animate-fade-in">
+      <PageHeader
+        title={
+          <span className="flex items-center gap-2">
+            <Button variant="ghost" size="icon" className="lg:hidden" asChild>
+              <Link to="/recepcion" aria-label={t("common.back")}>
+                <ArrowLeft />
+              </Link>
+            </Button>
+            {reception ? (
+              <span className="font-tabular">{reception.code}</span>
+            ) : (
+              t("receptions.new")
+            )}
+          </span>
+        }
+        description={t("receptions.captureSubtitle")}
+        actions={
+          <div className="flex flex-wrap items-center gap-2">
+            {reception ? (
+              <Badge
+                tone={confirmed ? "success" : "info"}
+                label={t(`receptionStatus.${confirmed ? "confirmada" : "captura"}`)}
+              />
+            ) : null}
+            {!confirmed ? (
+              <div className="hidden gap-2 lg:flex">{actionButtons}</div>
+            ) : null}
+          </div>
+        }
+      />
+
+      <div className="grid gap-4 lg:grid-cols-[22rem_minmax(0,1fr)] lg:items-start">
+        <div className="flex flex-col gap-4">
+          <section className="order-2 space-y-3 rounded-lg border bg-card p-4 shadow-sm lg:order-1">
+            <h3 className="flex items-center gap-2 text-sm font-semibold">
+              <IconoSeccion>
+                <ClipboardList />
+              </IconoSeccion>
+              {t("receptions.headerTitle")}
+            </h3>
+            <div className="space-y-2">
+              <Label htmlFor="reference">{t("receptions.reference")}</Label>
+              <Input
+                id="reference"
+                value={reference}
+                disabled={confirmed}
+                placeholder="REM-4471"
+                onChange={(event) => setReference(event.target.value)}
+                onBlur={() => void persistHeader()}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="receivedAt">{t("receptions.receivedAt")}</Label>
+              <Input
+                id="receivedAt"
+                type="date"
+                value={receivedAt}
+                disabled={confirmed}
+                onChange={(event) => setReceivedAt(event.target.value)}
+                onBlur={() => void persistHeader()}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="notes">{t("common.notes")}</Label>
+              <Textarea
+                id="notes"
+                rows={2}
+                value={notes}
+                disabled={confirmed}
+                onChange={(event) => setNotes(event.target.value)}
+                onBlur={() => void persistHeader()}
+              />
+            </div>
+          </section>
+
+          <section className="order-1 space-y-4 rounded-lg border bg-card p-4 shadow-sm lg:order-2">
+            <h3 className="flex items-center gap-2 text-sm font-semibold">
+              <IconoSeccion>
+                <ScanLine />
+              </IconoSeccion>
+              {t("receptions.captureTitle")}
+            </h3>
+
+            <div className="space-y-2">
+              <Label className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                {t("receptions.categoryTitle")}
+              </Label>
+              <div className="flex flex-wrap gap-2">
+                {categoriaFiltros.map((option) => (
+                  <Button
+                    key={option.value || "all"}
+                    type="button"
+                    size="sm"
+                    variant={catFilter === option.value ? "default" : "outline"}
+                    disabled={confirmed}
+                    onClick={() => cambiarCategoria(option.value)}
+                  >
+                    {option.label}
+                  </Button>
+                ))}
+              </div>
+            </div>
+
+            {!esRepuesto ? (
+              <div className="space-y-2">
+                <Label className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                  {t("receptions.conditionTitle")}
+                </Label>
+                <ToggleGroup
+                  type="single"
+                  value={condition}
+                  onValueChange={(value) => value && setCondition(value as UnitCondition)}
+                  className="justify-start"
+                >
+                  <ToggleGroupItem value="nuevo" className="flex-1" disabled={confirmed}>
+                    {t("condition.nuevo")}
+                  </ToggleGroupItem>
+                  <ToggleGroupItem value="seminuevo" className="flex-1" disabled={confirmed}>
+                    {t("condition.seminuevo")}
+                  </ToggleGroupItem>
+                </ToggleGroup>
+                <p className="text-xs text-muted-foreground">{t("receptions.conditionHint")}</p>
+              </div>
+            ) : null}
+
+            <div className="space-y-2">
+              <Label>{t("receptions.productModel")}</Label>
+              <ProductPicker
+                products={productosFiltrados}
+                value={productId}
+                onChange={setProductId}
+                placeholder={t("product.select")}
+              />
+              {productosFiltrados.length === 0 ? (
+                <p className="text-xs text-muted-foreground">
+                  {t("receptions.noProductsInCategory")}
+                </p>
+              ) : null}
+            </div>
+
+            {esRepuesto ? (
+              <div className="space-y-2">
+                <Label>{t("receptions.quantity")}</Label>
+                <div className="flex gap-2">
+                  <Input
+                    type="number"
+                    min={1}
+                    max={500}
+                    value={repuestoQty}
+                    disabled={confirmed || !productId}
+                    onChange={(event) => setRepuestoQty(event.target.value)}
+                    className="w-24"
+                    aria-label={t("receptions.quantity")}
+                  />
+                  <Button
+                    type="button"
+                    disabled={confirmed || !productId || busy}
+                    onClick={() => void handleAgregarRepuesto()}
+                  >
+                    <Plus />
+                    {t("receptions.addUnits")}
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <Label>{t("receptions.serialScan")}</Label>
+                <SerialScanInput
+                  stacked
+                  hidePhoto
+                  submitLabel={t("receptions.add")}
+                  onScan={handleScan}
+                  // Los celulares solo aceptan IMEI de 15 dígitos con dígito de control válido.
+                  validate={(serial) => {
+                    if (selectedProduct?.categoria !== "celular") return null;
+                    const errorImei = errorDeSerialCelular(serial);
+                    return errorImei ? t(errorImei) : null;
+                  }}
+                  disabled={confirmed || !productId || busy}
+                  placeholder={t("receptions.serialPlaceholder")}
+                  hint={productId ? undefined : t("receptions.selectProductFirst")}
+                />
+                {selectedProduct?.categoria === "celular" ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={confirmed || !productId || busy}
+                    onClick={() => void handleAgregarSinSerie()}
+                  >
+                    <Power />
+                    {t("receptions.addPendingImei")}
+                  </Button>
+                ) : null}
+              </div>
+            )}
+
+            <p className="border-t pt-3 text-xs text-muted-foreground">
+              {t(esRepuesto ? "receptions.repuestoHint" : "receptions.serialNote")}
+            </p>
+          </section>
+        </div>
+
+        <section className="flex flex-col overflow-hidden rounded-lg border bg-card shadow-sm lg:sticky lg:top-20 lg:max-h-[calc(100vh-7rem)]">
+          <div className="flex shrink-0 items-center justify-between gap-3 border-b px-4 py-3">
+            <div className="flex min-w-0 items-center gap-3">
+              <IconoSeccion>
+                <Boxes />
+              </IconoSeccion>
+              <div className="min-w-0">
+                <h3 className="text-sm font-semibold">{t("receptions.itemsTitle")}</h3>
+                <p className="truncate text-xs text-muted-foreground">
+                  {t("receptions.itemsSummary", { total: items.length, nuevo: newCount, seminuevo: usedCount })}
+                </p>
+              </div>
+            </div>
+            <Badge tone="primary" label={t("receptions.itemsCount", { count: items.length })} />
+          </div>
+
+          {items.length === 0 ? (
+            <div className="p-4">
+              <EmptyState
+                icon={PackagePlus}
+                title={t("receptions.noItemsTitle")}
+                description={t("receptions.noItemsDescription")}
+                className="border-0 bg-transparent"
+              />
+            </div>
+          ) : (
+            <>
+              <div ref={listaRef} className="min-h-0 flex-1 space-y-5 overflow-y-auto p-4">
+                {grupos.map((grupo) => (
+                  <div key={grupo.clave}>
+                    <div className="mb-2 flex items-center justify-between gap-2">
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-medium">{grupo.product?.name ?? "—"}</p>
+                        <p className="font-tabular truncate text-xs text-muted-foreground">
+                          {grupo.product?.sku ?? ""}
+                        </p>
+                      </div>
+                      <div className="flex shrink-0 items-center gap-2">
+                        {grupo.esRepuesto ? null : <ConditionBadge condition={grupo.condition} />}
+                        <span className="font-tabular rounded-full bg-muted px-2 py-0.5 text-xs font-semibold">
+                          {grupo.items.length}
+                        </span>
+                      </div>
+                    </div>
+                    <ul className="grid grid-cols-[repeat(auto-fill,minmax(9.75rem,1fr))] gap-1.5">
+                      {grupo.items.map((item) => (
+                        <ReceptionItemChip
+                          key={item.id}
+                          item={item}
+                          product={grupo.product}
+                          readOnly={confirmed}
+                          onSerialChange={(serial) =>
+                            void runAction((db2, actor) =>
+                              updateReceptionItem(db2, actor, { id: item.id, serial }),
+                            )
+                          }
+                          onConditionChange={(next) =>
+                            void runAction((db2, actor) =>
+                              updateReceptionItem(db2, actor, { id: item.id, condition: next }),
+                            )
+                          }
+                          onRemove={() =>
+                            void runAction((db2, actor) =>
+                              removeReceptionItem(db2, actor, { id: item.id }),
+                            )
+                          }
+                        />
+                      ))}
+                    </ul>
+                  </div>
+                ))}
+              </div>
+              <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-t bg-muted/30 px-4 py-2.5 text-xs text-muted-foreground">
+                <span className="inline-flex items-center gap-2">
+                  <Info className="h-4 w-4 shrink-0" />
+                  {t("receptions.verifyHint")}
+                </span>
+                <span className="font-tabular font-medium text-foreground">
+                  {t("receptions.totalUnits", { count: items.length })}
+                </span>
+              </div>
+            </>
+          )}
+        </section>
+      </div>
+
+      {!confirmed ? (
+        <div className="fixed inset-x-0 bottom-[calc(4.5rem+env(safe-area-inset-bottom,0px))] z-30 mx-4 flex shrink-0 items-center justify-between gap-3 rounded-lg border bg-card/95 p-3 shadow-elegant backdrop-blur lg:hidden">
+          <div className="min-w-0 text-sm">
+            <p className="font-semibold">
+              {t("receptions.itemsCount", { count: items.length })}
+            </p>
+            <p className="truncate text-xs text-muted-foreground">
+              {t("receptions.itemsSummary", { total: items.length, nuevo: newCount, seminuevo: usedCount })}
+            </p>
+          </div>
+          <div className="flex shrink-0 gap-2">{actionButtons}</div>
+        </div>
+      ) : null}
+    </div>
+  );
+};
+
+export default NuevaRecepcion;
