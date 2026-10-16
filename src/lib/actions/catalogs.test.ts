@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { DomainError, emptyDb } from "../db";
 import type { Actor, Db } from "../types";
-import { createProductType, deleteProductType, updateProductType } from "./catalogs";
+import { createProduct, createProductType, deleteProductType, generarSkuProducto, updateProductType } from "./catalogs";
 
 const admin: Actor = { id: "u1", email: "a@x.com", fullName: "Admin", role: "admin" };
 const bodeguero: Actor = { id: "u2", email: "b@x.com", fullName: "Bodeguero", role: "bodeguero" };
@@ -104,5 +104,32 @@ describe("deleteProductType", () => {
       price: 1, cost: 1, minStock: 0, isActive: true, createdAt: now, updatedAt: now,
     });
     expect(() => deleteProductType(db, admin, { id: tipo.id })).toThrow(DomainError);
+  });
+});
+
+describe("SKU corta automática", () => {
+  it("abrevia modelos comunes y conserva la capacidad", () => {
+    const db = emptyDb();
+    expect(generarSkuProducto(db, "iPhone 13 128 GB")).toBe("IP13-128");
+    expect(generarSkuProducto(db, "Apple iPhone 14 Pro Max 256 GB")).toBe("IP14PM-256");
+    expect(generarSkuProducto(db, "Samsung Galaxy S24 Ultra 256 GB")).toBe("S24U-256");
+    expect(generarSkuProducto(db, "Samsung Galaxy A55 128GB")).toBe("A55-128");
+  });
+
+  it("mantiene el código corto y agrega sufijo si ya existe", () => {
+    const db = emptyDb();
+    db.products.push({
+      id: "p1", sku: "IP13-128", name: "iPhone 13 128 GB",
+      price: 1, cost: 1, minStock: 0, isActive: true, createdAt: now, updatedAt: now,
+    });
+    expect(generarSkuProducto(db, "iPhone 13 128 GB")).toBe("IP13-128-2");
+  });
+
+  it("al crear un producto genera SKU si se deja vacía", () => {
+    const db = emptyDb();
+    const created = createProduct(db, admin, {
+      name: "iPhone 13 128 GB", price: 1, cost: 1, minStock: 0,
+    });
+    expect(created.sku).toBe("IP13-128");
   });
 });
