@@ -4,34 +4,75 @@ import { createId, DomainError, logAudit, nowIso } from "../db";
 import type { Actor, Brand, Category, Db, Product, ProductCategory, ProductType, TipoRepuesto } from "../types";
 import { isSameText, requireNumber, requirePermission, requireText } from "./guards";
 
-/** Genera un SKU legible a partir de la referencia (nombre) si no se escribió uno. */
-const generarSku = (db: Db, name: string, ignoreId?: string) => {
-  const base =
-    name
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .toUpperCase()
-      .replace(/[^A-Z0-9\s]/g, " ")
-      // Junta un número con la unidad que sigue ("512 GB" -> "512GB") para no gastar un
-      // segmento (y un guion) completo solo en "GB"/"TB"/"MB".
-      .replace(/(\d+)\s+(GB|TB|MB)\b/g, "$1$2")
-      .split(/\s+/)
-      .filter(Boolean)
-      // 3 letras alcanzan para reconocer la palabra y el SKU queda bastante más corto que con 4.
-      // Los tokens con número (18, 512GB) no se recortan: cortarlos perdería información.
-      .map((word) => (/\d/.test(word) || word.length <= 3 ? word : word.slice(0, 3)))
-      .join("-")
-      .slice(0, 24) || "PROD";
+/**
+ * SKU corta: modelo abreviado + almacenamiento cuando aparece en el nombre.
+ * Ejemplos: "iPhone 13 128 GB" -> "IP13-128", "iPhone 14 Pro Max 256GB" -> "IP14PM-256",
+ * "Samsung Galaxy S24 Ultra 256 GB" -> "S24U-256". El IMEI sigue identificando cada unidad.
+ */
+export const generarSkuProducto = (db: Db, name: string, ignoreId?: string): string => {
+  const normalizado = name
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toUpperCase()
+    .replace(/[^A-Z0-9]+/g, " ")
+    .trim();
+  if (!normalizado) return "";
 
-  const taken = (sku: string) =>
-    db.products.some(
-      (product) => product.id !== ignoreId && product.sku.toUpperCase() === sku,
+  const capacidadMatch = normalizado.match(/\b(\d{1,4})\s*(GB|TB|MB)\b/);
+  const capacidad = capacidadMatch
+    ? capacidadMatch[1] + (capacidadMatch[2] === "TB" ? "T" : capacidadMatch[2] === "MB" ? "M" : "")
+    : "";
+  let modelo = "";
+
+  const iphone = normalizado.match(/\bIPHONE\s*(SE|\d{1,2})\b/);
+  if (iphone) {
+    modelo = "IP" + iphone[1];
+    if (/\bPRO\b/.test(normalizado)) modelo += /\bMAX\b/.test(normalizado) ? "PM" : "P";
+    else if (/\bMAX\b/.test(normalizado)) modelo += "M";
+    else if (/\bPLUS\b/.test(normalizado)) modelo += "PL";
+    else if (/\bMINI\b/.test(normalizado)) modelo += "MN";
+    else if (/\bAIR\b/.test(normalizado)) modelo += "A";
+  } else {
+    const galaxyZ = normalizado.match(/\bZ\s*(FOLD|FLIP)\s*(\d)\b/);
+    const galaxyS = normalizado.match(/\bS\s*(\d{1,2})\b/);
+    const galaxyA = normalizado.match(/\bA\s*(\d{1,2})\b/);
+    const pixel = normalizado.match(/\bPIXEL\s*(\d{1,2})\b/);
+    const redmiNote = normalizado.match(/\bNOTE\s*(\d{1,2})\b/);
+    if (galaxyZ) modelo = "Z" + (galaxyZ[1] === "FOLD" ? "F" : "FL") + galaxyZ[2];
+    else if (galaxyS) {
+      modelo = "S" + galaxyS[1];
+      if (/\bULTRA\b/.test(normalizado)) modelo += "U";
+      else if (/\bFE\b/.test(normalizado)) modelo += "FE";
+      else if (/\bPLUS\b/.test(normalizado)) modelo += "P";
+    } else if (galaxyA) modelo = "A" + galaxyA[1];
+    else if (pixel) {
+      modelo = "PX" + pixel[1];
+      if (/\bPRO\b/.test(normalizado)) modelo += "P";
+      if (/\bXL\b/.test(normalizado)) modelo += "XL";
+    } else if (redmiNote) {
+      modelo = "RN" + redmiNote[1];
+      if (/\bPRO\b/.test(normalizado)) modelo += "P";
+    }
+  }
+
+  if (!modelo) {
+    const sinCapacidad = normalizado.replace(/\b\d{1,4}\s*(GB|TB|MB)\b/g, " ");
+    const palabras = sinCapacidad.split(/\s+/).filter((palabra) =>
+      palabra && !["APPLE", "SAMSUNG", "GALAXY", "XIAOMI", "REDMI", "GOOGLE", "HUAWEI", "MOTOROLA", "OPPO", "VIVO", "REALME", "ONEPLUS"].includes(palabra)
     );
+    const conModelo = palabras.find((palabra) => /\d/.test(palabra));
+    const iniciales = palabras.filter((palabra) => palabra !== conModelo).slice(0, 2).map((palabra) => palabra.slice(0, 2)).join("");
+    modelo = (iniciales + (conModelo ?? "")).slice(0, 8) || palabras[0]?.slice(0, 4) || "PROD";
+  }
 
+  const base = (modelo + (capacidad ? "-" + capacidad : "")).slice(0, 12);
+  const taken = (sku: string) =>
+    db.products.some((product) => product.id !== ignoreId && product.sku.toUpperCase() === sku);
   if (!taken(base)) return base;
+
   let counter = 2;
-  while (taken(`${base}-${counter}`)) counter += 1;
-  return `${base}-${counter}`;
+  while (taken(base + "-" + counter)) counter += 1;
+  return base + "-" + counter;
 };
 
 /**
@@ -282,7 +323,7 @@ export interface ProductInput {
 export const createProduct = (db: Db, actor: Actor, input: ProductInput): Product => {
   requirePermission(actor, "inventory.manage");
   const name = requireText(input.name, "errors.productNameRequired");
-  const sku = (input.sku?.trim().toUpperCase() || generarSku(db, name)).slice(0, 40);
+  const sku = (input.sku?.trim().toUpperCase() || generarSkuProducto(db, name)).slice(0, 40);
   if (db.products.some((product) => product.sku.toUpperCase() === sku)) {
     throw new DomainError("errors.skuDuplicated");
   }
@@ -322,7 +363,7 @@ export const updateProduct = (
   const product = db.products.find((item) => item.id === input.id);
   if (!product) throw new DomainError("errors.notFound");
   const name = requireText(input.name, "errors.productNameRequired");
-  const sku = (input.sku?.trim().toUpperCase() || generarSku(db, name, product.id)).slice(0, 40);
+  const sku = (input.sku?.trim().toUpperCase() || generarSkuProducto(db, name, product.id)).slice(0, 40);
   if (
     db.products.some(
       (item) => item.id !== product.id && item.sku.toUpperCase() === sku,
