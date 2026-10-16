@@ -55,7 +55,7 @@ export const Topbar = ({ onOpenMenu }: { onOpenMenu: () => void }) => {
           : t("common.appName");
 
   return (
-    <header className="safe-top sticky top-0 z-30 flex min-h-16 items-center gap-3 border-b border-border/70 bg-background/90 px-5 shadow-sm backdrop-blur-xl lg:min-h-14">
+    <header className="safe-top sticky top-0 z-30 flex min-h-16 items-center gap-3 border-b border-border/70 bg-card/90 px-5 shadow-[0_8px_30px_-24px_rgba(16,31,32,.45)] backdrop-blur-xl lg:min-h-[66px] lg:px-8">
       <Button
         variant="ghost"
         size="icon"
@@ -66,7 +66,12 @@ export const Topbar = ({ onOpenMenu }: { onOpenMenu: () => void }) => {
         <Menu />
       </Button>
 
-      <div className="flex-1" />
+      <div className="flex min-w-0 flex-1 items-center">
+        <div className="hidden min-w-0 lg:block">
+          <p className="truncate text-[15px] font-bold tracking-[-0.01em] text-foreground">{title}</p>
+          <p className="mt-0.5 hidden xl:block text-[11px] text-muted-foreground">Centro de operaciones Nexora</p>
+        </div>
+      </div>
 
       <ThemeToggle />
 
