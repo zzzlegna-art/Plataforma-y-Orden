@@ -15,7 +15,7 @@ export const SidebarNav = ({ onNavigate }: { onNavigate?: () => void }) => {
   const items = NAV_ITEMS.filter((item) => can(item.permission));
 
   return (
-    <div className="safe-top flex h-full flex-col gap-6 bg-gradient-to-b from-[#101F20] via-[#142C29] to-[#101F20] p-5 text-sidebar-foreground">
+    <div className="safe-top flex h-full min-h-0 flex-col gap-6 overflow-y-auto bg-gradient-to-b from-[#101F20] via-[#142C29] to-[#101F20] p-5 text-sidebar-foreground">
       <div className="flex items-center gap-3 px-2 pt-1">
         <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#10B981] text-[#101F20] shadow-lg shadow-emerald-950/20" aria-hidden="true"><Boxes className="h-6 w-6" /></div>
         <div className="min-w-0">
