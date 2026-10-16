@@ -18,7 +18,7 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { useRunAction } from "@/hooks/use-run-action";
 import { useStore } from "@/hooks/use-store";
-import { createProduct, updateProduct } from "@/lib/actions/catalogs";
+import { createProduct, generarSkuProducto, updateProduct } from "@/lib/actions/catalogs";
 import { etiquetaTipoProducto, tiposProductoOrdenados } from "@/lib/products";
 import type { Product, ProductCategory } from "@/lib/types";
 
@@ -51,9 +51,11 @@ export const ProductFormDialog = ({
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
+  const [skuManual, setSkuManual] = useState(Boolean(product));
 
   useEffect(() => {
     if (!open) return;
+    setSkuManual(Boolean(product));
     setForm(
       product
         ? {
@@ -116,7 +118,10 @@ export const ProductFormDialog = ({
               id="sku"
               value={form.sku}
               placeholder={t("product.skuPlaceholder")}
-              onChange={(event) => setForm({ ...form, sku: event.target.value })}
+              onChange={(event) => {
+                setSkuManual(true);
+                setForm({ ...form, sku: event.target.value.toUpperCase() });
+              }}
             />
             <p className="text-xs text-muted-foreground">{t("product.skuHint")}</p>
           </div>
@@ -126,7 +131,14 @@ export const ProductFormDialog = ({
               id="name"
               value={form.name}
               placeholder="iPhone 13 128 GB"
-              onChange={(event) => setForm({ ...form, name: event.target.value })}
+              onChange={(event) => {
+                const name = event.target.value;
+                setForm((current) => ({
+                  ...current,
+                  name,
+                  ...(!product && !skuManual ? { sku: generarSkuProducto(db, name) } : {}),
+                }));
+              }}
             />
           </div>
           <div className="space-y-2">
