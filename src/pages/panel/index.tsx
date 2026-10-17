@@ -231,6 +231,15 @@ const Panel = () => {
   const garantiaMasAntigua = data.staleWarranties[0];
   const diasMasAntigua = garantiaMasAntigua ? diasSinMovimiento(garantiaMasAntigua) : 0;
 
+  const prioridadesGarantia = useMemo(() => {
+    const abiertos = data.openWarranties.map((view) => ({ view, dias: diasSinMovimiento(view) }));
+    return {
+      criticas: abiertos.filter(({ dias }) => dias >= DIAS_GARANTIA_CRITICA),
+      estancadas: abiertos.filter(({ dias }) => dias >= DIAS_GARANTIA_ESTANCADA && dias < DIAS_GARANTIA_CRITICA),
+      listas: abiertos.filter(({ view }) => view.warranty.status === "reenvio_pendiente"),
+      tecnico: abiertos.filter(({ view }) => view.warranty.status === "en_servicio_tecnico"),
+    };
+  }, [data.openWarranties]);
   // Si los celulares todavía no tienen precio cargado, el ranking se muestra por
   // unidades: así la gráfica nunca queda vacía.
   const clientesPorMonto = data.hasAmounts;
@@ -415,6 +424,58 @@ const Panel = () => {
           </Button>
         </div>
       )}
+
+      <section className="space-y-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 className="text-lg font-semibold">Prioridades de garantías</h2>
+            <p className="text-sm text-muted-foreground">Casos que requieren seguimiento, ordenados por tiempo sin movimiento.</p>
+          </div>
+          <Button asChild variant="outline" size="sm"><Link to="/garantias">Gestionar garantías <ArrowRight className="ml-2 h-4 w-4" /></Link></Button>
+        </div>
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          {[
+            { titulo: "Críticas", cantidad: prioridadesGarantia.criticas.length, nota: `15 días o más sin movimiento`, clase: "text-destructive" },
+            { titulo: "Estancadas", cantidad: prioridadesGarantia.estancadas.length, nota: "De 7 a 14 días sin movimiento", clase: "text-amber-600" },
+            { titulo: "Pendientes de entrega", cantidad: prioridadesGarantia.listas.length, nota: "Reenvío pendiente", clase: "text-primary" },
+            { titulo: "En servicio técnico", cantidad: prioridadesGarantia.tecnico.length, nota: "Equipos con el técnico", clase: "text-foreground" },
+          ].map((item) => (
+            <div key={item.titulo} className="rounded-xl border bg-card p-4 shadow-sm">
+              <p className="text-xs font-medium text-muted-foreground">{item.titulo}</p>
+              <p className={cn("mt-2 text-3xl font-bold tabular-nums", item.clase)}>{item.cantidad}</p>
+              <p className="mt-1 text-xs text-muted-foreground">{item.nota}</p>
+            </div>
+          ))}
+        </div>
+        {data.openWarranties.length === 0 ? (
+          <div className="rounded-xl border border-dashed px-4 py-5 text-center text-sm text-muted-foreground">No hay garantías abiertas que requieran seguimiento.</div>
+        ) : (
+          <div className="overflow-hidden rounded-xl border bg-card">
+            <div className="flex items-center justify-between gap-2 border-b bg-muted/30 px-4 py-3">
+              <h3 className="text-sm font-semibold">Casos para revisar</h3>
+              <span className="text-xs text-muted-foreground">Hasta 6 casos con mayor antigüedad</span>
+            </div>
+            <div className="divide-y">
+              {data.openWarranties.slice(0, 6).map((view) => {
+                const dias = diasSinMovimiento(view);
+                return (
+                  <Link key={view.warranty.id} to={`/garantias/${view.warranty.id}`} className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 transition-colors hover:bg-muted/40">
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-semibold">{view.warranty.code}</p>
+                      <p className="truncate text-xs text-muted-foreground">{view.product?.name ?? view.warranty.referenciaManual ?? "Referencia no registrada"} · {view.unit?.serial ?? view.warranty.imeiManual ?? "Sin serial"}</p>
+                    </div>
+                    <div className="flex shrink-0 items-center gap-2">
+                      <WarrantyStatusBadge status={view.warranty.status} />
+                      <span className={cn("rounded-full px-2 py-1 text-xs font-semibold tabular-nums", dias >= DIAS_GARANTIA_CRITICA ? "bg-destructive/10 text-destructive" : dias >= DIAS_GARANTIA_ESTANCADA ? "bg-amber-100 text-amber-700" : "bg-muted text-muted-foreground")}>{dias} d sin movimiento</span>
+                      <ArrowRight className="h-4 w-4 text-muted-foreground" />
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        )}
+      </section>
 
       <div className="mb-4 flex items-center justify-between">
         <div>
