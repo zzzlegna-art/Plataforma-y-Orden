@@ -72,9 +72,9 @@ const NuevaRecepcion = () => {
   const busyRef = useRef(false);
   const receptionIdRef = useRef(receptionId);
   receptionIdRef.current = receptionId;
-  const colaSerialesRef = useRef<string[]>([]);
+  const colaSerialesRef = useRef<{ serial: string; productId: string; condition: UnitCondition; cost: string }[]>([]);
   const procesandoColaRef = useRef(false);
-  const procesarSerialRef = useRef<(serial: string) => Promise<void>>(async () => {});
+  const procesarSerialRef = useRef<(lectura: { serial: string; productId: string; condition: UnitCondition; cost: string }) => Promise<void>>(async () => {});
   const [pendientes, setPendientes] = useState(0);
 
   const reception = useMemo(
@@ -108,6 +108,7 @@ const NuevaRecepcion = () => {
 
   /** Al cambiar de categoría se limpia el producto si ya no aplica al filtro. */
   const cambiarCategoria = (value: "" | ProductCategory) => {
+    if (procesandoColaRef.current) return;
     setCatFilter(value);
     if (!value || !selectedProduct) return;
     const sigueVisible =
@@ -118,7 +119,7 @@ const NuevaRecepcion = () => {
   };
 
   const persistHeader = async () => {
-    if (!receptionId) return;
+    if (!receptionId || procesandoColaRef.current) return;
     await runAction((db2, actor) =>
       updateReception(db2, actor, {
         id: receptionId,
@@ -145,9 +146,10 @@ const NuevaRecepcion = () => {
     }
   };
 
-  const procesarSerial = (serial: string) =>
+  const procesarSerial = (lectura: { serial: string; productId: string; condition: UnitCondition; cost: string }) =>
     runExclusivo(async () => {
-      if (!productId) return;
+      const { serial } = lectura;
+      if (!lectura.productId) return;
       if (receptionIdRef.current && confirmed) return;
       const serialNormalizado = serial.trim().toUpperCase();
       const duplicado = db.units.some((unit) => unit.status !== "liberado" && unit.serial.trim().toUpperCase() === serialNormalizado)
@@ -173,10 +175,10 @@ const NuevaRecepcion = () => {
       const result = await runAction((db2, actor) =>
         addReceptionItem(db2, actor, {
           receptionId: targetId as string,
-          productId,
+          productId: lectura.productId,
           serial,
-          condition,
-          cost: cost ? Number(cost) : undefined,
+          condition: lectura.condition,
+          cost: lectura.cost ? Number(lectura.cost) : undefined,
         }),
       );
       if (result) {
@@ -194,11 +196,11 @@ const NuevaRecepcion = () => {
     const valor = serial.trim();
     if (!valor || confirmed || !productId) return;
     const normalizado = valor.toUpperCase();
-    if (colaSerialesRef.current.some((pendiente) => pendiente.toUpperCase() === normalizado)) {
+    if (colaSerialesRef.current.some((pendiente) => pendiente.serial.toUpperCase() === normalizado)) {
       toast.warning("Este serial ya está esperando para registrarse.");
       return;
     }
-    colaSerialesRef.current.push(valor);
+    colaSerialesRef.current.push({ serial: valor, productId, condition, cost });
     setPendientes(colaSerialesRef.current.length);
     if (procesandoColaRef.current) return;
     procesandoColaRef.current = true;
@@ -236,7 +238,7 @@ const NuevaRecepcion = () => {
   /** Los repuestos entran por cantidad: se genera un serial interno por unidad. */
   const handleAgregarRepuesto = () =>
     runExclusivo(async () => {
-      if (!productId) return;
+      if (!productId || procesandoColaRef.current) return;
       if (receptionId && confirmed) return;
       const quantity = Math.min(Math.max(Math.trunc(Number(repuestoQty) || 1), 1), 500);
       let targetId = receptionId;
@@ -269,7 +271,7 @@ const NuevaRecepcion = () => {
 
   const handleConfirm = () =>
     runExclusivo(async () => {
-      if (!receptionId) return;
+      if (!receptionId || procesandoColaRef.current) return;
       setSaving(true);
       const result = await runAction(
         (db2, actor) => confirmReception(db2, actor, { id: receptionId }),
@@ -281,6 +283,7 @@ const NuevaRecepcion = () => {
 
   const handleDiscard = () =>
     runExclusivo(async () => {
+      if (procesandoColaRef.current) return;
       if (!receptionId) {
         navigate("/recepcion");
         return;
@@ -382,9 +385,9 @@ const NuevaRecepcion = () => {
         }
       />
 
-      <div className="grid gap-4 lg:grid-cols-[22rem_minmax(0,1fr)] lg:items-start">
+      <div className="grid gap-5 lg:grid-cols-[minmax(21rem,26rem)_minmax(0,1fr)] lg:items-start">
         <div className="flex flex-col gap-4">
-          <section className="order-2 space-y-3 rounded-lg border bg-card p-4 shadow-sm lg:order-1">
+          <section className="order-2 space-y-3 rounded-xl border bg-card p-5 shadow-sm lg:order-2">
             <h3 className="flex items-center gap-2 text-sm font-semibold">
               <IconoSeccion>
                 <ClipboardList />
@@ -426,7 +429,7 @@ const NuevaRecepcion = () => {
             </div>
           </section>
 
-          <section className="order-1 space-y-4 rounded-lg border bg-card p-4 shadow-sm lg:order-2">
+          <section className="order-1 space-y-4 rounded-xl border border-primary/20 bg-card p-5 shadow-sm lg:order-1">
             <h3 className="flex items-center gap-2 text-sm font-semibold">
               <IconoSeccion>
                 <ScanLine />
@@ -481,7 +484,7 @@ const NuevaRecepcion = () => {
               <ProductPicker
                 products={productosFiltrados}
                 value={productId}
-                onChange={setProductId}
+                onChange={(id) => { if (!procesandoColaRef.current) setProductId(id); }}
                 placeholder={t("product.select")}
               />
               {productosFiltrados.length === 0 ? (
@@ -533,8 +536,8 @@ const NuevaRecepcion = () => {
                   placeholder={t("receptions.serialPlaceholder")}
                   hint={productId ? undefined : t("receptions.selectProductFirst")}
                 />
-                {pendientes > 0 ? <p role="status" className="rounded-md bg-muted p-2 text-xs">Lecturas pendientes: {pendientes}. Espera a que terminen antes de cambiar de referencia o confirmar.</p> : null}
-                {ultimoSerialAgregado ? <p role="status" className="rounded-md bg-primary/10 p-2 text-xs text-primary">Último serial agregado: {ultimoSerialAgregado}</p> : null}
+                {pendientes > 0 ? <p role="status" aria-live="polite" className="rounded-lg border border-primary/20 bg-primary/5 p-3 text-sm font-medium text-primary">Procesando {pendientes} {pendientes === 1 ? "lectura" : "lecturas"}… Puedes seguir escaneando; espera antes de confirmar.</p> : null}
+                {ultimoSerialAgregado ? <p role="status" className="flex items-center gap-2 rounded-lg bg-primary/10 p-3 text-xs text-primary"><Check className="h-4 w-4 shrink-0" /> Último equipo registrado: <strong className="break-all">{ultimoSerialAgregado}</strong></p> : null}
                 {selectedProduct?.categoria === "celular" ? (
                   <Button
                     type="button"
