@@ -1,8 +1,11 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { LogOut, Menu, UserRound } from "lucide-react";
-import { useLocation, useMatch } from "react-router-dom";
+import { LogOut, Menu, Search, UserRound } from "lucide-react";
+import { Link, useLocation, useMatch } from "react-router-dom";
 
+import { useStore } from "@/hooks/use-store";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import { LogoutScreen } from "@/components/shared/logout-screen";
 import { RoleBadge } from "@/components/shared/status-badge";
 import { Button } from "@/components/ui/button";
@@ -23,6 +26,21 @@ export const Topbar = ({ onOpenMenu }: { onOpenMenu: () => void }) => {
   const { t } = useTranslation();
   const { user, logout } = useAuth();
   const [closing, setClosing] = useState(false);
+  const { db } = useStore();
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const resultados = useMemo(() => {
+    const q = query.trim().toLocaleLowerCase();
+    if (q.length < 2) return [];
+    const matches = (value: string) => value.toLocaleLowerCase().includes(q);
+    return [
+      ...db.units.filter((u) => matches(u.serial)).slice(0, 8).map((u) => ({ id: `u-${u.id}`, title: u.serial, subtitle: "Equipo / IMEI", to: `/seriales?serial=${encodeURIComponent(u.serial)}` })),
+      ...db.orders.filter((o) => matches(o.code)).slice(0, 6).map((o) => ({ id: `o-${o.id}`, title: o.code, subtitle: "Pedido", to: `/pedidos/${o.id}` })),
+      ...db.warranties.filter((w) => matches(w.code)).slice(0, 6).map((w) => ({ id: `w-${w.id}`, title: w.code, subtitle: "Garantía", to: `/garantias/${w.id}` })),
+      ...db.products.filter((p) => matches(p.name) || matches(p.sku)).slice(0, 8).map((p) => ({ id: `p-${p.id}`, title: p.name, subtitle: p.sku, to: `/inventario/${p.id}` })),
+      ...db.customers.filter((c) => matches(c.name)).slice(0, 6).map((c) => ({ id: `c-${c.id}`, title: c.name, subtitle: "Cliente", to: `/clientes?q=${encodeURIComponent(c.name)}` })),
+    ].slice(0, 18);
+  }, [db, query]);
   const location = useLocation();
   const productMatch = useMatch("/inventario/:productId");
   const orderMatch = useMatch("/pedidos/:orderId");
@@ -73,6 +91,7 @@ export const Topbar = ({ onOpenMenu }: { onOpenMenu: () => void }) => {
         </div>
       </div>
 
+      <Button type="button" variant="outline" size="sm" className="gap-2" onClick={() => setSearchOpen(true)} aria-label="Buscar en Nexora"><Search className="h-4 w-4" /><span className="hidden sm:inline">Buscar</span></Button>
       <ThemeToggle />
 
       <DropdownMenu>
@@ -94,6 +113,17 @@ export const Topbar = ({ onOpenMenu }: { onOpenMenu: () => void }) => {
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
+      <Dialog open={searchOpen} onOpenChange={setSearchOpen}>
+        <DialogContent className="max-w-xl">
+          <DialogHeader><DialogTitle>Buscar en Nexora</DialogTitle></DialogHeader>
+          <Input autoFocus value={query} onChange={(event) => setQuery(event.target.value)} placeholder="IMEI, pedido, garantía, producto o cliente…" aria-label="Búsqueda global" />
+          <div className="max-h-80 space-y-1 overflow-y-auto" role="list">
+            {resultados.map((item) => <Link key={item.id} to={item.to} onClick={() => { setSearchOpen(false); setQuery(""); }} className="block rounded-lg px-3 py-2 hover:bg-muted"><span className="block truncate text-sm font-medium">{item.title}</span><span className="text-xs text-muted-foreground">{item.subtitle}</span></Link>)}
+            {query.trim().length >= 2 && resultados.length === 0 ? <p className="py-5 text-center text-sm text-muted-foreground">No se encontraron resultados.</p> : null}
+            {query.trim().length < 2 ? <p className="py-5 text-center text-xs text-muted-foreground">Escribe al menos dos caracteres para buscar.</p> : null}
+          </div>
+        </DialogContent>
+      </Dialog>
       {closing ? <LogoutScreen /> : null}
     </header>
   );
