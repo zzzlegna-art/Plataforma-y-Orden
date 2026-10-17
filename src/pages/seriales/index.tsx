@@ -61,6 +61,15 @@ const exportarCsv = (serial: string, fechaIngreso: string, rows: ReturnType<type
   URL.revokeObjectURL(url);
 };
 
+/** Abre la bandeja operativa actual, no la ficha de detalle. */
+const rutaOperativaGarantia = (warranty: { id: string; status: string }) => {
+  const tab =
+    warranty.status === "recibido" ? "recibidos" :
+    warranty.status === "en_servicio_tecnico" ? "servicio" :
+    warranty.status === "reenvio_pendiente" ? "reenvio" : "historial";
+  return `/garantias?tab=${tab}&focus=${encodeURIComponent(warranty.id)}`;
+};
+
 /** Ficha y línea de tiempo de un serial/IMEI con acciones de mantenimiento. */
 const HistorialSerial = () => {
   const { t } = useTranslation();
@@ -198,7 +207,7 @@ const HistorialSerial = () => {
                 {warranties.map((warranty) => (
                   <Link
                     key={warranty.id}
-                    to={`/garantias/${warranty.id}`}
+                    to={rutaOperativaGarantia(warranty)}
                     className="rounded-full transition-opacity hover:opacity-80"
                   >
                     <Badge label={`${warranty.code} · ${t(`warrantyStatus.${warranty.status}`)}`} withDot={false} />
@@ -277,7 +286,7 @@ const HistorialSerial = () => {
                       </span>
                     </div>
                     <p className="mt-1 text-sm">
-                      <TextWithCodeLink text={item.descripcion} enlace={item.enlace} />
+                      <TextWithCodeLink text={item.descripcion} enlace={item.enlace?.to.startsWith("/garantias/") ? { ...item.enlace, to: rutaOperativaGarantia(db.warranties.find((w) => item.enlace?.to === `/garantias/${w.id}`) ?? { id: item.enlace.to.split("/")[2], status: "entregado" }) } : item.enlace} />
                     </p>
                     {item.usuario ? (
                       <p className="mt-0.5 text-xs text-muted-foreground">{item.usuario}</p>
