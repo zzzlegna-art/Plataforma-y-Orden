@@ -595,7 +595,7 @@ const ESPECIFICACIONES: Spec<unknown>[] = [
 
 const leerColeccion = async (s: Spec<unknown>): Promise<unknown[]> => {
   const tamano = 1000;
-  const tope = s.tope ?? 20000;
+  const tope = s.tope ?? Number.MAX_SAFE_INTEGER;
   const filas: Fila[] = [];
 
   for (let desde = 0; desde < tope; desde += tamano) {
