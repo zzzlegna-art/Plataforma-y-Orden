@@ -55,7 +55,7 @@ export const Topbar = ({ onOpenMenu }: { onOpenMenu: () => void }) => {
           : t("common.appName");
 
   return (
-    <header className="safe-top sticky top-0 z-30 flex min-h-16 items-center gap-3 border-b border-border/70 bg-card/90 px-5 shadow-[0_8px_30px_-24px_rgba(16,31,32,.45)] backdrop-blur-xl lg:min-h-[66px] lg:px-8">
+    <header className="nx-app-topbar safe-top sticky top-0 z-30 flex min-h-16 items-center gap-3 border-b border-border/70 bg-card/90 px-5 shadow-[0_8px_30px_-24px_rgba(16,31,32,.45)] backdrop-blur-xl lg:min-h-[66px] lg:px-8">
       <Button
         variant="ghost"
         size="icon"
