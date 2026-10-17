@@ -672,13 +672,15 @@ export const entregarGarantia = (
     }
   }
 
-  warranty.status = "entregado";
+  // Un reembolso o una baja de inventario no son una entrega al cliente.
+  const cierreEnBodega = destinoDefectuoso === "reembolso" || destinoDefectuoso === "bodega";
+  warranty.status = cierreEnBodega ? "devuelto" : "entregado";
   warranty.resolvedAt = nowIso();
   addEvent(
     db,
     actor,
     warranty.id,
-    "entregado",
+    cierreEnBodega ? "devuelto" : "entregado",
     destinoDefectuoso === "reembolso" ? "Reembolso acordado; equipo defectuoso en bodega (sin movimiento de dinero)" : destinoDefectuoso === "bodega" ? "Equipo defectuoso retenido en bodega" : esCambio ? "Cambio de serial entregado al cliente" : aBodega ? "Reparado y devuelto a bodega" : "Entregado al cliente",
   );
   logAudit(db, actor, {
