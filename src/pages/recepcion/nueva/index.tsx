@@ -67,6 +67,7 @@ const NuevaRecepcion = () => {
   const [notes, setNotes] = useState("");
   const [saving, setSaving] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [ultimoSerialAgregado, setUltimoSerialAgregado] = useState("");
   const busyRef = useRef(false);
 
   const reception = useMemo(
@@ -141,6 +142,10 @@ const NuevaRecepcion = () => {
     runExclusivo(async () => {
       if (!productId) return;
       if (receptionId && confirmed) return;
+      const serialNormalizado = serial.trim().toUpperCase();
+      const duplicado = db.units.some((unit) => unit.status !== "liberado" && unit.serial.trim().toUpperCase() === serialNormalizado)
+        || db.receptionItems.some((item) => item.serial.trim().toUpperCase() === serialNormalizado);
+      if (duplicado) return;
       let targetId = receptionId;
       if (!targetId) {
         const created = await runAction((db2, actor) =>
@@ -163,7 +168,10 @@ const NuevaRecepcion = () => {
           cost: cost ? Number(cost) : undefined,
         }),
       );
-      if (result) setCost("");
+      if (result) {
+        setCost("");
+        setUltimoSerialAgregado(serial.trim());
+      }
     });
 
   /**
@@ -480,6 +488,7 @@ const NuevaRecepcion = () => {
                   placeholder={t("receptions.serialPlaceholder")}
                   hint={productId ? undefined : t("receptions.selectProductFirst")}
                 />
+                {ultimoSerialAgregado ? <p role="status" className="rounded-md bg-primary/10 p-2 text-xs text-primary">Último serial agregado: {ultimoSerialAgregado}</p> : null}
                 {selectedProduct?.categoria === "celular" ? (
                   <Button
                     type="button"
