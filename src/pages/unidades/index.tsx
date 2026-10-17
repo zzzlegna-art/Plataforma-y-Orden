@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { ScanLine } from "lucide-react";
+import { ScanLine, AlertTriangle, Clock3, ShieldCheck, ArrowRight } from "lucide-react";
 
 import { DataTable } from "@/components/shared/data-table";
 import { PageHeader } from "@/components/shared/page-header";
@@ -35,10 +35,30 @@ const Unidades = () => {
   const [condition, setCondition] = useState<string>("");
   const [productId, setProductId] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [controlFiltro, setControlFiltro] = useState<"todos" | "duplicados" | "antiguos">("todos");
+  const [diasMinimos, setDiasMinimos] = useState(60);
+
+  const control = useMemo(() => {
+    const grupos = new Map<string, string[]>();
+    for (const unit of db.units) {
+      const serial = unit.serial.trim().toLocaleUpperCase("es");
+      if (!serial) continue;
+      grupos.set(serial, [...(grupos.get(serial) ?? []), unit.id]);
+    }
+    const duplicados = new Set([...grupos.values()].filter((ids) => ids.length > 1).flat());
+    const ahora = Date.now();
+    const antiguos = new Set(db.units.filter((unit) =>
+      (unit.status === "en_bodega" || unit.status === "en_local") &&
+      Number.isFinite(Date.parse(unit.receivedAt)) &&
+      ahora - Date.parse(unit.receivedAt) >= diasMinimos * 86400000,
+    ).map((unit) => unit.id));
+    return { duplicados, antiguos, grupos: [...grupos.values()].filter((ids) => ids.length > 1).length };
+  }, [db.units, diasMinimos]);
 
   const rows = useMemo(() => {
     const needle = search.trim().toLowerCase();
     return getUnitRows(db)
+      .filter((row) => controlFiltro === "duplicados" ? control.duplicados.has(row.unit.id) : controlFiltro === "antiguos" ? control.antiguos.has(row.unit.id) : true)
       .filter((row) => (status ? row.unit.status === status : true))
       .filter((row) => (condition ? row.unit.condition === condition : true))
       .filter((row) => (productId ? row.unit.productId === productId : true))
@@ -49,7 +69,7 @@ const Unidades = () => {
           (row.product?.name ?? "").toLowerCase().includes(needle) ||
           (row.product?.sku ?? "").toLowerCase().includes(needle),
       );
-  }, [db, search, status, condition, productId]);
+  }, [db, search, status, condition, productId, controlFiltro, control]);
 
   const handleScan = (serial: string) => {
     const unit = findUnitBySerial(db, serial);
@@ -78,6 +98,38 @@ const Unidades = () => {
   return (
     <div className="space-y-5 stagger">
       <PageHeader title={t("unit.title")} description={t("unit.subtitle")} />
+
+      <section className="space-y-3 rounded-xl border bg-card p-4 shadow-sm">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <h2 className="text-sm font-semibold">Control inteligente de inventario</h2>
+            <p className="text-xs text-muted-foreground">Alertas informativas. Ningún equipo cambia de estado automáticamente.</p>
+          </div>
+          {controlFiltro !== "todos" ? <Button size="sm" variant="outline" onClick={() => setControlFiltro("todos")}>Quitar filtro</Button> : null}
+        </div>
+        <div className="grid gap-3 sm:grid-cols-3">
+          <button type="button" onClick={() => setControlFiltro(controlFiltro === "duplicados" ? "todos" : "duplicados")} className={`rounded-lg border p-3 text-left transition-colors hover:bg-muted/50 ${controlFiltro === "duplicados" ? "border-primary bg-primary/5" : ""}`}>
+            <div className="flex items-center gap-2 text-xs text-muted-foreground"><AlertTriangle className="h-4 w-4" /> Seriales duplicados</div>
+            <p className="mt-2 text-2xl font-bold tabular-nums">{control.grupos}</p>
+            <p className="text-xs text-muted-foreground">{control.duplicados.size} registros involucrados · Ver equipos <ArrowRight className="inline h-3 w-3" /></p>
+          </button>
+          <button type="button" onClick={() => setControlFiltro(controlFiltro === "antiguos" ? "todos" : "antiguos")} className={`rounded-lg border p-3 text-left transition-colors hover:bg-muted/50 ${controlFiltro === "antiguos" ? "border-primary bg-primary/5" : ""}`}>
+            <div className="flex items-center gap-2 text-xs text-muted-foreground"><Clock3 className="h-4 w-4" /> Equipos sin vender</div>
+            <p className="mt-2 text-2xl font-bold tabular-nums">{control.antiguos.size}</p>
+            <p className="text-xs text-muted-foreground">Con {diasMinimos} días o más desde su ingreso · Ver equipos <ArrowRight className="inline h-3 w-3" /></p>
+          </button>
+          <div className="rounded-lg border p-3">
+            <label htmlFor="antiguedad-inventario" className="flex items-center gap-2 text-xs text-muted-foreground"><ShieldCheck className="h-4 w-4" /> Umbral de antigüedad</label>
+            <select id="antiguedad-inventario" value={diasMinimos} onChange={(event) => setDiasMinimos(Number(event.target.value))} className="mt-3 h-10 w-full rounded-md border border-input bg-background px-3 text-sm">
+              <option value={30}>30 días</option>
+              <option value={60}>60 días</option>
+              <option value={90}>90 días</option>
+            </select>
+            <p className="mt-2 text-xs text-muted-foreground">Solo equipos disponibles en bodega o local.</p>
+          </div>
+        </div>
+        {controlFiltro !== "todos" ? <p className="text-xs text-muted-foreground">Mostrando {controlFiltro === "duplicados" ? "registros con serial repetido" : `equipos disponibles con al menos ${diasMinimos} días desde su ingreso`}. Puedes combinarlo con los filtros de abajo.</p> : null}
+      </section>
 
       <div className="grid gap-4 lg:grid-cols-[22rem_1fr]">
         <section className="space-y-2 rounded-lg border bg-card p-4 shadow-sm">
