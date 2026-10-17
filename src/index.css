@@ -564,3 +564,74 @@ body {
 .dark .nx-management .nx-page-header {
   background: linear-gradient(115deg, hsl(var(--card)), hsl(var(--primary) / .065));
 }
+
+
+/* NEXORA PREMIUM FINISH 2026 — detalles discretos, sin cambiar lógica ni layout */
+@media (min-width: 1024px) {
+  .nx-app-main {
+    background-image:
+      radial-gradient(ellipse 60% 38% at 95% -12%, hsl(var(--primary) / .065), transparent 75%);
+  }
+  .dark .nx-app-main {
+    background-image:
+      radial-gradient(ellipse 65% 42% at 95% -10%, hsl(var(--primary) / .08), transparent 75%);
+  }
+}
+.nx-app-topbar {
+  isolation: isolate;
+}
+.nx-app-topbar::after {
+  content: "";
+  position: absolute;
+  inset: auto 0 -1px 0;
+  height: 1px;
+  pointer-events: none;
+  background: linear-gradient(90deg, transparent, hsl(var(--primary) / .22) 48%, transparent);
+}
+.nx-sidebar-brand img {
+  transition: filter .25s ease, transform .25s ease;
+}
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+  .nx-sidebar-brand:hover img {
+    transform: translateY(-2px);
+    filter: drop-shadow(0 5px 10px hsl(var(--primary) / .2));
+  }
+  .nx-sidebar-link:not([aria-current="page"]):hover {
+    transform: translateX(3px);
+  }
+  .nx-operations > .grid > div,
+  .nx-management .rounded-lg.border.bg-card {
+    transition: border-color .22s ease, box-shadow .22s ease, transform .22s ease;
+  }
+  .nx-operations > .grid > div:hover,
+  .nx-management .rounded-lg.border.bg-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 15px 38px -27px hsl(var(--primary) / .24);
+  }
+}
+.nx-sidebar-link[aria-current="page"] {
+  box-shadow: inset 0 0 0 1px hsl(var(--primary) / .12), 0 5px 18px -16px hsl(var(--primary) / .35);
+}
+.nx-operations :is(input,textarea,[role="combobox"]),
+.nx-management :is(input,textarea,[role="combobox"]) {
+  transition: border-color .18s ease, box-shadow .18s ease, background-color .18s ease;
+}
+.nx-operations :is(input,textarea,[role="combobox"]):focus-visible,
+.nx-management :is(input,textarea,[role="combobox"]):focus-visible {
+  border-color: hsl(var(--primary) / .7);
+  box-shadow: 0 0 0 3px hsl(var(--primary) / .11);
+}
+.nx-operations .nx-page-header,
+.nx-management .nx-page-header {
+  box-shadow: 0 12px 34px -29px hsl(var(--primary) / .3);
+}
+@media (prefers-reduced-motion: reduce) {
+  .nx-sidebar-brand img,
+  .nx-sidebar-link,
+  .nx-operations > .grid > div,
+  .nx-management .rounded-lg.border.bg-card {
+    animation: none !important;
+    transition: none !important;
+    transform: none !important;
+  }
+}
