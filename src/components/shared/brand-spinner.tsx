@@ -2,9 +2,9 @@ import { cn } from "@/lib/utils";
 
 const SIZES = {
   // Pantallas completas (carga inicial, inicio y cierre de sesión).
-  lg: { box: "h-32 w-32", ring: "border-[3px]", logo: "h-14 w-20" },
+  lg: { box: "h-32 w-32", ring: "border-[3px]", logo: "h-16 w-16" },
   // Aviso pequeño de "Guardando…".
-  sm: { box: "h-9 w-9", ring: "border-2", logo: "h-4 w-6" },
+  sm: { box: "h-9 w-9", ring: "border-2", logo: "h-5 w-5" },
 } as const;
 
 /**
@@ -28,7 +28,7 @@ export const BrandSpinner = ({
         )}
       />
       <img
-        src="/icons/logo-bodega6a.png"
+        src="/branding/nexora-symbol.webp"
         alt=""
         className={cn("animate-logo-float object-contain motion-reduce:animate-none", styles.logo)}
       />
