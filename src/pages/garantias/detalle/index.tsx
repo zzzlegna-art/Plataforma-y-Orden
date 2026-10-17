@@ -66,6 +66,9 @@ const GarantiaDetalle = () => {
   const serial = warranty.unitId ? unit?.serial : warranty.imeiManual;
   const producto = product?.name ?? warranty.referenciaManual ?? "—";
   const cliente = customer?.name ?? warranty.clienteManual ?? "—";
+  const serialReemplazo = warranty.replacementUnitId
+    ? db.units.find((item) => item.id === warranty.replacementUnitId)?.serial
+    : undefined;
 
   return (
     <div className="space-y-5 stagger">
@@ -170,6 +173,22 @@ const GarantiaDetalle = () => {
               {serial && esCodigoInterno(serial) ? <PendingImeiBadge /> : null}
             </span>
           </InfoRow>
+          {serialReemplazo ? (
+            <div className="my-3 rounded-lg border border-primary/25 bg-primary/5 p-3">
+              <p className="mb-3 text-sm font-semibold">Cambio de equipo en garantía</p>
+              <div className="grid gap-3 sm:grid-cols-[1fr_auto_1fr] sm:items-center">
+                <div className="min-w-0">
+                  <p className="text-xs text-muted-foreground">Serial original (recibido)</p>
+                  <p className="break-all font-mono text-sm font-semibold">{serial ?? "—"}</p>
+                </div>
+                <span aria-hidden="true" className="text-center text-lg text-primary">→</span>
+                <div className="min-w-0">
+                  <p className="text-xs text-muted-foreground">Serial de reemplazo (entregado)</p>
+                  <p className="break-all font-mono text-sm font-semibold text-primary">{serialReemplazo}</p>
+                </div>
+              </div>
+            </div>
+          ) : null}
           <InfoRow label={t("customer.title")}>
             <span className="flex items-center justify-end gap-2">
               {cliente}
