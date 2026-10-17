@@ -108,7 +108,7 @@ const NuevaRecepcion = () => {
 
   /** Al cambiar de categoría se limpia el producto si ya no aplica al filtro. */
   const cambiarCategoria = (value: "" | ProductCategory) => {
-    if (procesandoColaRef.current) return;
+    if (procesandoColaRef.current || pendientes > 0) return;
     setCatFilter(value);
     if (!value || !selectedProduct) return;
     const sigueVisible =
@@ -300,7 +300,7 @@ const NuevaRecepcion = () => {
     <>
       <ConfirmDialog
         trigger={
-          <Button variant="outline" type="button">
+          <Button variant="outline" type="button" disabled={busy || pendientes > 0}>
             <Trash2 />
             <span className="hidden sm:inline">{t("receptions.discard")}</span>
           </Button>
@@ -465,7 +465,7 @@ const NuevaRecepcion = () => {
                 <ToggleGroup
                   type="single"
                   value={condition}
-                  onValueChange={(value) => value && setCondition(value as UnitCondition)}
+                  onValueChange={(value) => value && pendientes === 0 && setCondition(value as UnitCondition)}
                   className="justify-start"
                 >
                   <ToggleGroupItem value="nuevo" className="flex-1" disabled={confirmed}>
@@ -484,7 +484,7 @@ const NuevaRecepcion = () => {
               <ProductPicker
                 products={productosFiltrados}
                 value={productId}
-                onChange={(id) => { if (!procesandoColaRef.current) setProductId(id); }}
+                onChange={(id) => { if (pendientes === 0) setProductId(id); }}
                 placeholder={t("product.select")}
               />
               {productosFiltrados.length === 0 ? (
@@ -510,7 +510,7 @@ const NuevaRecepcion = () => {
                   />
                   <Button
                     type="button"
-                    disabled={confirmed || !productId || busy}
+                    disabled={confirmed || !productId || busy || pendientes > 0}
                     onClick={() => void handleAgregarRepuesto()}
                   >
                     <Plus />
