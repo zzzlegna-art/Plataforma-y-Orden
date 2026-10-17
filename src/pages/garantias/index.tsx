@@ -6,6 +6,7 @@ import {
   ClipboardList,
   FileSpreadsheet,
   FileText,
+  BarChart3,
   History,
   PackageSearch,
   Plus,
@@ -310,6 +311,10 @@ const Garantias = () => {
   // Filtro del historial (independiente de la búsqueda por IMEI)
   const [filtroHistorial, setFiltroHistorial] = useState("");
   const [referenciaHistorial, setReferenciaHistorial] = useState("");
+  const [mostrarEstadisticas, setMostrarEstadisticas] = useState(false);
+  const [estadisticaDesde, setEstadisticaDesde] = useState("");
+  const [estadisticaHasta, setEstadisticaHasta] = useState("");
+  const [estadisticaReferencia, setEstadisticaReferencia] = useState("");
 
   // Filtros de la pestaña Reenvío: lo que se ve es lo que se exporta.
   const [filtroReenvio, setFiltroReenvio] = useState<FiltroReenvio>(FILTRO_REENVIO_VACIO);
@@ -349,6 +354,79 @@ const Garantias = () => {
       .sort((a, b) => a.localeCompare(b, "es")),
     [casosHistorial],
   );
+  const estadisticas = useMemo(() => {
+    const casos = vistas.filter(({ warranty, product }) => {
+      const fecha = warranty.receivedAt.slice(0, 10);
+      return (!estadisticaDesde || fecha >= estadisticaDesde) &&
+        (!estadisticaHasta || fecha <= estadisticaHasta) &&
+        (!estadisticaReferencia || (product?.name ?? warranty.referenciaManual ?? "Sin referencia") === estadisticaReferencia);
+    });
+    const conteo = (valor: (typeof casos)[number]) => valor.product?.name ?? valor.warranty.referenciaManual ?? "Sin referencia";
+    const referencias = new Map<string, number>();
+    const motivos = new Map<string, number>();
+    for (const caso of casos) {
+      const nombre = conteo(caso);
+      referencias.set(nombre, (referencias.get(nombre) ?? 0) + 1);
+      const motivo = caso.warranty.reason.trim() || "Sin motivo registrado";
+      motivos.set(motivo, (motivos.get(motivo) ?? 0) + 1);
+    }
+    const ordenar = (mapa: Map<string, number>) => [...mapa.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], "es"));
+    const cerradas = casos.filter(({ warranty }) => warranty.status === "entregado" || warranty.status === "devuelto");
+    const duraciones = cerradas.map(({ warranty }) => {
+      const inicio = Date.parse(warranty.receivedAt);
+      const fin = Date.parse(warranty.resolvedAt ?? "");
+      return Number.isFinite(inicio) && Number.isFinite(fin) && fin >= inicio ? (fin - inicio) / 86400000 : null;
+    }).filter((dias): dias is number => dias !== null);
+    return {
+      total: casos.length,
+      abiertas: casos.length - cerradas.length,
+      cerradas: cerradas.length,
+      reparadas: casos.filter(({ warranty }) => warranty.resolucion === "reparado").length,
+      cambios: casos.filter(({ warranty }) => warranty.resolucion === "cambio").length,
+      defectuosas: casos.filter(({ warranty }) => warranty.resolucion === "defectuoso").length,
+      sinFalla: casos.filter(({ warranty }) => warranty.resolucion === "sin_falla").length,
+      promedioDias: duraciones.length ? duraciones.reduce((total, dias) => total + dias, 0) / duraciones.length : null,
+      referencias: ordenar(referencias),
+      motivos: ordenar(motivos),
+    };
+  }, [vistas, estadisticaDesde, estadisticaHasta, estadisticaReferencia]);
+  const referenciasEstadisticas = useMemo(() =>
+    [...new Set(vistas.map(({ product, warranty }) => product?.name ?? warranty.referenciaManual ?? "Sin referencia"))].sort((a, b) => a.localeCompare(b, "es")),
+    [vistas],
+  );
+  const exportarEstadisticas = () => {
+    const c = (valor: string | number) => {
+      const texto = String(valor);
+      const seguro = /^[\\s]*[=+@\\-]/.test(texto) ? "'" + texto : texto;
+      return '"' + seguro.replace(/"/g, '""') + '"';
+    };
+    const lineas = [
+      ["Indicador", "Valor"],
+      ["Garantías registradas", estadisticas.total],
+      ["Abiertas", estadisticas.abiertas],
+      ["Cerradas", estadisticas.cerradas],
+      ["Diagnóstico reparado", estadisticas.reparadas],
+      ["Diagnóstico cambio", estadisticas.cambios],
+      ["Diagnóstico defectuoso", estadisticas.defectuosas],
+      ["Diagnóstico sin falla", estadisticas.sinFalla],
+      ["Promedio días hasta resolución", estadisticas.promedioDias?.toFixed(1) ?? "Sin datos"],
+      ["", ""],
+      ["Referencia", "Garantías"],
+      ...estadisticas.referencias,
+      ["", ""],
+      ["Motivo reportado", "Garantías"],
+      ...estadisticas.motivos,
+    ];
+    const csv = "\uFEFF" + lineas.map((fila) => fila.map(c).join(";")).join("\r\n");
+    const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "nexora-estadisticas-garantias-" + new Date().toISOString().slice(0, 10) + ".csv";
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+  };
   const badges = useMemo(
     () => new Map(contarGarantiasPorEstado(db).map((r) => [r.estado, r.cantidad])),
     [db],
@@ -1355,6 +1433,80 @@ const Garantias = () => {
   return (
     <div className="nx-management nx-warranties space-y-5 stagger">
       <PageHeader title={t("warranty.title")} description={t("warranty.subtitle")} />
+
+      <section className="space-y-3 rounded-xl border bg-card p-4 shadow-sm">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 className="flex items-center gap-2 text-sm font-semibold"><BarChart3 className="h-4 w-4 text-primary" /> Estadísticas de garantías</h2>
+            <p className="mt-1 text-xs text-muted-foreground">Análisis de incidencias y diagnósticos registrados, sin modificar información.</p>
+          </div>
+          <Button type="button" variant={mostrarEstadisticas ? "default" : "outline"} size="sm" onClick={() => setMostrarEstadisticas((actual) => !actual)}>
+            {mostrarEstadisticas ? "Ocultar estadísticas" : "Ver estadísticas"}
+          </Button>
+        </div>
+        {mostrarEstadisticas ? (
+          <div className="space-y-4">
+            <div className="grid gap-3 sm:grid-cols-3">
+              <label className="space-y-1 text-xs font-medium">Desde
+                <Input type="date" value={estadisticaDesde} onChange={(event) => setEstadisticaDesde(event.target.value)} />
+              </label>
+              <label className="space-y-1 text-xs font-medium">Hasta
+                <Input type="date" value={estadisticaHasta} onChange={(event) => setEstadisticaHasta(event.target.value)} />
+              </label>
+              <label className="space-y-1 text-xs font-medium">Referencia
+                <select value={estadisticaReferencia} onChange={(event) => setEstadisticaReferencia(event.target.value)} className="flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm">
+                  <option value="">Todas las referencias</option>
+                  {referenciasEstadisticas.map((referencia) => <option key={referencia} value={referencia}>{referencia}</option>)}
+                </select>
+              </label>
+            </div>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <p className="text-xs text-muted-foreground">Filtros aplicados por fecha de recepción de la garantía.</p>
+              <div className="flex gap-2">
+                <Button type="button" size="sm" variant="outline" onClick={() => { setEstadisticaDesde(""); setEstadisticaHasta(""); setEstadisticaReferencia(""); }}>Limpiar filtros</Button>
+                <Button type="button" size="sm" onClick={exportarEstadisticas} disabled={estadisticas.total === 0}><FileSpreadsheet className="mr-2 h-4 w-4" /> Exportar CSV</Button>
+              </div>
+            </div>
+            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+              {[
+                ["Registradas", estadisticas.total],
+                ["Abiertas", estadisticas.abiertas],
+                ["Cerradas", estadisticas.cerradas],
+                ["Promedio hasta resolución", estadisticas.promedioDias === null ? "Sin datos" : `${estadisticas.promedioDias.toFixed(1)} días`],
+              ].map(([titulo, valor]) => <div key={titulo} className="rounded-lg border bg-muted/20 p-3"><p className="text-xs text-muted-foreground">{titulo}</p><p className="mt-1 text-xl font-bold tabular-nums">{valor}</p></div>)}
+            </div>
+            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+              {[
+                ["Reparado", estadisticas.reparadas],
+                ["Cambio", estadisticas.cambios],
+                ["Defectuoso", estadisticas.defectuosas],
+                ["Sin falla", estadisticas.sinFalla],
+              ].map(([titulo, valor]) => <div key={titulo} className="rounded-lg border p-3"><p className="text-xs text-muted-foreground">Diagnóstico: {titulo}</p><p className="mt-1 text-xl font-semibold tabular-nums">{valor}</p></div>)}
+            </div>
+            <p className="text-xs text-muted-foreground">Los diagnósticos no equivalen al destino de entrega: un reembolso no se clasifica automáticamente como defectuoso. El reembolso no tiene un campo estadístico independiente en los registros actuales.</p>
+            <div className="grid gap-4 lg:grid-cols-2">
+              {[
+                { titulo: "Referencias con más garantías", filas: estadisticas.referencias },
+                { titulo: "Motivos de ingreso más frecuentes", filas: estadisticas.motivos },
+              ].map(({ titulo, filas }) => (
+                <div key={titulo} className="overflow-hidden rounded-lg border">
+                  <h3 className="border-b bg-muted/30 px-4 py-3 text-sm font-semibold">{titulo}</h3>
+                  {filas.length === 0 ? <p className="px-4 py-6 text-sm text-muted-foreground">Sin resultados para estos filtros.</p> : (
+                    <div className="max-h-72 overflow-y-auto divide-y">
+                      {filas.map(([nombre, cantidad], index) => (
+                        <div key={nombre} className="flex items-center justify-between gap-3 px-4 py-2.5 text-sm">
+                          <span className="min-w-0 break-words"><span className="mr-2 text-xs text-muted-foreground">{index + 1}.</span>{nombre}</span>
+                          <span className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-xs font-semibold tabular-nums">{cantidad}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : null}
+      </section>
 
       <div className="flex flex-wrap gap-2 rounded-lg border bg-card p-3 shadow-sm">
         {TABS.map((option) => (
