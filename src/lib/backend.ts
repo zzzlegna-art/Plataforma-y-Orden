@@ -713,7 +713,7 @@ const indexar = (db: Db, coleccion: Coleccion): Map<string, unknown> => {
 
 /** Un paso del guardado: agregar/modificar filas de una tabla, o borrarlas. */
 export type Paso =
-  | { op: "upsert"; tabla: string; solo_alta: boolean; filas: Fila[]; esperados?: Fila[] }
+  | { op: "upsert"; tabla: string; solo_alta: boolean; filas: Fila[]; esperados?: Fila[]; nuevos?: string[] }
   | { op: "borrar"; tabla: string; ids: string[]; esperados?: Fila[] };
 
 /**
@@ -742,11 +742,13 @@ export const calcularPasos = (previo: Db, siguiente: Db): Paso[] => {
 
     const subir: Fila[] = [];
     const esperados: Fila[] = [];
+    const nuevos: string[] = [];
     for (const [id, item] of despues) {
       const anterior = antes.get(id);
       if (!anterior || JSON.stringify(anterior) !== JSON.stringify(item)) {
         subir.push(s.aFila(item));
         if (anterior && !s.soloAlta) esperados.push(limpiarFila(s.aFila(anterior)));
+        if (!anterior && !s.soloAlta) nuevos.push(id);
       }
     }
     if (subir.length > 0) {
@@ -756,6 +758,7 @@ export const calcularPasos = (previo: Db, siguiente: Db): Paso[] => {
         solo_alta: s.soloAlta === true,
         filas: subir.map(limpiarFila),
         ...(esperados.length > 0 ? { esperados } : {}),
+        ...(nuevos.length > 0 ? { nuevos } : {}),
       });
     }
 
@@ -772,6 +775,7 @@ export const calcularPasos = (previo: Db, siguiente: Db): Paso[] => {
       op: "upsert",
       tabla: "bodega_settings",
       solo_alta: false,
+      esperados: [{ id: "default", currency: previo.settings.currency, company_name: previo.settings.companyName }],
       filas: [
         {
           id: "default",
