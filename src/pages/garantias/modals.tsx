@@ -170,6 +170,7 @@ export const EntregarDialog = ({
   // casos anteriores a ese cambio.
   const [replacementUnitId, setReplacementUnitId] = useState(warranty.replacementUnitId ?? "");
   const [devolverABodega, setDevolverABodega] = useState(false);
+  const [reembolso, setReembolso] = useState(false);
   const [destinoDefectuoso, setDestinoDefectuoso] = useState<"cambio" | "reembolso" | "bodega">("cambio");
 
   const defectuoso = warranty.resolucion === "defectuoso";
@@ -190,7 +191,8 @@ export const EntregarDialog = ({
     db.products.find((item) => item.id === productId)?.name ?? "";
   // Falla de inventario reparada: no hay a quién entregarle nada, vuelve sola a bodega.
   const sinClienteReparado = warranty.resolucion === "reparado" && !garantiaTieneCliente(warranty);
-  const aBodega = devolverABodega || sinClienteReparado || (defectuoso && (!conCliente || destinoDefectuoso !== "cambio"));
+  const reembolsoElegido = conCliente && (defectuoso ? destinoDefectuoso === "reembolso" : reembolso);
+  const aBodega = reembolsoElegido || devolverABodega || sinClienteReparado || (defectuoso && (!conCliente || destinoDefectuoso !== "cambio"));
 
   const save = async () => {
     const result = await runAction(
@@ -199,6 +201,7 @@ export const EntregarDialog = ({
           warrantyId: warranty.id,
           replacementUnitId: needsReplacement ? replacementUnitId : undefined,
           devolverABodega: puedeElegirBodega ? devolverABodega : undefined,
+          reembolso: reembolsoElegido,
           destinoDefectuoso: defectuoso ? (conCliente ? destinoDefectuoso : "bodega") : undefined,
         }),
       { success: aBodega ? "warranty.returnedToStock" : "warranty.delivered" },
@@ -207,6 +210,7 @@ export const EntregarDialog = ({
       setOpen(false);
       setReplacementUnitId(warranty.replacementUnitId ?? "");
       setDevolverABodega(false);
+      setReembolso(false);
       setDestinoDefectuoso("cambio");
     }
   };
@@ -245,6 +249,21 @@ export const EntregarDialog = ({
               ) : <p className="rounded-md bg-muted/50 p-3 text-sm">Falla de inventario: queda defectuoso en bodega; no se entrega a un cliente.</p>}
             </div>
           ) : null}
+          {conCliente && !defectuoso && warranty.resolucion !== "cambio" ? (
+            <div className="space-y-2 rounded-md border p-3">
+              <Label>Decisión comercial</Label>
+              <div className="grid gap-2">
+                <button type="button" className={cn("rounded-md border px-3 py-2 text-left text-sm", !reembolso && "border-primary bg-primary/10")} onClick={() => setReembolso(false)}>
+                  <strong>Continuar sin reembolso</strong>
+                  <span className="block text-muted-foreground">Resolver según el diagnóstico registrado.</span>
+                </button>
+                <button type="button" className={cn("rounded-md border px-3 py-2 text-left text-sm", reembolso && "border-primary bg-primary/10")} onClick={() => { setReembolso(true); setDevolverABodega(false); }}>
+                  <strong>Acordar reembolso al cliente</strong>
+                  <span className="block text-muted-foreground">No clasifica el celular como defectuoso. El dinero se registra por separado.</span>
+                </button>
+              </div>
+            </div>
+          ) : null}
           {needsReplacement ? (
             <div className="space-y-2">
               <Label>{t("warranty.replacementUnit")}</Label>
@@ -262,7 +281,7 @@ export const EntregarDialog = ({
               )}
             </div>
           ) : null}
-          {puedeElegirBodega ? (
+          {puedeElegirBodega && !reembolso ? (
             <div className="flex gap-1 rounded-md border bg-muted/40 p-0.5">
               <button
                 type="button"
@@ -287,7 +306,7 @@ export const EntregarDialog = ({
             </div>
           ) : null}
           <div className="rounded-md bg-muted/50 px-3 py-2 text-sm">
-            {defectuoso ? (destinoDefectuoso === "cambio" && conCliente ? "El reemplazo sale del inventario; el original queda defectuoso en bodega." : "El equipo queda defectuoso en bodega; el reembolso no mueve dinero automáticamente.") : aBodega
+            {reembolsoElegido && !defectuoso ? "Reembolso acordado; el equipo permanece o regresa a bodega según su diagnóstico. No se mueve dinero automáticamente." : defectuoso ? (destinoDefectuoso === "cambio" && conCliente ? "El reemplazo sale del inventario; el original queda defectuoso en bodega." : "El equipo queda defectuoso en bodega; el reembolso no mueve dinero automáticamente.") : aBodega
               ? t("warranty.deliverEffect.bodega")
               : t(`warranty.deliverEffect.${warranty.resolucion ?? "reparado"}`)}
           </div>
@@ -302,7 +321,7 @@ export const EntregarDialog = ({
             disabled={needsReplacement && !replacementUnitId}
             onClick={() => void save()}
           >
-            {defectuoso ? (conCliente && destinoDefectuoso === "cambio" ? "Confirmar cambio" : conCliente ? "Confirmar reembolso" : "Confirmar defectuoso en bodega") : devolverABodega
+            {reembolsoElegido && !defectuoso ? "Confirmar reembolso" : defectuoso ? (conCliente && destinoDefectuoso === "cambio" ? "Confirmar cambio" : conCliente ? "Confirmar reembolso" : "Confirmar defectuoso en bodega") : devolverABodega
               ? t("warranty.returnToStock")
               : sinClienteReparado
                 ? t("warranty.resolveToStock")
