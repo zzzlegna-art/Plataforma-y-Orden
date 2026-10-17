@@ -9,6 +9,7 @@ import {
   Boxes,
   ClipboardList,
   Coins,
+  Download,
   PackagePlus,
   ShieldCheck,
   TrendingUp,
@@ -198,6 +199,34 @@ const Panel = () => {
     const termino = stockBusqueda.trim().toLocaleLowerCase("es");
     return coincideCategoria && (!termino || row.product.name.toLocaleLowerCase("es").includes(termino) || row.product.sku.toLocaleLowerCase("es").includes(termino));
   });
+  const exportarStockFiltrado = () => {
+    if (filasStockVisibles.length === 0) return;
+    // Comillas y caracteres de fórmula se neutralizan para abrir el CSV con seguridad en Excel.
+    const celda = (valor: string | number) => {
+      const texto = String(valor);
+      const seguro = /^[\\s]*[=+@\\-\\t\\r]/.test(texto) ? "'" + texto : texto;
+      return '"' + seguro.replace(/"/g, '""') + '"';
+    };
+    const cabeceras = ["Referencia", "SKU", "Categoria", "Condicion", "Disponibles", "Minimo", "Faltan"];
+    const filas = filasStockVisibles.map(({ row, disponible, condicion, minimo }) => [
+      row.product.name,
+      row.product.sku,
+      tiposProducto.get(row.product.categoria || "") ?? row.product.categoria ?? "Otros",
+      condicion,
+      disponible,
+      minimo,
+      Math.max(0, minimo - disponible),
+    ]);
+    const csv = "\uFEFF" + [cabeceras, ...filas].map((fila) => fila.map(celda).join(";")).join("\r\n");
+    const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8;" }));
+    const enlace = document.createElement("a");
+    enlace.href = url;
+    enlace.download = "nexora-stock-bajo-" + new Date().toISOString().slice(0, 10) + ".csv";
+    document.body.appendChild(enlace);
+    enlace.click();
+    enlace.remove();
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+  };
   // Garantía que más tiempo lleva sin moverse (la lista ya viene ordenada de mayor a menor).
   const garantiaMasAntigua = data.staleWarranties[0];
   const diasMasAntigua = garantiaMasAntigua ? diasSinMovimiento(garantiaMasAntigua) : 0;
@@ -332,7 +361,11 @@ const Panel = () => {
               </div>
             )}
           </div>
-          <div className="flex justify-end border-t px-5 py-4 sm:px-6">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-t px-5 py-4 sm:px-6">
+            <Button type="button" onClick={exportarStockFiltrado} disabled={filasStockVisibles.length === 0} className="gap-2">
+              <Download className="h-4 w-4" />
+              Exportar filtrados ({filasStockVisibles.length})
+            </Button>
             <Button variant="outline" asChild><Link to="/inventario" onClick={() => setStockDialogOpen(false)}>Ver inventario completo <ArrowRight className="ml-2 h-4 w-4" /></Link></Button>
           </div>
         </DialogContent>
