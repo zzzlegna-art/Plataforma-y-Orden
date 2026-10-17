@@ -94,6 +94,8 @@ const HistorialSerial = () => {
   const order = origen?.order;
   const customer = origen?.customer;
   const warranties = origen?.warranties ?? [];
+  const reemplazos = unit ? db.warranties.filter((warranty) => warranty.replacementUnitId === unit.id && warranty.unitId !== unit.id) : [];
+  const garantiasRelacionadas = [...warranties, ...reemplazos].sort((a, b) => b.receivedAt.localeCompare(a.receivedAt));
 
   // Diálogos
   const [dialog, setDialog] = useState<null | "novedad" | "corregir" | "imprimir">(null);
@@ -202,17 +204,28 @@ const HistorialSerial = () => {
               </div>
             ) : null}
 
-            {warranties.length > 0 ? (
-              <div className="mt-3 flex flex-wrap gap-2">
-                {warranties.map((warranty) => (
-                  <Link
-                    key={warranty.id}
-                    to={rutaOperativaGarantia(warranty)}
-                    className="rounded-full transition-opacity hover:opacity-80"
-                  >
-                    <Badge label={`${warranty.code} · ${t(`warrantyStatus.${warranty.status}`)}`} withDot={false} />
-                  </Link>
-                ))}
+            {garantiasRelacionadas.length > 0 ? (
+              <div className="mt-4 space-y-2 rounded-xl border bg-muted/20 p-3">
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Garantías vinculadas al serial ({garantiasRelacionadas.length})</p>
+                <div className="grid gap-2 sm:grid-cols-2">
+                  {garantiasRelacionadas.map((warranty) => {
+                    const esReemplazo = warranty.replacementUnitId === unit.id && warranty.unitId !== unit.id;
+                    const serialOriginal = db.units.find((item) => item.id === warranty.unitId)?.serial ?? warranty.imeiManual ?? "Sin serial original";
+                    const serialNuevo = db.units.find((item) => item.id === warranty.replacementUnitId)?.serial;
+                    return (
+                      <Link key={warranty.id} to={`/garantias/${warranty.id}`} className="rounded-lg border bg-card p-3 transition-colors hover:border-primary/40 hover:bg-muted/40">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <span className="text-sm font-semibold text-primary">{warranty.code}</span>
+                          <Badge label={t(`warrantyStatus.${warranty.status}`)} withDot={false} />
+                        </div>
+                        <p className="mt-1 text-xs text-muted-foreground">{esReemplazo ? "Entregado como reemplazo" : "Equipo recibido en garantía"}</p>
+                        {serialNuevo ? (
+                          <p className="mt-2 break-all text-xs">Original: <span className="font-medium">{serialOriginal}</span> · Reemplazo: <span className="font-medium">{serialNuevo}</span></p>
+                        ) : null}
+                      </Link>
+                    );
+                  })}
+                </div>
               </div>
             ) : null}
 
