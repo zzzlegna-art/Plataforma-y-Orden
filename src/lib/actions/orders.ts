@@ -372,6 +372,28 @@ export const finalizarPedido = (
     throw new DomainError("errors.orderIncomplete", { product: product?.name ?? "" });
   }
 
+  // Verificación final independiente de la interfaz: ningún IMEI puede repetirse
+  // ni salir en una referencia/condición diferente de la solicitada.
+  const idsDespacho = new Set<string>();
+  for (const item of items) {
+    for (const row of db.orderItemUnits.filter((asignacion) => asignacion.orderItemId === item.id)) {
+      if (idsDespacho.has(row.unitId)) throw new DomainError("errors.unitAlreadyAssigned");
+      idsDespacho.add(row.unitId);
+      const unit = db.units.find((u) => u.id === row.unitId);
+      if (!unit) throw new DomainError("errors.notFound");
+      if (unit.productId !== item.productId || (item.condition && unit.condition !== item.condition)) {
+        throw new DomainError("errors.unitProductMismatch");
+      }
+      if (unitEnOtroPedidoActivo(db, unit.id) &&
+        db.orderItemUnits.some((asignacion) => asignacion.unitId === unit.id &&
+          asignacion.orderItemId !== item.id &&
+          db.orderItems.some((linea) => linea.id === asignacion.orderItemId && linea.orderId !== order.id &&
+            db.orders.some((pedido) => pedido.id === linea.orderId && pedido.status === "en_preparacion")))) {
+        throw new DomainError("errors.unitAlreadyAssigned");
+      }
+    }
+  }
+
   const deliveredAt = nowIso();
   items.forEach((item) => {
     db.orderItemUnits
