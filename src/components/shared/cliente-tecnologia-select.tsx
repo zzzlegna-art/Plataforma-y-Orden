@@ -57,7 +57,7 @@ export const ClienteTecnologiaSelect = ({
           variant="outline"
           role="combobox"
           aria-expanded={open}
-          className="w-full justify-between font-normal"
+          className="h-10 w-full justify-between rounded-lg border-border bg-background px-3 text-left font-normal shadow-none hover:bg-muted/40 focus-visible:ring-2 focus-visible:ring-primary/20"
         >
           <span className={cn("truncate", !value && "text-muted-foreground")}>
             {value || placeholder || t("common.select")}
@@ -65,18 +65,19 @@ export const ClienteTecnologiaSelect = ({
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
-        <Command>
+      <PopoverContent className="w-[var(--radix-popover-trigger-width)] overflow-hidden rounded-xl border border-border bg-popover p-1 shadow-lg" align="start" sideOffset={6}>
+        <Command className="rounded-lg">
           <CommandInput
             value={busqueda}
             onValueChange={setBusqueda}
             placeholder={t("common.search")}
+            className="h-10 rounded-none border-0 bg-transparent py-2 outline-none ring-0 focus:border-0 focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0"
           />
-          <CommandList>
+          <CommandList className="max-h-60 py-1">
             <CommandEmpty>{t("warranty.previaClienteSinResultados")}</CommandEmpty>
-            <CommandGroup>
+            <CommandGroup className="p-1">
               {clientes.map((nombre) => (
-                <CommandItem key={nombre} value={nombre} onSelect={() => elegir(nombre)}>
+                <CommandItem key={nombre} value={nombre} onSelect={() => elegir(nombre)} className="min-h-9 gap-1 rounded-md px-3 py-2 text-sm data-[selected=true]:bg-muted data-[selected=true]:text-foreground">
                   <Check className={cn("mr-2 h-4 w-4", value === nombre ? "opacity-100" : "opacity-0")} />
                   {nombre}
                 </CommandItem>
@@ -86,6 +87,7 @@ export const ClienteTecnologiaSelect = ({
                   value={`__usar__${texto}`}
                   forceMount
                   onSelect={() => elegir(texto)}
+                  className="min-h-9 rounded-md px-3 py-2 text-sm data-[selected=true]:bg-muted data-[selected=true]:text-foreground"
                 >
                   {t("warranty.previaClienteUsar", { nombre: texto })}
                 </CommandItem>
