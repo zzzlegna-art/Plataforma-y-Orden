@@ -309,6 +309,27 @@ const Garantias = () => {
   // Buscar IMEI
   const [buscarResultado, setBuscarResultado] = useState<string | null>(null);
 
+  // Navegación desde Historial de Serial: abrir la bandeja, desplegar el lote
+  // correspondiente y localizar visualmente la garantía (sin abrir su ficha).
+  const focusId = params.get("focus");
+  const focusView = focusId ? getWarrantyViews(db).find((v) => v.warranty.id === focusId) : undefined;
+  useEffect(() => {
+    if (!focusView) return;
+    setSoloEstancadas(false);
+    setFiltroHistorial("");
+    setFiltroReenvio(FILTRO_REENVIO_VACIO);
+    setLotesAbiertos((previous) => new Set([...previous, infoLote(focusView).key]));
+  }, [focusId, focusView?.warranty.id]);
+
+  useEffect(() => {
+    if (!focusId || !focusView) return;
+    const timer = window.setTimeout(() => {
+      const card = document.getElementById(`garantia-operativa-${focusId}`);
+      card?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 160);
+    return () => window.clearTimeout(timer);
+  }, [focusId, focusView?.warranty.id, tab]);
+
   const vistas = useMemo(() => getWarrantyViews(db), [db]);
   const badges = useMemo(
     () => new Map(contarGarantiasPorEstado(db).map((r) => [r.estado, r.cantidad])),
@@ -1202,7 +1223,7 @@ const Garantias = () => {
     const isOpen = view.open;
     const estancadaDias = isOpen ? (diasPorCaso.get(view.warranty.id) ?? 0) : 0;
     return (
-      <div key={view.warranty.id} className="surface-hover rounded-lg border bg-card p-4 shadow-sm">
+      <div id={`garantia-operativa-${view.warranty.id}`} key={view.warranty.id} className={cn("surface-hover scroll-mt-24 rounded-lg border bg-card p-4 shadow-sm", focusId === view.warranty.id && "border-primary ring-2 ring-primary/35 shadow-lg shadow-primary/10")}>
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
             <p className="font-tabular truncate text-sm font-semibold">
