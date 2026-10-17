@@ -340,10 +340,14 @@ const Garantias = () => {
   }, [focusId, focusView?.warranty.id, tab]);
 
   const vistas = useMemo(() => getWarrantyViews(db), [db]);
-  const referenciasHistorial = useMemo(
-    () => [...new Set(vistas.map((v) => (v.product?.name ?? v.warranty.referenciaManual ?? "").trim()).filter(Boolean))]
-      .sort((a, b) => a.localeCompare(b, "es")),
+  const casosHistorial = useMemo(
+    () => vistas.filter((v) => v.warranty.status === "entregado" || v.warranty.status === "devuelto"),
     [vistas],
+  );
+  const referenciasHistorial = useMemo(
+    () => [...new Set(casosHistorial.map((v) => (v.product?.name ?? v.warranty.referenciaManual ?? "").trim()).filter(Boolean))]
+      .sort((a, b) => a.localeCompare(b, "es")),
+    [casosHistorial],
   );
   const badges = useMemo(
     () => new Map(contarGarantiasPorEstado(db).map((r) => [r.estado, r.cantidad])),
@@ -2106,7 +2110,7 @@ const Garantias = () => {
           </div>
           {(() => {
             const q = filtroHistorial.trim().toLowerCase();
-            const rows = vistas.filter(
+            const rows = casosHistorial.filter(
               (v) =>
                 (!referenciaHistorial || (v.product?.name ?? v.warranty.referenciaManual ?? "").trim() === referenciaHistorial) &&
                 (!q ||
