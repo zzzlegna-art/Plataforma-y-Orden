@@ -358,3 +358,26 @@ describe("deshacerEstadoGarantia · devolver un caso al estado anterior", () => 
   });
 });
 
+
+describe("reembolso independiente del diagnóstico", () => {
+  it("reembolso de reparado vuelve a bodega sin clasificar defectuoso", () => {
+    const db = dbCon({ customerId: "c1", resolucion: "reparado" });
+    entregarGarantia(db, admin, { warrantyId: "w1", reembolso: true });
+    expect(db.units[0].status).toBe("en_bodega");
+    expect(db.warranties[0].status).toBe("devuelto");
+    expect(db.warranties[0].resolucion).toBe("reparado");
+    expect(db.warrantyEvents.some((event) => event.notes?.includes("Reembolso acordado"))).toBe(true);
+  });
+
+  it("reembolso de sin_falla no transforma la unidad en defectuosa", () => {
+    const db = dbCon({ customerId: "c1", resolucion: "sin_falla" }, { status: "en_bodega" });
+    entregarGarantia(db, admin, { warrantyId: "w1", reembolso: true });
+    expect(db.units[0].status).toBe("en_bodega");
+    expect(db.warranties[0].resolucion).toBe("sin_falla");
+  });
+
+  it("no permite reembolso y cambio simultáneos", () => {
+    const db = dbCon({ customerId: "c1", resolucion: "cambio" });
+    expect(() => entregarGarantia(db, admin, { warrantyId: "w1", reembolso: true })).toThrow();
+  });
+});
