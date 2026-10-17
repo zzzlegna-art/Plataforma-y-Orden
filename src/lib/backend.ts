@@ -714,7 +714,7 @@ const indexar = (db: Db, coleccion: Coleccion): Map<string, unknown> => {
 /** Un paso del guardado: agregar/modificar filas de una tabla, o borrarlas. */
 export type Paso =
   | { op: "upsert"; tabla: string; solo_alta: boolean; filas: Fila[]; esperados?: Fila[] }
-  | { op: "borrar"; tabla: string; ids: string[] };
+  | { op: "borrar"; tabla: string; ids: string[]; esperados?: Fila[] };
 
 /**
  * Calcula QUÉ hay que guardar entre dos versiones del inventario, sin tocar el servidor.
@@ -761,7 +761,7 @@ export const calcularPasos = (previo: Db, siguiente: Db): Paso[] => {
 
     if (s.borrable) {
       const ids = [...antes.keys()].filter((id) => !despues.has(id));
-      if (ids.length > 0) bajas.push({ op: "borrar", tabla: s.tabla, ids });
+      if (ids.length > 0) bajas.push({ op: "borrar", tabla: s.tabla, ids, esperados: ids.map((id) => limpiarFila(s.aFila(antes.get(id)))) });
     }
   }
 
