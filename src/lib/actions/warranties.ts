@@ -109,6 +109,7 @@ const darDeAltaEquipoPrevio = (
   warranty: Warranty,
   productId: string,
   nota: string,
+  estadoInicial: Unit["status"] = "en_bodega",
 ): Unit | undefined => {
   const serial = warranty.imeiManual;
   if (!serial) return undefined;
@@ -119,11 +120,11 @@ const darDeAltaEquipoPrevio = (
     productId,
     serial,
     condition: "seminuevo",
-    status: "en_bodega",
+    status: estadoInicial,
     receivedAt: nowIso(),
     createdBy: actor.id,
   };
-  unidad.status = "en_bodega";
+  unidad.status = estadoInicial;
   if (!existente) db.units.push(unidad);
   logMovement(db, actor, {
     productId: unidad.productId,
@@ -574,12 +575,12 @@ export const entregarGarantia = (
       type: "salida",
       referenceType: "garantia",
       referenceId: warranty.id,
-      notes: `Unidad de reemplazo entregada (${warranty.code})`,
+      notes: `Cambio por garantía ${warranty.code}: se entrega ${replacement.serial} en lugar de ${unit?.serial ?? warranty.imeiManual ?? "equipo anterior"}`,
     });
     if (unit) {
-      // El equipo que trajo el cliente entra a la bodega (antes quedaba "liberado", fuera del
-      // sistema, y había que reingresarlo a mano).
-      unit.status = "en_bodega";
+      // El equipo sustituido regresa físicamente a bodega, pero queda bloqueado
+      // para la venta hasta que una revisión lo habilite expresamente.
+      unit.status = "defectuoso";
       // Ya no es "su" venta: si siguiera vinculado al pedido original, la ficha del serial lo
       // mostraría como si todavía fuera de este cliente, aunque ahora es de la bodega.
       db.orderItemUnits = db.orderItemUnits.filter((row) => row.unitId !== unit.id);
@@ -589,7 +590,7 @@ export const entregarGarantia = (
         type: "entrada",
         referenceType: "garantia",
         referenceId: warranty.id,
-        notes: `Equipo original recibido en bodega por cambio de equipo (${warranty.code})`,
+        notes: `Cambio por garantía ${warranty.code}: ${unit.serial} regresa bloqueado (defectuoso); reemplazado por ${replacement.serial}`,
       });
     } else if (warranty.imeiManual) {
       // Garantía previa: el cliente entrega su equipo a cambio del reemplazo, así que ahora es de
@@ -599,7 +600,8 @@ export const entregarGarantia = (
         actor,
         warranty,
         replacement.productId,
-        `Equipo original recibido en bodega por cambio de equipo (${warranty.code})`,
+        `Cambio por garantía ${warranty.code}: equipo previo ${warranty.imeiManual} recibido, bloqueado para revisión; reemplazado por ${replacement.serial}`,
+        "defectuoso",
       );
     }
   }
