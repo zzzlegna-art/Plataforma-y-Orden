@@ -77,9 +77,9 @@ const Login = () => {
       <section className="relative hidden flex-1 flex-col justify-between overflow-hidden bg-gradient-primary p-10 text-primary-foreground lg:flex">
         <div className="flex items-center gap-3">
           <img
-            src="/icons/logo-bodega6a.png"
+            src="/branding/nexora-symbol.webp"
             alt={t("common.appName")}
-            className="h-11 w-[67px] object-contain"
+            className="h-11 w-11 rounded-lg object-cover"
           />
           <div>
             <p className="text-lg font-semibold">{t("common.appName")}</p>
@@ -109,9 +109,9 @@ const Login = () => {
         <div className="w-full max-w-sm animate-fade-in">
           <div className="mb-8 flex items-center gap-3 lg:hidden">
             <img
-              src="/icons/logo-bodega6a.png"
+              src="/branding/nexora-symbol.webp"
               alt={t("common.appName")}
-              className="h-10 w-[61px] object-contain"
+              className="h-10 w-10 rounded-lg object-cover"
             />
             <div>
               <p className="font-semibold">{t("common.appName")}</p>
