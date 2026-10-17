@@ -244,6 +244,16 @@ export const serializarImeiPedido = (
     });
   }
   db.orderItemUnits.push({ id: createId(), orderItemId: linea.id, unitId: unit.id, createdAt: nowIso() });
+  // La asignación también forma parte de la vida del serial, aunque el pedido
+  // todavía no se haya despachado.
+  logMovement(db, actor, {
+    productId: unit.productId,
+    unitId: unit.id,
+    type: "ajuste",
+    referenceType: "pedido",
+    referenceId: order.id,
+    notes: `Serial ${unit.serial} asignado al pedido ${order.code} (pendiente de despacho)`,
+  });
   logAudit(db, actor, {
     action: "assign",
     entity: "order",
@@ -271,6 +281,14 @@ export const quitarImeiPedido = (
     throw new DomainError("errors.serialNotInOrder", { serial: input.imei });
   }
   db.orderItemUnits = db.orderItemUnits.filter((r) => r.id !== row.id);
+  logMovement(db, actor, {
+    productId: unit.productId,
+    unitId: unit.id,
+    type: "ajuste",
+    referenceType: "pedido",
+    referenceId: order.id,
+    notes: `Serial ${unit.serial} retirado de la serialización del pedido ${order.code}`,
+  });
   logAudit(db, actor, {
     action: "release",
     entity: "order",
