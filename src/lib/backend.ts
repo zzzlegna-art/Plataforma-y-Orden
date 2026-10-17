@@ -679,6 +679,9 @@ export const detalleTecnico = (mensaje: unknown): string => {
  */
 const traducirErrorServidor = (error: { message: string; code?: string }): DomainError => {
   const mensaje = error.message ?? "";
+  if (mensaje.includes("BODEGA_CONFLICTO_CONCURRENCIA")) {
+    return new DomainError("errors.saveFailed", { detalle: detalleTecnico("Otro usuario modificó este registro; actualiza la pantalla e inténtalo de nuevo") });
+  }
   if (mensaje.includes("BODEGA_UNIDAD_YA_ASIGNADA")) {
     return new DomainError("errors.unitAlreadyAssigned");
   }
@@ -710,7 +713,7 @@ const indexar = (db: Db, coleccion: Coleccion): Map<string, unknown> => {
 
 /** Un paso del guardado: agregar/modificar filas de una tabla, o borrarlas. */
 export type Paso =
-  | { op: "upsert"; tabla: string; solo_alta: boolean; filas: Fila[] }
+  | { op: "upsert"; tabla: string; solo_alta: boolean; filas: Fila[]; esperados?: Fila[] }
   | { op: "borrar"; tabla: string; ids: string[] };
 
 /**
@@ -738,10 +741,12 @@ export const calcularPasos = (previo: Db, siguiente: Db): Paso[] => {
     const despues = indexar(siguiente, s.coleccion);
 
     const subir: Fila[] = [];
+    const esperados: Fila[] = [];
     for (const [id, item] of despues) {
       const anterior = antes.get(id);
       if (!anterior || JSON.stringify(anterior) !== JSON.stringify(item)) {
         subir.push(s.aFila(item));
+        if (anterior && !s.soloAlta) esperados.push(limpiarFila(s.aFila(anterior)));
       }
     }
     if (subir.length > 0) {
@@ -750,6 +755,7 @@ export const calcularPasos = (previo: Db, siguiente: Db): Paso[] => {
         tabla: s.tabla,
         solo_alta: s.soloAlta === true,
         filas: subir.map(limpiarFila),
+        ...(esperados.length > 0 ? { esperados } : {}),
       });
     }
 
@@ -808,7 +814,7 @@ export const pushDb = async (previo: Db, siguiente: Db): Promise<void> => {
     });
   }
 
-  const { data, error } = await nube.rpc("bodega_aplicar_cambios", { p_cambios: cambios });
+  const { data, error } = await nube.rpc("nexora_guardar_con_version", { p_cambios: cambios });
   if (error) {
     console.error(`No se pudo guardar: ${error.message}`);
     throw traducirErrorServidor(error);
