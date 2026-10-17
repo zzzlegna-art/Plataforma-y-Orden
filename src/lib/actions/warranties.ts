@@ -576,6 +576,7 @@ export const entregarGarantia = (
       warranty,
       input.replacementUnitId ?? warranty.replacementUnitId,
     );
+    warranty.replacementUnitId = replacement.id;
     replacement.status = "entregado_garantia";
     logMovement(db, actor, {
       productId: replacement.productId,
@@ -711,15 +712,15 @@ export const devolverGarantia = (
   if (unit && unit.status === "en_reparacion") {
     // Un equipo devuelto sin resolver vuelve físicamente a la bodega, no al local: así cuenta
     // en el control físico de la bodega y deja de figurar como mercancía del local.
-    unit.status = "defectuoso";
-    // Sin diagnóstico de reparación no puede regresar al stock vendible.
+    // Sin diagnóstico no se puede clasificar como defectuoso ni volver al stock vendible.
+    // Se mantiene en reparación hasta que se revise y clasifique explícitamente.
     // Ya no es del cliente que lo devolvió (ver misma nota en
     // registrarDiagnostico/entregarGarantia). Queda aclarado en el historial a qué pedido
     // pertenecía, para que no parezca que el pedido sigue incluyéndolo.
     const pedido = pedidoDeUnidad(db, unit.id);
     db.orderItemUnits = db.orderItemUnits.filter((row) => row.unitId !== unit.id);
     if (pedido) {
-      detalle = [motivo, `Sale del pedido ${pedido.code}; permanece defectuoso`].filter(Boolean).join(" · ");
+      detalle = [motivo, `Sale del pedido ${pedido.code}; pendiente de diagnóstico`].filter(Boolean).join(" · ");
       logAudit(db, actor, {
         action: "update",
         entity: "order",
@@ -733,21 +734,21 @@ export const devolverGarantia = (
       type: "devolucion",
       referenceType: "garantia",
       referenceId: warranty.id,
-      notes: [detalle || "Devolución sin resolución", "Equipo bloqueado como defectuoso"].join(" · "),
+      notes: [detalle || "Devolución sin resolución", "Equipo pendiente de diagnóstico, no vendible"].join(" · "),
     });
   } else if (!unit && warranty.imeiManual) {
     // Garantía previa: no hay unidad en el sistema. Al devolverla a la bodega se da de alta como
     // disponible, con el producto del catálogo que coincide con la referencia escrita al recibirla.
     const productId = productoPorReferencia(db, warranty.referenciaManual);
     if (productId) {
-      detalle = [motivo, "Ingresa bloqueado como defectuoso hasta revisión"].filter(Boolean).join(" · ");
+      detalle = [motivo, "Ingresa pendiente de diagnóstico y no vendible"].filter(Boolean).join(" · ");
       darDeAltaEquipoPrevio(
         db,
         actor,
         warranty,
         productId,
-        `${motivo || "Devolución sin resolución"} (${warranty.code}); equipo defectuoso, no vendible`,
-        "defectuoso",
+        `${motivo || "Devolución sin resolución"} (${warranty.code}); pendiente de diagnóstico, no vendible`,
+        "en_reparacion",
       );
     } else {
       detalle = [
