@@ -309,6 +309,7 @@ const Garantias = () => {
 
   // Filtro del historial (independiente de la búsqueda por IMEI)
   const [filtroHistorial, setFiltroHistorial] = useState("");
+  const [referenciaHistorial, setReferenciaHistorial] = useState("");
 
   // Filtros de la pestaña Reenvío: lo que se ve es lo que se exporta.
   const [filtroReenvio, setFiltroReenvio] = useState<FiltroReenvio>(FILTRO_REENVIO_VACIO);
@@ -324,6 +325,7 @@ const Garantias = () => {
     if (!focusView) return;
     setSoloEstancadas(false);
     setFiltroHistorial("");
+    setReferenciaHistorial("");
     setFiltroReenvio(FILTRO_REENVIO_VACIO);
     setLotesAbiertos((previous) => new Set([...previous, infoLote(focusView).key]));
   }, [focusId, focusView?.warranty.id]);
@@ -338,6 +340,11 @@ const Garantias = () => {
   }, [focusId, focusView?.warranty.id, tab]);
 
   const vistas = useMemo(() => getWarrantyViews(db), [db]);
+  const referenciasHistorial = useMemo(
+    () => [...new Set(vistas.map((v) => (v.product?.name ?? v.warranty.referenciaManual ?? "").trim()).filter(Boolean))]
+      .sort((a, b) => a.localeCompare(b, "es")),
+    [vistas],
+  );
   const badges = useMemo(
     () => new Map(contarGarantiasPorEstado(db).map((r) => [r.estado, r.cantidad])),
     [db],
@@ -2076,21 +2083,48 @@ const Garantias = () => {
             placeholder="Buscar por referencia, IMEI, cliente o código de garantía"
             onChange={(event) => setFiltroHistorial(event.target.value)}
           />
+          <div className="flex flex-wrap items-end gap-3">
+            <div className="min-w-[220px] flex-1 space-y-1">
+              <Label htmlFor="historial-referencia">Filtrar por referencia</Label>
+              <select
+                id="historial-referencia"
+                value={referenciaHistorial}
+                onChange={(event) => setReferenciaHistorial(event.target.value)}
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground"
+              >
+                <option value="">Todas las referencias</option>
+                {referenciasHistorial.map((referencia) => (
+                  <option key={referencia} value={referencia}>{referencia}</option>
+                ))}
+              </select>
+            </div>
+            {(filtroHistorial || referenciaHistorial) ? (
+              <Button type="button" variant="outline" onClick={() => { setFiltroHistorial(""); setReferenciaHistorial(""); }}>
+                Limpiar filtros
+              </Button>
+            ) : null}
+          </div>
           {(() => {
             const q = filtroHistorial.trim().toLowerCase();
             const rows = vistas.filter(
               (v) =>
-                !q ||
+                (!referenciaHistorial || (v.product?.name ?? v.warranty.referenciaManual ?? "").trim() === referenciaHistorial) &&
+                (!q ||
                 v.warranty.code.toLowerCase().includes(q) ||
                 (v.unit?.serial ?? "").toLowerCase().includes(q) ||
                 (v.warranty.imeiManual ?? "").toLowerCase().includes(q) ||
                 (v.customer?.name ?? v.warranty.clienteManual ?? "").toLowerCase().includes(q) ||
-                (v.product?.name ?? v.warranty.referenciaManual ?? "").toLowerCase().includes(q),
+                (v.product?.name ?? v.warranty.referenciaManual ?? "").toLowerCase().includes(q)),
             );
-            return rows.length === 0 ? (
+            return (
+              <>
+                <p className="text-sm text-muted-foreground">{rows.length} {rows.length === 1 ? "garantía encontrada" : "garantías encontradas"}</p>
+                {rows.length === 0 ? (
               <EmptyState icon={History} title={t("warranty.emptyTitle")} description={t("warranty.emptyDescription")} />
             ) : (
               <div className="grid gap-3 lg:grid-cols-2">{rows.map(renderCard)}</div>
+                )}
+              </>
             );
           })()}
         </div>
