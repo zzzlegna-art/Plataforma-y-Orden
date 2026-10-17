@@ -1,6 +1,5 @@
 import { useTranslation } from "react-i18next";
 import { NavLink } from "react-router-dom";
-import { Boxes } from "lucide-react";
 
 import { PlatformGuide } from "@/components/shared/platform-guide";
 import { InstallAppButton } from "@/components/shared/install-app-button";
@@ -17,7 +16,7 @@ export const SidebarNav = ({ onNavigate }: { onNavigate?: () => void }) => {
   return (
     <div className="safe-top flex h-full min-h-0 flex-col gap-6 overflow-y-auto bg-sidebar text-sidebar-foreground p-5 text-sidebar-foreground">
       <div className="flex items-center gap-3 px-2 pt-1">
-        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-lg shadow-primary/10" aria-hidden="true"><Boxes className="h-6 w-6" /></div>
+        <img src="/branding/nexora-symbol.webp" alt="Nexora" className="h-12 w-12 shrink-0 rounded-xl object-cover" />
         <div className="min-w-0">
           <p className="truncate text-sm font-semibold text-sidebar-accent-foreground">
             NEXORA
