@@ -16,7 +16,7 @@ export const SidebarNav = ({ onNavigate }: { onNavigate?: () => void }) => {
   return (
     <div className="safe-top flex h-full min-h-0 flex-col gap-6 overflow-y-auto bg-sidebar text-sidebar-foreground p-5 text-sidebar-foreground">
       <div className="nx-sidebar-brand flex items-center gap-3 px-2 pt-1">
-        <img src="/branding/nexora-symbol.webp" alt="Nexora" className="h-12 w-12 shrink-0 rounded-xl object-cover" />
+        <img src="/branding/nexora-symbol.webp" alt="Nexora" className="h-12 w-12 shrink-0 rounded-xl object-cover transition-transform duration-300 motion-safe:group-hover:scale-[1.04]" />
         <div className="min-w-0">
           <p className="truncate text-sm font-semibold text-sidebar-accent-foreground">
             NEXORA
@@ -35,7 +35,7 @@ export const SidebarNav = ({ onNavigate }: { onNavigate?: () => void }) => {
             onClick={onNavigate}
             className={({ isActive }) =>
               cn(
-                "nx-sidebar-link relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-[background-color,color,transform] duration-200 motion-reduce:transition-none",
+                "nx-sidebar-link relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium outline-offset-2 transition-[background-color,color,transform,box-shadow] duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-sidebar-ring motion-reduce:transition-none",
                 isActive
                   ? "bg-sidebar-accent text-sidebar-accent-foreground shadow-sm before:absolute before:left-0 before:top-1/2 before:h-5 before:w-[3px] before:-translate-y-1/2 before:rounded-full before:bg-sidebar-primary [&>svg]:text-sidebar-primary"
                   : "text-sidebar-foreground/85 hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground [@media(hover:hover)]:hover:translate-x-0.5 motion-reduce:[@media(hover:hover)]:hover:translate-x-0",
