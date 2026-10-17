@@ -558,6 +558,14 @@ export const rutaDeRecepcion = (
  * Ruta y código del pedido, recepción o garantía a la que apunta un movimiento. Solo devuelve
  * algo si ese registro todavía existe: nunca se enlaza a una pantalla que no se puede abrir.
  */
+/** Navega a la bandeja operativa de la garantía y resalta el caso. */
+const enlaceOperativoGarantia = (warranty: Warranty): string => {
+  const tab = warranty.status === "recibido" ? "recibidos"
+    : warranty.status === "en_servicio_tecnico" ? "servicio"
+    : warranty.status === "reenvio_pendiente" ? "reenvio" : "historial";
+  return `/garantias?tab=${tab}&focus=${encodeURIComponent(warranty.id)}`;
+};
+
 export const getEnlaceDeReferencia = (
   db: Db,
   referenceType: string | undefined,
@@ -575,7 +583,7 @@ export const getEnlaceDeReferencia = (
   }
   if (referenceType === "garantia") {
     const warranty = db.warranties.find((item) => item.id === referenceId);
-    return warranty ? { to: `/garantias/${warranty.id}`, codigo: warranty.code } : undefined;
+    return warranty ? { to: enlaceOperativoGarantia(warranty), codigo: warranty.code } : undefined;
   }
   return undefined;
 };
@@ -612,7 +620,7 @@ export const getUnitTimeline = (db: Db, unitId: string): UnitTimelineItem[] => {
     });
 
   db.warranties
-    .filter((warranty) => warranty.unitId === unitId)
+    .filter((warranty) => warranty.unitId === unitId || warranty.replacementUnitId === unitId)
     .forEach((warranty) => {
       const eventos = db.warrantyEvents.filter((event) => event.warrantyId === warranty.id);
       // Una garantía migrada del sistema anterior no trae eventos: sin esto no se vería en el
@@ -625,6 +633,20 @@ export const getUnitTimeline = (db: Db, unitId: string): UnitTimelineItem[] => {
           descripcion: `${warranty.code} · ${warranty.reason || "Registrada en garantía"}`,
           usuario: nameOf(warranty.createdBy),
           enlace: { to: `/garantias/${warranty.id}`, codigo: warranty.code },
+        });
+      }
+      // La unidad entregada como reemplazo también debe tener la garantía en
+      // su historial, aunque la garantía se abrió con otro serial.
+      if (warranty.replacementUnitId === unitId && warranty.unitId !== unitId) {
+        const original = db.units.find((unit) => unit.id === warranty.unitId)?.serial
+          ?? warranty.imeiManual ?? "equipo original";
+        items.push({
+          id: `w-reemplazo-${warranty.id}-${unitId}`,
+          fecha: warranty.resolvedAt ?? warranty.receivedAt,
+          tipo: "garantia",
+          descripcion: `Entregado como reemplazo de ${original} en garantía ${warranty.code}`,
+          usuario: nameOf(warranty.createdBy),
+          enlace: { to: enlaceOperativoGarantia(warranty), codigo: warranty.code },
         });
       }
       eventos.forEach((event) => {
