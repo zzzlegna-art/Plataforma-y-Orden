@@ -70,6 +70,12 @@ const NuevaRecepcion = () => {
   const [busy, setBusy] = useState(false);
   const [ultimoSerialAgregado, setUltimoSerialAgregado] = useState("");
   const busyRef = useRef(false);
+  const receptionIdRef = useRef(receptionId);
+  receptionIdRef.current = receptionId;
+  const colaSerialesRef = useRef<string[]>([]);
+  const procesandoColaRef = useRef(false);
+  const procesarSerialRef = useRef<(serial: string) => Promise<void>>(async () => {});
+  const [pendientes, setPendientes] = useState(0);
 
   const reception = useMemo(
     () => db.receptions.find((item) => item.id === receptionId),
@@ -139,10 +145,10 @@ const NuevaRecepcion = () => {
     }
   };
 
-  const handleScan = (serial: string) =>
+  const procesarSerial = (serial: string) =>
     runExclusivo(async () => {
       if (!productId) return;
-      if (receptionId && confirmed) return;
+      if (receptionIdRef.current && confirmed) return;
       const serialNormalizado = serial.trim().toUpperCase();
       const duplicado = db.units.some((unit) => unit.status !== "liberado" && unit.serial.trim().toUpperCase() === serialNormalizado)
         || db.receptionItems.some((item) => item.serial.trim().toUpperCase() === serialNormalizado);
@@ -150,7 +156,7 @@ const NuevaRecepcion = () => {
         toast.error("Este serial ya está registrado. No se agregó otra vez.");
         return;
       }
-      let targetId = receptionId;
+      let targetId = receptionIdRef.current;
       if (!targetId) {
         const created = await runAction((db2, actor) =>
           createReception(db2, actor, {
@@ -161,6 +167,7 @@ const NuevaRecepcion = () => {
         );
         if (!created) return;
         targetId = created.id;
+        receptionIdRef.current = created.id;
         setReceptionId(created.id);
       }
       const result = await runAction((db2, actor) =>
@@ -178,6 +185,39 @@ const NuevaRecepcion = () => {
         toast.success("Equipo agregado correctamente.", { id: "recepcion-lectura" });
       }
     });
+
+  // Una lectura nueva entra en cola incluso mientras se guarda la anterior.
+  // La referencia y la condición se capturan al procesar cada lectura; el operador
+  // debe esperar a que la cola se vacíe antes de cambiarlas o confirmar.
+  procesarSerialRef.current = procesarSerial;
+  const handleScan = async (serial: string) => {
+    const valor = serial.trim();
+    if (!valor || confirmed || !productId) return;
+    const normalizado = valor.toUpperCase();
+    if (colaSerialesRef.current.some((pendiente) => pendiente.toUpperCase() === normalizado)) {
+      toast.warning("Este serial ya está esperando para registrarse.");
+      return;
+    }
+    colaSerialesRef.current.push(valor);
+    setPendientes(colaSerialesRef.current.length);
+    if (procesandoColaRef.current) return;
+    procesandoColaRef.current = true;
+    try {
+      while (colaSerialesRef.current.length > 0) {
+        const siguiente = colaSerialesRef.current[0];
+        try {
+          await procesarSerialRef.current(siguiente);
+        } catch {
+          toast.error("No se pudo procesar la lectura. Revisa la recepción.");
+        } finally {
+          colaSerialesRef.current.shift();
+          setPendientes(colaSerialesRef.current.length);
+        }
+      }
+    } finally {
+      procesandoColaRef.current = false;
+    }
+  };
 
   /**
    * Celular recibido apagado: no se puede leer el IMEI todavía. Se registra con un
@@ -270,7 +310,7 @@ const NuevaRecepcion = () => {
       />
       <Button
         type="button"
-        disabled={items.length === 0 || saving || busy}
+        disabled={items.length === 0 || saving || busy || procesandoColaRef.current || pendientes > 0}
         onClick={() => void handleConfirm()}
       >
         <Check />
@@ -489,10 +529,11 @@ const NuevaRecepcion = () => {
                     const errorImei = errorDeSerialCelular(serial);
                     return errorImei ? t(errorImei) : null;
                   }}
-                  disabled={confirmed || !productId || busy}
+                  disabled={confirmed || !productId}
                   placeholder={t("receptions.serialPlaceholder")}
                   hint={productId ? undefined : t("receptions.selectProductFirst")}
                 />
+                {pendientes > 0 ? <p role="status" className="rounded-md bg-muted p-2 text-xs">Lecturas pendientes: {pendientes}. Espera a que terminen antes de cambiar de referencia o confirmar.</p> : null}
                 {ultimoSerialAgregado ? <p role="status" className="rounded-md bg-primary/10 p-2 text-xs text-primary">Último serial agregado: {ultimoSerialAgregado}</p> : null}
                 {selectedProduct?.categoria === "celular" ? (
                   <Button
