@@ -180,7 +180,24 @@ const Panel = () => {
   // Condición que se muestra en la tarjeta de alertas de stock bajo.
   const [condicionAlerta, setCondicionAlerta] = useState<UnitCondition>("nuevo");
   const [stockDialogOpen, setStockDialogOpen] = useState(false);
+  const [stockBusqueda, setStockBusqueda] = useState("");
+  const [stockCategoria, setStockCategoria] = useState("todos");
   const alertas = data.lowStockCelulares[condicionAlerta];
+  const tiposProducto = useMemo(() => new Map(db.productTypes.map((tipo) => [tipo.key, tipo.name])), [db.productTypes]);
+  const filasStockBajo = useMemo(() => {
+    const filas = [
+      ...data.lowStockCelulares.nuevo.map(({ row, disponible }) => ({ row, disponible, condicion: "Nuevo", minimo: STOCK_BAJO_CELULARES })),
+      ...data.lowStockCelulares.seminuevo.map(({ row, disponible }) => ({ row, disponible, condicion: "Seminuevo", minimo: STOCK_BAJO_CELULARES })),
+      ...data.lowStockOtros.map((row) => ({ row, disponible: row.stock.disponible, condicion: "Todas", minimo: row.stock.minStock })),
+    ];
+    return filas.sort((a, b) => a.disponible - b.disponible || a.row.product.name.localeCompare(b.row.product.name, "es"));
+  }, [data]);
+  const categoriasStockBajo = [...new Set(filasStockBajo.map(({ row }) => row.product.categoria || "otros"))];
+  const filasStockVisibles = filasStockBajo.filter(({ row }) => {
+    const coincideCategoria = stockCategoria === "todos" || (row.product.categoria || "otros") === stockCategoria;
+    const termino = stockBusqueda.trim().toLocaleLowerCase("es");
+    return coincideCategoria && (!termino || row.product.name.toLocaleLowerCase("es").includes(termino) || row.product.sku.toLocaleLowerCase("es").includes(termino));
+  });
   // Garantía que más tiempo lleva sin moverse (la lista ya viene ordenada de mayor a menor).
   const garantiaMasAntigua = data.staleWarranties[0];
   const diasMasAntigua = garantiaMasAntigua ? diasSinMovimiento(garantiaMasAntigua) : 0;
@@ -253,70 +270,69 @@ const Panel = () => {
       </section>
 
       <Dialog open={stockDialogOpen} onOpenChange={setStockDialogOpen}>
-        <DialogContent className="max-h-[90dvh] max-w-2xl overflow-hidden p-0">
-          <DialogHeader className="border-b px-6 pb-4 pt-6 pr-12">
+        <DialogContent className="max-h-[92dvh] w-[calc(100%-1.5rem)] max-w-5xl gap-0 overflow-hidden p-0">
+          <DialogHeader className="border-b px-5 pb-4 pt-5 pr-12 sm:px-6 sm:pt-6">
             <div className="mb-2 flex items-center gap-2">
               <span className="rounded-lg bg-amber-100 p-2 text-amber-700"><TriangleAlert className="h-5 w-5" /></span>
-              <span className="rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground">{data.kpis.lowStockProducts} referencias</span>
+              <span className="rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground">{data.kpis.lowStockProducts} referencias con alerta</span>
             </div>
             <DialogTitle>Productos con stock bajo</DialogTitle>
-            <DialogDescription>Referencias activas por debajo del mínimo establecido. Los celulares se revisan por condición.</DialogDescription>
+            <DialogDescription>Consulta por categoría y condición. Cada fila muestra las unidades disponibles y el mínimo correspondiente.</DialogDescription>
           </DialogHeader>
-          <div className="max-h-[60dvh] space-y-5 overflow-y-auto px-6 py-4">
-            {data.lowStock.length === 0 ? (
+          <div className="flex flex-wrap items-center gap-3 border-b px-5 py-4 sm:px-6">
+            <div className="relative min-w-[180px] flex-1">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <input aria-label="Buscar referencia o SKU" placeholder="Buscar referencia o SKU..." value={stockBusqueda} onChange={(event) => setStockBusqueda(event.target.value)} className="h-10 w-full rounded-lg border border-input bg-background pl-9 pr-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-primary/30" />
+            </div>
+            <select aria-label="Filtrar categoría" value={stockCategoria} onChange={(event) => setStockCategoria(event.target.value)} className="h-10 min-w-[150px] rounded-lg border border-input bg-background px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-primary/30">
+              <option value="todos">Todas las categorías</option>
+              {categoriasStockBajo.map((categoria) => <option key={categoria} value={categoria}>{tiposProducto.get(categoria) ?? (categoria === "otros" ? "Otros" : categoria)}</option>)}
+            </select>
+            <span className="text-xs text-muted-foreground">{filasStockVisibles.length} resultados</span>
+          </div>
+          <div className="max-h-[54dvh] overflow-auto px-5 py-4 sm:px-6">
+            {filasStockVisibles.length === 0 ? (
               <div className="rounded-xl border border-dashed px-4 py-10 text-center">
                 <ShieldCheck className="mx-auto mb-2 h-8 w-8 text-emerald-600" />
-                <p className="font-medium">No hay productos con stock bajo</p>
-                <p className="mt-1 text-sm text-muted-foreground">El inventario no presenta alertas de stock en este momento.</p>
+                <p className="font-medium">{filasStockBajo.length ? "No hay coincidencias" : "No hay productos con stock bajo"}</p>
+                <p className="mt-1 text-sm text-muted-foreground">{filasStockBajo.length ? "Prueba con otra referencia o categoría." : "El inventario no presenta alertas de stock."}</p>
+                {filasStockBajo.length > 0 ? <Button type="button" variant="outline" size="sm" className="mt-3" onClick={() => { setStockBusqueda(""); setStockCategoria("todos"); }}>Limpiar filtros</Button> : null}
               </div>
             ) : (
-              <>
-                {(["nuevo", "seminuevo"] as const).map((condicion) => {
-                  const items = data.lowStockCelulares[condicion];
-                  return items.length ? (
-                    <section key={condicion} className="space-y-2">
-                      <h3 className="flex items-center justify-between text-sm font-semibold">
-                        Celulares {condicion === "nuevo" ? "nuevos" : "seminuevos"}
-                        <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium">{items.length}</span>
-                      </h3>
-                      <div className="overflow-hidden rounded-xl border">
-                        {items.map(({ row, disponible }) => (
-                          <Link key={row.product.id} to={`/inventario/${row.product.id}`} onClick={() => setStockDialogOpen(false)} className="flex items-center justify-between gap-3 border-b px-4 py-3 transition-colors last:border-b-0 hover:bg-muted/50">
-                            <div className="min-w-0">
-                              <p className="truncate text-sm font-medium">{row.product.name}</p>
-                              <p className="mt-1 text-xs text-muted-foreground">Faltan {Math.max(0, STOCK_BAJO_CELULARES - disponible)} para llegar al mínimo de {STOCK_BAJO_CELULARES}</p>
-                            </div>
-                            <div className="flex shrink-0 items-center gap-2">
-                              <span className={cn("rounded-full px-2.5 py-1 text-xs font-semibold", disponible === 0 ? "bg-red-100 text-red-700" : "bg-amber-100 text-amber-700")}>{disponible} disponibles</span>
-                              <ArrowRight className="h-4 w-4 text-muted-foreground" />
-                            </div>
-                          </Link>
-                        ))}
-                      </div>
-                    </section>
-                  ) : null;
-                })}
-                {data.lowStockOtros.length > 0 ? (
-                  <section className="space-y-2">
-                    <h3 className="flex items-center justify-between text-sm font-semibold">Otros productos <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium">{data.lowStockOtros.length}</span></h3>
-                    <div className="overflow-hidden rounded-xl border">
-                      {data.lowStockOtros.map((row) => (
-                        <Link key={row.product.id} to={`/inventario/${row.product.id}`} onClick={() => setStockDialogOpen(false)} className="flex items-center justify-between gap-3 border-b px-4 py-3 transition-colors last:border-b-0 hover:bg-muted/50">
-                          <div className="min-w-0">
-                            <p className="truncate text-sm font-medium">{row.product.name}</p>
-                            <p className="mt-1 text-xs text-muted-foreground">Mínimo configurado: {row.stock.minStock} · Faltan {Math.max(0, row.stock.minStock - row.stock.disponible)}</p>
-                          </div>
-                          <span className="shrink-0 rounded-full bg-amber-100 px-2.5 py-1 text-xs font-semibold text-amber-700">{row.stock.disponible} disponibles</span>
-                          <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground" />
-                        </Link>
-                      ))}
-                    </div>
-                  </section>
-                ) : null}
-              </>
+              <div className="overflow-x-auto rounded-xl border">
+                <table className="w-full min-w-[700px] text-left text-sm">
+                  <thead className="sticky top-0 z-10 bg-muted/90 text-xs text-muted-foreground">
+                    <tr>
+                      <th className="px-4 py-3 font-semibold">Referencia</th>
+                      <th className="px-4 py-3 font-semibold">Categoría</th>
+                      <th className="px-4 py-3 font-semibold">Condición</th>
+                      <th className="px-4 py-3 text-center font-semibold">Disponible</th>
+                      <th className="px-4 py-3 text-center font-semibold">Mínimo</th>
+                      <th className="px-4 py-3 text-center font-semibold">Faltan</th>
+                      <th className="px-4 py-3 text-right font-semibold">Detalle</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y">
+                    {filasStockVisibles.map(({ row, disponible, condicion, minimo }) => (
+                      <tr key={`${row.product.id}-${condicion}`} className="transition-colors hover:bg-muted/40">
+                        <td className="max-w-[250px] px-4 py-3">
+                          <p className="truncate font-medium" title={row.product.name}>{row.product.name}</p>
+                          <p className="mt-0.5 truncate text-xs text-muted-foreground">{row.product.sku}</p>
+                        </td>
+                        <td className="px-4 py-3 text-muted-foreground">{tiposProducto.get(row.product.categoria || "") ?? row.product.categoria ?? "Otros"}</td>
+                        <td className="px-4 py-3">{condicion}</td>
+                        <td className="px-4 py-3 text-center"><span className={cn("inline-flex min-w-9 justify-center rounded-full px-2 py-1 text-xs font-semibold", disponible === 0 ? "bg-red-100 text-red-700" : "bg-amber-100 text-amber-700")}>{disponible}</span></td>
+                        <td className="px-4 py-3 text-center tabular-nums">{minimo}</td>
+                        <td className="px-4 py-3 text-center font-semibold tabular-nums">{Math.max(0, minimo - disponible)}</td>
+                        <td className="px-4 py-3 text-right"><Link to={`/inventario/${row.product.id}`} onClick={() => setStockDialogOpen(false)} className="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline">Ver <ArrowRight className="h-3.5 w-3.5" /></Link></td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             )}
           </div>
-          <div className="flex justify-end border-t px-6 py-4">
+          <div className="flex justify-end border-t px-5 py-4 sm:px-6">
             <Button variant="outline" asChild><Link to="/inventario" onClick={() => setStockDialogOpen(false)}>Ver inventario completo <ArrowRight className="ml-2 h-4 w-4" /></Link></Button>
           </div>
         </DialogContent>
