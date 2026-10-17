@@ -34,6 +34,7 @@ import { AnimatedNumber } from "@/components/shared/animated-number";
 import { StatCard } from "@/components/shared/stat-card";
 
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { usePermissions } from "@/hooks/use-permissions";
 import { useStore } from "@/hooks/use-store";
@@ -178,6 +179,7 @@ const Panel = () => {
   const data = useMemo(() => getDashboard(db), [db]);
   // Condición que se muestra en la tarjeta de alertas de stock bajo.
   const [condicionAlerta, setCondicionAlerta] = useState<UnitCondition>("nuevo");
+  const [stockDialogOpen, setStockDialogOpen] = useState(false);
   const alertas = data.lowStockCelulares[condicionAlerta];
   // Garantía que más tiempo lleva sin moverse (la lista ya viene ordenada de mayor a menor).
   const garantiaMasAntigua = data.staleWarranties[0];
@@ -226,7 +228,14 @@ const Panel = () => {
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <StatCard label={t("dashboard.available")} value={<AnimatedNumber value={data.kpis.available} formatter={formatNumber} />} hint={t("dashboard.availableHint")} icon={Boxes} tone="success" />
           <StatCard label={t("dashboard.receivedThisMonth")} value={<AnimatedNumber value={data.kpis.receivedThisMonth} formatter={formatNumber} />} hint={t("dashboard.receivedHint")} icon={PackagePlus} tone="info" />
-          <StatCard label={t("dashboard.lowStock")} value={<AnimatedNumber value={data.kpis.lowStockProducts} formatter={formatNumber} />} hint={t("dashboard.lowStockHint")} icon={TriangleAlert} tone={data.kpis.lowStockProducts > 0 ? "warning" : "success"} />
+          <button
+            type="button"
+            onClick={() => setStockDialogOpen(true)}
+            aria-label="Ver detalle de productos con stock bajo"
+            className="block w-full rounded-2xl text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 [&_.nx-stat-card]:h-full [&_.nx-stat-card]:cursor-pointer [&_.nx-stat-card]:hover:border-primary/40"
+          >
+            <StatCard label={t("dashboard.lowStock")} value={<AnimatedNumber value={data.kpis.lowStockProducts} formatter={formatNumber} />} hint={t("dashboard.lowStockHint")} icon={TriangleAlert} tone={data.kpis.lowStockProducts > 0 ? "warning" : "success"} />
+          </button>
           <StatCard label={t("dashboard.inventoryValue")} value={<AnimatedNumber value={data.kpis.inventoryValue} formatter={formatCurrency} />} hint={t("dashboard.inventoryValueHint")} icon={Coins} tone="primary" />
         </div>
         <div className="mt-4 grid gap-4 sm:grid-cols-2">
@@ -242,6 +251,76 @@ const Panel = () => {
           </Link>
         </div>
       </section>
+
+      <Dialog open={stockDialogOpen} onOpenChange={setStockDialogOpen}>
+        <DialogContent className="max-h-[90dvh] max-w-2xl overflow-hidden p-0">
+          <DialogHeader className="border-b px-6 pb-4 pt-6 pr-12">
+            <div className="mb-2 flex items-center gap-2">
+              <span className="rounded-lg bg-amber-100 p-2 text-amber-700"><TriangleAlert className="h-5 w-5" /></span>
+              <span className="rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground">{data.kpis.lowStockProducts} referencias</span>
+            </div>
+            <DialogTitle>Productos con stock bajo</DialogTitle>
+            <DialogDescription>Referencias activas por debajo del mínimo establecido. Los celulares se revisan por condición.</DialogDescription>
+          </DialogHeader>
+          <div className="max-h-[60dvh] space-y-5 overflow-y-auto px-6 py-4">
+            {data.lowStock.length === 0 ? (
+              <div className="rounded-xl border border-dashed px-4 py-10 text-center">
+                <ShieldCheck className="mx-auto mb-2 h-8 w-8 text-emerald-600" />
+                <p className="font-medium">No hay productos con stock bajo</p>
+                <p className="mt-1 text-sm text-muted-foreground">El inventario no presenta alertas de stock en este momento.</p>
+              </div>
+            ) : (
+              <>
+                {(["nuevo", "seminuevo"] as const).map((condicion) => {
+                  const items = data.lowStockCelulares[condicion];
+                  return items.length ? (
+                    <section key={condicion} className="space-y-2">
+                      <h3 className="flex items-center justify-between text-sm font-semibold">
+                        Celulares {condicion === "nuevo" ? "nuevos" : "seminuevos"}
+                        <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium">{items.length}</span>
+                      </h3>
+                      <div className="overflow-hidden rounded-xl border">
+                        {items.map(({ row, disponible }) => (
+                          <Link key={row.product.id} to={`/inventario/${row.product.id}`} onClick={() => setStockDialogOpen(false)} className="flex items-center justify-between gap-3 border-b px-4 py-3 transition-colors last:border-b-0 hover:bg-muted/50">
+                            <div className="min-w-0">
+                              <p className="truncate text-sm font-medium">{row.product.name}</p>
+                              <p className="mt-1 text-xs text-muted-foreground">Faltan {Math.max(0, STOCK_BAJO_CELULARES - disponible)} para llegar al mínimo de {STOCK_BAJO_CELULARES}</p>
+                            </div>
+                            <div className="flex shrink-0 items-center gap-2">
+                              <span className={cn("rounded-full px-2.5 py-1 text-xs font-semibold", disponible === 0 ? "bg-red-100 text-red-700" : "bg-amber-100 text-amber-700")}>{disponible} disponibles</span>
+                              <ArrowRight className="h-4 w-4 text-muted-foreground" />
+                            </div>
+                          </Link>
+                        ))}
+                      </div>
+                    </section>
+                  ) : null;
+                })}
+                {data.lowStockOtros.length > 0 ? (
+                  <section className="space-y-2">
+                    <h3 className="flex items-center justify-between text-sm font-semibold">Otros productos <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium">{data.lowStockOtros.length}</span></h3>
+                    <div className="overflow-hidden rounded-xl border">
+                      {data.lowStockOtros.map((row) => (
+                        <Link key={row.product.id} to={`/inventario/${row.product.id}`} onClick={() => setStockDialogOpen(false)} className="flex items-center justify-between gap-3 border-b px-4 py-3 transition-colors last:border-b-0 hover:bg-muted/50">
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-medium">{row.product.name}</p>
+                            <p className="mt-1 text-xs text-muted-foreground">Mínimo configurado: {row.stock.minStock} · Faltan {Math.max(0, row.stock.minStock - row.stock.disponible)}</p>
+                          </div>
+                          <span className="shrink-0 rounded-full bg-amber-100 px-2.5 py-1 text-xs font-semibold text-amber-700">{row.stock.disponible} disponibles</span>
+                          <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+                        </Link>
+                      ))}
+                    </div>
+                  </section>
+                ) : null}
+              </>
+            )}
+          </div>
+          <div className="flex justify-end border-t px-6 py-4">
+            <Button variant="outline" asChild><Link to="/inventario" onClick={() => setStockDialogOpen(false)}>Ver inventario completo <ArrowRight className="ml-2 h-4 w-4" /></Link></Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <section className="nx-actions-section">
         <div className="nx-section-heading"><div className="nx-section-icon"><Sparkles className="h-5 w-5" /></div><div><h2>Acciones rápidas</h2><p>Las tareas que más utilizas, siempre a un clic.</p></div></div>
