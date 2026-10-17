@@ -550,7 +550,7 @@ export const deshacerEstadoGarantia = (
 export const entregarGarantia = (
   db: Db,
   actor: Actor,
-  input: { warrantyId: string; replacementUnitId?: string; devolverABodega?: boolean; destinoDefectuoso?: "cambio" | "reembolso" | "bodega" },
+  input: { warrantyId: string; replacementUnitId?: string; devolverABodega?: boolean; reembolso?: boolean; destinoDefectuoso?: "cambio" | "reembolso" | "bodega" },
 ): Warranty => {
   requirePermission(actor, "warranties.manage");
   const warranty = findWarranty(db, input.warrantyId);
@@ -566,6 +566,10 @@ export const entregarGarantia = (
     ? (sinCliente ? "bodega" : input.destinoDefectuoso)
     : undefined;
   if (warranty.resolucion === "defectuoso" && !destinoDefectuoso) {
+    throw new DomainError("errors.invalidTransition");
+  }
+  const reembolso = input.reembolso === true || destinoDefectuoso === "reembolso";
+  if (reembolso && (sinCliente || warranty.resolucion === "cambio" || destinoDefectuoso === "cambio")) {
     throw new DomainError("errors.invalidTransition");
   }
   const esCambio = warranty.resolucion === "cambio" || destinoDefectuoso === "cambio";
@@ -620,7 +624,7 @@ export const entregarGarantia = (
   const aBodega =
     warranty.resolucion === "reparado" &&
     Boolean(unit) &&
-    (sinCliente || input.devolverABodega === true);
+    (sinCliente || input.devolverABodega === true || reembolso);
 
   if (warranty.resolucion === "reparado" && unit) {
     if (aBodega) {
@@ -673,8 +677,9 @@ export const entregarGarantia = (
     }
   }
 
-  // Un reembolso o una baja de inventario no son una entrega al cliente.
-  const cierreEnBodega = destinoDefectuoso === "reembolso" || destinoDefectuoso === "bodega";
+  // Reembolso es una decisión comercial: nunca modifica por sí sola el diagnóstico.
+  // Sin falla ya regresó al stock durante el diagnóstico; reparado regresa aquí.
+  const cierreEnBodega = reembolso || destinoDefectuoso === "bodega";
   warranty.status = cierreEnBodega ? "devuelto" : "entregado";
   warranty.resolvedAt = nowIso();
   addEvent(
@@ -682,13 +687,13 @@ export const entregarGarantia = (
     actor,
     warranty.id,
     cierreEnBodega ? "devuelto" : "entregado",
-    destinoDefectuoso === "reembolso" ? "Reembolso acordado; equipo defectuoso en bodega (sin movimiento de dinero)" : destinoDefectuoso === "bodega" ? "Equipo defectuoso retenido en bodega" : esCambio ? "Cambio de serial entregado al cliente" : aBodega ? "Reparado y devuelto a bodega" : "Entregado al cliente",
+    reembolso ? `Reembolso acordado; diagnóstico: ${warranty.resolucion ?? "pendiente"}; sin movimiento de dinero` : destinoDefectuoso === "bodega" ? "Equipo defectuoso retenido en bodega" : esCambio ? "Cambio de serial entregado al cliente" : aBodega ? "Reparado y devuelto a bodega" : "Entregado al cliente",
   );
   logAudit(db, actor, {
     action: "resolve",
     entity: "warranty",
     entityId: warranty.id,
-    details: `${warranty.code} · ${destinoDefectuoso === "reembolso" ? "reembolso acordado, sin pago automático" : destinoDefectuoso === "bodega" ? "defectuoso en bodega" : aBodega ? "devuelto a bodega" : "entregado"}`,
+    details: `${warranty.code} · ${reembolso ? "reembolso acordado, sin pago automático" : destinoDefectuoso === "bodega" ? "defectuoso en bodega" : aBodega ? "devuelto a bodega" : "entregado"}`,
   });
   return warranty;
 };
