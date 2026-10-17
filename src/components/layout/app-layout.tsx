@@ -23,7 +23,7 @@ export const AppLayout = () => {
       <div className="flex min-h-0 min-w-0 flex-1 flex-col">
         <Topbar onOpenMenu={() => setMenuOpen(true)} />
         <main className="min-h-0 flex-1 overflow-y-auto px-5 pb-12 pt-5 lg:px-8 lg:pb-14 lg:pt-7">
-          <div className="mx-auto flex min-h-full w-full max-w-7xl flex-col">
+          <div className="flex min-h-full w-full min-w-0 flex-col">
             {/* La clave es la ruta: al cambiar de pantalla entra con un fundido suave. */}
             <div key={pathname} className="page-enter flex w-full flex-1 flex-col">
               <Outlet />
