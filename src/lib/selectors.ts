@@ -642,14 +642,16 @@ export const getUnitTimeline = (db: Db, unitId: string): UnitTimelineItem[] => {
           ?? warranty.imeiManual ?? "equipo original";
         items.push({
           id: `w-reemplazo-${warranty.id}-${unitId}`,
-          fecha: warranty.resolvedAt ?? warranty.receivedAt,
+          fecha: eventos.find((event) => event.status === "entregado")?.createdAt ?? warranty.resolvedAt ?? warranty.receivedAt,
           tipo: "garantia",
           descripcion: `Entregado como reemplazo de ${original} en garantía ${warranty.code}`,
           usuario: nameOf(warranty.createdBy),
           enlace: { to: enlaceOperativoGarantia(warranty), codigo: warranty.code },
         });
       }
-      eventos.forEach((event) => {
+      // Los eventos del taller pertenecen al equipo original; en el serial
+      // de reemplazo mostramos solo su propia entrega, sin atribuirle reparaciones ajenas.
+      if (warranty.unitId === unitId) eventos.forEach((event) => {
         items.push({
           id: `w-${event.id}`,
           fecha: event.createdAt,
