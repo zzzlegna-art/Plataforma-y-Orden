@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { ArrowLeft, Boxes, Check, ClipboardList, Info, PackagePlus, Plus, Power, ScanLine, Trash2 } from "lucide-react";
 import { Link, useNavigate, useParams } from "react-router-dom";
+import { toast } from "sonner";
 
 import { ProductPicker } from "@/components/shared/product-picker";
 import { SerialScanInput } from "@/components/shared/serial-scan-input";
@@ -145,7 +146,10 @@ const NuevaRecepcion = () => {
       const serialNormalizado = serial.trim().toUpperCase();
       const duplicado = db.units.some((unit) => unit.status !== "liberado" && unit.serial.trim().toUpperCase() === serialNormalizado)
         || db.receptionItems.some((item) => item.serial.trim().toUpperCase() === serialNormalizado);
-      if (duplicado) return;
+      if (duplicado) {
+        toast.error("Este serial ya está registrado. No se agregó otra vez.");
+        return;
+      }
       let targetId = receptionId;
       if (!targetId) {
         const created = await runAction((db2, actor) =>
@@ -171,6 +175,7 @@ const NuevaRecepcion = () => {
       if (result) {
         setCost("");
         setUltimoSerialAgregado(serial.trim());
+        toast.success("Equipo agregado correctamente.", { id: "recepcion-lectura" });
       }
     });
 
