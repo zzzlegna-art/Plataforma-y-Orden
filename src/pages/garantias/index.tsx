@@ -230,6 +230,13 @@ const Garantias = () => {
     .map((c) => c.name)
     .sort((a, b) => a.localeCompare(b));
 
+  // Referencias del catálogo: sugerencias únicas para garantías previas y filtros.
+  const referenciasInventario = useMemo(
+    () => [...new Set(db.products.map((producto) => producto.name.trim()).filter(Boolean))]
+      .sort((a, b) => a.localeCompare(b, "es")),
+    [db.products],
+  );
+
   // La pestaña activa vive en la dirección (?tab=recibidos): así, al ver una garantía y volver
   // (botón "Volver" o "atrás" del navegador), se regresa a la misma pestaña.
   const [params, setParams] = useSearchParams();
@@ -1707,8 +1714,9 @@ const Garantias = () => {
               <div className="space-y-2">
                 <Label>{t("warranty.previaReferencia")}</Label>
                 <Input
+                  list="referencias-inventario-garantias"
                   value={previa.referencia}
-                  placeholder={t("warranty.previaReferenciaPlaceholder")}
+                  placeholder="Buscar o elegir referencia del inventario"
                   onChange={(event) => setPrevia({ ...previa, referencia: event.target.value })}
                 />
               </div>
@@ -1795,12 +1803,11 @@ const Garantias = () => {
                     <div className="space-y-2">
                       <Label>{t("warranty.previaReferencia")}</Label>
                       <Input
-                        value={previaLoteDraft.referencia}
-                        placeholder={t("warranty.previaReferenciaPlaceholder")}
-                        onChange={(event) =>
-                          setPreviaLoteDraft({ ...previaLoteDraft, referencia: event.target.value })
-                        }
-                      />
+                  list="referencias-inventario-garantias"
+                  value={previaLoteDraft.referencia}
+                  placeholder="Buscar o elegir referencia del inventario"
+                  onChange={(event) => setPreviaLoteDraft({ ...previaLoteDraft, referencia: event.target.value })}
+                />
                     </div>
                     <div className="space-y-2">
                       <Label>{t("warranty.previaCliente")}</Label>
@@ -2054,13 +2061,19 @@ const Garantias = () => {
         </div>
       ) : null}
 
+      <datalist id="referencias-inventario-garantias">
+        {referenciasInventario.map((referencia) => (
+          <option key={referencia} value={referencia} />
+        ))}
+      </datalist>
+
       {/* ============ HISTORIAL ============ */}
       {tab === "historial" ? (
         <div className="animate-fade-in space-y-3">
           <Input
             {...SEARCH_INPUT_PROPS}
             value={filtroHistorial}
-            placeholder={t("warranty.historialSearch")}
+            placeholder="Buscar por referencia, IMEI, cliente o código de garantía"
             onChange={(event) => setFiltroHistorial(event.target.value)}
           />
           {(() => {
@@ -2071,7 +2084,8 @@ const Garantias = () => {
                 v.warranty.code.toLowerCase().includes(q) ||
                 (v.unit?.serial ?? "").toLowerCase().includes(q) ||
                 (v.warranty.imeiManual ?? "").toLowerCase().includes(q) ||
-                (v.customer?.name ?? v.warranty.clienteManual ?? "").toLowerCase().includes(q),
+                (v.customer?.name ?? v.warranty.clienteManual ?? "").toLowerCase().includes(q) ||
+                (v.product?.name ?? v.warranty.referenciaManual ?? "").toLowerCase().includes(q),
             );
             return rows.length === 0 ? (
               <EmptyState icon={History} title={t("warranty.emptyTitle")} description={t("warranty.emptyDescription")} />
