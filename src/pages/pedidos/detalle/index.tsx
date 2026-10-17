@@ -303,10 +303,18 @@ const PedidoDetalle = () => {
                 <PackagePlus />
                 {t("order.addReference")}
               </Button>
-              <Button disabled={pending > 0} loading={runAction.pending} onClick={finalizar}>
-                <Check />
-                {t("order.finalize")}
-              </Button>
+              <ConfirmDialog
+                trigger={
+                  <Button disabled={pending > 0 || runAction.pending} loading={runAction.pending}>
+                    <Check />
+                    {t("order.finalize")}
+                  </Button>
+                }
+                title="Verificar y despachar pedido"
+                description={`Se van a despachar ${assigned} equipos verificados por IMEI y ${requested - requestedSerial} unidades adicionales (incluidos repuestos). Confirma que las referencias y cantidades coinciden con la entrega física. Esta acción registra la salida del inventario.`}
+                confirmLabel="Confirmar despacho"
+                onConfirm={finalizar}
+              />
               {isAdmin ? (
                 <ConfirmDialog
                   trigger={
@@ -367,6 +375,8 @@ const PedidoDetalle = () => {
           </p>
         </div>
       </div>
+
+      {editable && pending === 0 ? <p className="rounded-lg border border-primary/30 bg-primary/5 px-4 py-3 text-sm text-primary">Verificación completa: {assigned} de {requestedSerial} equipos con IMEI asignado. Revisa físicamente las unidades antes de confirmar el despacho.</p> : null}
 
       {editable && pending > 0 ? (
         <p className="rounded-lg border border-warning/40 bg-warning/10 px-4 py-3 text-sm text-warning">
