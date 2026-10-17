@@ -551,3 +551,20 @@ body {
     background: radial-gradient(700px 420px at 88% 0%, hsl(var(--primary) / .045), transparent 72%);
   }
 }
+
+/* Nexora desktop: páginas operativas ocupan toda el área de trabajo disponible.
+   No afecta el ancho deliberadamente limitado de diálogos y formularios. */
+@media (min-width: 1024px) {
+  .nx-operations,
+  .nx-management {
+    width: 100%;
+    max-width: none;
+    min-width: 0;
+    margin-left: 0;
+    margin-right: 0;
+  }
+  .nx-operations > .nx-page-header,
+  .nx-management > .nx-page-header {
+    width: 100%;
+  }
+}
