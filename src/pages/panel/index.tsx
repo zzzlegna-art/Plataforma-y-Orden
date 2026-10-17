@@ -227,6 +227,41 @@ const Panel = () => {
     enlace.remove();
     window.setTimeout(() => URL.revokeObjectURL(url), 1000);
   };
+  const [reporteDesde, setReporteDesde] = useState(() => new Date().toISOString().slice(0, 7) + "-01");
+  const [reporteHasta, setReporteHasta] = useState(() => new Date().toISOString().slice(0, 10));
+  const exportarReporteOperativo = () => {
+    if (reporteDesde && reporteHasta && reporteDesde > reporteHasta) return;
+    const dentro = (fecha: string) => (!reporteDesde || fecha.slice(0, 10) >= reporteDesde) &&
+      (!reporteHasta || fecha.slice(0, 10) <= reporteHasta);
+    const movimientos = db.movements.filter((m) => dentro(m.createdAt));
+    const filas: (string | number)[][] = [
+      ["Indicador", "Cantidad"],
+      ["Entradas", movimientos.filter((m) => m.type === "entrada").reduce((n, m) => n + m.quantity, 0)],
+      ["Salidas", movimientos.filter((m) => m.type === "salida").reduce((n, m) => n + m.quantity, 0)],
+      ["Devoluciones", movimientos.filter((m) => m.type === "devolucion").reduce((n, m) => n + m.quantity, 0)],
+      ["Recepciones", db.receptions.filter((r) => dentro(r.receivedAt)).length],
+      ["Pedidos", db.orders.filter((o) => dentro(o.orderDate)).length],
+      ["Garantías recibidas", db.warranties.filter((w) => dentro(w.receivedAt)).length],
+      ["Garantías cerradas", db.warranties.filter((w) => w.resolvedAt && dentro(w.resolvedAt)).length],
+      [],
+      ["Fecha", "Movimiento", "Cantidad", "Referencia", "Serial"],
+      ...movimientos.map((m) => [m.createdAt, m.type, m.quantity, m.referenceType, db.units.find((u) => u.id === m.unitId)?.serial ?? ""]),
+    ];
+    const celda = (valor: string | number) => {
+      const v = String(valor);
+      const seguro = /^[\\s]*[=+@\\-]/.test(v) ? "'" + v : v;
+      return '"' + seguro.replace(/"/g, '""') + '"';
+    };
+    const csv = "\\uFEFF" + filas.map((fila) => fila.map(celda).join(";")).join("\\r\\n");
+    const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "nexora-reporte-operativo-" + reporteDesde + "-a-" + reporteHasta + ".csv";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+  };
   // Garantía que más tiempo lleva sin moverse (la lista ya viene ordenada de mayor a menor).
   const garantiaMasAntigua = data.staleWarranties[0];
   const diasMasAntigua = garantiaMasAntigua ? diasSinMovimiento(garantiaMasAntigua) : 0;
@@ -268,6 +303,12 @@ const Panel = () => {
           <PageHeader title="Panel principal" description="Resumen general de tu inventario y operaciones." />
         </div>
         <span className="nx-live-pill"><span className="nx-live-dot" /> Información de tu operación</span>
+      </div>
+
+      <div className="flex flex-wrap items-end gap-3 rounded-xl border bg-card p-4">
+        <div><label htmlFor="reporte-desde" className="block text-xs text-muted-foreground">Reporte desde</label><input id="reporte-desde" type="date" value={reporteDesde} max={reporteHasta} onChange={(e) => setReporteDesde(e.target.value)} className="mt-1 rounded-md border bg-background px-3 py-2 text-sm" /></div>
+        <div><label htmlFor="reporte-hasta" className="block text-xs text-muted-foreground">Hasta</label><input id="reporte-hasta" type="date" value={reporteHasta} min={reporteDesde} onChange={(e) => setReporteHasta(e.target.value)} className="mt-1 rounded-md border bg-background px-3 py-2 text-sm" /></div>
+        <Button type="button" variant="outline" disabled={reporteDesde > reporteHasta} onClick={exportarReporteOperativo}><Download className="mr-2 h-4 w-4" />Exportar reporte operativo CSV</Button>
       </div>
 
       <section className="nx-hero-strip">
