@@ -21,6 +21,7 @@ import { toast } from "sonner";
 import { PageHeader } from "@/components/shared/page-header";
 import { SerialScanInput } from "@/components/shared/serial-scan-input";
 import { EmptyState } from "@/components/shared/empty-state";
+import { ProductThumbnail } from "@/components/shared/product-thumbnail";
 import { Badge, PendingImeiBadge, WarrantyStatusBadge } from "@/components/shared/status-badge";
 import { WarrantyOriginBadge } from "@/components/shared/warranty-origin-badge";
 import { Button } from "@/components/ui/button";
@@ -1340,7 +1341,10 @@ const Garantias = () => {
             ) : null}
           </div>
         </div>
-        <p className="mt-2 truncate text-sm">{info.producto}</p>
+        <div className="mt-2 flex min-w-0 items-center gap-2">
+          <ProductThumbnail src={view.product?.imageUrl} alt={info.producto} size="sm" />
+          <p className="truncate text-sm">{info.producto}</p>
+        </div>
         <p className="truncate text-xs text-muted-foreground">{info.cliente}</p>
         <p className="mt-1 text-xs text-muted-foreground">{formatDateTime(view.warranty.receivedAt)}</p>
         {view.tecnico ? (
@@ -2302,17 +2306,21 @@ const Garantias = () => {
                 : vistas.filter(
                     (v) => v.warranty.imeiManual?.toLowerCase() === buscarResultado.toLowerCase(),
                   );
+              const product = unit ? db.products.find((candidate) => candidate.id === unit.productId) : undefined;
               const origen = unit ? getUnitOrigen(db, unit) : undefined;
               return (
                 <div className="space-y-3">
                   <p className="font-tabular text-sm font-semibold">{buscarResultado}</p>
                   {unit ? (
-                    <p className="text-sm text-muted-foreground">
-                      {t("warranty.search.unit", {
-                        producto: productoDeUnidad(unit),
-                        estado: t(`unitStatus.${unit.status}`),
-                      })}
-                    </p>
+                    <div className="flex min-w-0 items-center gap-2">
+                      <ProductThumbnail src={product?.imageUrl} alt={product?.name ?? "Referencia"} size="sm" />
+                      <p className="text-sm text-muted-foreground">
+                        {t("warranty.search.unit", {
+                          producto: productoDeUnidad(unit),
+                          estado: t(`unitStatus.${unit.status}`),
+                        })}
+                      </p>
+                    </div>
                   ) : previo ? (
                     <div className="flex flex-wrap items-center gap-2">
                       <p className="text-sm text-muted-foreground">{t("warranty.search.previo")}</p>

@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import { History, LockOpen, Save, Undo2 } from "lucide-react";
 
 import { ConditionBadge, UnitStatusBadge, Badge } from "@/components/shared/status-badge";
+import { ProductThumbnail } from "@/components/shared/product-thumbnail";
 import { UnitStatusMenu } from "@/components/shared/unit-status-menu";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { Button } from "@/components/ui/button";
@@ -78,7 +79,10 @@ export const UnitDetailSheet = ({
       <SheetContent side="right" className="w-full overflow-y-auto sm:max-w-md">
         <SheetHeader>
           <SheetTitle className="font-tabular">{unit?.serial ?? ""}</SheetTitle>
-          <SheetDescription>{product?.name ?? ""}</SheetDescription>
+          <div className="flex items-center gap-3">
+            <ProductThumbnail src={product?.imageUrl} alt={product?.name ?? "Referencia"} size="md" />
+            <SheetDescription>{product?.name ?? ""}</SheetDescription>
+          </div>
         </SheetHeader>
 
         {unit ? (
