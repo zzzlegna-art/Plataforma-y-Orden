@@ -5,6 +5,7 @@ import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 
 import { EmptyState } from "@/components/shared/empty-state";
 import { PageHeader } from "@/components/shared/page-header";
+import { ProductThumbnail } from "@/components/shared/product-thumbnail";
 import { Badge, ConditionBadge, PendingImeiBadge, WarrantyStatusBadge } from "@/components/shared/status-badge";
 import { WarrantyOriginBadge } from "@/components/shared/warranty-origin-badge";
 import { Button } from "@/components/ui/button";
@@ -92,6 +93,7 @@ const GarantiaDetalle = () => {
         title={<span className="font-tabular">{warranty.code}</span>}
         description={
           <span className="flex flex-wrap items-center gap-2">
+            <ProductThumbnail src={product?.imageUrl} alt={producto} size="md" />
             <span>{producto}</span>
             {unit ? <ConditionBadge condition={unit.condition} /> : null}
             {serial && esCodigoInterno(serial) ? <PendingImeiBadge /> : null}
