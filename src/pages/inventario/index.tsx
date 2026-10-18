@@ -232,7 +232,7 @@ const ProductThumbnail = ({
               loading="lazy"
               decoding="async"
               onError={() => setImageFailed(true)}
-              className="absolute inset-0 z-10 h-full w-full object-cover"
+              className="absolute inset-0 z-10 h-full w-full object-contain p-1.5"
             />
             <span className="absolute bottom-1 right-1 z-20 rounded-lg bg-black/65 p-1.5 text-white opacity-0 shadow-sm transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100">
               <ZoomIn className="h-4 w-4" />
