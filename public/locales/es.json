@@ -155,6 +155,8 @@
   "product.imageCancelChange": "Cancelar cambio",
   "product.imageRestore": "Restaurar foto",
   "product.imagePreviewAlt": "Vista previa de la foto del producto",
+  "product.zoomImage": "Ampliar foto de {{name}}",
+  "product.imageZoomHint": "Pulsa fuera de la imagen o Esc para cerrar.",
   "product.description": "Descripción",
   "product.category": "Categoría",
   "product.brand": "Marca",

@@ -15,6 +15,7 @@ import {
   Tablet,
   Watch,
   Wrench,
+  ZoomIn,
   type LucideIcon,
 } from "lucide-react";
 import { Link } from "react-router-dom";
@@ -27,6 +28,14 @@ import { SearchField } from "@/components/shared/search-field";
 import { OptionSelect } from "@/components/shared/option-select";
 import { ActiveBadge, LowStockBadge } from "@/components/shared/status-badge";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useStore } from "@/hooks/use-store";
@@ -142,12 +151,15 @@ const PRODUCT_THUMB_TONES: Record<string, string> = {
 const ProductThumbnail = ({
   categoria,
   imageUrl,
+  productName,
   size = "sm",
 }: {
   categoria?: string;
   imageUrl?: string;
+  productName: string;
   size?: "sm" | "md";
 }) => {
+  const { t } = useTranslation();
   const [imageFailed, setImageFailed] = useState(false);
   useEffect(() => setImageFailed(false), [imageUrl]);
 
@@ -163,32 +175,64 @@ const ProductThumbnail = ({
             : categoria === "repuesto"
               ? Wrench
               : Package;
+  const sizeClasses = size === "md" ? "h-16 w-16" : "h-20 w-20";
+  const thumbnailClasses = cn(
+    "relative isolate grid shrink-0 place-items-center overflow-hidden rounded-2xl bg-gradient-to-br shadow-sm ring-1 ring-inset transition-all duration-200",
+    sizeClasses,
+    PRODUCT_THUMB_TONES[categoria ?? ""] ??
+      "from-muted via-background to-muted text-muted-foreground ring-border",
+  );
+
+  if (imageUrl && !imageFailed) {
+    return (
+      <Dialog>
+        <DialogTrigger asChild>
+          <button
+            type="button"
+            aria-label={t("product.zoomImage", { name: productName })}
+            className={cn(
+              thumbnailClasses,
+              "group cursor-zoom-in border-0 p-0 hover:-translate-y-0.5 hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2",
+            )}
+          >
+            <img
+              src={imageUrl}
+              alt={productName}
+              loading="lazy"
+              decoding="async"
+              onError={() => setImageFailed(true)}
+              className="absolute inset-0 z-10 h-full w-full object-cover"
+            />
+            <span className="absolute bottom-1 right-1 z-20 rounded-lg bg-black/65 p-1.5 text-white opacity-0 shadow-sm transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100">
+              <ZoomIn className="h-4 w-4" />
+            </span>
+          </button>
+        </DialogTrigger>
+        <DialogContent className="w-[min(92vw,960px)] max-w-none p-3 sm:p-5 max-sm:w-full">
+          <DialogHeader className="px-2 pt-1">
+            <DialogTitle className="pr-8 text-left">{productName}</DialogTitle>
+            <DialogDescription>{t("product.imageZoomHint")}</DialogDescription>
+          </DialogHeader>
+          <div className="grid min-h-0 place-items-center overflow-hidden rounded-xl bg-muted/30 p-1 sm:p-2">
+            <img
+              src={imageUrl}
+              alt={productName}
+              className="max-h-[76vh] w-full object-contain"
+              decoding="async"
+            />
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
 
   return (
-    <div
-      aria-hidden="true"
-      className={cn(
-        "relative isolate grid shrink-0 place-items-center overflow-hidden rounded-xl bg-gradient-to-br shadow-inner ring-1 ring-inset",
-        size === "md" ? "h-12 w-12" : "h-10 w-10",
-        PRODUCT_THUMB_TONES[categoria ?? ""] ??
-          "from-muted via-background to-muted text-muted-foreground ring-border",
-      )}
-    >
-      {imageUrl && !imageFailed ? (
-        <img
-          src={imageUrl}
-          alt=""
-          loading="lazy"
-          decoding="async"
-          onError={() => setImageFailed(true)}
-          className="absolute inset-0 z-10 h-full w-full object-cover"
-        />
-      ) : (
-        <>
-          <span className="pointer-events-none absolute -right-1 -top-1 h-6 w-6 rounded-full bg-white/50 blur-sm dark:bg-white/5" />
-          <Icon className="relative z-10 h-5 w-5 drop-shadow-sm" strokeWidth={1.8} />
-        </>
-      )}
+    <div aria-hidden="true" className={thumbnailClasses}>
+      <span className="pointer-events-none absolute -right-1 -top-1 h-8 w-8 rounded-full bg-white/50 blur-sm dark:bg-white/5" />
+      <Icon
+        className={cn("relative z-10 drop-shadow-sm", size === "md" ? "h-7 w-7" : "h-8 w-8")}
+        strokeWidth={1.8}
+      />
     </div>
   );
 };
@@ -350,7 +394,12 @@ const Inventario = () => {
   const renderCard = (row: ProductRow) => (
     <div className="space-y-3">
       <div className="flex items-start gap-3">
-        <ProductThumbnail categoria={row.product.categoria} imageUrl={row.product.imageUrl} size="md" />
+        <ProductThumbnail
+          categoria={row.product.categoria}
+          imageUrl={row.product.imageUrl}
+          productName={row.product.name}
+          size="md"
+        />
         <div className="min-w-0 flex-1 space-y-1.5">
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0">
@@ -589,7 +638,11 @@ const Inventario = () => {
             className: "min-w-[280px]",
             cell: (row) => (
               <div className="flex min-w-0 items-center gap-3 py-1">
-                <ProductThumbnail categoria={row.product.categoria} imageUrl={row.product.imageUrl} />
+                <ProductThumbnail
+                  categoria={row.product.categoria}
+                  imageUrl={row.product.imageUrl}
+                  productName={row.product.name}
+                />
                 <div className="min-w-0 space-y-1">
                   <Link
                     to={detalleUrl(row.product.id)}
