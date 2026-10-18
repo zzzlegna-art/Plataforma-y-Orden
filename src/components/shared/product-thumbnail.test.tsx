@@ -17,6 +17,12 @@ describe("ProductThumbnail", () => {
     );
   });
 
+  it("permite una miniatura ampliada para la captura de recepción", () => {
+    render(<ProductThumbnail src="https://example.com/iphone.png" alt="iPhone 13" size="xl" />);
+    expect(screen.getByRole("img", { name: "iPhone 13" }).className).toContain("h-20");
+    expect(screen.getByRole("img", { name: "iPhone 13" }).className).toContain("w-20");
+  });
+
   it("oculta la fotografía si la URL no carga", () => {
     render(<ProductThumbnail src="https://example.com/missing.png" alt="iPhone 13" />);
     fireEvent.error(screen.getByRole("img", { name: "iPhone 13" }));
