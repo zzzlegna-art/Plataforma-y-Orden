@@ -38,7 +38,7 @@ export const Topbar = ({ onOpenMenu }: { onOpenMenu: () => void }) => {
       ...db.orders.filter((o) => matches(o.code)).slice(0, 6).map((o) => ({ id: `o-${o.id}`, title: o.code, subtitle: "Pedido", to: `/pedidos/${o.id}` })),
       ...db.warranties.filter((w) => matches(w.code)).slice(0, 6).map((w) => ({ id: `w-${w.id}`, title: w.code, subtitle: "Garantía", to: `/garantias/${w.id}` })),
       ...db.products.filter((p) => matches(p.name) || matches(p.sku)).slice(0, 8).map((p) => ({ id: `p-${p.id}`, title: p.name, subtitle: p.sku, to: `/inventario/${p.id}` })),
-      ...db.customers.filter((c) => matches(c.name)).slice(0, 6).map((c) => ({ id: `c-${c.id}`, title: c.name, subtitle: "Cliente", to: `/clientes?q=${encodeURIComponent(c.name)}` })),
+      ...db.customers.filter((c) => matches(c.name)).slice(0, 6).map((c) => ({ id: `c-${c.id}`, title: c.name, subtitle: "Cliente", to: `/clientes?q=${encodeURIComponent(c.name)}${c.isActive ? "" : "&inactivas=1"}` })),
     ].slice(0, 18);
   }, [db, query]);
   const location = useLocation();
