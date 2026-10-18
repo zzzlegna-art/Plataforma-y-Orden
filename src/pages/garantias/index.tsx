@@ -64,6 +64,7 @@ import {
   type WarrantyView,
 } from "@/lib/selectors";
 import { formatDate, formatDateTime, todayIso } from "@/lib/format";
+import { crearCsv } from "@/lib/csv";
 import { getWarrantyOrigin, type WarrantyOrigin } from "@/lib/warranty-origin";
 import {
   FILTRO_REENVIO_VACIO,
@@ -395,11 +396,6 @@ const Garantias = () => {
     [vistas],
   );
   const exportarEstadisticas = () => {
-    const c = (valor: string | number) => {
-      const texto = String(valor);
-      const seguro = /^[\\s]*[=+@\\-]/.test(texto) ? "'" + texto : texto;
-      return '"' + seguro.replace(/"/g, '""') + '"';
-    };
     const lineas = [
       ["Indicador", "Valor"],
       ["Garantías registradas", estadisticas.total],
@@ -417,7 +413,7 @@ const Garantias = () => {
       ["Motivo reportado", "Garantías"],
       ...estadisticas.motivos,
     ];
-    const csv = "\uFEFF" + lineas.map((fila) => fila.map(c).join(";")).join("\r\n");
+    const csv = crearCsv(lineas);
     const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
     const link = document.createElement("a");
     link.href = url;
