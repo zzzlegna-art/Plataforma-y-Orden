@@ -40,6 +40,7 @@ import { cn } from "@/lib/utils";
 import { usePermissions } from "@/hooks/use-permissions";
 import { useStore } from "@/hooks/use-store";
 import { formatCurrency, formatNumber } from "@/lib/format";
+import { crearCsv } from "@/lib/csv";
 import {
   DIAS_GARANTIA_CRITICA,
   DIAS_GARANTIA_ESTANCADA,
@@ -201,12 +202,6 @@ const Panel = () => {
   });
   const exportarStockFiltrado = () => {
     if (filasStockVisibles.length === 0) return;
-    // Comillas y caracteres de fórmula se neutralizan para abrir el CSV con seguridad en Excel.
-    const celda = (valor: string | number) => {
-      const texto = String(valor);
-      const seguro = /^[\\s]*[=+@\\-\\t\\r]/.test(texto) ? "'" + texto : texto;
-      return '"' + seguro.replace(/"/g, '""') + '"';
-    };
     const cabeceras = ["Referencia", "SKU", "Categoria", "Condicion", "Disponibles", "Minimo", "Faltan"];
     const filas = filasStockVisibles.map(({ row, disponible, condicion, minimo }) => [
       row.product.name,
@@ -217,7 +212,7 @@ const Panel = () => {
       minimo,
       Math.max(0, minimo - disponible),
     ]);
-    const csv = "\uFEFF" + [cabeceras, ...filas].map((fila) => fila.map(celda).join(";")).join("\r\n");
+    const csv = crearCsv([cabeceras, ...filas]);
     const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8;" }));
     const enlace = document.createElement("a");
     enlace.href = url;
@@ -247,12 +242,7 @@ const Panel = () => {
       ["Fecha", "Movimiento", "Cantidad", "Referencia", "Serial"],
       ...movimientos.map((m) => [m.createdAt, m.type, m.quantity, m.referenceType, db.units.find((u) => u.id === m.unitId)?.serial ?? ""]),
     ];
-    const celda = (valor: string | number) => {
-      const v = String(valor);
-      const seguro = /^[\\s]*[=+@\\-]/.test(v) ? "'" + v : v;
-      return '"' + seguro.replace(/"/g, '""') + '"';
-    };
-    const csv = "\uFEFF" + filas.map((fila) => fila.map(celda).join(";")).join("\r\n");
+    const csv = crearCsv(filas);
     const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
     const a = document.createElement("a");
     a.href = url;
