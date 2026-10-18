@@ -21,6 +21,7 @@ import { toast } from "sonner";
 import { PageHeader } from "@/components/shared/page-header";
 import { SerialScanInput } from "@/components/shared/serial-scan-input";
 import { EmptyState } from "@/components/shared/empty-state";
+import { ProductThumbnail } from "@/components/shared/product-thumbnail";
 import { Badge, PendingImeiBadge, WarrantyStatusBadge } from "@/components/shared/status-badge";
 import { WarrantyOriginBadge } from "@/components/shared/warranty-origin-badge";
 import { Button } from "@/components/ui/button";
@@ -1340,7 +1341,10 @@ const Garantias = () => {
             ) : null}
           </div>
         </div>
-        <p className="mt-2 truncate text-sm">{info.producto}</p>
+        <div className="mt-2 flex min-w-0 items-center gap-2">
+          <ProductThumbnail src={view.product?.imageUrl} alt={info.producto} size="sm" />
+          <p className="truncate text-sm">{info.producto}</p>
+        </div>
         <p className="truncate text-xs text-muted-foreground">{info.cliente}</p>
         <p className="mt-1 text-xs text-muted-foreground">{formatDateTime(view.warranty.receivedAt)}</p>
         {view.tecnico ? (
