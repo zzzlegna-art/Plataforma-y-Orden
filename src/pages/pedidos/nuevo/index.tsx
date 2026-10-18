@@ -31,7 +31,7 @@ const ProductMiniThumb = ({ imageUrl, name, className }: ProductMiniThumbProps) 
   return (
     <div
       className={cn(
-        "grid h-16 w-16 shrink-0 place-items-center overflow-hidden rounded-xl border bg-background text-muted-foreground",
+        "grid h-[4.5rem] w-[4.5rem] shrink-0 place-items-center overflow-hidden rounded-xl border bg-background text-muted-foreground",
         className,
       )}
     >
@@ -418,7 +418,7 @@ const NuevoPedido = () => {
                 <p className="mt-1 text-xs text-muted-foreground">{t("order.noRefsMatchHint")}</p>
               </div>
             ) : (
-              <ul className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3 lg:max-h-[calc(100vh-22rem)] lg:min-h-[18rem] lg:overflow-y-auto lg:pr-1">
+              <ul className="grid content-start gap-2 sm:grid-cols-2 xl:grid-cols-3 lg:max-h-[calc(100vh-22rem)] lg:overflow-y-auto lg:pr-1">
                 {lista.map(({ product, disponibles }) => {
                   const enPedido = cantidadEnPedido(product);
                   return (
