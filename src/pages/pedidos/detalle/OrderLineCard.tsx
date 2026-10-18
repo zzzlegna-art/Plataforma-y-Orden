@@ -1,5 +1,6 @@
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Trash2, X } from "lucide-react";
+import { Package, Trash2, X } from "lucide-react";
 
 import { SerialScanInput } from "@/components/shared/serial-scan-input";
 import { ConditionBadge } from "@/components/shared/status-badge";
@@ -36,6 +37,7 @@ export const OrderLineCard = ({
   destacada?: boolean;
 }) => {
   const { t } = useTranslation();
+  const [imageFailed, setImageFailed] = useState(false);
   const pct = Math.min(100, Math.round((line.serializados / line.item.quantity) * 100));
   const complete = line.serializados >= line.item.quantity;
   // Los repuestos no se escanean: mientras el pedido se prepara se descuentan solos al finalizar.
@@ -132,19 +134,35 @@ export const OrderLineCard = ({
           mostrarEscaner && "lg:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)_auto]",
         )}
       >
-        <div className={cn("min-w-0", mostrarEscaner && "lg:col-start-1 lg:row-start-1")}>
-          <p className="truncate text-sm font-medium">{line.product?.name ?? "—"}</p>
-          <p className="font-tabular truncate text-xs text-muted-foreground">
-            {line.product?.sku ?? ""}
-          </p>
-          <div className="mt-1">
-            <ConditionBadge condition={line.item.condition ?? "nuevo"} />
+        <div className={cn("flex min-w-0 items-start gap-3", mostrarEscaner && "lg:col-start-1 lg:row-start-1")}>
+          <div className="grid h-16 w-16 shrink-0 place-items-center overflow-hidden rounded-xl border bg-background text-muted-foreground">
+            {line.product?.imageUrl && !imageFailed ? (
+              <img
+                src={line.product.imageUrl}
+                alt={line.product.name}
+                loading="lazy"
+                decoding="async"
+                onError={() => setImageFailed(true)}
+                className="h-full w-full object-contain p-1"
+              />
+            ) : (
+              <Package aria-hidden="true" className="h-5 w-5" />
+            )}
           </div>
-          {destacada ? (
-            <p className="mt-1.5 animate-pop-in text-xs font-semibold text-primary motion-reduce:animate-none">
-              {t("order.serialIncluidoAqui")}
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-medium">{line.product?.name ?? "—"}</p>
+            <p className="font-tabular truncate text-xs text-muted-foreground">
+              {line.product?.sku ?? ""}
             </p>
-          ) : null}
+            <div className="mt-1">
+              <ConditionBadge condition={line.item.condition ?? "nuevo"} />
+            </div>
+            {destacada ? (
+              <p className="mt-1.5 animate-pop-in text-xs font-semibold text-primary motion-reduce:animate-none">
+                {t("order.serialIncluidoAqui")}
+              </p>
+            ) : null}
+          </div>
         </div>
 
         {controles}
