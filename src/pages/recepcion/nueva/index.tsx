@@ -43,6 +43,9 @@ const IconoSeccion = ({ children }: { children: ReactNode }) => (
   </span>
 );
 
+type LecturaRecepcion = { serial: string; productId: string; condition: UnitCondition; cost: string };
+type LecturaRechazada = LecturaRecepcion & { motivo: string };
+
 const NuevaRecepcion = () => {
   const { t } = useTranslation();
   const { db } = useStore();
@@ -72,12 +75,12 @@ const NuevaRecepcion = () => {
   const busyRef = useRef(false);
   const receptionIdRef = useRef(receptionId);
   receptionIdRef.current = receptionId;
-  const colaSerialesRef = useRef<{ serial: string; productId: string; condition: UnitCondition; cost: string }[]>([]);
+  const colaSerialesRef = useRef<LecturaRecepcion[]>([]);
   const procesandoColaRef = useRef(false);
-  const procesarSerialRef = useRef<(lectura: { serial: string; productId: string; condition: UnitCondition; cost: string }) => Promise<void>>(async () => {});
+  const procesarSerialRef = useRef<(lectura: LecturaRecepcion) => Promise<void>>(async () => {});
   const [pendientes, setPendientes] = useState(0);
   const [procesados, setProcesados] = useState(0);
-  const [rechazados, setRechazados] = useState<string[]>([]);
+  const [rechazados, setRechazados] = useState<LecturaRechazada[]>([]);
   const lecturasTerminadasRef = useRef(new Set<string>());
 
   const reception = useMemo(
@@ -149,16 +152,31 @@ const NuevaRecepcion = () => {
     }
   };
 
-  const procesarSerial = (lectura: { serial: string; productId: string; condition: UnitCondition; cost: string }) =>
-    runExclusivo(async () => {
+  const registrarRechazo = (lectura: LecturaRecepcion, motivo: string) => {
+    setRechazados((actuales) => [...actuales, { ...lectura, motivo }]);
+  };
+
+  const procesarSerial = async (lectura: LecturaRecepcion) => {
+    // Una operación de repuestos/edición en curso no debe descartar silenciosamente el escaneo.
+    if (busyRef.current) {
+      registrarRechazo(lectura, "Otra operación estaba en curso al recibir esta lectura.");
+      toast.error("Lectura pendiente de revisión: vuelve a intentarla.");
+      return;
+    }
+    await runExclusivo(async () => {
       const { serial } = lectura;
-      if (!lectura.productId) return;
-      if (receptionIdRef.current && confirmed) return;
+      if (!lectura.productId || (receptionIdRef.current && confirmed)) {
+        registrarRechazo(lectura, "Recepción cerrada o producto no seleccionado.");
+        return;
+      }
       const serialNormalizado = serial.trim().toUpperCase();
-      const duplicado = lecturasTerminadasRef.current.has(serialNormalizado) || db.units.some((unit) => unit.status !== "liberado" && unit.serial.trim().toUpperCase() === serialNormalizado)
-        || db.receptionItems.some((item) => item.serial.trim().toUpperCase() === serialNormalizado);
+      // Las recepciones confirmadas de años anteriores no bloquean un reingreso liberado.
+      // La acción de dominio vuelve a validar el inventario y los duplicados reales.
+      const duplicado = lecturasTerminadasRef.current.has(serialNormalizado) ||
+        db.units.some((unit) => unit.status !== "liberado" && unit.serial.trim().toUpperCase() === serialNormalizado) ||
+        db.receptionItems.some((item) => item.receptionId === receptionIdRef.current && item.serial.trim().toUpperCase() === serialNormalizado);
       if (duplicado) {
-        setRechazados((actuales) => [...actuales, serial]);
+        registrarRechazo(lectura, "Serial ya agregado a esta recepción o presente en inventario activo.");
         toast.error("Este serial ya está registrado. No se agregó otra vez.");
         return;
       }
@@ -171,7 +189,10 @@ const NuevaRecepcion = () => {
             notes,
           }),
         );
-        if (!created) { setRechazados((actuales) => [...actuales, serial]); return; }
+        if (!created) {
+          registrarRechazo(lectura, "No se pudo crear la recepción. Comprueba conexión y permisos.");
+          return;
+        }
         targetId = created.id;
         receptionIdRef.current = created.id;
         setReceptionId(created.id);
@@ -192,23 +213,24 @@ const NuevaRecepcion = () => {
         setUltimoSerialAgregado(serial.trim());
         toast.success("Equipo agregado correctamente.", { id: "recepcion-lectura" });
       } else {
-        setRechazados((actuales) => [...actuales, serial]);
+        registrarRechazo(lectura, "No se guardó el equipo. Revisa el aviso de error y vuelve a intentar.");
       }
     });
+  };
 
   // Una lectura nueva entra en cola incluso mientras se guarda la anterior.
   // La referencia y la condición se capturan al procesar cada lectura; el operador
   // debe esperar a que la cola se vacíe antes de cambiarlas o confirmar.
   procesarSerialRef.current = procesarSerial;
-  const handleScan = async (serial: string) => {
-    const valor = serial.trim();
-    if (!valor || confirmed || !productId) return;
+  const encolarLectura = async (lectura: LecturaRecepcion) => {
+    const valor = lectura.serial.trim();
+    if (!valor || confirmed || !lectura.productId) return;
     const normalizado = valor.toUpperCase();
     if (colaSerialesRef.current.some((pendiente) => pendiente.serial.toUpperCase() === normalizado)) {
       toast.warning("Este serial ya está esperando para registrarse.");
       return;
     }
-    colaSerialesRef.current.push({ serial: valor, productId, condition, cost });
+    colaSerialesRef.current.push({ ...lectura, serial: valor });
     setPendientes(colaSerialesRef.current.length);
     if (procesandoColaRef.current) return;
     procesandoColaRef.current = true;
@@ -218,7 +240,7 @@ const NuevaRecepcion = () => {
         try {
           await procesarSerialRef.current(siguiente);
         } catch {
-          setRechazados((actuales) => [...actuales, siguiente.serial]);
+          registrarRechazo(siguiente, "Error inesperado al procesar la lectura.");
           toast.error("No se pudo procesar la lectura. Revisa la recepción.");
         } finally {
           colaSerialesRef.current.shift();
@@ -228,6 +250,16 @@ const NuevaRecepcion = () => {
     } finally {
       procesandoColaRef.current = false;
     }
+  };
+
+  /**
+   * Cada lectura conserva la referencia, condición y costo con que se escaneó.
+   * Los reintentos reaprovechan esos valores, aunque el formulario haya cambiado.
+   */
+  const handleScan = (serial: string) => encolarLectura({ serial, productId, condition, cost });
+  const reintentarLectura = (registro: LecturaRechazada) => {
+    setRechazados((actuales) => actuales.filter((item) => item !== registro));
+    void encolarLectura(registro);
   };
 
   /**
@@ -408,7 +440,7 @@ const NuevaRecepcion = () => {
               <Input
                 id="reference"
                 value={reference}
-                disabled={confirmed}
+                disabled={confirmed || pendientes > 0}
                 placeholder="REM-4471"
                 onChange={(event) => setReference(event.target.value)}
                 onBlur={() => void persistHeader()}
@@ -420,7 +452,7 @@ const NuevaRecepcion = () => {
                 id="receivedAt"
                 type="date"
                 value={receivedAt}
-                disabled={confirmed}
+                disabled={confirmed || pendientes > 0}
                 onChange={(event) => setReceivedAt(event.target.value)}
                 onBlur={() => void persistHeader()}
               />
@@ -431,7 +463,7 @@ const NuevaRecepcion = () => {
                 id="notes"
                 rows={2}
                 value={notes}
-                disabled={confirmed}
+                disabled={confirmed || pendientes > 0}
                 onChange={(event) => setNotes(event.target.value)}
                 onBlur={() => void persistHeader()}
               />
@@ -546,7 +578,18 @@ const NuevaRecepcion = () => {
                   hint={productId ? undefined : t("receptions.selectProductFirst")}
                 />
                 {(procesados > 0 || rechazados.length > 0 || pendientes > 0) ? <div className="grid grid-cols-3 gap-2 rounded-lg border bg-muted/30 p-3 text-center text-xs"><div><strong className="block text-lg text-primary">{procesados}</strong>Registrados</div><div><strong className="block text-lg text-destructive">{rechazados.length}</strong>Rechazados</div><div><strong className="block text-lg">{pendientes}</strong>Pendientes</div></div> : null}
-                {rechazados.length > 0 ? <div className="rounded-lg border border-destructive/20 bg-destructive/5 p-3 text-xs"><p className="font-medium text-destructive">Lecturas no registradas (vuelve a escanearlas tras revisar el error):</p><p className="mt-1 break-all">{rechazados.slice(-5).join(" · ")}</p><Button type="button" size="sm" variant="outline" className="mt-2" onClick={() => setRechazados([])}>Limpiar avisos</Button></div> : null}
+                {rechazados.length > 0 ? (
+                  <div className="space-y-2 rounded-lg border border-destructive/20 bg-destructive/5 p-3 text-xs">
+                    <p className="font-medium text-destructive">Lecturas sin registrar: revisa el motivo y reintenta.</p>
+                    {rechazados.slice(-5).map((registro, index) => (
+                      <div key={`${registro.serial}-${index}`} className="flex flex-wrap items-center justify-between gap-2 rounded-md bg-background p-2">
+                        <div className="min-w-0 flex-1"><p className="break-all font-semibold">{registro.serial}</p><p className="mt-1 text-muted-foreground">{registro.motivo}</p></div>
+                        <Button type="button" size="sm" variant="outline" disabled={confirmed || procesandoColaRef.current} onClick={() => reintentarLectura(registro)}>Reintentar</Button>
+                      </div>
+                    ))}
+                    <Button type="button" size="sm" variant="ghost" onClick={() => setRechazados([])}>Descartar avisos</Button>
+                  </div>
+                ) : null}
                 {pendientes > 0 ? <p role="status" aria-live="polite" className="rounded-lg border border-primary/20 bg-primary/5 p-3 text-sm font-medium text-primary">Procesando {pendientes} {pendientes === 1 ? "lectura" : "lecturas"}… Puedes seguir escaneando; espera antes de confirmar.</p> : null}
                 {ultimoSerialAgregado ? <p role="status" className="flex items-center gap-2 rounded-lg bg-primary/10 p-3 text-xs text-primary"><Check className="h-4 w-4 shrink-0" /> Último equipo registrado: <strong className="break-all">{ultimoSerialAgregado}</strong></p> : null}
                 {selectedProduct?.categoria === "celular" ? (
