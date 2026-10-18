@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { ScanLine, AlertTriangle, Clock3, ShieldCheck, ArrowRight } from "lucide-react";
 
 import { DataTable } from "@/components/shared/data-table";
+import { ProductThumbnail } from "@/components/shared/product-thumbnail";
 import { PageHeader } from "@/components/shared/page-header";
 import { OptionSelect } from "@/components/shared/option-select";
 import { SearchField } from "@/components/shared/search-field";
@@ -80,9 +81,12 @@ const Unidades = () => {
   const renderCard = (row: UnitRow) => (
     <div className="space-y-2">
       <div className="flex items-start justify-between gap-2">
-        <div className="min-w-0">
-          <p className="font-tabular truncate font-medium">{row.unit.serial}</p>
-          <p className="truncate text-xs text-muted-foreground">{row.product?.name ?? "—"}</p>
+        <div className="flex min-w-0 items-start gap-2">
+          <ProductThumbnail src={row.product?.imageUrl} alt={row.product?.name ?? "Referencia"} size="md" />
+          <div className="min-w-0">
+            <p className="font-tabular truncate font-medium">{row.unit.serial}</p>
+            <p className="truncate text-xs text-muted-foreground">{row.product?.name ?? "—"}</p>
+          </div>
         </div>
         <UnitStatusBadge status={row.unit.status} />
       </div>
@@ -208,11 +212,14 @@ const Unidades = () => {
             key: "product",
             header: t("product.title"),
             cell: (row) => (
-              <div className="min-w-0">
-                <p className="truncate text-sm">{row.product?.name ?? "—"}</p>
-                <p className="font-tabular text-xs text-muted-foreground">
-                  {row.product?.sku ?? ""}
-                </p>
+              <div className="flex min-w-0 items-center gap-2">
+                <ProductThumbnail src={row.product?.imageUrl} alt={row.product?.name ?? "Referencia"} size="xs" />
+                <div className="min-w-0">
+                  <p className="truncate text-sm">{row.product?.name ?? "—"}</p>
+                  <p className="font-tabular text-xs text-muted-foreground">
+                    {row.product?.sku ?? ""}
+                  </p>
+                </div>
               </div>
             ),
           },
