@@ -327,23 +327,25 @@ const Garantias = () => {
   // correspondiente y localizar visualmente la garantía (sin abrir su ficha).
   const focusId = params.get("focus");
   const focusView = focusId ? getWarrantyViews(db).find((v) => v.warranty.id === focusId) : undefined;
+  const focusViewId = focusView?.warranty.id;
+  const focusLoteKey = focusView ? infoLote(focusView).key : undefined;
   useEffect(() => {
-    if (!focusView) return;
+    if (!focusLoteKey) return;
     setSoloEstancadas(false);
     setFiltroHistorial("");
     setReferenciaHistorial("");
     setFiltroReenvio(FILTRO_REENVIO_VACIO);
-    setLotesAbiertos((previous) => new Set([...previous, infoLote(focusView).key]));
-  }, [focusId, focusView?.warranty.id]);
+    setLotesAbiertos((previous) => new Set([...previous, focusLoteKey]));
+  }, [focusId, focusLoteKey]);
 
   useEffect(() => {
-    if (!focusId || !focusView) return;
+    if (!focusId || !focusViewId) return;
     const timer = window.setTimeout(() => {
       const card = document.getElementById(`garantia-operativa-${focusId}`);
       card?.scrollIntoView({ behavior: "smooth", block: "center" });
     }, 160);
     return () => window.clearTimeout(timer);
-  }, [focusId, focusView?.warranty.id, tab]);
+  }, [focusId, focusViewId, tab]);
 
   const vistas = useMemo(() => getWarrantyViews(db), [db]);
   const casosHistorial = useMemo(
