@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ArrowLeft, Plus, Check, ShoppingCart, Trash2 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
@@ -35,6 +35,7 @@ const NuevoPedido = () => {
   // campo o al pulsar Enter.
   const [cantidadEnEdicion, setCantidadEnEdicion] = useState<Record<string, string>>({});
   const [creando, setCreando] = useState(false);
+  const creandoRef = useRef(false);
   // Por defecto no se muestran las referencias agotadas (sin unidades disponibles).
   const [soloConStock, setSoloConStock] = useState(true);
   // Familia/modelo elegido para acortar la lista ("" = todas).
@@ -190,18 +191,25 @@ const NuevoPedido = () => {
   const totalReferencias = lineas.reduce((sum, l) => sum + l.quantity, 0);
 
   const confirmar = async () => {
+    // El ref se bloquea al instante, antes del siguiente render de React.
+    if (creandoRef.current) return;
+    creandoRef.current = true;
     setCreando(true);
-    const lineasPedido: PedidoLineaInput[] = lineas.map((l) => ({
-      productId: l.productId,
-      quantity: l.quantity,
-      condition: l.condition,
-    }));
-    const order = await runAction(
-      (db2, actor) => createOrder(db2, actor, { customerId, lineas: lineasPedido }),
-      { success: "order.created", weighty: true },
-    );
-    setCreando(false);
-    if (order) navigate(`/pedidos/${order.id}`);
+    try {
+      const lineasPedido: PedidoLineaInput[] = lineas.map((l) => ({
+        productId: l.productId,
+        quantity: l.quantity,
+        condition: l.condition,
+      }));
+      const order = await runAction(
+        (db2, actor) => createOrder(db2, actor, { customerId, lineas: lineasPedido }),
+        { success: "order.created", weighty: true, key: "pedido-nuevo-confirmar" },
+      );
+      if (order) navigate(`/pedidos/${order.id}`);
+    } finally {
+      creandoRef.current = false;
+      setCreando(false);
+    }
   };
 
   return (
