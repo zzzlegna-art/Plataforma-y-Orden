@@ -248,12 +248,14 @@ const PedidoDetalle = () => {
     }
   };
 
-  const finalizar = () =>
-    void runAction((db2, actor) => finalizarPedido(db2, actor, { orderId: order.id }), {
+  const finalizar = async () => {
+    // El diálogo mantiene el bloqueo hasta recibir la confirmación del servidor.
+    await runAction((db2, actor) => finalizarPedido(db2, actor, { orderId: order.id }), {
       success: "order.dispatched",
       weighty: true,
       key: `pedido-finalizar:${order.id}`,
     });
+  };
 
   const cancelar = async () => {
     const result = await runAction(
