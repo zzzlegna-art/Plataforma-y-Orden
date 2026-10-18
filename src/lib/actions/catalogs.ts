@@ -310,6 +310,7 @@ export interface ProductInput {
   sku?: string;
   name: string;
   description?: string;
+  imageUrl?: string | null;
   categoryId?: string;
   brandId?: string;
   categoria?: ProductCategory;
@@ -332,6 +333,7 @@ export const createProduct = (db: Db, actor: Actor, input: ProductInput): Produc
     sku,
     name,
     description: input.description?.trim() || undefined,
+    imageUrl: input.imageUrl || undefined,
     categoryId: input.categoryId || undefined,
     brandId: input.brandId || undefined,
     categoria: input.categoria || undefined,
@@ -374,6 +376,7 @@ export const updateProduct = (
   product.sku = sku;
   product.name = name;
   product.description = input.description?.trim() || undefined;
+  if (input.imageUrl !== undefined) product.imageUrl = input.imageUrl || undefined;
   product.categoryId = input.categoryId || undefined;
   product.brandId = input.brandId || undefined;
   product.categoria = input.categoria || undefined;

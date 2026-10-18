@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { DomainError, emptyDb } from "../db";
 import type { Actor, Db } from "../types";
-import { createProduct, createProductType, deleteProductType, generarSkuProducto, updateProductType } from "./catalogs";
+import { createProduct, createProductType, deleteProductType, generarSkuProducto, updateProduct, updateProductType } from "./catalogs";
 
 const admin: Actor = { id: "u1", email: "a@x.com", fullName: "Admin", role: "admin" };
 const bodeguero: Actor = { id: "u2", email: "b@x.com", fullName: "Bodeguero", role: "bodeguero" };
@@ -131,5 +131,28 @@ describe("SKU corta automática", () => {
       name: "iPhone 13 128 GB", price: 1, cost: 1, minStock: 0,
     });
     expect(created.sku).toBe("IP13-128");
+  });
+
+  it("guarda y permite quitar la foto sin alterar los datos de inventario", () => {
+    const db = emptyDb();
+    const created = createProduct(db, admin, {
+      name: "iPhone 13 128 GB",
+      price: 1,
+      cost: 0.5,
+      minStock: 2,
+      imageUrl: "https://example.supabase.co/storage/v1/object/public/product-images/products/a.jpg",
+    });
+    expect(created.imageUrl).toContain("/product-images/");
+
+    const updated = updateProduct(db, admin, {
+      id: created.id,
+      name: created.name,
+      price: created.price,
+      cost: created.cost,
+      minStock: created.minStock,
+      imageUrl: null,
+    });
+    expect(updated.imageUrl).toBeUndefined();
+    expect(updated.minStock).toBe(2);
   });
 });

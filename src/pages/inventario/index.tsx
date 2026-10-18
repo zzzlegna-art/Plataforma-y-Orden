@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   AlertTriangle,
@@ -141,11 +141,16 @@ const PRODUCT_THUMB_TONES: Record<string, string> = {
 
 const ProductThumbnail = ({
   categoria,
+  imageUrl,
   size = "sm",
 }: {
   categoria?: string;
+  imageUrl?: string;
   size?: "sm" | "md";
 }) => {
+  const [imageFailed, setImageFailed] = useState(false);
+  useEffect(() => setImageFailed(false), [imageUrl]);
+
   const Icon =
     categoria === "celular"
       ? Smartphone
@@ -169,8 +174,21 @@ const ProductThumbnail = ({
           "from-muted via-background to-muted text-muted-foreground ring-border",
       )}
     >
-      <span className="pointer-events-none absolute -right-1 -top-1 h-6 w-6 rounded-full bg-white/50 blur-sm dark:bg-white/5" />
-      <Icon className="relative z-10 h-5 w-5 drop-shadow-sm" strokeWidth={1.8} />
+      {imageUrl && !imageFailed ? (
+        <img
+          src={imageUrl}
+          alt=""
+          loading="lazy"
+          decoding="async"
+          onError={() => setImageFailed(true)}
+          className="absolute inset-0 z-10 h-full w-full object-cover"
+        />
+      ) : (
+        <>
+          <span className="pointer-events-none absolute -right-1 -top-1 h-6 w-6 rounded-full bg-white/50 blur-sm dark:bg-white/5" />
+          <Icon className="relative z-10 h-5 w-5 drop-shadow-sm" strokeWidth={1.8} />
+        </>
+      )}
     </div>
   );
 };
@@ -332,7 +350,7 @@ const Inventario = () => {
   const renderCard = (row: ProductRow) => (
     <div className="space-y-3">
       <div className="flex items-start gap-3">
-        <ProductThumbnail categoria={row.product.categoria} size="md" />
+        <ProductThumbnail categoria={row.product.categoria} imageUrl={row.product.imageUrl} size="md" />
         <div className="min-w-0 flex-1 space-y-1.5">
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0">
@@ -571,7 +589,7 @@ const Inventario = () => {
             className: "min-w-[280px]",
             cell: (row) => (
               <div className="flex min-w-0 items-center gap-3 py-1">
-                <ProductThumbnail categoria={row.product.categoria} />
+                <ProductThumbnail categoria={row.product.categoria} imageUrl={row.product.imageUrl} />
                 <div className="min-w-0 space-y-1">
                   <Link
                     to={detalleUrl(row.product.id)}
