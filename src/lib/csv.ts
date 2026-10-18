@@ -4,7 +4,9 @@
  */
 export const celdaCsvSegura = (valor: string | number): string => {
   const texto = String(valor);
-  const seguro = /^[\s\uFEFF]*[=+\-@]/u.test(texto) ? "'" + texto : texto;
+  const seguro = typeof valor === "number" && Number.isFinite(valor)
+    ? texto
+    : /^[\s\uFEFF]*[=+\-@]/u.test(texto) ? "'" + texto : texto;
   return '"' + seguro.replace(/"/g, '""') + '"';
 };
 
