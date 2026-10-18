@@ -155,4 +155,27 @@ describe("SKU corta automática", () => {
     expect(updated.imageUrl).toBeUndefined();
     expect(updated.minStock).toBe(2);
   });
+
+  it("guarda solo las características que corresponden al tipo de equipo", () => {
+    const db = emptyDb();
+    const phone = createProduct(db, admin, {
+      name: "iPhone 13 128 GB", categoria: "celular", price: 1, cost: 1, minStock: 0,
+      technicalSpecs: {
+        storage: " 128 GB ", ram: "4 GB", waterResistance: "dato que no corresponde a celular",
+      },
+    });
+    expect(phone.technicalSpecs).toEqual({ storage: "128 GB", ram: "4 GB" });
+
+    const watch = updateProduct(db, admin, {
+      id: phone.id, name: phone.name, categoria: "reloj", price: phone.price, cost: phone.cost,
+      minStock: phone.minStock, technicalSpecs: { caseSize: "45 mm", storage: "dato que no corresponde a reloj" },
+    });
+    expect(watch.technicalSpecs).toEqual({ caseSize: "45 mm" });
+
+    const sparePart = createProduct(db, admin, {
+      name: "Display iPhone 13", categoria: "repuesto", price: 1, cost: 1, minStock: 0,
+      technicalSpecs: { storage: "no debe guardarse" },
+    });
+    expect(sparePart.technicalSpecs).toBeUndefined();
+  });
 });

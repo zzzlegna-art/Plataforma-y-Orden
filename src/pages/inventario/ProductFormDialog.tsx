@@ -22,8 +22,9 @@ import { useRunAction } from "@/hooks/use-run-action";
 import { useStore } from "@/hooks/use-store";
 import { supabase } from "@/integrations/supabase/client";
 import { createProduct, generarSkuProducto, updateProduct } from "@/lib/actions/catalogs";
+import { DEVICE_TECHNICAL_SPEC_FIELDS, getProductTechnicalSpecsForCategory, isDeviceCategory } from "@/lib/product-specs";
 import { etiquetaTipoProducto, tiposProductoOrdenados } from "@/lib/products";
-import type { Product, ProductCategory } from "@/lib/types";
+import type { Product, ProductCategory, ProductTechnicalSpecs } from "@/lib/types";
 
 const PRODUCT_IMAGE_BUCKET = "product-images";
 const MAX_PRODUCT_IMAGE_BYTES = 5 * 1024 * 1024;
@@ -69,6 +70,7 @@ export const ProductFormDialog = ({
   const runAction = useRunAction();
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState(EMPTY_FORM);
+  const [technicalSpecs, setTechnicalSpecs] = useState<ProductTechnicalSpecs>({});
   const [saving, setSaving] = useState(false);
   const [skuManual, setSkuManual] = useState(Boolean(product));
   const [imageFile, setImageFile] = useState<File | null>(null);
@@ -84,6 +86,7 @@ export const ProductFormDialog = ({
     setImagePreview(product?.imageUrl ?? null);
     setRemoveImage(false);
     setImageError("");
+    setTechnicalSpecs(product?.technicalSpecs ?? {});
     if (imageInputRef.current) imageInputRef.current.value = "";
     setForm(
       product
@@ -174,6 +177,7 @@ export const ProductFormDialog = ({
         name: form.name,
         description: form.description,
         imageUrl,
+        technicalSpecs: getProductTechnicalSpecsForCategory(form.categoria, technicalSpecs) ?? {},
         categoryId: form.categoryId || undefined,
         brandId: form.brandId || undefined,
         categoria: (form.categoria || undefined) as ProductCategory | undefined,
@@ -219,6 +223,8 @@ export const ProductFormDialog = ({
       setSaving(false);
     }
   };
+
+  const deviceCategory = isDeviceCategory(form.categoria) ? form.categoria : undefined;
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -382,6 +388,31 @@ export const ProductFormDialog = ({
               ) : null}
             </div>
           </div>
+
+          {deviceCategory ? (
+            <div className="space-y-3 rounded-xl border border-border/70 bg-card p-3 sm:col-span-2">
+              <div>
+                <p className="text-sm font-semibold">{t("product.technicalDetails")}</p>
+                <p className="mt-1 text-xs text-muted-foreground">{t("product.technicalSpecsHint")}</p>
+              </div>
+              <div className="grid gap-3 sm:grid-cols-2">
+                {DEVICE_TECHNICAL_SPEC_FIELDS[deviceCategory].map((field) => (
+                  <div key={field.key} className="space-y-1.5">
+                    <Label htmlFor={`technical-${field.key}`}>{t(field.labelKey)}</Label>
+                    <Input
+                      id={`technical-${field.key}`}
+                      value={technicalSpecs[field.key] ?? ""}
+                      placeholder={field.placeholder}
+                      maxLength={120}
+                      onChange={(event) =>
+                        setTechnicalSpecs((current) => ({ ...current, [field.key]: event.target.value }))
+                      }
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : null}
 
           <div className="space-y-2 sm:col-span-2">
             <Label htmlFor="description">{t("product.description")}</Label>

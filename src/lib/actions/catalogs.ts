@@ -1,7 +1,8 @@
 /** Acciones sobre catálogos y productos del inventario. */
 
 import { createId, DomainError, logAudit, nowIso } from "../db";
-import type { Actor, Brand, Category, Db, Product, ProductCategory, ProductType, TipoRepuesto } from "../types";
+import { getProductTechnicalSpecsForCategory } from "../product-specs";
+import type { Actor, Brand, Category, Db, Product, ProductCategory, ProductTechnicalSpecs, ProductType, TipoRepuesto } from "../types";
 import { isSameText, requireNumber, requirePermission, requireText } from "./guards";
 
 /**
@@ -311,6 +312,7 @@ export interface ProductInput {
   name: string;
   description?: string;
   imageUrl?: string | null;
+  technicalSpecs?: ProductTechnicalSpecs | null;
   categoryId?: string;
   brandId?: string;
   categoria?: ProductCategory;
@@ -334,6 +336,7 @@ export const createProduct = (db: Db, actor: Actor, input: ProductInput): Produc
     name,
     description: input.description?.trim() || undefined,
     imageUrl: input.imageUrl || undefined,
+    technicalSpecs: getProductTechnicalSpecsForCategory(input.categoria, input.technicalSpecs),
     categoryId: input.categoryId || undefined,
     brandId: input.brandId || undefined,
     categoria: input.categoria || undefined,
@@ -364,6 +367,7 @@ export const updateProduct = (
   requirePermission(actor, "inventory.manage");
   const product = db.products.find((item) => item.id === input.id);
   if (!product) throw new DomainError("errors.notFound");
+  const categoriaAnterior = product.categoria;
   const name = requireText(input.name, "errors.productNameRequired");
   const sku = (input.sku?.trim().toUpperCase() || generarSkuProducto(db, name, product.id)).slice(0, 40);
   if (
@@ -380,6 +384,9 @@ export const updateProduct = (
   product.categoryId = input.categoryId || undefined;
   product.brandId = input.brandId || undefined;
   product.categoria = input.categoria || undefined;
+  if (input.technicalSpecs !== undefined || (input.categoria !== undefined && input.categoria !== categoriaAnterior)) {
+    product.technicalSpecs = getProductTechnicalSpecsForCategory(input.categoria ?? categoriaAnterior, input.technicalSpecs);
+  }
   if (input.categoria === "repuesto") {
     if (input.tipoRepuesto) product.tipoRepuesto = input.tipoRepuesto;
   } else {

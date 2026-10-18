@@ -154,12 +154,20 @@ export interface ProductType {
 
 export type TipoRepuesto = "bateria" | "display" | "otro";
 
+export const PRODUCT_TECHNICAL_SPEC_KEYS = [
+  "storage", "ram", "processor", "screen", "cameras", "battery", "connectivity",
+  "color", "caseSize", "compatibility", "material", "waterResistance", "sensors",
+] as const;
+export type ProductTechnicalSpecKey = (typeof PRODUCT_TECHNICAL_SPEC_KEYS)[number];
+export type ProductTechnicalSpecs = Partial<Record<ProductTechnicalSpecKey, string>>;
+
 export interface Product {
   id: string;
   sku: string;
   name: string;
   description?: string;
   imageUrl?: string;
+  technicalSpecs?: ProductTechnicalSpecs;
   categoryId?: string;
   brandId?: string;
   categoria?: ProductCategory;

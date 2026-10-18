@@ -1,19 +1,30 @@
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
+  Activity,
   AlertTriangle,
+  BatteryCharging,
+  Bluetooth,
   Boxes,
+  Camera,
   Check,
+  Cpu,
+  Droplets,
+  HardDrive,
   Eye,
   FileSpreadsheet,
   FileText,
   Headphones,
+  Monitor,
   Package,
+  Palette,
   PencilLine,
+  Ruler,
   Plus,
   Smartphone,
   Tablet,
   Watch,
+  Wifi,
   Wrench,
   ZoomIn,
   type LucideIcon,
@@ -40,9 +51,10 @@ import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useStore } from "@/hooks/use-store";
 import { exportExcel, exportPdf, exportSubtitle } from "@/lib/export";
+import { DEVICE_TECHNICAL_SPEC_FIELDS, isDeviceCategory } from "@/lib/product-specs";
 import { formatCurrency, todayIso } from "@/lib/format";
 import { getProductRows, type ProductRow, type ProductStock } from "@/lib/selectors";
-import type { ProductCategory } from "@/lib/types";
+import type { Product, ProductCategory, ProductTechnicalSpecKey } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { ProductFormDialog } from "./ProductFormDialog";
 
@@ -148,56 +160,75 @@ const PRODUCT_THUMB_TONES: Record<string, string> = {
     "from-emerald-100 via-white to-teal-100 text-emerald-700 ring-emerald-200/70 dark:from-emerald-500/20 dark:via-card dark:to-teal-500/10 dark:text-emerald-300 dark:ring-emerald-400/20",
 };
 
+const TECHNICAL_SPEC_ICONS: Record<ProductTechnicalSpecKey, LucideIcon> = {
+  storage: HardDrive,
+  ram: Cpu,
+  processor: Cpu,
+  screen: Monitor,
+  cameras: Camera,
+  battery: BatteryCharging,
+  connectivity: Wifi,
+  color: Palette,
+  caseSize: Ruler,
+  compatibility: Bluetooth,
+  material: Package,
+  waterResistance: Droplets,
+  sensors: Activity,
+};
+
 const ProductThumbnail = ({
-  categoria,
-  imageUrl,
-  productName,
+  product,
+  brandName,
+  categoryName,
   size = "sm",
 }: {
-  categoria?: string;
-  imageUrl?: string;
-  productName: string;
+  product: Product;
+  brandName?: string;
+  categoryName?: string;
   size?: "sm" | "md";
 }) => {
   const { t } = useTranslation();
   const [imageFailed, setImageFailed] = useState(false);
-  useEffect(() => setImageFailed(false), [imageUrl]);
+  useEffect(() => setImageFailed(false), [product.imageUrl]);
 
   const Icon =
-    categoria === "celular"
+    product.categoria === "celular"
       ? Smartphone
-      : categoria === "tablet"
+      : product.categoria === "tablet"
         ? Tablet
-        : categoria === "reloj"
+        : product.categoria === "reloj"
           ? Watch
-          : categoria === "audifono"
+          : product.categoria === "audifono"
             ? Headphones
-            : categoria === "repuesto"
+            : product.categoria === "repuesto"
               ? Wrench
               : Package;
   const sizeClasses = size === "md" ? "h-16 w-16" : "h-20 w-20";
   const thumbnailClasses = cn(
     "relative isolate grid shrink-0 place-items-center overflow-hidden rounded-2xl bg-gradient-to-br shadow-sm ring-1 ring-inset transition-all duration-200",
     sizeClasses,
-    PRODUCT_THUMB_TONES[categoria ?? ""] ??
+    PRODUCT_THUMB_TONES[product.categoria ?? ""] ??
       "from-muted via-background to-muted text-muted-foreground ring-border",
   );
+  const deviceCategory = isDeviceCategory(product.categoria) ? product.categoria : undefined;
+  const specFields = deviceCategory ? DEVICE_TECHNICAL_SPEC_FIELDS[deviceCategory] : [];
+  const populatedFields = specFields.filter((field) => Boolean(product.technicalSpecs?.[field.key]?.trim()));
 
-  if (imageUrl && !imageFailed) {
+  if (product.imageUrl && !imageFailed) {
     return (
       <Dialog>
         <DialogTrigger asChild>
           <button
             type="button"
-            aria-label={t("product.zoomImage", { name: productName })}
+            aria-label={t("product.zoomImage", { name: product.name })}
             className={cn(
               thumbnailClasses,
               "group cursor-zoom-in border-0 p-0 hover:-translate-y-0.5 hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2",
             )}
           >
             <img
-              src={imageUrl}
-              alt={productName}
+              src={product.imageUrl}
+              alt={product.name}
               loading="lazy"
               decoding="async"
               onError={() => setImageFailed(true)}
@@ -208,19 +239,96 @@ const ProductThumbnail = ({
             </span>
           </button>
         </DialogTrigger>
-        <DialogContent className="w-[min(92vw,960px)] max-w-none p-3 sm:p-5 max-sm:w-full">
-          <DialogHeader className="px-2 pt-1">
-            <DialogTitle className="pr-8 text-left">{productName}</DialogTitle>
-            <DialogDescription>{t("product.imageZoomHint")}</DialogDescription>
-          </DialogHeader>
-          <div className="grid min-h-0 place-items-center overflow-hidden rounded-xl bg-muted/30 p-1 sm:p-2">
-            <img
-              src={imageUrl}
-              alt={productName}
-              className="max-h-[76vh] w-full object-contain"
-              decoding="async"
-            />
-          </div>
+        <DialogContent
+          className={cn(
+            "max-h-[92vh] max-w-none overflow-y-auto p-3 sm:p-5 max-sm:w-full",
+            deviceCategory ? "w-[min(94vw,1180px)]" : "w-[min(92vw,960px)]",
+          )}
+        >
+          {deviceCategory ? (
+            <div className="grid min-w-0 gap-4 sm:grid-cols-[minmax(0,1.08fr)_minmax(300px,.92fr)]">
+              <div className="min-w-0 space-y-3">
+                <DialogHeader className="px-1 pt-1">
+                  <DialogTitle className="pr-8 text-left">{product.name}</DialogTitle>
+                  <DialogDescription>{product.sku} · {t("product.imageZoomHint")}</DialogDescription>
+                </DialogHeader>
+                <div className="grid min-h-[280px] place-items-center overflow-hidden rounded-xl bg-muted/30 p-2 sm:min-h-[min(72vh,620px)]">
+                  <img
+                    src={product.imageUrl}
+                    alt={product.name}
+                    className="max-h-[72vh] w-full object-contain"
+                    decoding="async"
+                  />
+                </div>
+              </div>
+
+              <div className="min-w-0 space-y-3 sm:max-h-[min(80vh,720px)] sm:overflow-y-auto sm:pr-1">
+                <div className="flex flex-wrap items-start justify-between gap-3 rounded-xl border border-border/70 bg-card p-3">
+                  <div className="min-w-0">
+                    {brandName ? <p className="font-semibold">{brandName}</p> : null}
+                    {categoryName ? <p className="mt-0.5 text-xs text-muted-foreground">{categoryName}</p> : null}
+                  </div>
+                  <span className="font-tabular rounded-lg border border-border/70 bg-muted/60 px-2 py-1 text-xs text-muted-foreground">
+                    {product.sku}
+                  </span>
+                </div>
+
+                <section className="rounded-2xl border border-border/70 bg-card p-4 shadow-sm">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <h3 className="font-semibold">{t("product.technicalDetails")}</h3>
+                      <p className="mt-1 text-xs text-muted-foreground">{t("product.technicalSpecsSubtitle")}</p>
+                    </div>
+                    <span className="font-tabular rounded-lg bg-primary/10 px-2 py-1 text-xs font-semibold text-primary">
+                      {populatedFields.length}
+                    </span>
+                  </div>
+                  {populatedFields.length ? (
+                    <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                      {populatedFields.map((field) => {
+                        const SpecIcon = TECHNICAL_SPEC_ICONS[field.key];
+                        return (
+                          <div key={field.key} className="min-w-0 rounded-xl border border-border/60 bg-muted/30 p-3">
+                            <div className="flex items-center gap-2 text-muted-foreground">
+                              <SpecIcon className="h-4 w-4 shrink-0" strokeWidth={1.8} />
+                              <p className="text-[11px] font-semibold uppercase tracking-wide">{t(field.labelKey)}</p>
+                            </div>
+                            <p className="mt-2 break-words text-sm font-semibold leading-snug">{product.technicalSpecs?.[field.key]}</p>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div className="mt-3 rounded-xl border border-dashed border-border/80 bg-muted/30 p-3">
+                      <p className="text-sm text-muted-foreground">{t("product.technicalSpecsEmpty")}</p>
+                    </div>
+                  )}
+                </section>
+
+                <section className="rounded-2xl border border-border/70 bg-card p-4 shadow-sm">
+                  <h3 className="font-semibold">{t("product.description")}</h3>
+                  <p className="mt-2 whitespace-pre-wrap break-words text-sm leading-relaxed text-muted-foreground">
+                    {product.description?.trim() || t("product.descriptionEmpty")}
+                  </p>
+                </section>
+              </div>
+            </div>
+          ) : (
+            <>
+              <DialogHeader className="px-2 pt-1">
+                <DialogTitle className="pr-8 text-left">{product.name}</DialogTitle>
+                <DialogDescription>{t("product.imageZoomHint")}</DialogDescription>
+              </DialogHeader>
+              <div className="grid min-h-0 place-items-center overflow-hidden rounded-xl bg-muted/30 p-1 sm:p-2">
+                <img
+                  src={product.imageUrl}
+                  alt={product.name}
+                  className="max-h-[76vh] w-full object-contain"
+                  decoding="async"
+                />
+              </div>
+            </>
+          )}
         </DialogContent>
       </Dialog>
     );
@@ -395,9 +503,9 @@ const Inventario = () => {
     <div className="space-y-3">
       <div className="flex items-start gap-3">
         <ProductThumbnail
-          categoria={row.product.categoria}
-          imageUrl={row.product.imageUrl}
-          productName={row.product.name}
+          product={row.product}
+          brandName={row.brand?.name}
+          categoryName={row.category?.name}
           size="md"
         />
         <div className="min-w-0 flex-1 space-y-1.5">
@@ -639,9 +747,9 @@ const Inventario = () => {
             cell: (row) => (
               <div className="flex min-w-0 items-center gap-3 py-1">
                 <ProductThumbnail
-                  categoria={row.product.categoria}
-                  imageUrl={row.product.imageUrl}
-                  productName={row.product.name}
+                  product={row.product}
+                  brandName={row.brand?.name}
+                  categoryName={row.category?.name}
                 />
                 <div className="min-w-0 space-y-1">
                   <Link

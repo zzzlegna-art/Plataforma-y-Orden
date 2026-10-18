@@ -10,6 +10,7 @@
 import { supabase } from "@/integrations/supabase/client";
 
 import { DomainError, emptyDb } from "./db";
+import { getProductTechnicalSpecsForCategory } from "./product-specs";
 import { soloFecha } from "./dates";
 import type {
   AuditLog,
@@ -172,6 +173,7 @@ const ESPECIFICACIONES: Spec<unknown>[] = [
       name: p.name,
       description: nulo(p.description),
       image_url: nulo(p.imageUrl),
+      technical_specs: p.technicalSpecs ?? {},
       category_id: nulo(p.categoryId),
       brand_id: nulo(p.brandId),
       categoria: nulo(p.categoria),
@@ -189,6 +191,10 @@ const ESPECIFICACIONES: Spec<unknown>[] = [
       name: texto(f.name) ?? "Sin nombre",
       description: texto(f.description) ?? undefined,
       imageUrl: texto(f.image_url) ?? undefined,
+      technicalSpecs: getProductTechnicalSpecsForCategory(
+        texto(f.categoria) ?? undefined,
+        f.technical_specs as Product["technicalSpecs"],
+      ),
       categoryId: texto(f.category_id) ?? undefined,
       brandId: texto(f.brand_id) ?? undefined,
       categoria: (texto(f.categoria) as Product["categoria"]) ?? undefined,

@@ -403,6 +403,7 @@ export type Database = {
           name: string
           price: number
           sku: string
+          technical_specs: Json
           tipo_repuesto: string | null
           updated_at: string
         }
@@ -422,6 +423,7 @@ export type Database = {
           name: string
           price?: number
           sku?: string
+          technical_specs?: Json
           tipo_repuesto?: string | null
           updated_at?: string
         }
@@ -441,6 +443,7 @@ export type Database = {
           name?: string
           price?: number
           sku?: string
+          technical_specs?: Json
           tipo_repuesto?: string | null
           updated_at?: string
         }
