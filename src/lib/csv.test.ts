@@ -15,6 +15,10 @@ describe("exportación CSV segura de Nexora", () => {
     expect(celdaCsvSegura(entrada)).toBe(esperado);
   });
 
+  it("mantiene los números negativos como valores numéricos", () => {
+    expect(celdaCsvSegura(-3)).toBe('"-3"');
+  });
+
   it("conserva BOM UTF-8 y separadores de fila compatibles con Excel", () => {
     expect(crearCsv([["IMEI", "Unidades"], ["123456789012345", 2]])).toBe(
       "\uFEFF\"IMEI\";\"Unidades\"\r\n\"123456789012345\";\"2\"",
