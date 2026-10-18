@@ -6,6 +6,7 @@ import { CodeLink, TextWithCodeLink } from "@/components/shared/code-link";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { EmptyState } from "@/components/shared/empty-state";
 import { PageHeader } from "@/components/shared/page-header";
+import { ProductThumbnail } from "@/components/shared/product-thumbnail";
 import { PrintLabelsDialog } from "@/components/shared/print-labels-dialog";
 import { SerialScanInput } from "@/components/shared/serial-scan-input";
 import {
@@ -130,14 +131,17 @@ const HistorialSerial = () => {
         <>
           <section className="rounded-lg border bg-card p-4 shadow-sm">
             <div className="flex flex-wrap items-start justify-between gap-3">
-              <div className="min-w-0">
-                <p className="truncate text-base font-semibold">{product?.name ?? "—"}</p>
-                <p className="font-tabular mt-1 text-sm text-muted-foreground">
-                  {unit.serial} · {product?.sku ?? ""}
-                </p>
-                <div className="mt-2 flex flex-wrap gap-2">
-                  <UnitStatusBadge status={unit.status} />
-                  <ConditionBadge condition={unit.condition} />
+              <div className="flex min-w-0 items-start gap-3">
+                <ProductThumbnail src={product?.imageUrl} alt={product?.name ?? "Referencia"} size="lg" />
+                <div className="min-w-0">
+                  <p className="truncate text-base font-semibold">{product?.name ?? "—"}</p>
+                  <p className="font-tabular mt-1 text-sm text-muted-foreground">
+                    {unit.serial} · {product?.sku ?? ""}
+                  </p>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    <UnitStatusBadge status={unit.status} />
+                    <ConditionBadge condition={unit.condition} />
+                  </div>
                 </div>
               </div>
               <div className="flex flex-wrap gap-2">
