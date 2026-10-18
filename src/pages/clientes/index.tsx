@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import type { CustomerCategoriaMayorista } from "@/lib/types";
 import { useTranslation } from "react-i18next";
 import { PencilLine, Plus, Users } from "lucide-react";
@@ -18,8 +19,21 @@ const Clientes = () => {
   const { t } = useTranslation();
   const { db } = useStore();
   const runAction = useRunAction();
-  const [search, setSearch] = useState("");
-  const [includeInactive, setIncludeInactive] = useState(false);
+  const [params, setParams] = useSearchParams();
+  const search = params.get("q") ?? "";
+  const includeInactive = params.get("inactivas") === "1";
+  const setSearch = (texto: string) => setParams((prev) => {
+    const next = new URLSearchParams(prev);
+    if (texto) next.set("q", texto);
+    else next.delete("q");
+    return next;
+  }, { replace: true });
+  const toggleInactive = () => setParams((prev) => {
+    const next = new URLSearchParams(prev);
+    if (prev.get("inactivas") === "1") next.delete("inactivas");
+    else next.set("inactivas", "1");
+    return next;
+  }, { replace: true });
   const [categoriaFiltro, setCategoriaFiltro] = useState<CustomerCategoriaMayorista | undefined>(undefined);
 
   const rows = useMemo(() => {
@@ -74,7 +88,7 @@ const Clientes = () => {
             variant={includeInactive ? "default" : "outline"}
             size="sm"
             className="w-fit"
-            onClick={() => setIncludeInactive((previous) => !previous)}
+            onClick={toggleInactive}
           >
             {t("customer.includeInactive")}
           </Button>
