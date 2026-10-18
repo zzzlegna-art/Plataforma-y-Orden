@@ -1,7 +1,8 @@
 /**
- * Exportación a PDF (jsPDF + autotable) y Excel (SheetJS) con el estilo
- * Bodega 6A: encabezado naranja, tabla con filas alternas crema y datos
- * legibles en ambos formatos.
+ * Exportación PDF y Excel con identidad visual Nexora.
+ * Paleta fija y apta para impresión: azul noche, turquesa y fondos cian muy suaves.
+ * Se mantiene independiente del tema claro/oscuro del navegador para que los informes
+ * conserven una apariencia consistente al compartirlos o imprimirlos.
  */
 
 import autoTable from "jspdf-autotable";
@@ -10,27 +11,38 @@ import XLSX from "xlsx-js-style";
 
 import { formatDateTime } from "./format";
 
-const ORANGE: [number, number, number] = [216, 108, 15];
-const CREAM: [number, number, number] = [253, 250, 240];
-const ORANGE_TEXT = "D86C0F";
-const CREAM_FILL = "F3E8D6";
-const DARK_TEXT = "2B2215";
+const NAVY: [number, number, number] = [15, 39, 64];
+const CYAN: [number, number, number] = [0, 196, 214];
+const CYAN_DARK: [number, number, number] = [0, 112, 128];
+const CYAN_PALE: [number, number, number] = [239, 250, 252];
+const BORDER: [number, number, number] = [213, 230, 236];
+const TEXT: [number, number, number] = [28, 46, 64];
+const MUTED: [number, number, number] = [91, 113, 132];
 
-// --- Piezas comunes de los PDF: encabezado con franja, pie con número de página ---
-const ORANGE_DARK: [number, number, number] = [176, 84, 8];
+const NAVY_HEX = "0F2740";
+const CYAN_HEX = "00C4D6";
+const CYAN_PALE_HEX = "EFFAFC";
+const CYAN_SOFT_HEX = "DEF5F8";
+const BORDER_HEX = "D5E6EC";
+const TEXT_HEX = "1C2E40";
+const MUTED_HEX = "5B7184";
+const WHITE_HEX = "FFFFFF";
+
+// --- Piezas comunes de los PDF: encabezado Nexora y pie con número de página ---
 const HEADER_H = 60;
 /** Espacio reservado abajo para el pie de página. */
 const FOOTER_SPACE = 40;
 /** Donde empieza el contenido en cada página, justo debajo del encabezado. */
 const CONTENT_TOP = HEADER_H + 18;
 
-/** Encabezado naranja con franja oscura, título grande y subtítulo claro. */
+/** Encabezado Nexora: azul noche, acentos turquesa y texto de alto contraste. */
 const dibujarEncabezado = (doc: jsPDF, title: string, subtitle: string, margin = 24) => {
   const pageW = doc.internal.pageSize.getWidth();
-  doc.setFillColor(ORANGE[0], ORANGE[1], ORANGE[2]);
+  doc.setFillColor(NAVY[0], NAVY[1], NAVY[2]);
   doc.rect(0, 0, pageW, HEADER_H, "F");
-  doc.setFillColor(ORANGE_DARK[0], ORANGE_DARK[1], ORANGE_DARK[2]);
-  doc.rect(0, HEADER_H, pageW, 3, "F");
+  doc.setFillColor(CYAN[0], CYAN[1], CYAN[2]);
+  doc.rect(0, 0, pageW, 4, "F");
+  doc.rect(0, HEADER_H - 2, pageW, 2, "F");
   doc.setTextColor(255, 255, 255);
   doc.setFont("helvetica", "bold");
   doc.setFontSize(17);
@@ -38,8 +50,9 @@ const dibujarEncabezado = (doc: jsPDF, title: string, subtitle: string, margin =
   doc.text(titulo, margin, 28);
   doc.setFont("helvetica", "normal");
   doc.setFontSize(9.5);
-  doc.setTextColor(255, 236, 214);
-  doc.text(subtitle, margin, 46);
+  doc.setTextColor(239, 250, 252);
+  const subtitulo = doc.splitTextToSize(subtitle, pageW - margin * 2) as string[];
+  doc.text(subtitulo.slice(0, 2), margin, 46);
 };
 
 /** Pie de cada página: línea fina, título del reporte y "Página X de Y". */
@@ -50,12 +63,12 @@ const dibujarPies = (doc: jsPDF, title: string, margin = 24) => {
   const izquierda = (doc.splitTextToSize(title, pageW / 2) as string[])[0] ?? title;
   for (let pagina = 1; pagina <= total; pagina += 1) {
     doc.setPage(pagina);
-    doc.setDrawColor(231, 214, 191);
+    doc.setDrawColor(BORDER[0], BORDER[1], BORDER[2]);
     doc.setLineWidth(0.6);
     doc.line(margin, pageH - 30, pageW - margin, pageH - 30);
     doc.setFont("helvetica", "normal");
     doc.setFontSize(8);
-    doc.setTextColor(140, 128, 112);
+    doc.setTextColor(MUTED[0], MUTED[1], MUTED[2]);
     doc.text(izquierda, margin, pageH - 17);
     doc.text(`Página ${pagina} de ${total}`, pageW - margin, pageH - 17, { align: "right" });
   }
@@ -80,11 +93,11 @@ export interface PdfExportOptions {
   head: string[];
   body: (string | number)[][];
   filename: string;
-  /** Columnas cuyo texto se pinta en naranja y negrita (p. ej. el código). */
+  /** Columnas destacadas con turquesa oscuro y negrita (p. ej. el código). */
   highlightColumns?: number[];
 }
 
-/** Genera y descarga un PDF con encabezado naranja y tabla. */
+/** Genera y descarga un PDF con encabezado Nexora y tabla legible. */
 export const exportPdf = ({
   title,
   subtitle,
@@ -93,7 +106,7 @@ export const exportPdf = ({
   filename,
   highlightColumns = [],
 }: PdfExportOptions) => {
-  const doc = new jsPDF({ orientation: "portrait", unit: "pt", format: "a4" });
+  const doc = new jsPDF({ orientation: head.length > 6 ? "landscape" : "portrait", unit: "pt", format: "a4" });
   const margin = 24;
 
   // Las columnas que son solo números (unidades, cantidades) van centradas.
@@ -114,18 +127,20 @@ export const exportPdf = ({
     styles: {
       fontSize: 8.5,
       cellPadding: { top: 6, bottom: 6, left: 7, right: 7 },
-      textColor: [43, 34, 21],
-      lineColor: [238, 230, 215],
+      textColor: TEXT,
+      lineColor: BORDER,
       lineWidth: 0.4,
       valign: "middle",
     },
     headStyles: {
-      fillColor: ORANGE,
+      fillColor: NAVY,
       textColor: [255, 255, 255],
+      lineColor: CYAN,
+      lineWidth: 0.8,
       fontStyle: "bold",
       fontSize: 9,
     },
-    alternateRowStyles: { fillColor: CREAM },
+    alternateRowStyles: { fillColor: CYAN_PALE },
     columnStyles,
     // El encabezado se repite en cada página, no solo en la primera.
     didDrawPage: () => dibujarEncabezado(doc, title, subtitle, margin),
@@ -135,7 +150,7 @@ export const exportPdf = ({
       }
       if (data.section === "body" && highlightColumns.includes(data.column.index)) {
         data.cell.styles.fontStyle = "bold";
-        data.cell.styles.textColor = [201, 90, 20];
+        data.cell.styles.textColor = CYAN_DARK;
       }
     },
   });
@@ -177,11 +192,11 @@ export interface WarrantyGroup {
   items: WarrantyCard[];
 }
 
-const GREY: [number, number, number] = [110, 100, 88];
-const CARD_BORDER: [number, number, number] = [223, 219, 212];
-const GROUP_FILL: [number, number, number] = [250, 240, 229];
-const GROUP_BORDER: [number, number, number] = [231, 214, 191];
-const DARK: [number, number, number] = [43, 34, 21];
+const GREY: [number, number, number] = [91, 113, 132];
+const CARD_BORDER: [number, number, number] = [213, 230, 236];
+const GROUP_FILL: [number, number, number] = [239, 250, 252];
+const GROUP_BORDER: [number, number, number] = [213, 230, 236];
+const DARK: [number, number, number] = [28, 46, 64];
 
 /**
  * PDF de garantías recibidas en fichas, agrupadas por lote: cada equipo va en
@@ -226,15 +241,15 @@ export const exportWarrantyPdf = ({
     doc.setFillColor(GROUP_FILL[0], GROUP_FILL[1], GROUP_FILL[2]);
     doc.setDrawColor(GROUP_BORDER[0], GROUP_BORDER[1], GROUP_BORDER[2]);
     doc.roundedRect(margin, y, width, 26, 4, 4, "FD");
-    doc.setFillColor(ORANGE[0], ORANGE[1], ORANGE[2]);
+    doc.setFillColor(CYAN[0], CYAN[1], CYAN[2]);
     doc.roundedRect(margin, y, 5, 26, 2, 2, "F");
     doc.setFont("helvetica", "bold");
     doc.setFontSize(10);
-    doc.setTextColor(170, 96, 22);
+    doc.setTextColor(NAVY[0], NAVY[1], NAVY[2]);
     doc.text(group.title, margin + 14, y + 17);
     doc.setFont("helvetica", "normal");
     doc.setFontSize(9);
-    doc.setTextColor(150, 118, 88);
+    doc.setTextColor(GREY[0], GREY[1], GREY[2]);
     doc.text(labels.units(group.items.length), pageW - margin - 10, y + 17, { align: "right" });
     y += 36;
 
@@ -349,18 +364,18 @@ export const exportPedidosHistorialPdf = ({
   for (const pedido of pedidos) {
     if (y + 30 > bottom) newPage();
 
-    doc.setFillColor(250, 240, 229);
-    doc.setDrawColor(231, 214, 191);
+    doc.setFillColor(GROUP_FILL[0], GROUP_FILL[1], GROUP_FILL[2]);
+    doc.setDrawColor(GROUP_BORDER[0], GROUP_BORDER[1], GROUP_BORDER[2]);
     doc.roundedRect(margin, y, width, 24, 4, 4, "FD");
-    doc.setFillColor(ORANGE[0], ORANGE[1], ORANGE[2]);
+    doc.setFillColor(CYAN[0], CYAN[1], CYAN[2]);
     doc.roundedRect(margin, y, 5, 24, 2, 2, "F");
     doc.setFont("helvetica", "bold");
     doc.setFontSize(10);
-    doc.setTextColor(170, 96, 22);
+    doc.setTextColor(NAVY[0], NAVY[1], NAVY[2]);
     doc.text(pedido.code, margin + 14, y + 16);
     doc.setFont("helvetica", "normal");
     doc.setFontSize(8.5);
-    doc.setTextColor(130, 104, 78);
+    doc.setTextColor(GREY[0], GREY[1], GREY[2]);
     doc.text(
       [
         pedido.cliente,
@@ -384,18 +399,18 @@ export const exportPedidosHistorialPdf = ({
       if (y + alto > bottom) newPage();
 
       doc.setFillColor(255, 255, 255);
-      doc.setDrawColor(223, 219, 212);
+      doc.setDrawColor(CARD_BORDER[0], CARD_BORDER[1], CARD_BORDER[2]);
       doc.roundedRect(margin, y, width, alto, 4, 4, "FD");
 
       doc.setFont("helvetica", "bold");
       doc.setFontSize(9);
-      doc.setTextColor(43, 34, 21);
+      doc.setTextColor(DARK[0], DARK[1], DARK[2]);
       doc.text(tituloLineas, margin + 11, y + 15);
 
       const colW = (width - 22) / COLUMNAS;
       doc.setFont("helvetica", "normal");
       doc.setFontSize(7.5);
-      doc.setTextColor(90, 82, 70);
+      doc.setTextColor(GREY[0], GREY[1], GREY[2]);
       (incluirSeriales ? linea.seriales : []).forEach((serial, indice) => {
         const col = indice % COLUMNAS;
         const fila = Math.floor(indice / COLUMNAS);
@@ -428,9 +443,9 @@ export interface PedidoHistorialDetalle {
   lineas: PedidoHistorialDetalleLinea[];
 }
 
-const HIST_CLIENTE_FILL = "FAF0E5";
-const HIST_CLIENTE_BORDER = "E7D6BF";
-const HIST_CLIENTE_TEXT = "AA6016";
+const HIST_CLIENTE_FILL = CYAN_PALE_HEX;
+const HIST_CLIENTE_BORDER = BORDER_HEX;
+const HIST_CLIENTE_TEXT = NAVY_HEX;
 
 /**
  * Excel de historial de pedidos despachados: agrupado por pedido/cliente, con
@@ -532,15 +547,27 @@ export const exportPedidosHistorialExcel = ({
   });
   ws["!rows"] = Array.from({ length: rows.length }, (_, r) => alturas[r] ?? {});
 
-  const titleCell = ws[address(0, 0)];
-  if (titleCell) {
-    titleCell.s = {
-      font: { bold: true, sz: 16, color: { rgb: ORANGE_TEXT } },
-      alignment: { vertical: "center" },
-    };
+  const titleStyle = {
+    font: { bold: true, sz: 16, color: { rgb: WHITE_HEX } },
+    fill: { fgColor: { rgb: NAVY_HEX } },
+    alignment: { vertical: "center" },
+  } as const;
+  for (let c = 0; c < ncols; c += 1) {
+    const cell = ws[address(0, c)] ?? { t: "s" as const, v: "" };
+    cell.s = titleStyle;
+    ws[address(0, c)] = cell;
   }
-  const subCell = ws[address(1, 0)];
-  if (subCell) subCell.s = { font: { sz: 9, italic: true, color: { rgb: "8C8070" } } };
+  const subtitleStyle = {
+    font: { sz: 9, italic: true, color: { rgb: MUTED_HEX } },
+    fill: { fgColor: { rgb: CYAN_PALE_HEX } },
+    alignment: { vertical: "center" },
+    border: { bottom: { style: "thin", color: { rgb: CYAN_HEX } } },
+  } as const;
+  for (let c = 0; c < ncols; c += 1) {
+    const cell = ws[address(1, c)] ?? { t: "s" as const, v: "" };
+    cell.s = subtitleStyle;
+    ws[address(1, c)] = cell;
+  }
 
   clienteRows.forEach((r) => {
     for (let c = 0; c < ncols; c += 1) {
@@ -548,7 +575,7 @@ export const exportPedidosHistorialExcel = ({
         font: { bold: true, sz: 11, color: { rgb: HIST_CLIENTE_TEXT } },
         fill: { fgColor: { rgb: HIST_CLIENTE_FILL } },
         border: {
-          top: { style: "medium", color: { rgb: ORANGE_TEXT } },
+          top: { style: "medium", color: { rgb: CYAN_HEX } },
           bottom: { style: "thin", color: { rgb: HIST_CLIENTE_BORDER } },
         },
         alignment: { horizontal: c === 2 ? "right" : "left", vertical: "center" },
@@ -564,22 +591,22 @@ export const exportPedidosHistorialExcel = ({
       const cell = ws[address(r, c)];
       if (cell) {
         cell.s = {
-          font: { bold: true, sz: 9.5, color: { rgb: "4A3F30" } },
-          fill: { fgColor: { rgb: CREAM_FILL } },
-          alignment: { vertical: "center", horizontal: c === 1 ? "center" : "left" },
-          border: { bottom: { style: "thin", color: { rgb: "D9CDB6" } } },
+          font: { bold: true, sz: 9.5, color: { rgb: WHITE_HEX } },
+          fill: { fgColor: { rgb: NAVY_HEX } },
+          alignment: { vertical: "center", horizontal: c === 1 ? "center" : "left", wrapText: true },
+          border: { bottom: { style: "medium", color: { rgb: CYAN_HEX } } },
         };
       }
     }
   });
 
-  // Filas de total: negrita, fondo crema y la cifra centrada bajo "Cantidad".
+  // Filas de total: negrita, fondo cian suave y la cifra centrada bajo "Cantidad".
   totalRows.forEach((r, indice) => {
     const esGeneral = pedidos.length > 1 && indice === totalRows.length - 1;
     for (let c = 0; c < ncols; c += 1) {
       const style = {
-        font: { bold: true, sz: esGeneral ? 11 : 10, color: { rgb: esGeneral ? "FFFFFF" : HIST_CLIENTE_TEXT } },
-        fill: { fgColor: { rgb: esGeneral ? ORANGE_TEXT : CREAM_FILL } },
+        font: { bold: true, sz: esGeneral ? 11 : 10, color: { rgb: esGeneral ? WHITE_HEX : HIST_CLIENTE_TEXT } },
+        fill: { fgColor: { rgb: esGeneral ? NAVY_HEX : CYAN_SOFT_HEX } },
         alignment: { horizontal: c === 1 ? "center" : "left", vertical: "center" },
         border: { top: { style: "thin", color: { rgb: HIST_CLIENTE_BORDER } } },
       } as const;
@@ -596,13 +623,13 @@ export const exportPedidosHistorialExcel = ({
       const cell = ws[address(r, c)];
       if (!cell) continue;
       cell.s = {
-        font: { sz: 9.5, color: { rgb: DARK_TEXT } },
+        font: { sz: 9.5, color: { rgb: TEXT_HEX } },
         alignment: {
           vertical: "center",
           horizontal: c === 1 ? "center" : "left",
           wrapText: c === 2,
         },
-        border: { bottom: { style: "thin", color: { rgb: "EEE6D7" } } },
+        border: { bottom: { style: "thin", color: { rgb: BORDER_HEX } } },
       };
     }
   });
@@ -665,33 +692,45 @@ export const exportExcel = ({
       (_, c) => sheet.rows.length > 0 && sheet.rows.every((row) => typeof row[c] === "number"),
     );
 
-    const titleCell = ws[address(0, 0)];
-    if (titleCell) {
-      titleCell.s = {
-        font: { bold: true, sz: 16, color: { rgb: ORANGE_TEXT } },
-        alignment: { vertical: "center" },
-      };
+    const titleStyle = {
+      font: { bold: true, sz: 16, color: { rgb: WHITE_HEX } },
+      fill: { fgColor: { rgb: NAVY_HEX } },
+      alignment: { vertical: "center" },
+    } as const;
+    for (let c = 0; c < ncols; c += 1) {
+      const cell = ws[address(0, c)] ?? { t: "s" as const, v: "" };
+      cell.s = titleStyle;
+      ws[address(0, c)] = cell;
     }
-    const subCell = ws[address(1, 0)];
-    if (subCell) subCell.s = { font: { sz: 9, italic: true, color: { rgb: "8C8070" } } };
+    const subtitleStyle = {
+      font: { sz: 9, italic: true, color: { rgb: MUTED_HEX } },
+      fill: { fgColor: { rgb: CYAN_PALE_HEX } },
+      alignment: { vertical: "center" },
+      border: { bottom: { style: "thin", color: { rgb: CYAN_HEX } } },
+    } as const;
+    for (let c = 0; c < ncols; c += 1) {
+      const cell = ws[address(1, c)] ?? { t: "s" as const, v: "" };
+      cell.s = subtitleStyle;
+      ws[address(1, c)] = cell;
+    }
 
-    // Encabezado de la tabla: fondo naranja con texto blanco.
+    // Encabezado de la tabla: azul noche con acento turquesa.
     for (let c = 0; c < ncols; c += 1) {
       const cell = ws[address(headerRow, c)];
       if (cell) {
         cell.s = {
           font: { bold: true, sz: 10, color: { rgb: "FFFFFF" } },
-          fill: { fgColor: { rgb: ORANGE_TEXT } },
+          fill: { fgColor: { rgb: NAVY_HEX } },
           alignment: {
             vertical: "center",
-            horizontal: c === 0 || numericas[c] ? "center" : "left",
+            horizontal: numericas[c] ? "center" : "left",
           },
-          border: { bottom: { style: "medium", color: { rgb: "B05408" } } },
+          border: { bottom: { style: "medium", color: { rgb: CYAN_HEX } } },
         };
       }
     }
 
-    // Filas alternas en crema para leer mejor de lado a lado.
+    // Filas alternas en cian muy suave para leer mejor de lado a lado.
     for (let r = headerRow + 1; r < rows.length; r += 1) {
       if (rows[r].length === 0) continue;
       const alterna = (r - headerRow) % 2 === 0;
@@ -699,14 +738,14 @@ export const exportExcel = ({
         const cell = ws[address(r, c)];
         if (!cell) continue;
         cell.s = {
-          font: { sz: 10, color: { rgb: DARK_TEXT } },
-          ...(alterna ? { fill: { fgColor: { rgb: "FDFAF0" } } } : {}),
+          font: { sz: 10, color: { rgb: TEXT_HEX } },
+          ...(alterna ? { fill: { fgColor: { rgb: CYAN_PALE_HEX } } } : {}),
           alignment: {
             vertical: "center",
-            horizontal: c === 0 || numericas[c] ? "center" : "left",
+            horizontal: numericas[c] ? "center" : "left",
             wrapText: sheet.wrapColumns?.includes(c) ?? false,
           },
-          border: { bottom: { style: "thin", color: { rgb: "EEE6D7" } } },
+          border: { bottom: { style: "thin", color: { rgb: BORDER_HEX } } },
         };
       }
     }
