@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 type ProductThumbnailProps = {
   src?: string | null;
   alt: string;
-  size?: "xs" | "sm" | "md" | "lg";
+  size?: "xs" | "sm" | "md" | "lg" | "xl";
   className?: string;
 };
 
@@ -28,6 +28,7 @@ export const ProductThumbnail = ({
     sm: "h-10 w-10",
     md: "h-12 w-12",
     lg: "h-16 w-16",
+    xl: "h-20 w-20",
   }[size];
 
   return (
