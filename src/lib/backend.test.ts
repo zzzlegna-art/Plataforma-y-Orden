@@ -181,7 +181,7 @@ describe("pushDb · guardado atómico", () => {
 
     expect(mocks.rpc).toHaveBeenCalledTimes(1);
     const [nombre, args] = mocks.rpc.mock.calls[0];
-    expect(nombre).toBe("bodega_aplicar_cambios");
+    expect(nombre).toBe("nexora_guardar_con_version");
     expect(args.p_cambios.version).toBe(1);
     expect(args.p_cambios.pasos.map((p: { tabla: string }) => p.tabla)).toEqual(["bodega_orders", "bodega_units", "bodega_movements", "bodega_audit_logs"]);
     expect(mocks.registro).toEqual([]);
