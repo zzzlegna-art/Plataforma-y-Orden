@@ -21,6 +21,7 @@ const producto = (id: string, name: string): Product => ({
   sku: id,
   name,
   categoria: "celular",
+  imageUrl: "https://example.com/iphone14.png",
   price: 100,
   cost: 50,
   minStock: 0,
@@ -93,6 +94,7 @@ describe("Nuevo pedido · cantidad escribible", () => {
     const filaDisponibles = screen.getAllByText("Apple iPhone 14 128 GB")[0].closest("li")!;
     await user.click(within(filaDisponibles).getByRole("button"));
 
+    expect(screen.getAllByRole("img", { name: "Apple iPhone 14 128 GB" })).toHaveLength(2);
     expect(campoCantidad().value).toBe("1");
   });
 

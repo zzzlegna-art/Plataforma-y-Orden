@@ -1,6 +1,6 @@
 import { useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { ArrowLeft, Plus, Check, ShoppingCart, Trash2 } from "lucide-react";
+import { ArrowLeft, Plus, Check, ShoppingCart, Trash2, Package } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 
 import { PageHeader } from "@/components/shared/page-header";
@@ -17,6 +17,39 @@ import { compararProductos } from "@/lib/product-order";
 import { etiquetaTipoProducto, TIPOS_SIN_CONDICION, tiposProductoOrdenados } from "@/lib/products";
 import { SEARCH_INPUT_PROPS } from "@/lib/search-input";
 import { cn } from "@/lib/utils";
+
+type ProductMiniThumbProps = {
+  imageUrl?: string;
+  name: string;
+  className?: string;
+};
+
+/** Miniatura compartida por el catálogo de referencias y el resumen del pedido. */
+const ProductMiniThumb = ({ imageUrl, name, className }: ProductMiniThumbProps) => {
+  const [imageFailed, setImageFailed] = useState(false);
+
+  return (
+    <div
+      className={cn(
+        "grid h-16 w-16 shrink-0 place-items-center overflow-hidden rounded-xl border bg-background text-muted-foreground",
+        className,
+      )}
+    >
+      {imageUrl && !imageFailed ? (
+        <img
+          src={imageUrl}
+          alt={name}
+          loading="lazy"
+          decoding="async"
+          onError={() => setImageFailed(true)}
+          className="h-full w-full object-contain p-1"
+        />
+      ) : (
+        <Package aria-hidden="true" className="h-5 w-5" />
+      )}
+    </div>
+  );
+};
 
 /** Creación de pedidos a clientes mayoristas por referencias y cantidades. */
 const NuevoPedido = () => {
@@ -392,12 +425,13 @@ const NuevoPedido = () => {
                     <li
                       key={product.id}
                       className={cn(
-                        "flex items-center justify-between gap-2 rounded-lg border bg-card p-3 transition-[border-color,box-shadow,transform] duration-200 motion-reduce:transition-none [@media(hover:hover)]:hover:-translate-y-0.5 hover:shadow-elegant motion-reduce:[@media(hover:hover)]:hover:translate-y-0",
+                        "flex items-center gap-3 rounded-lg border bg-card p-3 transition-[border-color,box-shadow,transform] duration-200 motion-reduce:transition-none [@media(hover:hover)]:hover:-translate-y-0.5 hover:shadow-elegant motion-reduce:[@media(hover:hover)]:hover:translate-y-0",
                         enPedido > 0 && "border-primary/50 bg-primary/5",
                         disponibles === 0 && "opacity-60",
                       )}
                     >
-                      <div className="min-w-0">
+                      <ProductMiniThumb imageUrl={product.imageUrl} name={product.name} />
+                      <div className="min-w-0 flex-1">
                         <p className="line-clamp-2 text-sm font-medium leading-snug">{product.name}</p>
                         <p className="mt-0.5 text-xs text-muted-foreground">
                           {t("order.availableInBodega", { count: disponibles })}
@@ -445,58 +479,64 @@ const NuevoPedido = () => {
                     const disponibles = disponiblesDe(linea.productId, condicionVisible() ? linea.condition : undefined);
                     return (
                       <li key={`${linea.productId}-${linea.condition}`} className="rounded-md border px-3 py-2">
-                        <div className="flex items-center justify-between gap-2">
-                          <div className="min-w-0">
-                            <p className="truncate text-sm font-medium">{product?.name}</p>
+                        <div className="flex items-start gap-3">
+                          <ProductMiniThumb
+                            imageUrl={product?.imageUrl}
+                            name={product?.name ?? "Producto"}
+                            className="h-12 w-12 rounded-lg"
+                          />
+                          <div className="min-w-0 flex-1">
+                            <p className="line-clamp-2 text-sm font-medium">{product?.name ?? "Producto"}</p>
                             <div className="mt-1">
                               <ConditionBadge condition={linea.condition} />
                             </div>
-                          </div>
-                          <div className="flex shrink-0 items-center gap-1">
-                            <Button type="button" size="icon" variant="outline" className="h-7 w-7"
-                              disabled={linea.quantity <= 1} onClick={() => cambiarCantidad(linea.productId, linea.condition, -1)}>
-                              −
-                            </Button>
-                            <Input
-                              type="text"
-                              inputMode="numeric"
-                              pattern="[0-9]*"
-                              aria-label={t("order.quantity")}
-                              className="font-tabular h-7 w-14 px-1 text-center text-sm"
-                              value={cantidadEnEdicion[`${linea.productId}-${linea.condition}`] ?? String(linea.quantity)}
-                              onChange={(event) => {
-                                // Solo dígitos; se permite dejarlo vacío mientras se escribe.
-                                const limpio = event.target.value.replace(/[^0-9]/g, "");
-                                setCantidadEnEdicion((previous) => ({
-                                  ...previous,
-                                  [`${linea.productId}-${linea.condition}`]: limpio,
-                                }));
-                              }}
-                              onBlur={() => {
-                                const clave = `${linea.productId}-${linea.condition}`;
-                                fijarCantidad(linea.productId, linea.condition, Number(cantidadEnEdicion[clave] ?? linea.quantity));
-                                setCantidadEnEdicion((previous) => {
-                                  const { [clave]: _omitido, ...resto } = previous;
-                                  return resto;
-                                });
-                              }}
-                              onKeyDown={(event) => {
-                                if (event.key === "Enter") event.currentTarget.blur();
-                              }}
-                            />
-                            <Button type="button" size="icon" variant="outline" className="h-7 w-7"
-                              disabled={linea.quantity >= disponibles} onClick={() => cambiarCantidad(linea.productId, linea.condition, 1)}>
-                              +
-                            </Button>
-                            <Button type="button" size="icon" variant="ghost" className="h-7 w-7 text-destructive"
-                              onClick={() => setLineas((previous) => previous.filter((l) => l !== linea))}>
-                              <Trash2 />
-                            </Button>
+                            <p className="mt-1 text-xs text-muted-foreground">
+                              {t("order.stockOf", { available: disponibles })}
+                            </p>
                           </div>
                         </div>
-                        <p className="mt-1 text-xs text-muted-foreground">
-                          {t("order.stockOf", { available: disponibles })}
-                        </p>
+                        <div className="mt-2 flex items-center justify-end gap-1">
+                          <Button type="button" size="icon" variant="outline" className="h-7 w-7"
+                            disabled={linea.quantity <= 1} onClick={() => cambiarCantidad(linea.productId, linea.condition, -1)}>
+                            −
+                          </Button>
+                          <Input
+                            type="text"
+                            inputMode="numeric"
+                            pattern="[0-9]*"
+                            aria-label={t("order.quantity")}
+                            className="font-tabular h-7 w-14 px-1 text-center text-sm"
+                            value={cantidadEnEdicion[`${linea.productId}-${linea.condition}`] ?? String(linea.quantity)}
+                            onChange={(event) => {
+                              // Solo dígitos; se permite dejarlo vacío mientras se escribe.
+                              const limpio = event.target.value.replace(/[^0-9]/g, "");
+                              setCantidadEnEdicion((previous) => ({
+                                ...previous,
+                                [`${linea.productId}-${linea.condition}`]: limpio,
+                              }));
+                            }}
+                            onBlur={() => {
+                              const clave = `${linea.productId}-${linea.condition}`;
+                              fijarCantidad(linea.productId, linea.condition, Number(cantidadEnEdicion[clave] ?? linea.quantity));
+                              setCantidadEnEdicion((previous) => {
+                                const { [clave]: _omitido, ...resto } = previous;
+                                return resto;
+                              });
+                            }}
+                            onKeyDown={(event) => {
+                              if (event.key === "Enter") event.currentTarget.blur();
+                            }}
+                          />
+                          <Button type="button" size="icon" variant="outline" className="h-7 w-7"
+                            disabled={linea.quantity >= disponibles} onClick={() => cambiarCantidad(linea.productId, linea.condition, 1)}>
+                            +
+                          </Button>
+                          <Button type="button" size="icon" variant="ghost" className="h-7 w-7 text-destructive"
+                            aria-label={t("order.removeReference", { defaultValue: "Quitar referencia" })}
+                            onClick={() => setLineas((previous) => previous.filter((l) => l !== linea))}>
+                            <Trash2 />
+                          </Button>
+                        </div>
                       </li>
                     );
                   })}
