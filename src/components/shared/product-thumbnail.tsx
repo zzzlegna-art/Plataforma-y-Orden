@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 import { cn } from "@/lib/utils";
 
@@ -19,11 +19,9 @@ export const ProductThumbnail = ({
   size = "sm",
   className,
 }: ProductThumbnailProps) => {
-  const [failed, setFailed] = useState(false);
+  const [failedSrc, setFailedSrc] = useState<string | null>(null);
 
-  useEffect(() => setFailed(false), [src]);
-
-  if (!src || failed) return null;
+  if (!src || failedSrc === src) return null;
 
   const sizeClass = {
     xs: "h-8 w-8",
@@ -38,7 +36,7 @@ export const ProductThumbnail = ({
       alt={alt}
       loading="lazy"
       decoding="async"
-      onError={() => setFailed(true)}
+      onError={() => setFailedSrc(src)}
       className={cn(
         "shrink-0 rounded-lg border bg-background object-contain p-0.5",
         sizeClass,
