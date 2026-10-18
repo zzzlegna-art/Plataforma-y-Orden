@@ -74,7 +74,8 @@ const NuevaRecepcion = () => {
   const [ultimoSerialAgregado, setUltimoSerialAgregado] = useState("");
   const busyRef = useRef(false);
   const receptionIdRef = useRef(receptionId);
-  receptionIdRef.current = receptionId;
+  // No sobrescribir con null el ID recién creado mientras React actualiza el estado.
+  if (receptionId) receptionIdRef.current = receptionId;
   const colaSerialesRef = useRef<LecturaRecepcion[]>([]);
   const procesandoColaRef = useRef(false);
   const procesarSerialRef = useRef<(lectura: LecturaRecepcion) => Promise<void>>(async () => {});
