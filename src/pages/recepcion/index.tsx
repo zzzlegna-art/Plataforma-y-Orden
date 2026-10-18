@@ -14,6 +14,7 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 
 import { DataTable } from "@/components/shared/data-table";
+import { ProductThumbnail } from "@/components/shared/product-thumbnail";
 import { PageHeader } from "@/components/shared/page-header";
 import { SearchField } from "@/components/shared/search-field";
 import { ConditionBadge, Badge } from "@/components/shared/status-badge";
@@ -290,7 +291,15 @@ const Recepciones = () => {
           />
             <div className="min-w-0">
               <p className="font-tabular truncate font-semibold">{row.reception.code}</p>
-              <p className="truncate text-sm">{productSummary(row) || "—"}</p>
+              <div className="mt-1 flex min-w-0 items-center gap-2">
+                {row.products.slice(0, 3).map((item) => {
+                  const product = db.products.find((candidate) => candidate.id === item.productId);
+                  return product?.imageUrl ? (
+                    <ProductThumbnail key={item.productId} src={product.imageUrl} alt={product.name} size="xs" />
+                  ) : null;
+                })}
+                <p className="truncate text-sm">{productSummary(row) || "—"}</p>
+              </div>
               <p className="truncate text-xs text-muted-foreground">
                 {row.reception.reference ? `${row.reception.reference} · ` : ""}
                 {formatDate(row.reception.receivedAt)}
@@ -554,16 +563,19 @@ const Recepciones = () => {
                       resaltada && "bg-primary/10 ring-1 ring-inset ring-primary/40",
                     )}
                   >
-                    <div className="min-w-0">
-                      <p className="font-tabular truncate text-sm">{unit.serial}</p>
-                      {resaltada ? (
-                        <p className="text-xs font-semibold text-primary">
-                          {t("receptions.serialBuscado")}
+                    <div className="flex min-w-0 items-center gap-2">
+                      <ProductThumbnail src={product?.imageUrl} alt={product?.name ?? "Referencia"} size="sm" />
+                      <div className="min-w-0">
+                        <p className="font-tabular truncate text-sm">{unit.serial}</p>
+                        {resaltada ? (
+                          <p className="text-xs font-semibold text-primary">
+                            {t("receptions.serialBuscado")}
+                          </p>
+                        ) : null}
+                        <p className="truncate text-xs text-muted-foreground">
+                          {product?.name ?? "—"}
                         </p>
-                      ) : null}
-                      <p className="truncate text-xs text-muted-foreground">
-                        {product?.name ?? "—"}
-                      </p>
+                      </div>
                     </div>
                     <ConditionBadge condition={unit.condition} />
                   </li>
