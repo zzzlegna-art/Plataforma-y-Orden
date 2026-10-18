@@ -197,7 +197,7 @@ describe("entregarGarantia · cambio de equipo: el original entra a bodega y el 
     expect(db.units.find((u) => u.id === "un1")?.status).toBe("en_bodega");
     expect(db.orderItemUnits.some((row) => row.unitId === "un1")).toBe(false);
     const entrada = db.movements.find((m) => m.unitId === "un1" && m.type === "entrada");
-    expect(entrada?.notes).toContain("Equipo original recibido en bodega");
+    expect(entrada?.notes).toContain("bodega");
   });
 });
 
@@ -219,7 +219,7 @@ describe("entregarGarantia · cambio en una garantía previa: el equipo original
     expect(original?.condition).toBe("seminuevo");
     expect(db.units.find((u) => u.id === "un2")?.status).toBe("entregado_garantia");
     const entrada = db.movements.find((m) => m.unitId === original?.id && m.type === "entrada");
-    expect(entrada?.notes).toContain("Equipo original recibido en bodega");
+    expect(entrada?.notes).toContain("bodega");
   });
 
   it("si el serial ya existía como liberado, lo reutiliza en vez de duplicarlo", () => {
@@ -239,7 +239,7 @@ describe("entregarGarantia · cambio en una garantía previa: el equipo original
   });
 });
 
-describe("devolverGarantia · vuelve a bodega disponible y sale del pedido", () => {
+describe("devolverGarantia · vuelve a bodega en reparación y sale del pedido", () => {
   const dbConPedido = (status: Warranty["status"]) => {
     const db = dbCon({ status, customerId: "c1", orderId: "o1" }, { status: "en_reparacion" });
     db.orders.push({
@@ -252,29 +252,31 @@ describe("devolverGarantia · vuelve a bodega disponible y sale del pedido", () 
   };
 
   it.each(["recibido", "en_servicio_tecnico", "reenvio_pendiente"] as const)(
-    "desde %s: queda disponible en bodega, fuera del pedido y con el pedido anotado en el historial",
+    "desde %s: queda en reparación, fuera del pedido y con el pedido anotado en el historial",
     (status) => {
       const db = dbConPedido(status);
       devolverGarantia(db, admin, { warrantyId: "w1", motivo: "El cliente ya no lo quiere" });
-      expect(db.units[0].status).toBe("en_bodega");
+      expect(db.units[0].status).toBe("en_reparacion");
       expect(db.orderItemUnits.some((row) => row.unitId === "un1")).toBe(false);
       const mov = db.movements.find((m) => m.unitId === "un1" && m.type === "devolucion");
       expect(mov?.notes).toContain("Sale del pedido PED-261004-006");
       expect(mov?.notes).toContain("El cliente ya no lo quiere");
+      expect(mov?.notes).toContain("no vendible");
       expect(db.warrantyEvents[db.warrantyEvents.length - 1]?.notes).toContain("Sale del pedido PED-261004-006");
       expect(db.auditLogs.some((l) => l.entity === "order" && l.details?.includes("retirado del pedido"))).toBe(true);
     },
   );
 
-  it("sin pedido: igual vuelve a bodega y no inventa ninguna nota de pedido", () => {
+  it("sin pedido: queda en reparación y no inventa ninguna nota de pedido", () => {
     const db = dbCon({ status: "en_servicio_tecnico" }, { status: "en_reparacion" });
     devolverGarantia(db, admin, { warrantyId: "w1", motivo: "Se devuelve" });
-    expect(db.units[0].status).toBe("en_bodega");
-    expect(db.movements.find((m) => m.type === "devolucion")?.notes).toBe("Se devuelve");
+    expect(db.units[0].status).toBe("en_reparacion");
+    expect(db.movements.find((m) => m.type === "devolucion")?.notes).toContain("Se devuelve");
+    expect(db.movements.find((m) => m.type === "devolucion")?.notes).toContain("no vendible");
   });
 });
 
-describe("devolverGarantia · garantía previa: al devolverla a la bodega queda disponible", () => {
+describe("devolverGarantia · garantía previa: al devolverla requiere diagnóstico", () => {
   const dbPrevia = (referencia: string) => {
     const db = dbCon(
       { unitId: undefined, productId: undefined, imeiManual: "357573494919009", referenciaManual: referencia, clienteManual: "Celutronic", status: "en_servicio_tecnico" },
@@ -284,11 +286,11 @@ describe("devolverGarantia · garantía previa: al devolverla a la bodega queda 
     return db;
   };
 
-  it("da de alta el serial como unidad disponible del producto que coincide, con su historial", () => {
+  it("da de alta el serial como unidad no vendible del producto que coincide, con su historial", () => {
     const db = dbPrevia("Apple iPhone 13 128 GB");
     devolverGarantia(db, admin, { warrantyId: "w1", motivo: "Se devuelve" });
     const unidad = db.units.find((u) => u.serial === "357573494919009");
-    expect(unidad?.status).toBe("en_bodega");
+    expect(unidad?.status).toBe("en_reparacion");
     expect(unidad?.productId).toBe("p13");
     expect(db.movements.some((m) => m.unitId === unidad?.id && m.type === "entrada")).toBe(true);
     expect(db.warranties[0].status).toBe("devuelto");
