@@ -12,8 +12,7 @@ describe("ProductThumbnail", () => {
 
   it("muestra la fotografía con texto alternativo", () => {
     render(<ProductThumbnail src="https://example.com/iphone.png" alt="iPhone 13" size="md" />);
-    expect(screen.getByRole("img", { name: "iPhone 13" })).toHaveAttribute(
-      "src",
+    expect(screen.getByRole("img", { name: "iPhone 13" }).getAttribute("src")).toBe(
       "https://example.com/iphone.png",
     );
   });
