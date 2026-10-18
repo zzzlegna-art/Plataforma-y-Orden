@@ -81,7 +81,6 @@ const NuevaRecepcion = () => {
   const procesandoColaRef = useRef(false);
   const procesarSerialRef = useRef<(lectura: LecturaRecepcion) => Promise<void>>(async () => {});
   const [pendientes, setPendientes] = useState(0);
-  const [procesados, setProcesados] = useState(0);
   const [rechazados, setRechazados] = useState<LecturaRechazada[]>([]);
   const lecturasTerminadasRef = useRef(new Set<string>());
 
@@ -212,7 +211,6 @@ const NuevaRecepcion = () => {
         setCost("");
         lecturasTerminadasRef.current.add(serialNormalizado);
         setRechazados((anteriores) => anteriores.filter((item) => item.serial.trim().toUpperCase() !== serialNormalizado));
-        setProcesados((total) => total + 1);
         setUltimoSerialAgregado(serial.trim());
         toast.success("Equipo agregado correctamente.", { id: "recepcion-lectura" });
       } else {
@@ -269,6 +267,39 @@ const NuevaRecepcion = () => {
     }
     setRechazados((actuales) => actuales.filter((item) => item !== registro));
     void encolarLectura(registro);
+  };
+
+  /** Mantiene sincronizada la protección de duplicados cuando se edita un serial. */
+  const handleSerialChange = async (item: (typeof items)[number], serial: string) => {
+    const result = await runAction((db2, actor) =>
+      updateReceptionItem(db2, actor, { id: item.id, serial }),
+    );
+    if (result === null) return;
+
+    const anterior = item.serial.trim().toUpperCase();
+    const siguiente = serial.trim().toUpperCase();
+    if (anterior !== siguiente) {
+      lecturasTerminadasRef.current.delete(anterior);
+      lecturasTerminadasRef.current.add(siguiente);
+    }
+    if (ultimoSerialAgregado.trim().toUpperCase() === anterior) {
+      setUltimoSerialAgregado(serial.trim());
+    }
+  };
+
+  /** Al quitar una unidad, libera su serial para que pueda capturarse de nuevo. */
+  const handleRemoveItem = async (item: (typeof items)[number]) => {
+    const result = await runAction((db2, actor) =>
+      removeReceptionItem(db2, actor, { id: item.id }),
+    );
+    if (result === null) return;
+
+    const serialNormalizado = item.serial.trim().toUpperCase();
+    lecturasTerminadasRef.current.delete(serialNormalizado);
+    if (ultimoSerialAgregado.trim().toUpperCase() === serialNormalizado) {
+      const restantes = items.filter((capturado) => capturado.id !== item.id);
+      setUltimoSerialAgregado(restantes[restantes.length - 1]?.serial ?? "");
+    }
   };
 
   /**
@@ -587,7 +618,7 @@ const NuevaRecepcion = () => {
                   placeholder={t("receptions.serialPlaceholder")}
                   hint={productId ? undefined : t("receptions.selectProductFirst")}
                 />
-                {(procesados > 0 || rechazados.length > 0 || pendientes > 0) ? <div className="grid grid-cols-3 gap-2 rounded-lg border bg-muted/30 p-3 text-center text-xs"><div><strong className="block text-lg text-primary">{procesados}</strong>Registrados</div><div><strong className="block text-lg text-destructive">{rechazados.length}</strong>Rechazados</div><div><strong className="block text-lg">{pendientes}</strong>Pendientes</div></div> : null}
+                {(items.length > 0 || rechazados.length > 0 || pendientes > 0) ? <div className="grid grid-cols-3 gap-2 rounded-lg border bg-muted/30 p-3 text-center text-xs"><div><strong className="block text-lg text-primary">{items.length}</strong>Registrados</div><div><strong className="block text-lg text-destructive">{rechazados.length}</strong>Rechazados</div><div><strong className="block text-lg">{pendientes}</strong>Pendientes</div></div> : null}
                 {rechazados.length > 0 ? (
                   <div className="space-y-2 rounded-lg border border-destructive/20 bg-destructive/5 p-3 text-xs">
                     <p className="font-medium text-destructive">Lecturas sin registrar: revisa el motivo y reintenta.</p>
@@ -657,7 +688,7 @@ const NuevaRecepcion = () => {
                   <div key={grupo.clave}>
                     <div className="mb-2 flex items-center justify-between gap-2">
                       <div className="flex min-w-0 items-center gap-2">
-                        <ProductThumbnail src={grupo.product?.imageUrl} alt={grupo.product?.name ?? "Referencia"} size="sm" />
+                        <ProductThumbnail src={grupo.product?.imageUrl} alt={grupo.product?.name ?? "Referencia"} size="xl" className="h-16 w-16 sm:h-20 sm:w-20" />
                         <div className="min-w-0">
                           <p className="truncate text-sm font-medium">{grupo.product?.name ?? "—"}</p>
                           <p className="font-tabular truncate text-xs text-muted-foreground">
@@ -679,21 +710,13 @@ const NuevaRecepcion = () => {
                           item={item}
                           product={grupo.product}
                           readOnly={confirmed}
-                          onSerialChange={(serial) =>
-                            void runAction((db2, actor) =>
-                              updateReceptionItem(db2, actor, { id: item.id, serial }),
-                            )
-                          }
+                          onSerialChange={(serial) => void handleSerialChange(item, serial)}
                           onConditionChange={(next) =>
                             void runAction((db2, actor) =>
                               updateReceptionItem(db2, actor, { id: item.id, condition: next }),
                             )
                           }
-                          onRemove={() =>
-                            void runAction((db2, actor) =>
-                              removeReceptionItem(db2, actor, { id: item.id }),
-                            )
-                          }
+                          onRemove={() => void handleRemoveItem(item)}
                         />
                       ))}
                     </ul>
