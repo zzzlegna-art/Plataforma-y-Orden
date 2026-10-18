@@ -209,6 +209,7 @@ const NuevaRecepcion = () => {
       if (result) {
         setCost("");
         lecturasTerminadasRef.current.add(serialNormalizado);
+        setRechazados((anteriores) => anteriores.filter((item) => item.serial.trim().toUpperCase() !== serialNormalizado));
         setProcesados((total) => total + 1);
         setUltimoSerialAgregado(serial.trim());
         toast.success("Equipo agregado correctamente.", { id: "recepcion-lectura" });
@@ -258,6 +259,12 @@ const NuevaRecepcion = () => {
    */
   const handleScan = (serial: string) => encolarLectura({ serial, productId, condition, cost });
   const reintentarLectura = (registro: LecturaRechazada) => {
+    const serial = registro.serial.trim().toUpperCase();
+    if (procesandoColaRef.current ||
+      colaSerialesRef.current.some((item) => item.serial.trim().toUpperCase() === serial)) {
+      toast.warning("Espera a que termine la lectura pendiente.");
+      return;
+    }
     setRechazados((actuales) => actuales.filter((item) => item !== registro));
     void encolarLectura(registro);
   };
@@ -293,6 +300,7 @@ const NuevaRecepcion = () => {
         );
         if (!created) return;
         targetId = created.id;
+        receptionIdRef.current = created.id;
         setReceptionId(created.id);
       }
       const result = await runAction((db2, actor) =>
@@ -581,12 +589,14 @@ const NuevaRecepcion = () => {
                 {rechazados.length > 0 ? (
                   <div className="space-y-2 rounded-lg border border-destructive/20 bg-destructive/5 p-3 text-xs">
                     <p className="font-medium text-destructive">Lecturas sin registrar: revisa el motivo y reintenta.</p>
-                    {rechazados.slice(-5).map((registro, index) => (
+                    <div className="max-h-72 space-y-2 overflow-y-auto pr-1">
+                    {rechazados.map((registro, index) => (
                       <div key={`${registro.serial}-${index}`} className="flex flex-wrap items-center justify-between gap-2 rounded-md bg-background p-2">
                         <div className="min-w-0 flex-1"><p className="break-all font-semibold">{registro.serial}</p><p className="mt-1 text-muted-foreground">{registro.motivo}</p></div>
                         <Button type="button" size="sm" variant="outline" disabled={confirmed || procesandoColaRef.current} onClick={() => reintentarLectura(registro)}>Reintentar</Button>
                       </div>
                     ))}
+                    </div>
                     <Button type="button" size="sm" variant="ghost" onClick={() => setRechazados([])}>Descartar avisos</Button>
                   </div>
                 ) : null}
