@@ -1,6 +1,22 @@
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Boxes, Check, Eye, FileSpreadsheet, FileText, PencilLine, Plus } from "lucide-react";
+import {
+  AlertTriangle,
+  Boxes,
+  Check,
+  Eye,
+  FileSpreadsheet,
+  FileText,
+  Headphones,
+  Package,
+  PencilLine,
+  Plus,
+  Smartphone,
+  Tablet,
+  Watch,
+  Wrench,
+  type LucideIcon,
+} from "lucide-react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
 
@@ -20,6 +36,144 @@ import { getProductRows, type ProductRow, type ProductStock } from "@/lib/select
 import type { ProductCategory } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { ProductFormDialog } from "./ProductFormDialog";
+
+type StatTone = "primary" | "info" | "warning";
+
+const STAT_TONES: Record<StatTone, { icon: string; bar: string; glow: string }> = {
+  primary: {
+    icon: "bg-primary/10 text-primary",
+    bar: "bg-primary",
+    glow: "from-primary/10",
+  },
+  info: {
+    icon: "bg-info/10 text-info",
+    bar: "bg-info",
+    glow: "from-info/10",
+  },
+  warning: {
+    icon: "bg-warning/10 text-warning",
+    bar: "bg-warning",
+    glow: "from-warning/10",
+  },
+};
+
+const STAT_BAR_HEIGHTS = [12, 19, 27, 36, 44] as const;
+
+const InventoryStatCard = ({
+  label,
+  value,
+  hint,
+  icon: Icon,
+  tone,
+}: {
+  label: string;
+  value: number;
+  hint: string;
+  icon: LucideIcon;
+  tone: StatTone;
+}) => {
+  const styles = STAT_TONES[tone];
+
+  return (
+    <div className="group relative isolate overflow-hidden rounded-2xl border border-border/70 bg-card p-4 shadow-[0_14px_36px_-26px_rgba(15,39,64,.38)] transition duration-200 [@media(hover:hover)]:hover:-translate-y-0.5 [@media(hover:hover)]:hover:shadow-elegant motion-reduce:transition-none">
+      <div
+        aria-hidden="true"
+        className={cn(
+          "pointer-events-none absolute inset-y-0 right-0 w-28 bg-gradient-to-l to-transparent opacity-80",
+          styles.glow,
+        )}
+      />
+      <div className="relative flex min-h-[104px] items-center gap-3">
+        <div
+          className={cn(
+            "grid h-12 w-12 shrink-0 place-items-center rounded-2xl ring-1 ring-inset ring-current/10",
+            styles.icon,
+          )}
+        >
+          <Icon className="h-6 w-6" strokeWidth={1.8} />
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+            {label}
+          </p>
+          <p className="font-tabular mt-1 text-3xl font-bold leading-none tracking-tight">
+            {value.toLocaleString()}
+          </p>
+          <p className="mt-2 text-xs leading-4 text-muted-foreground">{hint}</p>
+        </div>
+        <div
+          aria-hidden="true"
+          className="flex h-11 shrink-0 items-end gap-1.5 pb-0.5"
+        >
+          {STAT_BAR_HEIGHTS.map((height, index) => (
+            <span
+              key={height}
+              className={cn(
+                "w-1.5 origin-bottom rounded-full opacity-70 transition-transform duration-200",
+                styles.bar,
+                "[@media(hover:hover)]:group-hover:scale-y-110",
+              )}
+              style={{ height, opacity: 0.3 + index * 0.15 }}
+            />
+          ))}
+        </div>
+      </div>
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-x-4 bottom-0 h-px bg-gradient-to-r from-transparent via-border to-transparent"
+      />
+    </div>
+  );
+};
+
+const PRODUCT_THUMB_TONES: Record<string, string> = {
+  celular:
+    "from-sky-100 via-white to-cyan-100 text-sky-700 ring-sky-200/70 dark:from-sky-500/20 dark:via-card dark:to-cyan-500/10 dark:text-sky-300 dark:ring-sky-400/20",
+  tablet:
+    "from-violet-100 via-white to-indigo-100 text-violet-700 ring-violet-200/70 dark:from-violet-500/20 dark:via-card dark:to-indigo-500/10 dark:text-violet-300 dark:ring-violet-400/20",
+  reloj:
+    "from-amber-100 via-white to-orange-100 text-amber-700 ring-amber-200/70 dark:from-amber-500/20 dark:via-card dark:to-orange-500/10 dark:text-amber-300 dark:ring-amber-400/20",
+  audifono:
+    "from-rose-100 via-white to-pink-100 text-rose-700 ring-rose-200/70 dark:from-rose-500/20 dark:via-card dark:to-pink-500/10 dark:text-rose-300 dark:ring-rose-400/20",
+  repuesto:
+    "from-emerald-100 via-white to-teal-100 text-emerald-700 ring-emerald-200/70 dark:from-emerald-500/20 dark:via-card dark:to-teal-500/10 dark:text-emerald-300 dark:ring-emerald-400/20",
+};
+
+const ProductThumbnail = ({
+  categoria,
+  size = "sm",
+}: {
+  categoria?: string;
+  size?: "sm" | "md";
+}) => {
+  const Icon =
+    categoria === "celular"
+      ? Smartphone
+      : categoria === "tablet"
+        ? Tablet
+        : categoria === "reloj"
+          ? Watch
+          : categoria === "audifono"
+            ? Headphones
+            : categoria === "repuesto"
+              ? Wrench
+              : Package;
+
+  return (
+    <div
+      aria-hidden="true"
+      className={cn(
+        "relative isolate grid shrink-0 place-items-center overflow-hidden rounded-xl bg-gradient-to-br shadow-inner ring-1 ring-inset",
+        size === "md" ? "h-12 w-12" : "h-10 w-10",
+        PRODUCT_THUMB_TONES[categoria ?? ""] ??
+          "from-muted via-background to-muted text-muted-foreground ring-border",
+      )}
+    >
+      <span className="pointer-events-none absolute -right-1 -top-1 h-6 w-6 rounded-full bg-white/50 blur-sm dark:bg-white/5" />
+      <Icon className="relative z-10 h-5 w-5 drop-shadow-sm" strokeWidth={1.8} />
+    </div>
+  );
+};
 
 /**
  * Pastillas de condición: muestran las unidades que siguen en inventario
@@ -176,40 +330,51 @@ const Inventario = () => {
     condicion ? `/inventario/${productId}?condicion=${condicion}` : `/inventario/${productId}`;
 
   const renderCard = (row: ProductRow) => (
-    <div className="space-y-2">
-      <div className="flex items-start justify-between gap-2">
-        <div className="min-w-0">
-          <p className="truncate font-medium">{row.product.name}</p>
-          <p className="font-tabular truncate text-xs text-muted-foreground">
-            {row.product.sku}
-            {row.brand ? ` · ${row.brand.name}` : ""}
-          </p>
-        </div>
-        <div className="flex shrink-0 flex-col items-end gap-1">
-          {row.stock.lowStock ? <LowStockBadge /> : null}
-          {!row.product.isActive ? <ActiveBadge isActive={false} /> : null}
+    <div className="space-y-3">
+      <div className="flex items-start gap-3">
+        <ProductThumbnail categoria={row.product.categoria} size="md" />
+        <div className="min-w-0 flex-1 space-y-1.5">
+          <div className="flex items-start justify-between gap-2">
+            <div className="min-w-0">
+              <p className="truncate font-semibold leading-snug">{row.product.name}</p>
+              <p className="font-tabular mt-0.5 truncate text-xs text-muted-foreground">
+                {row.product.sku}
+                {row.brand ? ` · ${row.brand.name}` : ""}
+              </p>
+            </div>
+            <div className="flex shrink-0 flex-col items-end gap-1">
+              {row.stock.lowStock ? <LowStockBadge /> : null}
+              {!row.product.isActive ? <ActiveBadge isActive={false} /> : null}
+            </div>
+          </div>
+          {row.category ? (
+            <p className="text-xs text-muted-foreground">{row.category.name}</p>
+          ) : null}
         </div>
       </div>
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between border-t border-border/60 pt-3">
         <span className="font-tabular text-sm">
           {t("product.availableOf", {
             available: row.stock.disponible,
             total: row.stock.enInventario,
           })}
         </span>
-        <span className="font-tabular text-sm text-muted-foreground">
+        <span className="font-tabular text-sm font-semibold">
           {formatCurrency(row.product.price)}
         </span>
       </div>
       <CondicionPills stock={row.stock} />
-      <div className="flex gap-2">
-        <Button size="sm" variant="outline" asChild className="flex-1">
-          <Link to={detalleUrl(row.product.id)}>{t("product.viewDetail")}</Link>
+      <div className="flex gap-2 pt-1">
+        <Button size="sm" variant="outline" asChild className="flex-1 rounded-xl">
+          <Link to={detalleUrl(row.product.id)}>
+            <Eye />
+            {t("product.viewDetail")}
+          </Link>
         </Button>
         <ProductFormDialog
           product={row.product}
           trigger={
-            <Button size="sm" variant="ghost" className="flex-1">
+            <Button size="sm" variant="ghost" className="flex-1 rounded-xl">
               <PencilLine />
               {t("common.edit")}
             </Button>
@@ -259,34 +424,30 @@ const Inventario = () => {
       />
 
       <div className="grid gap-3 sm:grid-cols-3">
-        <div className="rounded-lg border bg-card px-4 py-3 shadow-sm transition-[box-shadow,transform] duration-200 hover:shadow-elegant motion-reduce:transition-none [@media(hover:hover)]:hover:-translate-y-0.5 motion-reduce:[@media(hover:hover)]:hover:translate-y-0">
-          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-            {t("product.statProducts")}
-          </p>
-          <p className="font-tabular mt-0.5 text-xl font-semibold">{rows.length}</p>
-        </div>
-        <div className="rounded-lg border bg-card px-4 py-3 shadow-sm transition-[box-shadow,transform] duration-200 hover:shadow-elegant motion-reduce:transition-none [@media(hover:hover)]:hover:-translate-y-0.5 motion-reduce:[@media(hover:hover)]:hover:translate-y-0">
-          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-            {t("product.statUnits")}
-          </p>
-          <p className="font-tabular mt-0.5 text-xl font-semibold">{totalDisponibles}</p>
-        </div>
-        <div className="rounded-lg border bg-card px-4 py-3 shadow-sm transition-[box-shadow,transform] duration-200 hover:shadow-elegant motion-reduce:transition-none [@media(hover:hover)]:hover:-translate-y-0.5 motion-reduce:[@media(hover:hover)]:hover:translate-y-0">
-          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-            {t("product.statLow")}
-          </p>
-          <p
-            className={cn(
-              "font-tabular mt-0.5 text-xl font-semibold",
-              conStockBajo > 0 && "text-warning",
-            )}
-          >
-            {conStockBajo}
-          </p>
-        </div>
+        <InventoryStatCard
+          label={t("product.statProducts")}
+          value={rows.length}
+          hint={t("product.statProductsHint")}
+          icon={Package}
+          tone="primary"
+        />
+        <InventoryStatCard
+          label={t("product.statUnits")}
+          value={totalDisponibles}
+          hint={t("product.statUnitsHint")}
+          icon={Smartphone}
+          tone="info"
+        />
+        <InventoryStatCard
+          label={t("product.statLow")}
+          value={conStockBajo}
+          hint={t("product.statLowHint")}
+          icon={AlertTriangle}
+          tone="warning"
+        />
       </div>
 
-      <div className="space-y-3 rounded-lg border bg-card p-3 shadow-sm">
+      <div className="space-y-4 rounded-2xl border border-border/70 bg-card p-4 shadow-sm">
         <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)]">
           <SearchField
             value={search}
@@ -318,13 +479,13 @@ const Inventario = () => {
             <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
               {t("export.conditionQuestion")}
             </span>
-            <div className="flex gap-1 rounded-md border bg-muted/40 p-0.5">
+            <div className="flex gap-1 rounded-full border bg-muted/40 p-1">
               {(["", "nuevo", "seminuevo"] as const).map((option) => (
                 <Button
                   key={option}
                   size="sm"
                   variant={condicion === option ? "default" : "ghost"}
-                  className="h-7 px-3"
+                  className="h-8 rounded-full px-4"
                   onClick={() => setCondicion(option)}
                 >
                   {option === ""
@@ -340,7 +501,7 @@ const Inventario = () => {
             <Button
               variant="ghost"
               size="sm"
-              className="h-8"
+              className="h-8 rounded-full"
               onClick={() => {
                 setSearch("");
                 setTipo("");
@@ -355,7 +516,7 @@ const Inventario = () => {
             <Button
               variant={lowOnly ? "default" : "outline"}
               size="sm"
-              className="h-8"
+              className="h-8 rounded-full"
               onClick={() => setLowOnly((previous) => !previous)}
             >
               {lowOnly ? <Check /> : null}
@@ -364,7 +525,7 @@ const Inventario = () => {
             <Button
               variant={includeInactive ? "default" : "outline"}
               size="sm"
-              className="h-8"
+              className="h-8 rounded-full"
               onClick={() => setIncludeInactive((previous) => !previous)}
             >
               {includeInactive ? <Check /> : null}
@@ -401,25 +562,29 @@ const Inventario = () => {
           ) : undefined
         }
         renderCard={renderCard}
+        className="rounded-2xl border-border/70 shadow-sm"
         rowClassName={(row) => (row.product.isActive ? undefined : "opacity-60")}
         columns={[
           {
             key: "product",
             header: t("product.title"),
-            className: "min-w-[220px]",
+            className: "min-w-[280px]",
             cell: (row) => (
-              <div className="min-w-0 space-y-1">
-                <Link
-                  to={detalleUrl(row.product.id)}
-                  className="block font-medium leading-snug hover:text-primary hover:underline"
-                >
-                  {row.product.name}
-                </Link>
-                <div className="flex flex-wrap items-center gap-1.5">
-                  <span className="font-tabular rounded bg-muted px-1.5 py-0.5 text-[11px] text-muted-foreground">
-                    {row.product.sku}
-                  </span>
-                  {!row.product.isActive ? <ActiveBadge isActive={false} /> : null}
+              <div className="flex min-w-0 items-center gap-3 py-1">
+                <ProductThumbnail categoria={row.product.categoria} />
+                <div className="min-w-0 space-y-1">
+                  <Link
+                    to={detalleUrl(row.product.id)}
+                    className="block font-semibold leading-snug hover:text-primary hover:underline"
+                  >
+                    {row.product.name}
+                  </Link>
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <span className="font-tabular rounded-md border border-border/70 bg-muted/60 px-1.5 py-0.5 text-[11px] text-muted-foreground">
+                      {row.product.sku}
+                    </span>
+                    {!row.product.isActive ? <ActiveBadge isActive={false} /> : null}
+                  </div>
                 </div>
               </div>
             ),
