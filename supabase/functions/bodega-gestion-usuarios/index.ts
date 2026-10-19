@@ -66,14 +66,14 @@ Deno.serve(async (req) => {
 
   if (accion === "crear") {
     const email = texto(body.email)?.toLowerCase();
-    const password = texto(body.password) ?? "";
+    const password = typeof body.password === "string" ? body.password : "";
     const nombre = texto(body.nombre) ?? email ?? "Usuario";
     const rol = body.rol === "admin" ? "admin" : "bodeguero";
 
     if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       return responder({ ok: false, error: "email_invalido" });
     }
-    if (password.length < 8) {
+    if (password.length < 8 || !password.trim()) {
       return responder({ ok: false, error: "clave_corta" });
     }
 
@@ -110,10 +110,10 @@ Deno.serve(async (req) => {
 
   if (accion === "clave") {
     const userId = texto(body.userId);
-    const password = texto(body.password) ?? "";
+    const password = typeof body.password === "string" ? body.password : "";
 
     if (!userId) return responder({ ok: false, error: "sin_usuario" });
-    if (password.length < 8) return responder({ ok: false, error: "clave_corta" });
+    if (password.length < 8 || !password.trim()) return responder({ ok: false, error: "clave_corta" });
 
     const { error } = await admin.auth.admin.updateUserById(userId, { password });
     if (error) {
