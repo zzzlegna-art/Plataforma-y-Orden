@@ -33,4 +33,4 @@ supabase/
 
 La referencia indicada en `supabase/config.toml` no coincide con la instancia de Supabase visible en la auditoría actual. Confirmar el destino antes de ejecutar comandos de enlace, despliegue o migración.
 
-Los identificadores internos heredados requieren una migración coordinada con frontend, funciones remotas, políticas y datos; no deben renombrarse de forma aislada.
+La migración `20261019060000_rename_legacy_identifiers_to_nexora.sql` coordina el cambio de nombres. Debe probarse en una copia del proyecto correcto antes de producción; no ejecutar mientras el destino de Supabase no esté confirmado.
