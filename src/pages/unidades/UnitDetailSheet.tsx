@@ -115,9 +115,6 @@ export const UnitDetailSheet = ({
                 </span>
               </InfoRow>
               <InfoRow label={t("unit.receivedAt")}>{formatDate(unit.receivedAt)}</InfoRow>
-              <InfoRow label={t("unit.sku")}>
-                <span className="font-tabular">{product?.sku ?? "—"}</span>
-              </InfoRow>
               <InfoRow label={t("receptions.title")}>
                 {reception ? (
                   <span className="font-tabular">{reception.code}</span>
