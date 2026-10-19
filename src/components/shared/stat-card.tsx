@@ -13,6 +13,14 @@ const TONE_CLASSES: Record<Tone, string> = {
   destructive: "bg-red-100 text-red-600",
 };
 
+const BAR_CLASSES: Record<Tone, string> = {
+  primary: "bg-lime-400",
+  success: "bg-emerald-400",
+  warning: "bg-amber-400",
+  info: "bg-blue-400",
+  destructive: "bg-red-400",
+};
+
 export const StatCard = ({
   label,
   value,
@@ -50,13 +58,24 @@ export const StatCard = ({
       {hint ? <p className="mt-3 max-w-[28ch] text-xs leading-5 text-muted-foreground">{hint}</p> : null}
     </div>
 
-    {Icon ? (
-      <span
-        aria-hidden="true"
-        className={cn("pointer-events-none absolute right-5 top-5 rounded-xl p-3", TONE_CLASSES[tone])}
-      >
-        <Icon className="h-5 w-5" />
-      </span>
-    ) : null}
+    <div className="pointer-events-none absolute inset-y-5 right-5 flex flex-col items-end justify-between">
+      {Icon ? (
+        <span className={cn("rounded-xl p-3", TONE_CLASSES[tone])}>
+          <Icon className="h-5 w-5" />
+        </span>
+      ) : (
+        <span />
+      )}
+
+      <div className="flex h-10 items-end gap-1 opacity-90">
+        {[12, 20, 28, 36].map((h, index) => (
+          <span
+            key={h}
+            className={cn("w-1.5 rounded-full transition-all", BAR_CLASSES[tone])}
+            style={{ height: h, opacity: 0.35 + index * 0.16 }}
+          />
+        ))}
+      </div>
+    </div>
   </div>
 );
