@@ -39,7 +39,6 @@ export const DEVICE_TECHNICAL_SPEC_FIELDS: Record<DeviceCategory, ProductTechnic
     field("cellularConnectivity", "5G, LTE, eSIM"),
     field("operatingSystem", "iOS / Android"),
     field("biometric", "Face ID / huella"),
-    WATER_RESISTANCE,
     COLOR,
   ],
   tablet: [
