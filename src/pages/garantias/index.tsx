@@ -225,6 +225,9 @@ const Garantias = () => {
   const { t } = useTranslation();
   const { db } = useStore();
   const runAction = useRunAction();
+  // Construir primero las vistas evita que los efectos de navegación por foco
+  // cierren sobre una declaración todavía no inicializada en el render.
+  const vistas = useMemo(() => getWarrantyViews(db), [db]);
   const { isAdmin } = usePermissions();
 
   // Clientes de tecnología (celulares o ambos) para el selector de garantía previa.
@@ -327,7 +330,7 @@ const Garantias = () => {
   // Navegación desde Historial de Serial: abrir la bandeja, desplegar el lote
   // correspondiente y localizar visualmente la garantía (sin abrir su ficha).
   const focusId = params.get("focus");
-  const focusView = focusId ? getWarrantyViews(db).find((v) => v.warranty.id === focusId) : undefined;
+  const focusView = focusId ? vistas.find((v) => v.warranty.id === focusId) : undefined;
   const focusViewId = focusView?.warranty.id;
   const focusLoteKey = focusView ? infoLote(focusView).key : undefined;
   useEffect(() => {
@@ -348,7 +351,6 @@ const Garantias = () => {
     return () => window.clearTimeout(timer);
   }, [focusId, focusViewId, tab]);
 
-  const vistas = useMemo(() => getWarrantyViews(db), [db]);
   const casosHistorial = useMemo(
     () => vistas.filter((v) => v.warranty.status === "entregado" || v.warranty.status === "devuelto"),
     [vistas],
