@@ -744,7 +744,7 @@ const Inventario = () => {
         }
         renderCard={renderCard}
         className="rounded-2xl border-border/70 shadow-sm"
-        rowClassName={(row) => (row.product.isActive ? undefined : "opacity-60")}
+        rowClassName={(row) => cn("border-b border-border/70", !row.product.isActive && "opacity-60")}
         columns={[
           {
             key: "product",
