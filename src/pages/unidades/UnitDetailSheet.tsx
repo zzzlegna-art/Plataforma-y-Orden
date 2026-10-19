@@ -78,10 +78,22 @@ export const UnitDetailSheet = ({
     <Sheet open={Boolean(unit)} onOpenChange={(open) => !open && onClose()}>
       <SheetContent side="right" className="w-full overflow-y-auto sm:max-w-md">
         <SheetHeader>
-          <SheetTitle className="font-tabular">{unit?.serial ?? ""}</SheetTitle>
-          <div className="flex items-center gap-3">
-            <ProductThumbnail src={product?.imageUrl} alt={product?.name ?? "Referencia"} size="md" />
-            <SheetDescription>{product?.name ?? ""}</SheetDescription>
+          <SheetTitle className="font-tabular text-lg">{unit?.serial ?? ""}</SheetTitle>
+          <div className="flex min-w-0 items-center gap-4">
+            <ProductThumbnail
+              src={product?.imageUrl}
+              alt={product?.name ?? "Referencia"}
+              size="2xl"
+              className="rounded-xl p-0"
+            />
+            <div className="min-w-0">
+              <SheetDescription className="text-base font-semibold leading-snug text-foreground">
+                {product?.name ?? ""}
+              </SheetDescription>
+              {product?.sku ? (
+                <p className="font-tabular mt-1 text-sm text-muted-foreground">{product.sku}</p>
+              ) : null}
+            </div>
           </div>
         </SheetHeader>
 
@@ -103,9 +115,6 @@ export const UnitDetailSheet = ({
                 </span>
               </InfoRow>
               <InfoRow label={t("unit.receivedAt")}>{formatDate(unit.receivedAt)}</InfoRow>
-              <InfoRow label={t("unit.sku")}>
-                <span className="font-tabular">{product?.sku ?? "—"}</span>
-              </InfoRow>
               <InfoRow label={t("receptions.title")}>
                 {reception ? (
                   <span className="font-tabular">{reception.code}</span>

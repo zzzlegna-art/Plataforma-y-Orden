@@ -25,6 +25,12 @@ describe("ProductThumbnail", () => {
     expect(screen.getByRole("img", { name: "iPhone 13" }).className).toContain("w-20");
   });
 
+  it("permite una imagen de referencia grande para la ficha del serial", () => {
+    render(<ProductThumbnail src="https://example.com/iphone.png" alt="iPhone 13" size="2xl" />);
+    expect(screen.getByRole("img", { name: "iPhone 13" }).className).toContain("h-28");
+    expect(screen.getByRole("img", { name: "iPhone 13" }).className).toContain("w-28");
+  });
+
   it("oculta la fotografía si la URL no carga", () => {
     render(<ProductThumbnail src="https://example.com/missing.png" alt="iPhone 13" />);
     fireEvent.error(screen.getByRole("img", { name: "iPhone 13" }));
