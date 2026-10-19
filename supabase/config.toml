@@ -1,4 +1,4 @@
 project_id = "kiizldurgjtorxpzebpm"
 
-[functions.bodega-gestion-usuarios]
+[functions.nexora-gestion-usuarios]
 verify_jwt = true
