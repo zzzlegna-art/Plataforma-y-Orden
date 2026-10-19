@@ -210,6 +210,12 @@ const ProductThumbnail = ({
     PRODUCT_THUMB_TONES[product.categoria ?? ""] ??
       "from-muted via-background to-muted text-muted-foreground ring-border",
   );
+  // Las fotografías usan un marco neutro: el color por categoría solo se reserva
+  // para el icono de respaldo cuando una referencia no tiene imagen.
+  const imageThumbnailClasses = cn(
+    "relative isolate grid shrink-0 place-items-center overflow-hidden rounded-2xl border border-border/70 bg-background shadow-sm ring-1 ring-inset ring-border/40 transition-all duration-200",
+    sizeClasses,
+  );
   const deviceCategory = isDeviceCategory(product.categoria) ? product.categoria : undefined;
   const specFields = deviceCategory ? DEVICE_TECHNICAL_SPEC_FIELDS[deviceCategory] : [];
   const populatedFields = specFields.filter((field) => Boolean(product.technicalSpecs?.[field.key]?.trim()));
@@ -222,7 +228,7 @@ const ProductThumbnail = ({
             type="button"
             aria-label={t("product.zoomImage", { name: product.name })}
             className={cn(
-              thumbnailClasses,
+              imageThumbnailClasses,
               "group cursor-zoom-in border-0 p-0 hover:-translate-y-0.5 hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2",
             )}
           >
