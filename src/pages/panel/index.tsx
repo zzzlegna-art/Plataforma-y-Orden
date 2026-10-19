@@ -41,6 +41,9 @@ import { usePermissions } from "@/hooks/use-permissions";
 import { useStore } from "@/hooks/use-store";
 import { formatCurrency, formatNumber } from "@/lib/format";
 import { crearCsv } from "@/lib/csv";
+import * as XLSX from "xlsx-js-style";
+import { jsPDF } from "jspdf";
+import autoTable from "jspdf-autotable";
 import {
   DIAS_GARANTIA_CRITICA,
   DIAS_GARANTIA_ESTANCADA,
@@ -224,12 +227,12 @@ const Panel = () => {
   };
   const [reporteDesde, setReporteDesde] = useState(() => new Date().toISOString().slice(0, 7) + "-01");
   const [reporteHasta, setReporteHasta] = useState(() => new Date().toISOString().slice(0, 10));
-  const exportarReporteOperativo = () => {
-    if (reporteDesde && reporteHasta && reporteDesde > reporteHasta) return;
-    const dentro = (fecha: string) => (!reporteDesde || fecha.slice(0, 10) >= reporteDesde) &&
+  const obtenerReporteOperativo = () => {
+    const dentro = (fecha: string) =>
+      (!reporteDesde || fecha.slice(0, 10) >= reporteDesde) &&
       (!reporteHasta || fecha.slice(0, 10) <= reporteHasta);
     const movimientos = db.movements.filter((m) => dentro(m.createdAt));
-    const filas: (string | number)[][] = [
+    const resumen: (string | number)[][] = [
       ["Indicador", "Cantidad"],
       ["Entradas", movimientos.filter((m) => m.type === "entrada").reduce((n, m) => n + m.quantity, 0)],
       ["Salidas", movimientos.filter((m) => m.type === "salida").reduce((n, m) => n + m.quantity, 0)],
@@ -238,19 +241,121 @@ const Panel = () => {
       ["Pedidos", db.orders.filter((o) => dentro(o.orderDate)).length],
       ["Garantías recibidas", db.warranties.filter((w) => dentro(w.receivedAt)).length],
       ["Garantías cerradas", db.warranties.filter((w) => w.resolvedAt && dentro(w.resolvedAt)).length],
-      [],
-      ["Fecha", "Movimiento", "Cantidad", "Referencia", "Serial"],
-      ...movimientos.map((m) => [m.createdAt, m.type, m.quantity, m.referenceType, db.units.find((u) => u.id === m.unitId)?.serial ?? ""]),
     ];
-    const csv = crearCsv(filas);
+    const detalle: (string | number)[][] = [
+      ["Fecha", "Movimiento", "Cantidad", "Referencia", "Serial"],
+      ...movimientos.map((m) => [
+        m.createdAt,
+        m.type,
+        m.quantity,
+        m.referenceType,
+        db.units.find((u) => u.id === m.unitId)?.serial ?? "",
+      ]),
+    ];
+    return { resumen, detalle };
+  };
+
+  const nombreReporte = () =>
+    `nexora-reporte-operativo-${reporteDesde}-a-${reporteHasta}`;
+
+  const exportarReporteOperativoCsv = () => {
+    if (reporteDesde > reporteHasta) return;
+    const { resumen, detalle } = obtenerReporteOperativo();
+    const csv = crearCsv([...resumen, [], ...detalle]);
     const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
     const a = document.createElement("a");
     a.href = url;
-    a.download = "nexora-reporte-operativo-" + reporteDesde + "-a-" + reporteHasta + ".csv";
+    a.download = `${nombreReporte()}.csv`;
     document.body.appendChild(a);
     a.click();
     a.remove();
     window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+  };
+
+  const exportarReporteOperativoExcel = () => {
+    if (reporteDesde > reporteHasta) return;
+    const { resumen, detalle } = obtenerReporteOperativo();
+    const hojaResumen = XLSX.utils.aoa_to_sheet([
+      ["NEXORA | REPORTE OPERATIVO"],
+      [`Período: ${reporteDesde} — ${reporteHasta}`],
+      [],
+      ...resumen,
+    ]);
+    hojaResumen["!cols"] = [{ wch: 28 }, { wch: 18 }];
+    const rangoResumen = XLSX.utils.decode_range(hojaResumen["!ref"] ?? "A1:B1");
+    for (let col = rangoResumen.s.c; col <= rangoResumen.e.c; col += 1) {
+      const celdaTitulo = hojaResumen[XLSX.utils.encode_cell({ r: 0, c: col })];
+      if (celdaTitulo) celdaTitulo.s = { font: { bold: true, color: { rgb: "FFFFFF" }, sz: 15 }, fill: { fgColor: { rgb: "0B2535" } } };
+      const celdaCabecera = hojaResumen[XLSX.utils.encode_cell({ r: 3, c: col })];
+      if (celdaCabecera) celdaCabecera.s = { font: { bold: true, color: { rgb: "FFFFFF" } }, fill: { fgColor: { rgb: "087E8B" } } };
+    }
+
+    const hojaMovimientos = XLSX.utils.aoa_to_sheet(detalle);
+    hojaMovimientos["!cols"] = [
+      { wch: 26 },
+      { wch: 18 },
+      { wch: 14 },
+      { wch: 20 },
+      { wch: 24 },
+    ];
+    const rangoDetalle = XLSX.utils.decode_range(hojaMovimientos["!ref"] ?? "A1:E1");
+    for (let col = rangoDetalle.s.c; col <= rangoDetalle.e.c; col += 1) {
+      const celda = hojaMovimientos[XLSX.utils.encode_cell({ r: 0, c: col })];
+      if (celda) celda.s = { font: { bold: true, color: { rgb: "FFFFFF" } }, fill: { fgColor: { rgb: "087E8B" } } };
+    }
+    if (rangoDetalle.e.r >= 1) {
+      hojaMovimientos["!autofilter"] = { ref: XLSX.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: rangoDetalle.e.r, c: rangoDetalle.e.c } }) };
+    }
+
+    const libro = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(libro, hojaResumen, "Resumen");
+    XLSX.utils.book_append_sheet(libro, hojaMovimientos, "Movimientos");
+    XLSX.writeFile(libro, `${nombreReporte()}.xlsx`);
+  };
+
+  const exportarReporteOperativoPdf = () => {
+    if (reporteDesde > reporteHasta) return;
+    const { resumen, detalle } = obtenerReporteOperativo();
+    const documento = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
+    documento.setFont("helvetica", "bold");
+    documento.setFontSize(16);
+    documento.text("NEXORA | REPORTE OPERATIVO", 14, 16);
+    documento.setFont("helvetica", "normal");
+    documento.setFontSize(10);
+    documento.text(`Período: ${reporteDesde} — ${reporteHasta}`, 14, 23);
+    documento.text(`Generado: ${new Date().toLocaleString("es-CO")}`, 14, 29);
+
+    autoTable(documento, {
+      startY: 35,
+      head: [resumen[0].map(String)],
+      body: resumen.slice(1).map((fila) => fila.map(String)),
+      theme: "grid",
+      headStyles: { fillColor: [8, 126, 139] },
+      styles: { font: "helvetica", fontSize: 9, cellPadding: 2.5 },
+      margin: { left: 14, right: 14 },
+    });
+    const finalY = (documento as jsPDF & { lastAutoTable?: { finalY: number } }).lastAutoTable?.finalY ?? 70;
+    autoTable(documento, {
+      startY: finalY + 8,
+      head: [detalle[0].map(String)],
+      body: detalle.slice(1).map((fila) => fila.map(String)),
+      theme: "striped",
+      headStyles: { fillColor: [8, 126, 139] },
+      styles: { font: "helvetica", fontSize: 8, cellPadding: 2 },
+      margin: { left: 14, right: 14 },
+      showHead: "everyPage",
+      didDrawPage: () => {
+        const paginas = documento.getNumberOfPages();
+        documento.setFontSize(8);
+        documento.text(
+          `Nexora Smart Operations · Página ${documento.internal.getCurrentPageInfo().pageNumber} de ${paginas}`,
+          documento.internal.pageSize.getWidth() - 14,
+          documento.internal.pageSize.getHeight() - 7,
+          { align: "right" },
+        );
+      },
+    });
+    documento.save(`${nombreReporte()}.pdf`);
   };
   // Garantía que más tiempo lleva sin moverse (la lista ya viene ordenada de mayor a menor).
   const garantiaMasAntigua = data.staleWarranties[0];
@@ -298,7 +403,11 @@ const Panel = () => {
       <div className="flex flex-wrap items-end gap-3 rounded-xl border bg-card p-4">
         <div><label htmlFor="reporte-desde" className="block text-xs text-muted-foreground">Reporte desde</label><input id="reporte-desde" type="date" value={reporteDesde} max={reporteHasta} onChange={(e) => setReporteDesde(e.target.value)} className="mt-1 rounded-md border bg-background px-3 py-2 text-sm" /></div>
         <div><label htmlFor="reporte-hasta" className="block text-xs text-muted-foreground">Hasta</label><input id="reporte-hasta" type="date" value={reporteHasta} min={reporteDesde} onChange={(e) => setReporteHasta(e.target.value)} className="mt-1 rounded-md border bg-background px-3 py-2 text-sm" /></div>
-        <Button type="button" variant="outline" disabled={reporteDesde > reporteHasta} onClick={exportarReporteOperativo}><Download className="mr-2 h-4 w-4" />Exportar reporte operativo CSV</Button>
+        <div className="flex flex-wrap gap-2" role="group" aria-label="Exportar reporte operativo">
+          <Button type="button" disabled={reporteDesde > reporteHasta} onClick={exportarReporteOperativoExcel} className="gap-2"><Download className="h-4 w-4" />Excel (.xlsx)</Button>
+          <Button type="button" variant="outline" disabled={reporteDesde > reporteHasta} onClick={exportarReporteOperativoPdf} className="gap-2"><Download className="h-4 w-4" />PDF</Button>
+          <Button type="button" variant="outline" disabled={reporteDesde > reporteHasta} onClick={exportarReporteOperativoCsv} className="gap-2"><Download className="h-4 w-4" />CSV</Button>
+        </div>
       </div>
 
       <section className="nx-hero-strip">
