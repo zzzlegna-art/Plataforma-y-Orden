@@ -1,5 +1,5 @@
 -- ============================================================
--- Nexora :: guardado atómico (una sola transacción por operación)
+-- Nexora (migración histórica) :: guardado atómico (una sola transacción por operación)
 --
 -- Hoy la app guarda tabla por tabla, cada una en una llamada distinta. Si algo falla a
 -- la mitad (corte de red, un rechazo de la base), queda un estado a medias: por ejemplo
@@ -15,20 +15,20 @@
 --
 -- Compatibilidad: la app usa esta función si existe y, si no, guarda como hasta ahora.
 -- Para APAGARLA sin reconstruir nada (la app vuelve sola al modo anterior):
---     alter function public.nexora_aplicar_cambios(jsonb) rename to nexora_aplicar_cambios_off;
+--     alter function public.bodega_aplicar_cambios(jsonb) rename to bodega_aplicar_cambios_off;
 -- Para volver a encenderla:
---     alter function public.nexora_aplicar_cambios_off(jsonb) rename to nexora_aplicar_cambios;
+--     alter function public.bodega_aplicar_cambios_off(jsonb) rename to bodega_aplicar_cambios;
 --
 -- Formato de p_cambios:
 --   { "version": 1,
---     "pasos": [ { "op": "upsert", "tabla": "nexora_units", "solo_alta": false, "filas": [ {...} ] },
---                { "op": "borrar", "tabla": "nexora_order_item_units", "ids": ["uuid", ...] } ] }
+--     "pasos": [ { "op": "upsert", "tabla": "bodega_units", "solo_alta": false, "filas": [ {...} ] },
+--                { "op": "borrar", "tabla": "bodega_order_item_units", "ids": ["uuid", ...] } ] }
 -- Los pasos se aplican en el orden recibido (la app respeta las referencias entre tablas).
--- Los errores de formato empiezan con NEXORA_CAMBIOS_ / NEXORA_TABLA_ / NEXORA_COLUMNA_ /
--- NEXORA_OPERACION_ (la app entonces vuelve al guardado por tablas).
+-- Los errores de formato empiezan con BODEGA_CAMBIOS_ / BODEGA_TABLA_ / BODEGA_COLUMNA_ /
+-- BODEGA_OPERACION_ (la app entonces vuelve al guardado por tablas).
 -- ============================================================
 
-create or replace function public.nexora_aplicar_cambios(p_cambios jsonb)
+create or replace function public.bodega_aplicar_cambios(p_cambios jsonb)
 returns jsonb
 language plpgsql
 set search_path = public
@@ -36,11 +36,11 @@ as $$
 declare
   -- Lista cerrada: nunca se escribe en una tabla que no esté aquí.
   c_tablas constant text[] := array[
-    'nexora_categories', 'nexora_brands', 'nexora_products', 'nexora_customers',
-    'nexora_orders', 'nexora_order_items', 'nexora_order_item_units',
-    'nexora_receptions', 'nexora_reception_items', 'nexora_units', 'nexora_movements',
-    'nexora_technicians', 'nexora_warranties', 'nexora_warranty_events',
-    'nexora_previous_serials', 'nexora_profiles', 'nexora_audit_logs', 'nexora_settings'
+    'bodega_categories', 'bodega_brands', 'bodega_products', 'bodega_customers',
+    'bodega_orders', 'bodega_order_items', 'bodega_order_item_units',
+    'bodega_receptions', 'bodega_reception_items', 'bodega_units', 'bodega_movements',
+    'bodega_technicians', 'bodega_warranties', 'bodega_warranty_events',
+    'bodega_previous_serials', 'bodega_profiles', 'bodega_audit_logs', 'bodega_settings'
   ];
   v_paso jsonb;
   v_op text;
@@ -57,11 +57,11 @@ begin
   if p_cambios is null
      or jsonb_typeof(p_cambios) <> 'object'
      or jsonb_typeof(p_cambios -> 'pasos') <> 'array' then
-    raise exception 'NEXORA_CAMBIOS_INVALIDOS';
+    raise exception 'BODEGA_CAMBIOS_INVALIDOS';
   end if;
 
   if coalesce(p_cambios ->> 'version', '') <> '1' then
-    raise exception 'NEXORA_CAMBIOS_VERSION:%', coalesce(p_cambios ->> 'version', '');
+    raise exception 'BODEGA_CAMBIOS_VERSION:%', coalesce(p_cambios ->> 'version', '');
   end if;
 
   for v_paso in select * from jsonb_array_elements(p_cambios -> 'pasos') loop
@@ -69,13 +69,13 @@ begin
     v_tabla := v_paso ->> 'tabla';
 
     if v_tabla is null or not (v_tabla = any (c_tablas)) then
-      raise exception 'NEXORA_TABLA_NO_PERMITIDA:%', coalesce(v_tabla, '');
+      raise exception 'BODEGA_TABLA_NO_PERMITIDA:%', coalesce(v_tabla, '');
     end if;
 
     if v_op = 'upsert' then
       v_filas := v_paso -> 'filas';
       if jsonb_typeof(v_filas) <> 'array' then
-        raise exception 'NEXORA_CAMBIOS_INVALIDOS';
+        raise exception 'BODEGA_CAMBIOS_INVALIDOS';
       end if;
       if jsonb_array_length(v_filas) = 0 then
         continue;
@@ -87,7 +87,7 @@ begin
         from jsonb_array_elements(v_filas) r, jsonb_object_keys(r) k;
 
       if v_cols is null or not ('id' = any (v_cols)) then
-        raise exception 'NEXORA_COLUMNA_NO_PERMITIDA:id';
+        raise exception 'BODEGA_COLUMNA_NO_PERMITIDA:id';
       end if;
 
       -- Cada columna debe existir de verdad en la tabla (evita cualquier inyección).
@@ -99,7 +99,7 @@ begin
               and a.attnum > 0 and not a.attisdropped and a.attname = c
          )
       ) then
-        raise exception 'NEXORA_COLUMNA_NO_PERMITIDA:%', v_tabla;
+        raise exception 'BODEGA_COLUMNA_NO_PERMITIDA:%', v_tabla;
       end if;
 
       select string_agg(format('%I', c), ', ' order by c) into v_cols_sql from unnest(v_cols) c;
@@ -135,7 +135,7 @@ begin
     elsif v_op = 'borrar' then
       v_ids := v_paso -> 'ids';
       if jsonb_typeof(v_ids) <> 'array' then
-        raise exception 'NEXORA_CAMBIOS_INVALIDOS';
+        raise exception 'BODEGA_CAMBIOS_INVALIDOS';
       end if;
       if jsonb_array_length(v_ids) = 0 then
         continue;
@@ -150,7 +150,7 @@ begin
       v_filas_total := v_filas_total + v_n;
 
     else
-      raise exception 'NEXORA_OPERACION_NO_PERMITIDA:%', coalesce(v_op, '');
+      raise exception 'BODEGA_OPERACION_NO_PERMITIDA:%', coalesce(v_op, '');
     end if;
 
     v_pasos := v_pasos + 1;
@@ -161,5 +161,5 @@ end;
 $$;
 
 -- Solo usuarios con sesión (igual que el resto de la app).
-revoke all on function public.nexora_aplicar_cambios(jsonb) from public, anon;
-grant execute on function public.nexora_aplicar_cambios(jsonb) to authenticated;
+revoke all on function public.bodega_aplicar_cambios(jsonb) from public, anon;
+grant execute on function public.bodega_aplicar_cambios(jsonb) to authenticated;
