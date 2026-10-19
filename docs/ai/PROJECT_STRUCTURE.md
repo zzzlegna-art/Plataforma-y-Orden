@@ -1,8 +1,8 @@
-# Bodega6A Project Structure
+# Nexora Project Structure
 
 ## Overview
 
-Bodega6A is a full-stack operational management platform.
+Nexora is a full-stack operational management platform.
 
 The project is organized into frontend, backend, automation and
 documentation layers.
@@ -11,7 +11,7 @@ documentation layers.
 
 # Root Structure
 
-    Bodega-6A/
+    Nexora/
 
     ├── .github/
     │   └── workflows/
