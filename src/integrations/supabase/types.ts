@@ -862,6 +862,7 @@ export type Database = {
     }
     Functions: {
       nexora_aplicar_cambios: { Args: { p_cambios: Json }; Returns: Json }
+      nexora_guardar_con_version: { Args: { p_cambios: Json }; Returns: Json }
       nexora_control_finalizar: {
         Args: { p_product_id: string; p_resumen: string }
         Returns: Json
