@@ -765,3 +765,341 @@ export const exportExcel = ({
 
   XLSX.writeFile(wb, filename, { cellStyles: true });
 };
+
+
+/** Característica técnica registrada para una referencia del catálogo. */
+export interface ProductCatalogFeature {
+  label: string;
+  value: string;
+}
+
+/** Datos de una referencia para el catálogo comercial y la hoja administrativa. */
+export interface ProductCatalogItem {
+  name: string;
+  sku: string;
+  brand?: string;
+  category?: string;
+  description?: string;
+  imageUrl?: string;
+  price?: string;
+  stock?: number;
+  features: ProductCatalogFeature[];
+}
+
+export interface ProductCatalogLabels {
+  product: string;
+  reference: string;
+  brand: string;
+  category: string;
+  description: string;
+  features: string;
+  price: string;
+  stock: string;
+  imageUrl: string;
+  noDescription: string;
+  noFeatures: string;
+  imageUnavailable: string;
+  moreFeatures: (count: number) => string;
+}
+
+export interface ProductCatalogExportOptions {
+  title: string;
+  subtitle: string;
+  filename: string;
+  products: ProductCatalogItem[];
+  includePrice: boolean;
+  includeStock: boolean;
+  labels: ProductCatalogLabels;
+}
+
+/** Ajusta texto al ancho y limita las líneas, conservando una elipsis legible. */
+const splitCatalogLines = (doc: jsPDF, text: string, width: number, maxLines: number): string[] => {
+  const lines = doc.splitTextToSize(text, width) as string[];
+  if (lines.length <= maxLines) return lines;
+
+  const visible = lines.slice(0, maxLines);
+  const lastIndex = visible.length - 1;
+  let last = visible[lastIndex] ?? "";
+  while (last.length > 0 && doc.getTextWidth(`${last}…`) > width) {
+    last = last.slice(0, -1);
+  }
+  visible[lastIndex] = `${last}…`;
+  return visible;
+};
+
+/**
+ * Descarga una imagen pública y la convierte a JPEG cuadrado para incrustarla en el PDF.
+ * Si la URL falla o el navegador bloquea el canvas por CORS, el catálogo sigue generándose.
+ */
+const loadCatalogImageData = (url?: string): Promise<string | null> =>
+  new Promise((resolve) => {
+    if (!url) {
+      resolve(null);
+      return;
+    }
+
+    const image = new Image();
+    image.crossOrigin = "anonymous";
+    image.onload = () => {
+      try {
+        const canvas = document.createElement("canvas");
+        canvas.width = 512;
+        canvas.height = 512;
+        const context = canvas.getContext("2d");
+        if (!context || !image.naturalWidth || !image.naturalHeight) {
+          resolve(null);
+          return;
+        }
+
+        context.fillStyle = "#FFFFFF";
+        context.fillRect(0, 0, canvas.width, canvas.height);
+        const scale = Math.min(canvas.width / image.naturalWidth, canvas.height / image.naturalHeight);
+        const width = image.naturalWidth * scale;
+        const height = image.naturalHeight * scale;
+        context.drawImage(
+          image,
+          (canvas.width - width) / 2,
+          (canvas.height - height) / 2,
+          width,
+          height,
+        );
+        resolve(canvas.toDataURL("image/jpeg", 0.9));
+      } catch {
+        resolve(null);
+      }
+    };
+    image.onerror = () => resolve(null);
+    image.src = url;
+  });
+
+/**
+ * Catálogo PDF Nexora: dos fichas por página, fotografía original y datos técnicos
+ * registrados. Las referencias sin descripción o características se identifican
+ * explícitamente; no se inventan especificaciones.
+ */
+export const exportProductCatalogPdf = async ({
+  title,
+  subtitle,
+  filename,
+  products,
+  includePrice,
+  includeStock,
+  labels,
+}: ProductCatalogExportOptions) => {
+  const doc = new jsPDF({ orientation: "portrait", unit: "pt", format: "a4" });
+  const pageW = doc.internal.pageSize.getWidth();
+  const pageH = doc.internal.pageSize.getHeight();
+  const margin = 24;
+  const cardWidth = pageW - margin * 2;
+  const gap = 12;
+  const cardHeight = (pageH - CONTENT_TOP - FOOTER_SPACE - gap) / 2;
+  const imageBoxSize = 148;
+  const imageSize = 136;
+  const imageX = margin + 12;
+  const textX = margin + 174;
+  const textWidth = cardWidth - (textX - margin) - 12;
+  const drawHeader = () => dibujarEncabezado(doc, title, subtitle, margin);
+
+  drawHeader();
+
+  for (let index = 0; index < products.length; index += 1) {
+    if (index > 0 && index % 2 === 0) {
+      doc.addPage();
+      drawHeader();
+    }
+
+    const product = products[index];
+    const rowOnPage = index % 2;
+    const cardY = CONTENT_TOP + rowOnPage * (cardHeight + gap);
+
+    doc.setFillColor(255, 255, 255);
+    doc.setDrawColor(BORDER[0], BORDER[1], BORDER[2]);
+    doc.setLineWidth(0.7);
+    doc.roundedRect(margin, cardY, cardWidth, cardHeight, 7, 7, "FD");
+
+    const imageY = cardY + 14;
+    doc.setFillColor(CYAN_PALE[0], CYAN_PALE[1], CYAN_PALE[2]);
+    doc.setDrawColor(BORDER[0], BORDER[1], BORDER[2]);
+    doc.roundedRect(imageX, imageY, imageBoxSize, imageBoxSize, 5, 5, "FD");
+
+    const imageData = await loadCatalogImageData(product.imageUrl);
+    if (imageData) {
+      doc.addImage(
+        imageData,
+        "JPEG",
+        imageX + (imageBoxSize - imageSize) / 2,
+        imageY + (imageBoxSize - imageSize) / 2,
+        imageSize,
+        imageSize,
+      );
+    } else {
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(8);
+      doc.setTextColor(MUTED[0], MUTED[1], MUTED[2]);
+      doc.text(
+        splitCatalogLines(doc, labels.imageUnavailable, imageBoxSize - 16, 2),
+        imageX + imageBoxSize / 2,
+        imageY + imageBoxSize / 2,
+        { align: "center" },
+      );
+    }
+
+    let cursorY = cardY + 20;
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(12);
+    doc.setTextColor(NAVY[0], NAVY[1], NAVY[2]);
+    const nameLines = splitCatalogLines(doc, product.name, textWidth, 2);
+    doc.text(nameLines, textX, cursorY);
+    cursorY += nameLines.length * 14 + 4;
+
+    const metadata = [
+      `${labels.reference}: ${product.sku || "—"}`,
+      product.brand ? `${labels.brand}: ${product.brand}` : null,
+      product.category ? `${labels.category}: ${product.category}` : null,
+    ].filter(Boolean).join(" · ");
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8);
+    doc.setTextColor(MUTED[0], MUTED[1], MUTED[2]);
+    const metadataLines = splitCatalogLines(doc, metadata, textWidth, 2);
+    doc.text(metadataLines, textX, cursorY);
+    cursorY += metadataLines.length * 10 + 6;
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(8.2);
+    doc.setTextColor(CYAN_DARK[0], CYAN_DARK[1], CYAN_DARK[2]);
+    doc.text(labels.description, textX, cursorY);
+    cursorY += 10;
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8);
+    doc.setTextColor(TEXT[0], TEXT[1], TEXT[2]);
+    const description = product.description?.trim() || labels.noDescription;
+    const descriptionLines = splitCatalogLines(doc, description, textWidth, 3);
+    doc.text(descriptionLines, textX, cursorY);
+    cursorY += descriptionLines.length * 9.5 + 5;
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(8.2);
+    doc.setTextColor(CYAN_DARK[0], CYAN_DARK[1], CYAN_DARK[2]);
+    doc.text(labels.features, textX, cursorY);
+    cursorY += 10;
+
+    const footerReserve = includePrice || includeStock ? 25 : 12;
+    const featureBottom = cardY + cardHeight - footerReserve;
+    const features = product.features ?? [];
+    if (features.length === 0) {
+      if (cursorY + 9 <= featureBottom) {
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(7.5);
+        doc.setTextColor(MUTED[0], MUTED[1], MUTED[2]);
+        doc.text(splitCatalogLines(doc, labels.noFeatures, textWidth, 2), textX, cursorY);
+      }
+    } else {
+      let omitted = 0;
+      for (let featureIndex = 0; featureIndex < features.length; featureIndex += 1) {
+        const feature = features[featureIndex];
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(7.5);
+        doc.setTextColor(TEXT[0], TEXT[1], TEXT[2]);
+        const featureLines = splitCatalogLines(
+          doc,
+          `• ${feature.label}: ${feature.value}`,
+          textWidth,
+          2,
+        );
+        const featureHeight = featureLines.length * 9 + 1;
+        if (cursorY + featureHeight > featureBottom) {
+          omitted = features.length - featureIndex;
+          break;
+        }
+        doc.text(featureLines, textX, cursorY);
+        cursorY += featureHeight;
+      }
+
+      if (omitted > 0 && cursorY + 9 <= featureBottom) {
+        doc.setFont("helvetica", "italic");
+        doc.setFontSize(7.5);
+        doc.setTextColor(MUTED[0], MUTED[1], MUTED[2]);
+        doc.text(labels.moreFeatures(omitted), textX, cursorY);
+      }
+    }
+
+    if (includePrice || includeStock) {
+      const footerY = cardY + cardHeight - 12;
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(8.5);
+      doc.setTextColor(NAVY[0], NAVY[1], NAVY[2]);
+      if (includePrice) {
+        doc.text(`${labels.price}: ${product.price || "—"}`, textX, footerY);
+      }
+      if (includeStock) {
+        doc.text(
+          `${labels.stock}: ${product.stock ?? 0}`,
+          textX + textWidth,
+          footerY,
+          { align: "right" },
+        );
+      }
+    }
+  }
+
+  dibujarPies(doc, title, margin);
+  doc.save(filename);
+};
+
+/**
+ * Excel administrativo del catálogo. Incluye una columna con la URL pública de cada imagen;
+ * el PDF es el formato que incrusta las fotografías dentro del documento.
+ */
+export const exportProductCatalogExcel = ({
+  title,
+  subtitle,
+  filename,
+  products,
+  includePrice,
+  includeStock,
+  labels,
+}: ProductCatalogExportOptions) => {
+  const columns = [
+    labels.reference,
+    labels.product,
+    labels.brand,
+    labels.category,
+    labels.description,
+    labels.features,
+    labels.imageUrl,
+  ];
+  if (includePrice) columns.push(labels.price);
+  if (includeStock) columns.push(labels.stock);
+
+  const rows = products.map((product) => {
+    const row: (string | number)[] = [
+      product.sku || "—",
+      product.name,
+      product.brand || "—",
+      product.category || "—",
+      product.description?.trim() || labels.noDescription,
+      product.features.length
+        ? product.features.map((feature) => `${feature.label}: ${feature.value}`).join(" · ")
+        : labels.noFeatures,
+      product.imageUrl || "—",
+    ];
+    if (includePrice) row.push(product.price || "—");
+    if (includeStock) row.push(product.stock ?? 0);
+    return row;
+  });
+
+  exportExcel({
+    filename,
+    sheets: [
+      {
+        name: "Catálogo",
+        title,
+        subtitle,
+        columns,
+        rows,
+        wrapColumns: [4, 5, 6],
+      },
+    ],
+  });
+};
