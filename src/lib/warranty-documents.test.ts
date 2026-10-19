@@ -41,7 +41,7 @@ describe("subirDocumentoGarantia", () => {
   it("sube el archivo, registra el documento, y lo enlaza a cada garantía dada", async () => {
     const insertados: Record<string, unknown>[] = [];
     mocks.from.mockImplementation((tabla: string) => {
-      if (tabla === "bodega_documents") {
+      if (tabla === "nexora_documents") {
         return {
           insert: (fila: Record<string, unknown>) => {
             insertados.push({ tabla, fila });
@@ -53,7 +53,7 @@ describe("subirDocumentoGarantia", () => {
           },
         };
       }
-      if (tabla === "bodega_warranty_documents") {
+      if (tabla === "nexora_warranty_documents") {
         return {
           insert: async (filas: Record<string, unknown>[]) => {
             insertados.push({ tabla, filas });
@@ -71,10 +71,10 @@ describe("subirDocumentoGarantia", () => {
     expect(ruta).toMatch(/^\d{4}\/[a-f0-9-]+-relacion\.pdf$/);
     expect(opciones).toMatchObject({ contentType: "application/pdf", upsert: false });
 
-    const documento = insertados.find((i) => i.tabla === "bodega_documents") as { fila: Record<string, unknown> };
+    const documento = insertados.find((i) => i.tabla === "nexora_documents") as { fila: Record<string, unknown> };
     expect(documento.fila).toMatchObject({ file_name: "relacion.pdf", content_type: "application/pdf", size_bytes: 2048 });
 
-    const enlaces = insertados.find((i) => i.tabla === "bodega_warranty_documents") as { filas: Record<string, unknown>[] };
+    const enlaces = insertados.find((i) => i.tabla === "nexora_warranty_documents") as { filas: Record<string, unknown>[] };
     expect(enlaces.filas).toEqual([
       { warranty_id: "g1", document_id: "doc-1" },
       { warranty_id: "g2", document_id: "doc-1" },
@@ -112,8 +112,8 @@ describe("listarDocumentosDeGarantia", () => {
       select: () => ({
         eq: async () => ({
           data: [
-            { bodega_documents: { id: "d1", file_name: "a.pdf", content_type: "application/pdf", size_bytes: 100, created_at: "2026-09-01T00:00:00Z", storage_path: "p1" } },
-            { bodega_documents: { id: "d2", file_name: "b.pdf", content_type: "application/pdf", size_bytes: 200, created_at: "2026-09-20T00:00:00Z", storage_path: "p2" } },
+            { nexora_documents: { id: "d1", file_name: "a.pdf", content_type: "application/pdf", size_bytes: 100, created_at: "2026-09-01T00:00:00Z", storage_path: "p1" } },
+            { nexora_documents: { id: "d2", file_name: "b.pdf", content_type: "application/pdf", size_bytes: 200, created_at: "2026-09-20T00:00:00Z", storage_path: "p2" } },
           ],
           error: null,
         }),
