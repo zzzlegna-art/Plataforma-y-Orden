@@ -1,4 +1,4 @@
-// Bodega-6A AI Developer
+// Nexora AI Developer
 // Code Context Builder v1.0
 // Builds normalized context before sending repository information to AI.
 
