@@ -1,4 +1,4 @@
-// Bodega-6A AI Developer Agent
+// Nexora AI Developer Agent
 // GitHub App JWT helper scaffold
 // The private key must be loaded from Supabase Secrets.
 
