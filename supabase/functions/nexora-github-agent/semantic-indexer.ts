@@ -1,4 +1,4 @@
-// Semantic indexer for Bodega-6A AI Developer Agent
+// Semantic indexer for Nexora AI Developer Agent
 // Prepares repository knowledge for future AI analysis.
 
 export type CodeSymbol = {
