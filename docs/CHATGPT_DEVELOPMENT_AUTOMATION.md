@@ -1,4 +1,4 @@
-# Bodega-6A — desarrollo asistido desde ChatGPT
+# Nexora — desarrollo asistido desde ChatGPT
 
 ## Flujo de trabajo
 1. El propietario describe la función o corrección en el chat.
