@@ -1,4 +1,4 @@
-// Bodega-6A AI Developer
+// Nexora AI Developer
 // Repository scan pipeline
 
 export type RepositoryScan = {
