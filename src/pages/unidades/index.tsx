@@ -82,7 +82,12 @@ const Unidades = () => {
     <div className="space-y-2">
       <div className="flex items-start justify-between gap-2">
         <div className="flex min-w-0 items-start gap-2">
-          <ProductThumbnail src={row.product?.imageUrl} alt={row.product?.name ?? "Referencia"} size="md" />
+          <ProductThumbnail
+            src={row.product?.imageUrl}
+            alt={row.product?.name ?? "Referencia"}
+            size="lg"
+            className="rounded-xl p-0"
+          />
           <div className="min-w-0">
             <p className="font-tabular truncate font-medium">{row.unit.serial}</p>
             <p className="truncate text-xs text-muted-foreground">{row.product?.name ?? "—"}</p>
