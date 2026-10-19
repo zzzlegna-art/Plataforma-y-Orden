@@ -9,9 +9,13 @@ import autoTable from "jspdf-autotable";
 import { jsPDF } from "jspdf";
 import XLSX from "xlsx-js-style";
 import { strFromU8, strToU8, unzipSync, zipSync } from "fflate";
-import { SUPABASE_PUBLISHABLE_KEY, SUPABASE_URL } from "@/integrations/supabase/client";
 
 import { formatDateTime } from "./format";
+
+// Se leen directamente de Vite para que importar export.ts no inicialice el cliente autenticado
+// ni rompa pruebas/pantallas que solo necesitan generar documentos.
+const CATALOG_SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string | undefined;
+const CATALOG_SUPABASE_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
 
 const NAVY: [number, number, number] = [15, 39, 64];
 const CYAN: [number, number, number] = [0, 196, 214];
@@ -1103,8 +1107,9 @@ const loadCatalogImageData = async (url?: string): Promise<string | null> => {
   if (!url) return null;
 
   try {
+    if (!CATALOG_SUPABASE_URL || !CATALOG_SUPABASE_KEY) return null;
     const requestedUrl = new URL(url);
-    const projectUrl = new URL(SUPABASE_URL);
+    const projectUrl = new URL(CATALOG_SUPABASE_URL);
     if (
       requestedUrl.origin !== projectUrl.origin ||
       !requestedUrl.pathname.startsWith("/storage/v1/object/public/product-images/")
@@ -1113,12 +1118,12 @@ const loadCatalogImageData = async (url?: string): Promise<string | null> => {
     }
 
     const response = await fetch(
-      SUPABASE_URL.replace(/\/+$/, "") + "/functions/v1/catalog-image-proxy",
+      CATALOG_SUPABASE_URL.replace(/\/+$/, "") + "/functions/v1/catalog-image-proxy",
       {
         method: "POST",
         headers: {
-          apikey: SUPABASE_PUBLISHABLE_KEY,
-          Authorization: "Bearer " + SUPABASE_PUBLISHABLE_KEY,
+          apikey: CATALOG_SUPABASE_KEY,
+          Authorization: "Bearer " + CATALOG_SUPABASE_KEY,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({ url: requestedUrl.href }),
