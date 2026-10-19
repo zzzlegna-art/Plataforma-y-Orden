@@ -1,5 +1,5 @@
 -- ============================================================
--- Nexora :: sin seriales repetidos dentro de una misma recepción
+-- Nexora (migración histórica) :: sin seriales repetidos dentro de una misma recepción
 --
 -- La app ya evitaba escanear dos veces el mismo serial en una recepción, pero esa validación
 -- solo corría en la pantalla, contra lo que ya tenía en memoria. Si dos escaneos del mismo
@@ -14,8 +14,8 @@
 
 do $$
 begin
-  alter table public.nexora_reception_items
-    add constraint nexora_reception_items_serial_unico_por_recepcion unique (reception_id, serial);
+  alter table public.bodega_reception_items
+    add constraint bodega_reception_items_serial_unico_por_recepcion unique (reception_id, serial);
 exception
   when duplicate_object or duplicate_table then null;
 end $$;
