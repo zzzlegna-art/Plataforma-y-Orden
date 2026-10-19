@@ -1,4 +1,4 @@
-// Bodega-6A GitHub Agent Client
+// Nexora GitHub Agent Client
 // Layer responsible for repository operations through GitHub App authentication.
 // Credentials must come from Supabase secrets, never from source control.
 
