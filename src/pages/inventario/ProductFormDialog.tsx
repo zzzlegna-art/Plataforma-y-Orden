@@ -463,7 +463,7 @@ export const ProductFormDialog = ({
                 ))}
               </div>
 
-              {form.categoria === "celular" &&
+              {["celular", "tablet"].includes(form.categoria) &&
               technicalSpecs.cameras?.trim() &&
               !(technicalSpecs.rearCamera?.trim() && technicalSpecs.frontCamera?.trim()) ? (
                 <p role="status" className="rounded-md bg-muted px-3 py-2 text-xs text-muted-foreground">
@@ -471,7 +471,7 @@ export const ProductFormDialog = ({
                 </p>
               ) : null}
 
-              {form.categoria !== "celular" ? (
+              {!["celular", "tablet"].includes(form.categoria) ? (
               <div className="space-y-3 border-t border-border/70 pt-3">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div>
