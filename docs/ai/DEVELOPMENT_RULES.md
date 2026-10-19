@@ -1,4 +1,4 @@
-# Bodega6A Development Rules
+# Nexora Development Rules
 
 ## Reglas generales
 
