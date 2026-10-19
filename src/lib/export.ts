@@ -1064,7 +1064,6 @@ export interface ProductCatalogLabels {
   features: string;
   price: string;
   stock: string;
-  imageUrl: string;
   noDescription: string;
   noFeatures: string;
   imageUnavailable: string;
