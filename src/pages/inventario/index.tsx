@@ -468,6 +468,9 @@ const Inventario = () => {
   // Resumen de lo que se ve en la lista (respeta los filtros y la condición elegida).
   const totalDisponibles = rows.reduce((suma, row) => suma + row.stock.disponible, 0);
   const conStockBajo = rows.filter((row) => row.stock.lowStock).length;
+  const hayFiltrosActivos = Boolean(
+    search.trim() || tipo || brandId || lowOnly || includeInactive || condicion,
+  );
 
   const exportar = (format: "pdf" | "excel") => {
     const cond = exportCond === "" ? undefined : exportCond;
@@ -711,21 +714,23 @@ const Inventario = () => {
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-8 rounded-full"
-              onClick={() => {
-                setSearch("");
-                setTipo("");
-                setBrandId("");
-                setLowOnly(false);
-                setIncludeInactive(false);
-                setCondicion("");
-              }}
-            >
-              Limpiar filtros
-            </Button>
+            {hayFiltrosActivos ? (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 rounded-full"
+                onClick={() => {
+                  setSearch("");
+                  setTipo("");
+                  setBrandId("");
+                  setLowOnly(false);
+                  setIncludeInactive(false);
+                  setCondicion("");
+                }}
+              >
+                {t("common.clearFilters")}
+              </Button>
+            ) : null}
             <Button
               variant={lowOnly ? "default" : "outline"}
               size="sm"
@@ -775,6 +780,7 @@ const Inventario = () => {
           ) : undefined
         }
         renderCard={renderCard}
+        footer={t("common.resultsCount", { count: rows.length })}
         className="rounded-2xl border-border/70 shadow-sm"
         rowClassName={(row) =>
           cn(
