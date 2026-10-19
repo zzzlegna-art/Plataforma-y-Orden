@@ -1,4 +1,4 @@
-// Bodega-6A AI Developer Agent
+// Nexora AI Developer Agent
 // Version 1.4: repository analysis layer scaffold
 
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
@@ -75,7 +75,7 @@ Deno.serve(async (req) => {
     const repository = analyzeRepositoryContext(body.repository_context);
 
     return new Response(JSON.stringify({
-      agent: "Bodega-6A AI Developer",
+      agent: "Nexora AI Developer",
       version: "1.4",
       status: "repository_analysis_ready",
       task_id: body.task_id ?? null,
