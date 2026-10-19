@@ -1,4 +1,4 @@
-// Bodega-6A AI Developer
+// Nexora AI Developer
 // Repository map builder
 //
 // This module prepares a normalized project map for the AI agent.
