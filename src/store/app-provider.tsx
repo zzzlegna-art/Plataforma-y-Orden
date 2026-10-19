@@ -33,6 +33,7 @@ import {
   type CambioRemoto,
 } from "@/lib/backend";
 import { cloneDb, DomainError, emptyDb } from "@/lib/db";
+import { APP_CURRENCY, setAppCurrency } from "@/lib/format";
 import type { Actor, Db, Role } from "@/lib/types";
 import { AppContext, type AppValue } from "./contexts";
 
@@ -164,6 +165,7 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
   const aplicarDb = useCallback((next: Db | null) => {
     dbRef.current = next;
     setDb(next);
+    setAppCurrency(next?.settings.currency ?? APP_CURRENCY);
   }, []);
 
   const aplicarUsuario = useCallback((next: Actor | null) => {
