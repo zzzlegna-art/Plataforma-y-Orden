@@ -1,22 +1,20 @@
-# Bodega-6A GitHub Agent
+# Nexora GitHub Agent
 
-## Purpose
+## Propósito
 
-Connector layer for the Bodega-6A AI Developer Agent.
+Capa de integración para el agente de desarrollo asistido de Nexora. Este módulo gestiona la comunicación autorizada entre el agente y GitHub.
 
-This module will handle the communication between the AI agent and GitHub through the GitHub App.
+## Capacidades previstas
 
-## Planned capabilities
+- Autenticación mediante GitHub App con credenciales guardadas como secretos del backend.
+- Lectura de archivos del repositorio.
+- Construcción de contexto para el análisis técnico.
+- Creación de ramas de desarrollo.
+- Preparación de commits y pull requests.
 
-- Authenticate using GitHub App credentials stored as Supabase secrets.
-- Read repository files.
-- Build repository context for AI analysis.
-- Create development branches.
-- Prepare commits.
-- Create pull requests.
+## Seguridad
 
-## Security rules
-
-- Never store private keys in the repository.
-- Never modify production branches directly.
-- All generated changes require review.
+- No almacenar claves privadas en el repositorio.
+- No modificar directamente ramas protegidas.
+- No ejecutar despliegues ni cambios de producción sin autorización explícita.
+- Todo cambio generado requiere revisión y validaciones.
