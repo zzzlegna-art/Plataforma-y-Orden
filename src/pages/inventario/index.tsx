@@ -616,7 +616,8 @@ const Inventario = () => {
       features: t("product.technicalDetails"),
       price: t("product.price"),
       stock: t("product.enInventario"),
-      imageUrl: t("catalog.imageUrl"),
+      image: t("catalog.image"),
+      openImage: t("catalog.openImage"),
       noDescription: t("catalog.descriptionPending"),
       noFeatures: t("catalog.featuresPending"),
       imageUnavailable: t("catalog.imageUnavailable"),
@@ -645,8 +646,11 @@ const Inventario = () => {
         await exportProductCatalogExcel(options);
       }
       toast.success(t("catalog.exportSuccess"), { id: toastId });
-    } catch {
-      toast.error(t("catalog.exportFailed"), { id: toastId });
+    } catch (error) {
+      const message = error instanceof Error && error.message === "CATALOG_IMAGES_UNAVAILABLE"
+        ? t("catalog.imagesLoadFailed")
+        : t("catalog.exportFailed");
+      toast.error(message, { id: toastId });
     }
   };
 
