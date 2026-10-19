@@ -66,18 +66,21 @@ import { ProductFormDialog } from "./ProductFormDialog";
 
 type StatTone = "primary" | "info" | "warning";
 
-const STAT_TONES: Record<StatTone, { icon: string; glow: string }> = {
+const STAT_TONES: Record<StatTone, { icon: string; glow: string; bars: string }> = {
   primary: {
     icon: "bg-primary/10 text-primary",
     glow: "from-primary/10",
+    bars: "bg-primary",
   },
   info: {
     icon: "bg-info/10 text-info",
     glow: "from-info/10",
+    bars: "bg-info",
   },
   warning: {
     icon: "bg-warning/10 text-warning",
     glow: "from-warning/10",
+    bars: "bg-warning",
   },
 };
 
@@ -105,7 +108,7 @@ const InventoryStatCard = ({
           styles.glow,
         )}
       />
-      <div className="relative flex min-h-[104px] items-center gap-3">
+      <div className="relative flex min-h-[104px] items-center gap-3 pr-14">
         <div
           className={cn(
             "grid h-12 w-12 shrink-0 place-items-center rounded-2xl ring-1 ring-inset ring-current/10",
@@ -123,6 +126,18 @@ const InventoryStatCard = ({
           </p>
           <p className="mt-2 text-xs leading-4 text-muted-foreground">{hint}</p>
         </div>
+      </div>
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute bottom-7 right-4 flex h-11 items-end gap-1.5 opacity-90"
+      >
+        {[12, 20, 28, 36, 44].map((height, index) => (
+          <span
+            key={height}
+            className={cn("w-1.5 rounded-full transition-all", styles.bars)}
+            style={{ height, opacity: 0.35 + index * 0.14 }}
+          />
+        ))}
       </div>
       <div
         aria-hidden="true"
