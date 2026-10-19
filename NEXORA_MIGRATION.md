@@ -1,31 +1,34 @@
-# Nexora v5.0 — Fase 1: migración visual segura
+# Nexora — registro de evolución de la plataforma
 
-## Origen
-Copia del código fuente Bodega 6A proporcionado por el propietario.
+## Identidad y experiencia
 
-## Cambios aplicados
-- Marca NEXORA y subtítulo SMART OPERATIONS en la navegación.
-- Paleta Emerald Tech en variables de Tailwind/HSL, tema claro y oscuro.
-- Barra lateral con degradado verde oscuro, iconografía Lucide y estados activos.
-- Título y metadatos básicos del HTML.
-- Nombre y versión del paquete.
+- Marca de interfaz: Nexora.
+- Subtítulo de navegación: Smart Operations.
+- Estilo visual: Emerald Tech, con tema claro/oscuro y componentes responsive.
+- HTML, metadatos, favicon y navegación utilizan la identidad Nexora.
+- La aplicación instalable y sus iconos se están alineando con la misma identidad.
 
-## Sin modificar
-- Migraciones SQL, políticas RLS y esquema Supabase.
-- Backend, lógica de pedidos, garantías, seriales y recepción.
-- Flujos de autenticación, rutas y permisos.
-- PWA e iconos instalables heredados (pendiente de rebranding).
-- Datos y configuración remota: no se ejecutaron operaciones contra Supabase, GitHub ni Vercel.
+## Arquitectura conservada
 
-## Prueba
-1. Instala Node.js y pnpm en un entorno de desarrollo.
-2. Copia `.env.example` a `.env` y configura únicamente las variables públicas necesarias, sin credenciales privilegiadas.
-3. Ejecuta `pnpm install --frozen-lockfile` y `pnpm build`.
-4. Revisa login, permisos, inventario, seriales, pedidos y garantías en un entorno de pruebas.
-5. No despliegues en producción hasta completar pruebas y auditoría de configuración.
+- Frontend React, TypeScript y Vite.
+- Supabase para PostgreSQL, autenticación, RLS y Realtime.
+- La lógica de inventario, seriales, recepciones, pedidos, garantías y auditoría debe conservar sus validaciones y trazabilidad.
+- Las operaciones críticas siguen requiriendo guardado atómico y permisos por rol.
 
-## Pendiente
-- Revisión funcional en navegador y pruebas automatizadas (dependencias no instaladas en este entorno).
-- Adaptar pantalla por pantalla a las referencias visuales.
-- Sustituir assets PWA y etiquetas heredadas con una estrategia de compatibilidad.
-- Validar proyecto Supabase existente en modo lectura antes de cualquier migración.
+## Separación de infraestructura pendiente
+
+La marca visual está separada, pero aún no puede certificarse el aislamiento completo de los servicios remotos. La referencia de Supabase en la configuración local no coincide con la única instancia accesible en la auditoría, y el acceso de lectura a Vercel devuelve un error de permisos.
+
+Los identificadores internos heredados de la base de datos y de las funciones remotas requieren una migración coordinada. No deben renombrarse solo en el frontend ni modificarse directamente en producción.
+
+## Validación antes de integrar
+
+```bash
+pnpm install --frozen-lockfile
+pnpm check
+pnpm test
+pnpm build
+pnpm check:deploy
+```
+
+La compilación, las pruebas y la navegación real deben validarse antes de integrar los cambios. No se considera verificado un despliegue solo por existir un registro de finalización.
