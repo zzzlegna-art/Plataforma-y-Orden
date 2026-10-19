@@ -1,4 +1,4 @@
-# Bodega6A Component Catalog
+# Nexora Component Catalog
 
 ## Purpose
 
