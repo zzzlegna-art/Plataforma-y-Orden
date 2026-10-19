@@ -1,4 +1,4 @@
-# Bodega6A Database Map
+# Nexora Database Map
 
 ## Objetivo
 
