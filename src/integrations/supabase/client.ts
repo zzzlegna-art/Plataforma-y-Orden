@@ -1,6 +1,5 @@
-// Cliente de Supabase. Las credenciales vienen de variables de entorno propias
-// (proyecto Supabase autoalojado por el cliente, no el de Enter.pro).
-// Configúralas en `.env` a partir de `.env.example`.
+// Cliente de Supabase de Nexora. Las credenciales públicas se inyectan mediante
+// variables de entorno y se configuran localmente a partir de `.env.example`.
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 
