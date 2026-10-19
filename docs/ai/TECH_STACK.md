@@ -1,4 +1,4 @@
-# Bodega6A Technology Stack
+# Nexora Technology Stack
 
 ## Frontend
 
