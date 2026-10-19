@@ -18,6 +18,8 @@ const RAM = field("ram", "8 GB");
 const PROCESSOR = field("processor", "Chip / procesador");
 const SCREEN = field("screen", "OLED / AMOLED / LCD");
 const CAMERAS = field("cameras", "Resolución y configuración");
+const REAR_CAMERA = field("rearCamera", "48 MP + 12 MP / 4K");
+const FRONT_CAMERA = field("frontCamera", "12 MP / 4K");
 const BATTERY = field("battery", "Capacidad o autonomía");
 const CONNECTIVITY = field("connectivity", "Wi-Fi, Bluetooth, 5G");
 const COLOR = field("color", "Color del fabricante");
@@ -30,16 +32,10 @@ export const DEVICE_TECHNICAL_SPEC_FIELDS: Record<DeviceCategory, ProductTechnic
     STORAGE,
     RAM,
     PROCESSOR,
-    SCREEN,
-    field("screenResolution", "Resolución de pantalla"),
-    field("refreshRate", "60 / 90 / 120 Hz"),
-    CAMERAS,
-    BATTERY,
+    REAR_CAMERA,
+    FRONT_CAMERA,
     CONNECTIVITY,
-    field("cellularConnectivity", "5G, LTE, eSIM"),
-    field("operatingSystem", "iOS / Android"),
-    field("biometric", "Face ID / huella"),
-    COLOR,
+    field("compatibility", "SIM / eSIM / Dual SIM"),
   ],
   tablet: [
     STORAGE,
@@ -234,6 +230,17 @@ export const getProductTechnicalSpecsForCategory = (
   for (const field of fields) {
     const value = specs[field.key];
     if (typeof value === "string" && value.trim()) normalized[field.key] = value.trim().slice(0, 120);
+  }
+
+  // Conserva las cámaras del formato anterior hasta que se completen ambos campos nuevos.
+  // Así editar un celular existente no borra silenciosamente la ficha antigua.
+  if (normalizeCategory(category) === "celular") {
+    const legacyCameras = typeof specs.cameras === "string" ? specs.cameras.trim() : "";
+    const hasRearCamera = Boolean(normalized.rearCamera);
+    const hasFrontCamera = Boolean(normalized.frontCamera);
+    if (legacyCameras && !(hasRearCamera && hasFrontCamera)) {
+      normalized.cameras = legacyCameras.slice(0, 120);
+    }
   }
 
   const customFields = Array.isArray(specs.customFields)
