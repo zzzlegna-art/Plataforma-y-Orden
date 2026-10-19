@@ -2,11 +2,11 @@
 -- The camelCase alias is retained temporarily for older open Nexora tabs during rollout.
 begin;
 
-alter table public.bodega_audit_logs
-  drop constraint if exists bodega_audit_logs_entity_check;
+alter table public.nexora_audit_logs
+  drop constraint if exists nexora_audit_logs_entity_check;
 
-alter table public.bodega_audit_logs
-  add constraint bodega_audit_logs_entity_check
+alter table public.nexora_audit_logs
+  add constraint nexora_audit_logs_entity_check
   check (entity = any (array[
     'product'::text,
     'product_type'::text,
