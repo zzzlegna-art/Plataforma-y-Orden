@@ -41,17 +41,10 @@ export const DEVICE_TECHNICAL_SPEC_FIELDS: Record<DeviceCategory, ProductTechnic
     STORAGE,
     RAM,
     PROCESSOR,
-    SCREEN,
-    field("screenResolution", "Resolución de pantalla"),
-    field("refreshRate", "60 / 120 Hz"),
-    CAMERAS,
-    BATTERY,
+    REAR_CAMERA,
+    FRONT_CAMERA,
     CONNECTIVITY,
-    field("stylusSupport", "Lápiz compatible"),
-    field("keyboardSupport", "Teclados compatibles"),
-    field("operatingSystem", "iPadOS / Android / Windows"),
-    field("biometric", "Huella / reconocimiento facial"),
-    COLOR,
+    field("compatibility", "SIM / eSIM / Dual SIM / lápiz compatible"),
   ],
   reloj: [
     field("caseSize", "40 / 42 / 45 / 49 mm"),
@@ -233,8 +226,8 @@ export const getProductTechnicalSpecsForCategory = (
   }
 
   // Conserva las cámaras del formato anterior hasta que se completen ambos campos nuevos.
-  // Así editar un celular existente no borra silenciosamente la ficha antigua.
-  if (normalizeCategory(category) === "celular") {
+  // Así editar un celular o una tablet existente no borra silenciosamente la ficha antigua.
+  if (["celular", "tablet"].includes(normalizeCategory(category))) {
     const legacyCameras = typeof specs.cameras === "string" ? specs.cameras.trim() : "";
     const hasRearCamera = Boolean(normalized.rearCamera);
     const hasFrontCamera = Boolean(normalized.frontCamera);
