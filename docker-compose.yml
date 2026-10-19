@@ -1,5 +1,5 @@
 services:
-  bodega6a:
+  nexora:
     build:
       context: .
       args:
