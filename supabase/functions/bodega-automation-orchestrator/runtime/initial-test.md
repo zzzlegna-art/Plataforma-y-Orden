@@ -1,4 +1,4 @@
-# Bodega6A First Automation Test
+# Nexora First Automation Test
 
 Instruction:
 "Automation connection test"
