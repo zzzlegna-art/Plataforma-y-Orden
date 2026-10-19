@@ -898,6 +898,7 @@
   "errors.lastAdmin": "Debe existir al menos un administrador activo.",
   "errors.companyNameRequired": "Escribe el nombre de la empresa.",
   "errors.currencyRequired": "Escribe la moneda.",
+  "errors.currencyInvalid": "La moneda debe ser un código de tres letras, por ejemplo COP.",
   "errors.unitNotReturnable": "Solo los equipos vendidos se reciben en garantía.",
   "errors.unitNotInInventory": "El equipo no está en bodega ni en local.",
   "errors.unitNotInOrder": "El serial {{serial}} no pertenece a ese pedido.",
