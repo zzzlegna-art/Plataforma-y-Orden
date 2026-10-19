@@ -741,7 +741,7 @@ export const exportExcel = ({
         if (!cell) continue;
         const rowData = sheet.rows[r - headerRow - 1];
         const linkValue = sheet.hyperlinkColumns?.includes(c) ? rowData?.[c] : undefined;
-        const hyperlink = typeof linkValue === "string" && /^https?:\\/\\//i.test(linkValue);
+        const hyperlink = typeof linkValue === "string" && (linkValue.startsWith("https://") || linkValue.startsWith("http://"));
         cell.s = {
           font: {
             sz: 10,
