@@ -1,5 +1,5 @@
 -- ============================================================
--- Nexora :: documentos de garantías
+-- Nexora (migración histórica) :: documentos de garantías
 --
 -- Guarda los PDF/fotos que el proveedor manda al recibir un lote de garantías (la hoja de
 -- "relación" con varios IMEI). Un mismo archivo puede quedar enlazado a varias garantías (las
@@ -23,54 +23,54 @@ values (
 )
 on conflict (id) do nothing;
 
-drop policy if exists nexora_warranty_docs_storage_read on storage.objects;
-create policy nexora_warranty_docs_storage_read
+drop policy if exists bodega_warranty_docs_storage_read on storage.objects;
+create policy bodega_warranty_docs_storage_read
   on storage.objects for select to authenticated
-  using (bucket_id = 'warranty-documents' and public.nexora_is_staff());
-drop policy if exists nexora_warranty_docs_storage_insert on storage.objects;
-create policy nexora_warranty_docs_storage_insert
+  using (bucket_id = 'warranty-documents' and public.bodega_is_staff());
+drop policy if exists bodega_warranty_docs_storage_insert on storage.objects;
+create policy bodega_warranty_docs_storage_insert
   on storage.objects for insert to authenticated
-  with check (bucket_id = 'warranty-documents' and public.nexora_is_staff());
-drop policy if exists nexora_warranty_docs_storage_delete on storage.objects;
-create policy nexora_warranty_docs_storage_delete
+  with check (bucket_id = 'warranty-documents' and public.bodega_is_staff());
+drop policy if exists bodega_warranty_docs_storage_delete on storage.objects;
+create policy bodega_warranty_docs_storage_delete
   on storage.objects for delete to authenticated
-  using (bucket_id = 'warranty-documents' and public.nexora_is_staff());
+  using (bucket_id = 'warranty-documents' and public.bodega_is_staff());
 
 -- ------------------------------------------------------------
 -- 2) El documento (un archivo subido).
 -- ------------------------------------------------------------
-create table if not exists public.nexora_documents (
+create table if not exists public.bodega_documents (
   id uuid primary key default gen_random_uuid(),
   storage_path text not null unique,
   file_name text not null,
   content_type text,
   size_bytes bigint,
-  uploaded_by uuid references public.nexora_profiles(id),
+  uploaded_by uuid references public.bodega_profiles(id),
   created_at timestamptz not null default now()
 );
 
-alter table public.nexora_documents enable row level security;
-grant select, insert, delete on public.nexora_documents to authenticated;
-drop policy if exists nexora_documents_all on public.nexora_documents;
-create policy nexora_documents_all on public.nexora_documents for all to authenticated
-  using (public.nexora_is_staff()) with check (public.nexora_is_staff());
+alter table public.bodega_documents enable row level security;
+grant select, insert, delete on public.bodega_documents to authenticated;
+drop policy if exists bodega_documents_all on public.bodega_documents;
+create policy bodega_documents_all on public.bodega_documents for all to authenticated
+  using (public.bodega_is_staff()) with check (public.bodega_is_staff());
 
 -- ------------------------------------------------------------
 -- 3) Enlace documento ↔ garantía (varios a varios: un documento puede cubrir todo un lote).
 -- ------------------------------------------------------------
-create table if not exists public.nexora_warranty_documents (
+create table if not exists public.bodega_warranty_documents (
   id uuid primary key default gen_random_uuid(),
-  warranty_id uuid not null references public.nexora_warranties(id) on delete cascade,
-  document_id uuid not null references public.nexora_documents(id) on delete cascade,
+  warranty_id uuid not null references public.bodega_warranties(id) on delete cascade,
+  document_id uuid not null references public.bodega_documents(id) on delete cascade,
   created_at timestamptz not null default now(),
   unique (warranty_id, document_id)
 );
 
-create index if not exists nexora_warranty_documents_warranty_idx on public.nexora_warranty_documents(warranty_id);
-create index if not exists nexora_warranty_documents_document_idx on public.nexora_warranty_documents(document_id);
+create index if not exists bodega_warranty_documents_warranty_idx on public.bodega_warranty_documents(warranty_id);
+create index if not exists bodega_warranty_documents_document_idx on public.bodega_warranty_documents(document_id);
 
-alter table public.nexora_warranty_documents enable row level security;
-grant select, insert, delete on public.nexora_warranty_documents to authenticated;
-drop policy if exists nexora_warranty_documents_all on public.nexora_warranty_documents;
-create policy nexora_warranty_documents_all on public.nexora_warranty_documents for all to authenticated
-  using (public.nexora_is_staff()) with check (public.nexora_is_staff());
+alter table public.bodega_warranty_documents enable row level security;
+grant select, insert, delete on public.bodega_warranty_documents to authenticated;
+drop policy if exists bodega_warranty_documents_all on public.bodega_warranty_documents;
+create policy bodega_warranty_documents_all on public.bodega_warranty_documents for all to authenticated
+  using (public.bodega_is_staff()) with check (public.bodega_is_staff());
