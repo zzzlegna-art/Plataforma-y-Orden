@@ -34,12 +34,54 @@ describe("getProductTechnicalSpecFieldsForCategory", () => {
     expect(getProductTechnicalSpecFieldsForCategory("reloj")[3].labelKey).toBe("product.spec.watchResistance");
   });
 
-  it("incluye características específicas para audífonos", () => {
-    const keys = getProductTechnicalSpecFieldsForCategory("audifono").map((field) => field.key);
-    expect(keys).toContain("noiseCancellation");
-    expect(keys).toContain("transparencyMode");
-    expect(keys).toContain("caseBattery");
-    expect(keys).toContain("soundLevel");
+  it("muestra exactamente siete características para audífonos en el orden solicitado", () => {
+    const fields = getProductTechnicalSpecFieldsForCategory("audifono");
+    expect(fields.map((field) => field.key)).toEqual([
+      "processor",
+      "waterResistance",
+      "connectivity",
+      "compatibility",
+      "battery",
+      "sensors",
+      "noiseCancellation",
+    ]);
+    expect(fields.map((field) => field.labelKey)).toEqual([
+      "product.spec.processor",
+      "product.spec.headphoneResistance",
+      "product.spec.connectivity",
+      "product.spec.compatibility",
+      "product.spec.autonomy",
+      "product.spec.sensors",
+      "product.spec.soundIsolation",
+    ]);
+  });
+
+  it("conserva las características históricas de audífonos al simplificar la ficha", () => {
+    expect(
+      getProductTechnicalSpecsForCategory("audifono", {
+        processor: "H2",
+        waterResistance: "IP54",
+        connectivity: "Bluetooth 5.3",
+        compatibility: "iPhone",
+        battery: "6 h / 30 h con estuche",
+        sensors: "Detección en oído",
+        noiseCancellation: "ANC",
+        transparencyMode: "Modo ambiente",
+        caseBattery: "30 h",
+        chargingCase: "USB-C",
+      }),
+    ).toEqual({
+      processor: "H2",
+      waterResistance: "IP54",
+      connectivity: "Bluetooth 5.3",
+      compatibility: "iPhone",
+      battery: "6 h / 30 h con estuche",
+      sensors: "Detección en oído",
+      noiseCancellation: "ANC",
+      transparencyMode: "Modo ambiente",
+      caseBattery: "30 h",
+      chargingCase: "USB-C",
+    });
   });
 
   it("ofrece un perfil común para nuevos tipos tecnológicos", () => {
