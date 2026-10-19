@@ -1,7 +1,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { extractCodeStructure } from "./code-structure-extractor.ts";
 
-const REPOSITORY = "zzzlegna-art/Bodega-6A";
+const REPOSITORY = "zzzlegna-art/Plataforma-y-Orden";
 const MAX_BYTES = 150_000;
 const allowed = /^(src\/|supabase\/functions\/|docs\/)[a-zA-Z0-9_./-]+\.(ts|tsx|js|jsx|md|sql)$/;
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), {
