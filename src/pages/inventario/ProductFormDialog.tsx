@@ -471,7 +471,7 @@ export const ProductFormDialog = ({
                 </p>
               ) : null}
 
-              {!["celular", "tablet"].includes(form.categoria) ? (
+              {!["celular", "tablet", "reloj"].includes(form.categoria) ? (
               <div className="space-y-3 border-t border-border/70 pt-3">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div>
