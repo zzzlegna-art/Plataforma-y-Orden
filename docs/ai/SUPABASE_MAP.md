@@ -1,49 +1,36 @@
-# Bodega6A Supabase Map
+# Nexora — mapa de Supabase
 
-## Overview
+## Visión general
 
-Bodega6A uses Supabase as backend infrastructure.
+Nexora utiliza Supabase para:
 
-Supabase provides:
+- PostgreSQL.
+- Autenticación.
+- Row Level Security (RLS).
+- Edge Functions.
+- Migraciones versionadas.
+- Realtime cuando corresponde.
 
--   PostgreSQL database.
--   Authentication.
--   Row Level Security.
--   Edge Functions.
--   Database migrations.
+## Estructura
 
-## Structure
+```
+supabase/
+├── functions/     Funciones del backend
+├── migrations/    Cambios versionados de base de datos
+├── tests/rls/     Validaciones de permisos
+└── config.toml    Configuración local de Supabase
+```
 
-    supabase/
+## Principios de seguridad
 
-    ├── functions/
-    │   Backend Edge Functions.
+- Mantener RLS activo y revisar cada política por rol.
+- Conservar propiedad de los datos, auditoría e integridad histórica.
+- No exponer claves privilegiadas en el cliente.
+- Usar migraciones versionadas para cambios de esquema.
+- Validar las funciones remotas y sus permisos antes de desplegar.
 
-    ├── migrations/
-    │   Versioned database changes.
+## Estado de configuración
 
-    ├── tests/
-    │   └── rls/
-    │       Security validation tests.
+La referencia indicada en `supabase/config.toml` no coincide con la instancia de Supabase visible en la auditoría actual. Confirmar el destino antes de ejecutar comandos de enlace, despliegue o migración.
 
-    └── config.toml
-        Supabase configuration.
-
-## Security Principles
-
-The AI must always consider:
-
--   RLS policies.
--   Data ownership.
--   Authentication rules.
--   Audit requirements.
--   Migration safety.
-
-## Database Changes
-
-Any database modification must:
-
-1.  Create a migration.
-2.  Preserve existing data.
-3.  Validate security.
-4.  Run tests.
+Los identificadores internos heredados requieren una migración coordinada con frontend, funciones remotas, políticas y datos; no deben renombrarse de forma aislada.
