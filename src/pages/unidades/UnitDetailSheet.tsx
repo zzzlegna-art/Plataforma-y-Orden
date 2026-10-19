@@ -83,8 +83,8 @@ export const UnitDetailSheet = ({
             <ProductThumbnail
               src={product?.imageUrl}
               alt={product?.name ?? "Referencia"}
-              size="xl"
-              className="rounded-xl"
+              size="2xl"
+              className="rounded-xl p-0"
             />
             <div className="min-w-0">
               <SheetDescription className="text-base font-semibold leading-snug text-foreground">
