@@ -9,8 +9,10 @@ import { registerServiceWorker } from "@/lib/pwa";
 import { AppProvider } from "@/store/app-provider";
 import { routers } from "./router";
 
+// Keep one router instance for the lifetime of the application.
+const router = createBrowserRouter(routers);
+
 const App = () => {
-  const router = createBrowserRouter(routers);
 
   useEffect(() => {
     registerServiceWorker();
