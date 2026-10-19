@@ -646,6 +646,8 @@ export interface ExcelSheet {
   rows: (string | number)[][];
   /** Columnas cuyo texto se ajusta (wrap) dentro de la celda. */
   wrapColumns?: number[];
+  /** Columnas que deben exportarse como hipervínculos cuando contienen una URL http(s). */
+  hyperlinkColumns?: number[];
 }
 
 /** Genera y descarga un libro de Excel con una hoja por tabla. */
@@ -737,8 +739,15 @@ export const exportExcel = ({
       for (let c = 0; c < ncols; c += 1) {
         const cell = ws[address(r, c)];
         if (!cell) continue;
+        const rowData = sheet.rows[r - headerRow - 1];
+        const linkValue = sheet.hyperlinkColumns?.includes(c) ? rowData?.[c] : undefined;
+        const hyperlink = typeof linkValue === "string" && /^https?:\\/\\//i.test(linkValue);
         cell.s = {
-          font: { sz: 10, color: { rgb: TEXT_HEX } },
+          font: {
+            sz: 10,
+            color: { rgb: hyperlink ? "0563C1" : TEXT_HEX },
+            ...(hyperlink ? { underline: true } : {}),
+          },
           ...(alterna ? { fill: { fgColor: { rgb: CYAN_PALE_HEX } } } : {}),
           alignment: {
             vertical: "center",
@@ -747,6 +756,9 @@ export const exportExcel = ({
           },
           border: { bottom: { style: "thin", color: { rgb: BORDER_HEX } } },
         };
+        if (hyperlink) {
+          cell.l = { Target: linkValue, Tooltip: linkValue };
+        }
       }
     }
 
@@ -1099,6 +1111,7 @@ export const exportProductCatalogExcel = ({
         columns,
         rows,
         wrapColumns: [4, 5, 6],
+        hyperlinkColumns: [6],
       },
     ],
   });
