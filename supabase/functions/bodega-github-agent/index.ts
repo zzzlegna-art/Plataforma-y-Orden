@@ -10,7 +10,7 @@ const json = (body: unknown, status = 200) => new Response(JSON.stringify(body),
 
 Deno.serve(async (request) => {
   if (request.method !== "POST") return json({ error: "POST required" }, 405);
-  const expected = Deno.env.get("BODEGA_AGENT_API_TOKEN");
+  const expected = Deno.env.get("NEXORA_AGENT_API_TOKEN");
   if (!expected) return json({ error: "Agent authentication is not configured" }, 503);
   const authorization = request.headers.get("Authorization");
   if (authorization !== `Bearer ${expected}`) return json({ error: "Unauthorized" }, 401);
@@ -22,7 +22,7 @@ Deno.serve(async (request) => {
   if (typeof body.path !== "string" || !allowed.test(body.path) || body.path.includes(".."))
     return json({ error: "Path is not allowed" }, 400);
 
-  const token = Deno.env.get("BODEGA_GITHUB_READ_TOKEN");
+  const token = Deno.env.get("NEXORA_GITHUB_READ_TOKEN");
   if (!token) return json({ error: "GitHub read token is not configured" }, 503);
   const url = `https://api.github.com/repos/${REPOSITORY}/contents/${body.path.split("/").map(encodeURIComponent).join("/")}?ref=main`;
   try {
