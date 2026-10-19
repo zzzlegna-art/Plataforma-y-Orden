@@ -756,7 +756,7 @@ export const exportExcel = ({
           },
           border: { bottom: { style: "thin", color: { rgb: BORDER_HEX } } },
         };
-        if (hyperlink) {
+        if (hyperlink && typeof linkValue === "string") {
           cell.l = { Target: linkValue, Tooltip: linkValue };
         }
       }
