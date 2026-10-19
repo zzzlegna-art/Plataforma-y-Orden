@@ -18,77 +18,67 @@ const RAM = field("ram", "8 GB");
 const PROCESSOR = field("processor", "Chip / procesador");
 const SCREEN = field("screen", "OLED / AMOLED / LCD");
 const CAMERAS = field("cameras", "Resolución y configuración");
+const REAR_CAMERA = field("rearCamera", "48 MP + 12 MP / 4K");
+const FRONT_CAMERA = field("frontCamera", "12 MP / 4K");
 const BATTERY = field("battery", "Capacidad o autonomía");
 const CONNECTIVITY = field("connectivity", "Wi-Fi, Bluetooth, 5G");
 const COLOR = field("color", "Color del fabricante");
 const COMPATIBILITY = field("compatibility", "Modelos o sistemas compatibles");
 const MATERIAL = field("material", "Material");
 const WATER_RESISTANCE = field("waterResistance", "IP68 / 5 ATM, si aplica");
+const HEADPHONE_RESISTANCE: ProductTechnicalSpecField = {
+  ...field("waterResistance", "IPX4 / IP54 / IP67, si aplica"),
+  labelKey: "product.spec.headphoneResistance",
+};
+const HEADPHONE_AUTONOMY: ProductTechnicalSpecField = {
+  ...field("battery", "6 horas por carga / 30 h con estuche"),
+  labelKey: "product.spec.autonomy",
+};
+const SOUND_ISOLATION: ProductTechnicalSpecField = {
+  ...field("noiseCancellation", "ANC / aislamiento pasivo"),
+  labelKey: "product.spec.soundIsolation",
+};
+const WATCH_RESISTANCE: ProductTechnicalSpecField = {
+  ...field("waterResistance", "IP68 / 5 ATM / resistente al agua"),
+  labelKey: "product.spec.watchResistance",
+};
 
 export const DEVICE_TECHNICAL_SPEC_FIELDS: Record<DeviceCategory, ProductTechnicalSpecField[]> = {
   celular: [
     STORAGE,
     RAM,
     PROCESSOR,
-    SCREEN,
-    field("screenResolution", "Resolución de pantalla"),
-    field("refreshRate", "60 / 90 / 120 Hz"),
-    CAMERAS,
-    BATTERY,
+    REAR_CAMERA,
+    FRONT_CAMERA,
     CONNECTIVITY,
-    field("cellularConnectivity", "5G, LTE, eSIM"),
-    field("operatingSystem", "iOS / Android"),
-    field("biometric", "Face ID / huella"),
-    COLOR,
+    field("compatibility", "SIM / eSIM / Dual SIM"),
   ],
   tablet: [
     STORAGE,
     RAM,
     PROCESSOR,
-    SCREEN,
-    field("screenResolution", "Resolución de pantalla"),
-    field("refreshRate", "60 / 120 Hz"),
-    CAMERAS,
-    BATTERY,
+    REAR_CAMERA,
+    FRONT_CAMERA,
     CONNECTIVITY,
-    field("stylusSupport", "Lápiz compatible"),
-    field("keyboardSupport", "Teclados compatibles"),
-    field("operatingSystem", "iPadOS / Android / Windows"),
-    field("biometric", "Huella / reconocimiento facial"),
-    COLOR,
+    field("compatibility", "SIM / eSIM / Dual SIM / lápiz compatible"),
   ],
   reloj: [
-    field("caseSize", "40 / 42 / 45 / 49 mm"),
+    STORAGE,
     SCREEN,
-    field("screenResolution", "Resolución de pantalla"),
+    PROCESSOR,
+    WATCH_RESISTANCE,
     CONNECTIVITY,
-    field("cellularConnectivity", "GPS / GPS + Cellular"),
-    COMPATIBILITY,
-    BATTERY,
-    MATERIAL,
-    WATER_RESISTANCE,
-    field("sensors", "Pulso, SpO₂, temperatura"),
-    field("gps", "GPS integrado / conectado"),
-    field("operatingSystem", "watchOS / Wear OS"),
-    COLOR,
+    field("compatibility", "iPhone / Android / dispositivos compatibles"),
+    field("sensors", "Pulso, SpO₂, temperatura, ECG"),
   ],
   audifono: [
-    field("compatibility", "Dispositivos compatibles"),
-    field("noiseCancellation", "Cancelación activa de ruido (ANC)"),
-    field("transparencyMode", "Modo ambiente / transparencia"),
-    field("spatialAudio", "Audio espacial / seguimiento de cabeza"),
-    field("microphones", "Micrófonos y funciones de llamadas"),
-    field("soundLevel", "Nivel de sonido / sensibilidad (dB, si se publica)"),
-    field("battery", "Autonomía de los audífonos"),
-    field("caseBattery", "Autonomía total con estuche"),
-    field("chargingCase", "USB-C / Lightning / otro"),
-    field("wirelessCharging", "Carga inalámbrica"),
+    PROCESSOR,
+    HEADPHONE_RESISTANCE,
     field("connectivity", "Bluetooth / conexión multipunto"),
-    field("bluetoothVersion", "Bluetooth 5.x"),
-    field("audioCodec", "Códecs de audio compatibles"),
-    WATER_RESISTANCE,
-    MATERIAL,
-    COLOR,
+    field("compatibility", "iPhone / Android / PC / otros dispositivos"),
+    HEADPHONE_AUTONOMY,
+    field("sensors", "Detección en oído, controles táctiles"),
+    SOUND_ISOLATION,
   ],
 };
 
@@ -234,6 +224,64 @@ export const getProductTechnicalSpecsForCategory = (
   for (const field of fields) {
     const value = specs[field.key];
     if (typeof value === "string" && value.trim()) normalized[field.key] = value.trim().slice(0, 120);
+  }
+
+  // Conserva las cámaras del formato anterior hasta que se completen ambos campos nuevos.
+  // Así editar un celular o una tablet existente no borra silenciosamente la ficha antigua.
+  if (["celular", "tablet"].includes(normalizeCategory(category))) {
+    const legacyCameras = typeof specs.cameras === "string" ? specs.cameras.trim() : "";
+    const hasRearCamera = Boolean(normalized.rearCamera);
+    const hasFrontCamera = Boolean(normalized.frontCamera);
+    if (legacyCameras && !(hasRearCamera && hasFrontCamera)) {
+      normalized.cameras = legacyCameras.slice(0, 120);
+    }
+  }
+
+  // Mantiene en los datos guardados las características antiguas de los relojes que ya no
+  // se muestran en el formulario simplificado, para evitar perder información histórica.
+  if (normalizeCategory(category) === "reloj") {
+    const legacyWatchKeys = [
+      "caseSize",
+      "screenResolution",
+      "refreshRate",
+      "cellularConnectivity",
+      "battery",
+      "material",
+      "gps",
+      "operatingSystem",
+      "biometric",
+      "color",
+    ] as const;
+    for (const key of legacyWatchKeys) {
+      const value = specs[key];
+      if (!normalized[key] && typeof value === "string" && value.trim()) {
+        normalized[key] = value.trim().slice(0, 120);
+      }
+    }
+  }
+
+  // Conserva atributos detallados de audífonos antiguos aunque la ficha simplificada ya no
+  // los muestre, para evitar borrar información al editar y guardar un producto existente.
+  if (normalizeCategory(category) === "audifono") {
+    const legacyHeadphoneKeys = [
+      "transparencyMode",
+      "spatialAudio",
+      "microphones",
+      "soundLevel",
+      "caseBattery",
+      "chargingCase",
+      "wirelessCharging",
+      "bluetoothVersion",
+      "audioCodec",
+      "material",
+      "color",
+    ] as const;
+    for (const key of legacyHeadphoneKeys) {
+      const value = specs[key];
+      if (!normalized[key] && typeof value === "string" && value.trim()) {
+        normalized[key] = value.trim().slice(0, 120);
+      }
+    }
   }
 
   const customFields = Array.isArray(specs.customFields)

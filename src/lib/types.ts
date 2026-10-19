@@ -155,7 +155,7 @@ export interface ProductType {
 export type TipoRepuesto = "bateria" | "display" | "otro";
 
 export const PRODUCT_TECHNICAL_SPEC_KEYS = [
-  "storage", "ram", "processor", "screen", "screenResolution", "refreshRate", "cameras",
+  "storage", "ram", "processor", "screen", "screenResolution", "refreshRate", "cameras", "rearCamera", "frontCamera",
   "battery", "connectivity", "color", "caseSize", "compatibility", "material", "waterResistance",
   "sensors", "operatingSystem", "biometric", "stylusSupport", "keyboardSupport", "gps",
   "cellularConnectivity", "noiseCancellation", "transparencyMode", "spatialAudio", "microphones",

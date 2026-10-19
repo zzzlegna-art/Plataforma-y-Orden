@@ -18,10 +18,19 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
+import { useApp } from "@/hooks/use-app";
 import { useRunAction } from "@/hooks/use-run-action";
 import { useStore } from "@/hooks/use-store";
 import { supabase } from "@/integrations/supabase/client";
 import { createProduct, generarSkuProducto, updateProduct } from "@/lib/actions/catalogs";
+import {
+  clearProductFormDraft,
+  EMPTY_PRODUCT_FORM,
+  getProductFormDraftKey,
+  readProductFormDraft,
+  writeProductFormDraft,
+  type ProductFormDraft,
+} from "@/lib/product-form-draft";
 import { getProductTechnicalSpecFieldsForCategory, getProductTechnicalSpecsForCategory } from "@/lib/product-specs";
 import { etiquetaTipoProducto, tiposProductoOrdenados } from "@/lib/products";
 import type { Product, ProductCategory, ProductTechnicalSpecs } from "@/lib/types";
@@ -42,19 +51,6 @@ const getProductImageStoragePath = (url?: string): string | undefined => {
   }
 };
 
-const EMPTY_FORM = {
-  sku: "",
-  name: "",
-  description: "",
-  categoryId: "",
-  brandId: "",
-  categoria: "",
-  price: "0",
-  cost: "0",
-  minStock: "0",
-  isActive: true,
-};
-
 /** Alta y edición de productos del inventario. */
 export const ProductFormDialog = ({
   trigger,
@@ -67,9 +63,10 @@ export const ProductFormDialog = ({
 }) => {
   const { t } = useTranslation();
   const { db } = useStore();
+  const { user } = useApp();
   const runAction = useRunAction();
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState(EMPTY_FORM);
+  const [form, setForm] = useState(EMPTY_PRODUCT_FORM);
   const [technicalSpecs, setTechnicalSpecs] = useState<ProductTechnicalSpecs>({});
   const [saving, setSaving] = useState(false);
   const [skuManual, setSkuManual] = useState(Boolean(product));
@@ -78,33 +75,72 @@ export const ProductFormDialog = ({
   const [removeImage, setRemoveImage] = useState(false);
   const [imageError, setImageError] = useState("");
   const imageInputRef = useRef<HTMLInputElement>(null);
+  const productRef = useRef(product);
+  const skipDraftSaveRef = useRef(false);
+  const draftKey = getProductFormDraftKey(product?.id, user?.id);
+  const [draftRestored, setDraftRestored] = useState(false);
+
+  useEffect(() => {
+    productRef.current = product;
+  }, [product]);
 
   useEffect(() => {
     if (!open) return;
-    setSkuManual(Boolean(product));
+    skipDraftSaveRef.current = true;
+    const currentProduct = productRef.current;
     setImageFile(null);
-    setImagePreview(product?.imageUrl ?? null);
+    setImagePreview(currentProduct?.imageUrl ?? null);
     setRemoveImage(false);
     setImageError("");
-    setTechnicalSpecs(product?.technicalSpecs ?? {});
     if (imageInputRef.current) imageInputRef.current.value = "";
+
+    const draft = readProductFormDraft(draftKey);
+    if (draft) {
+      setForm(draft.form);
+      setTechnicalSpecs(draft.technicalSpecs);
+      setSkuManual(draft.skuManual);
+      setRemoveImage(draft.removeImage);
+      setImagePreview(draft.removeImage ? null : currentProduct?.imageUrl ?? null);
+      setDraftRestored(true);
+      return;
+    }
+
+    setSkuManual(Boolean(currentProduct));
+    setTechnicalSpecs(currentProduct?.technicalSpecs ?? {});
     setForm(
-      product
+      currentProduct
         ? {
-            sku: product.sku,
-            name: product.name,
-            description: product.description ?? "",
-            categoryId: product.categoryId ?? "",
-            brandId: product.brandId ?? "",
-            categoria: product.categoria ?? "",
-            price: String(product.price),
-            cost: String(product.cost),
-            minStock: String(product.minStock),
-            isActive: product.isActive,
+            sku: currentProduct.sku,
+            name: currentProduct.name,
+            description: currentProduct.description ?? "",
+            categoryId: currentProduct.categoryId ?? "",
+            brandId: currentProduct.brandId ?? "",
+            categoria: currentProduct.categoria ?? "",
+            price: String(currentProduct.price),
+            cost: String(currentProduct.cost),
+            minStock: String(currentProduct.minStock),
+            isActive: currentProduct.isActive,
           }
-        : EMPTY_FORM,
+        : EMPTY_PRODUCT_FORM,
     );
-  }, [open, product]);
+    setDraftRestored(false);
+  }, [open, draftKey]);
+
+  useEffect(() => {
+    if (!open) return;
+    if (skipDraftSaveRef.current) {
+      skipDraftSaveRef.current = false;
+      return;
+    }
+    const draft: ProductFormDraft = {
+      version: 1,
+      form,
+      technicalSpecs,
+      skuManual,
+      removeImage,
+    };
+    writeProductFormDraft(draftKey, draft);
+  }, [open, draftKey, form, technicalSpecs, skuManual, removeImage]);
 
   useEffect(() => {
     if (!imageFile) return;
@@ -218,6 +254,8 @@ export const ProductFormDialog = ({
           // No bloquear un guardado correcto por una limpieza de almacenamiento.
         }
       }
+      clearProductFormDraft(draftKey);
+      setDraftRestored(false);
       setOpen(false);
       onSaved?.(result);
     } catch {
@@ -241,6 +279,11 @@ export const ProductFormDialog = ({
         <DialogHeader>
           <DialogTitle>{product ? t("product.editTitle") : t("product.createTitle")}</DialogTitle>
           <DialogDescription>{t("product.formDescription")}</DialogDescription>
+          {draftRestored ? (
+            <p role="status" className="rounded-md bg-muted px-3 py-2 text-sm text-muted-foreground">
+              {t("product.draftRestored")}
+            </p>
+          ) : null}
         </DialogHeader>
 
         <div className="grid gap-4 py-2 sm:grid-cols-2">
@@ -420,6 +463,15 @@ export const ProductFormDialog = ({
                 ))}
               </div>
 
+              {["celular", "tablet"].includes(form.categoria) &&
+              technicalSpecs.cameras?.trim() &&
+              !(technicalSpecs.rearCamera?.trim() && technicalSpecs.frontCamera?.trim()) ? (
+                <p role="status" className="rounded-md bg-muted px-3 py-2 text-xs text-muted-foreground">
+                  {t("product.legacyCameraSpec", { value: technicalSpecs.cameras })}
+                </p>
+              ) : null}
+
+              {!["celular", "tablet", "reloj", "audifono"].includes(form.categoria) ? (
               <div className="space-y-3 border-t border-border/70 pt-3">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div>
@@ -498,6 +550,7 @@ export const ProductFormDialog = ({
                   </div>
                 ))}
               </div>
+              ) : null}
             </div>
           ) : null}
 

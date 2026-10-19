@@ -183,6 +183,8 @@ const TECHNICAL_SPEC_ICONS: Record<ProductTechnicalSpecKey, LucideIcon> = {
   screenResolution: Monitor,
   refreshRate: Monitor,
   cameras: Camera,
+  rearCamera: Camera,
+  frontCamera: Camera,
   battery: BatteryCharging,
   connectivity: Wifi,
   color: Palette,
@@ -261,7 +263,7 @@ const ProductThumbnail = ({
   const showTechnicalSpecs = technicalEnabled ?? product.categoria !== "repuesto";
   const specFields = showTechnicalSpecs ? getProductTechnicalSpecFieldsForCategory(product.categoria) : [];
   const populatedFields = specFields.filter((field) => Boolean(product.technicalSpecs?.[field.key]?.trim()));
-  const populatedCustomFields = showTechnicalSpecs
+  const populatedCustomFields = showTechnicalSpecs && !["celular", "tablet", "reloj", "audifono"].includes(product.categoria)
     ? (product.technicalSpecs?.customFields ?? []).filter(
         (field) => Boolean(field.name.trim() && field.value.trim()),
       )
