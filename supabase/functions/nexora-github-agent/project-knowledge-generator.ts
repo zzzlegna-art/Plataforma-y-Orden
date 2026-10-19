@@ -18,7 +18,7 @@ export function generateKnowledge(input: {
   return {
     file: input.file,
     category: input.category,
-    summary: `${input.file} is a ${input.category} module in the Bodega-6A architecture.`,
+    summary: `${input.file} is a ${input.category} module in the Nexora architecture.`,
     exports: input.exports ?? [],
     dependencies: input.dependencies ?? []
   };
