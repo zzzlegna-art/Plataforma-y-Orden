@@ -145,7 +145,7 @@ describe("auditoría: entityId debe ser un uuid o no estar (la columna es uuid)"
 
   it("guardar los ajustes (empresa y moneda) no escribe un entityId de texto", () => {
     const db = emptyDb();
-    updateSettings(db, admin, { companyName: "Bodega 6A", currency: "COP" });
+    updateSettings(db, admin, { companyName: "Nexora", currency: "COP" });
     expect(db.auditLogs).toHaveLength(1);
     expect(db.auditLogs[0].entityId).toBeUndefined();
     expect(db.auditLogs[0].details).toContain("COP");
