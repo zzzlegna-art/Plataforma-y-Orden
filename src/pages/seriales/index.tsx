@@ -36,6 +36,7 @@ import {
   reportarNovedad,
 } from "@/lib/actions/units";
 import { formatCurrency, formatDateTime } from "@/lib/format";
+import { escapeCsvCell } from "@/lib/csv";
 import { imprimirEtiquetas } from "@/lib/print-labels";
 import {
   findUnitBySerial,
@@ -47,13 +48,15 @@ import {
 import type { Unit } from "@/lib/types";
 
 const exportarCsv = (serial: string, fechaIngreso: string, rows: ReturnType<typeof getUnitTimeline>) => {
-  const header = `Serial;${serial}\nIngreso;${fechaIngreso}\nFecha;Tipo;Descripcion;Usuario\n`;
+  const header = `Serial;${escapeCsvCell(serial)}\\nIngreso;${escapeCsvCell(fechaIngreso)}\\nFecha;Tipo;Descripcion;Usuario\\n`;
   const body = rows
     .map((row) =>
-      [row.fecha, row.tipo, `"${row.descripcion.replace(/"/g, '""')}"`, row.usuario ?? ""].join(";"),
+      [row.fecha, row.tipo, row.descripcion, row.usuario ?? ""]
+        .map(escapeCsvCell)
+        .join(";"),
     )
-    .join("\n");
-  const blob = new Blob(["\uFEFF" + header + body], { type: "text/csv;charset=utf-8" });
+    .join("\\n");
+  const blob = new Blob(["\\uFEFF" + header + body], { type: "text/csv;charset=utf-8" });
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;
