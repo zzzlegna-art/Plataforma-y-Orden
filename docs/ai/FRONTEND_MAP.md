@@ -1,8 +1,8 @@
-# Bodega6A Frontend Map
+# Nexora Frontend Map
 
 ## Overview
 
-The frontend of Bodega6A is built using React, TypeScript and Vite.
+The frontend of Nexora is built using React, TypeScript and Vite.
 
 The main application logic is contained inside the `src/` directory.
 
