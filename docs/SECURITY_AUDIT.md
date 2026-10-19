@@ -21,7 +21,7 @@ Revisión de solo lectura de la estructura de Supabase, políticas RLS observabl
 2. Recuperar acceso de lectura al proyecto Vercel.
 3. Ejecutar pruebas RLS por rol sobre tablas, funciones RPC y almacenamiento.
 4. Revisar los 11 objetos de imagen no referenciados antes de eliminarlos.
-5. Planificar una migración reversible para normalizar los identificadores internos heredados sin perder datos ni permisos.
+5. Validar en una copia la migración reversible `20261019060000_rename_legacy_identifiers_to_nexora.sql`, incluidos datos, permisos, triggers, RLS y funciones.
 
 ## Restricciones
 
