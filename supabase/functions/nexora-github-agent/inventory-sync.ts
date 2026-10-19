@@ -1,4 +1,4 @@
-// Bodega-6A AI Developer Agent
+// Nexora AI Developer Agent
 // Inventory Sync Layer
 //
 // Responsible for preparing repository inventory payloads
@@ -15,7 +15,7 @@ export type RepositoryInventory = {
 
 export function buildInventory(input: Partial<RepositoryInventory>): RepositoryInventory {
   return {
-    repository: input.repository ?? 'Bodega-6A',
+    repository: input.repository ?? 'zzzlegna-art/Plataforma-y-Orden',
     version: input.version ?? '1.0',
     frontend: input.frontend ?? [],
     backend: input.backend ?? [],
