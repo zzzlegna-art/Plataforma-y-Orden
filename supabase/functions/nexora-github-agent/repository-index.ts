@@ -1,4 +1,4 @@
-// Bodega-6A AI Developer
+// Nexora AI Developer
 // Repository indexer layer
 // Prepares repository structure analysis for the AI agent.
 
