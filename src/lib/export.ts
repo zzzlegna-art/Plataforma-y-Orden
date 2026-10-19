@@ -8,6 +8,7 @@
 import autoTable from "jspdf-autotable";
 import { jsPDF } from "jspdf";
 import XLSX from "xlsx-js-style";
+import { strFromU8, strToU8, unzipSync, zipSync } from "fflate";
 
 import { formatDateTime } from "./format";
 
@@ -635,7 +636,11 @@ export const exportPedidosHistorialExcel = ({
   });
 
   XLSX.utils.book_append_sheet(wb, ws, "Historial");
-  XLSX.writeFile(wb, filename, { cellStyles: true });
+  if (sheets.some((sheet) => sheet.imageColumn !== undefined || sheet.freezeRows)) {
+    downloadWorkbookWithImages(wb, sheets, filename);
+  } else {
+    XLSX.writeFile(wb, filename, { cellStyles: true });
+  }
 };
 
 export interface ExcelSheet {
@@ -648,7 +653,240 @@ export interface ExcelSheet {
   wrapColumns?: number[];
   /** Columnas que deben exportarse como hipervínculos cuando contienen una URL http(s). */
   hyperlinkColumns?: number[];
+  /** Destinos explícitos de hipervínculos por fila y columna (índices desde cero). */
+  hyperlinkTargets?: (string | undefined)[][];
+  /** Anchos de columna explícitos, en caracteres de Excel. */
+  columnWidths?: number[];
+  /** Columna (índice desde cero) donde se anclan las miniaturas. */
+  imageColumn?: number;
+  /** Miniaturas JPEG en data URL, una por cada fila de datos. */
+  imageDataUrls?: (string | null | undefined)[];
+  /** Altura de cada fila de datos, en puntos. */
+  rowHeights?: number[];
+  /** Cantidad de filas superiores que se mantienen congeladas. */
+  freezeRows?: number;
+  /** Ancho de la columna de miniaturas, en caracteres de Excel. */
+  imageColumnWidth?: number;
+  /** Tamaño cuadrado de la miniatura, en píxeles. */
+  imageSizePx?: number;
 }
+
+
+const EXCEL_DATA_START_ROW = 4;
+const EXCEL_EMU_PER_PIXEL = 9525;
+
+const freezeWorksheetRows = (xml: string, rows: number): string => {
+  const firstVisibleRow = rows + 1;
+  const pane =
+    '<pane ySplit="' + rows + '" topLeftCell="A' + firstVisibleRow +
+    '" activePane="bottomLeft" state="frozen"/>' +
+    '<selection pane="bottomLeft" activeCell="A' + firstVisibleRow +
+    '" sqref="A' + firstVisibleRow + '"/>';
+
+  const selfClosingView = /<sheetView\b([^>]*)\/>/;
+  if (selfClosingView.test(xml)) {
+    return xml.replace(selfClosingView, (_match, attributes: string) =>
+      '<sheetView' + attributes + '>' + pane + '</sheetView>',
+    );
+  }
+
+  const fullView = /<sheetView\b([^>]*)>([\s\S]*?)<\/sheetView>/;
+  if (fullView.test(xml)) {
+    return xml.replace(fullView, (_match, attributes: string, body: string) => {
+      const withoutOldPane = body
+        .replace(/<pane\b[^>]*\/>/g, "")
+        .replace(/<selection\b[^>]*\/>/g, "");
+      return '<sheetView' + attributes + '>' + pane + withoutOldPane + '</sheetView>';
+    });
+  }
+
+  return xml.replace(
+    /(<sheetViews\b[^>]*>)/,
+    '$1<sheetView workbookViewId="0">' + pane + '</sheetView>',
+  );
+};
+
+const nextRelationshipId = (xml: string): number => {
+  const ids = [...xml.matchAll(/Id="rId(\d+)"/g)].map((match) => Number(match[1]));
+  return Math.max(0, ...ids) + 1;
+};
+
+const decodeJpegDataUrl = (dataUrl: string): Uint8Array | null => {
+  const separator = dataUrl.indexOf(",");
+  if (separator < 0 || !dataUrl.startsWith("data:image/jpeg;base64,")) return null;
+  const binary = atob(dataUrl.slice(separator + 1));
+  const bytes = new Uint8Array(binary.length);
+  for (let index = 0; index < binary.length; index += 1) {
+    bytes[index] = binary.charCodeAt(index);
+  }
+  return bytes;
+};
+
+const downloadWorkbookWithImages = (
+  workbook: ReturnType<typeof XLSX.utils.book_new>,
+  sheets: ExcelSheet[],
+  filename: string,
+) => {
+  const output = XLSX.write(workbook, {
+    type: "array",
+    bookType: "xlsx",
+    cellStyles: true,
+  }) as ArrayBuffer | Uint8Array;
+  const sourceBytes = output instanceof Uint8Array ? output : new Uint8Array(output);
+  const archive = unzipSync(sourceBytes);
+  const contentTypesBytes = archive["[Content_Types].xml"];
+  if (!contentTypesBytes) throw new Error("No se encontró el manifiesto del libro Excel.");
+
+  let contentTypesXml = strFromU8(contentTypesBytes);
+  const drawingOverrides: string[] = [];
+  let nextImageNumber = 1;
+  let nextDrawingNumber = 1;
+  let hasImages = false;
+
+  sheets.forEach((sheet, sheetIndex) => {
+    const worksheetPath = "xl/worksheets/sheet" + (sheetIndex + 1) + ".xml";
+    const worksheetBytes = archive[worksheetPath];
+    if (!worksheetBytes) return;
+
+    let worksheetXml = strFromU8(worksheetBytes);
+    if (sheet.freezeRows && sheet.freezeRows > 0) {
+      worksheetXml = freezeWorksheetRows(worksheetXml, sheet.freezeRows);
+    }
+
+    const imageColumn = sheet.imageColumn;
+    const images = imageColumn === undefined
+      ? []
+      : (sheet.imageDataUrls ?? []).flatMap((dataUrl, rowIndex) => {
+          if (!dataUrl) return [];
+          const bytes = decodeJpegDataUrl(dataUrl);
+          return bytes ? [{ rowIndex, bytes }] : [];
+        });
+
+    if (images.length > 0 && imageColumn !== undefined) {
+      hasImages = true;
+      const drawingNumber = nextDrawingNumber++;
+      const drawingPath = "xl/drawings/drawing" + drawingNumber + ".xml";
+      const drawingRelsPath = "xl/drawings/_rels/drawing" + drawingNumber + ".xml.rels";
+      const worksheetRelsPath = "xl/worksheets/_rels/sheet" + (sheetIndex + 1) + ".xml.rels";
+      let worksheetRelsXml = archive[worksheetRelsPath]
+        ? strFromU8(archive[worksheetRelsPath])
+        : '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+          '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"></Relationships>';
+
+      const drawingRelId = "rId" + nextRelationshipId(worksheetRelsXml);
+      worksheetRelsXml = worksheetRelsXml.replace(
+        "</Relationships>",
+        '<Relationship Id="' + drawingRelId +
+          '" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/drawing" Target="../drawings/drawing' +
+          drawingNumber + '.xml"/></Relationships>',
+      );
+      archive[worksheetRelsPath] = strToU8(worksheetRelsXml);
+
+      const worksheetRoot = worksheetXml.match(/<worksheet\b[^>]*>/)?.[0] ?? "";
+      if (worksheetRoot && !/\sxmlns:r=/.test(worksheetRoot)) {
+        worksheetXml = worksheetXml.replace(
+          /<worksheet\b/,
+          '<worksheet xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"',
+        );
+      }
+      const drawingTag = '<drawing r:id="' + drawingRelId + '"/>';
+      if (/<extLst\b/.test(worksheetXml)) {
+        worksheetXml = worksheetXml.replace(/<extLst\b/, drawingTag + "<extLst");
+      } else {
+        worksheetXml = worksheetXml.replace("</worksheet>", drawingTag + "</worksheet>");
+      }
+      drawingOverrides.push(
+        '<Override PartName="/xl/drawings/drawing' + drawingNumber +
+          '.xml" ContentType="application/vnd.openxmlformats-officedocument.drawing+xml"/>',
+      );
+
+      const drawingRelationships: string[] = [];
+      const anchors: string[] = [];
+      images.forEach((entry, imageIndex) => {
+        const mediaNumber = nextImageNumber++;
+        const relationshipId = "rId" + (imageIndex + 1);
+        archive["xl/media/image" + mediaNumber + ".jpeg"] = entry.bytes;
+        drawingRelationships.push(
+          '<Relationship Id="' + relationshipId +
+            '" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="../media/image' +
+            mediaNumber + '.jpeg"/>',
+        );
+
+        const imageSize = sheet.imageSizePx ?? 72;
+        const rowHeight = sheet.rowHeights?.[entry.rowIndex] ?? 68;
+        const columnWidth = sheet.columnWidths?.[imageColumn] ?? sheet.imageColumnWidth ?? 14;
+        const columnPixels = columnWidth * 7 + 5;
+        const rowPixels = rowHeight * 96 / 72;
+        const columnOffset = Math.max(0, Math.round((columnPixels - imageSize) / 2 * EXCEL_EMU_PER_PIXEL));
+        const rowOffset = Math.max(0, Math.round((rowPixels - imageSize) / 2 * EXCEL_EMU_PER_PIXEL));
+        const sizeEmu = imageSize * EXCEL_EMU_PER_PIXEL;
+        const pictureId = imageIndex + 1;
+
+        anchors.push(
+          '<xdr:oneCellAnchor>' +
+            '<xdr:from><xdr:col>' + imageColumn + '</xdr:col><xdr:colOff>' +
+              columnOffset + '</xdr:colOff><xdr:row>' +
+              (EXCEL_DATA_START_ROW + entry.rowIndex) +
+              '</xdr:row><xdr:rowOff>' + rowOffset + '</xdr:rowOff></xdr:from>' +
+            '<xdr:ext cx="' + sizeEmu + '" cy="' + sizeEmu + '"/>' +
+            '<xdr:pic><xdr:nvPicPr><xdr:cNvPr id="' + pictureId +
+              '" name="Imagen de producto ' + pictureId + '"/>' +
+              '<xdr:cNvPicPr><a:picLocks noChangeAspect="1"/></xdr:cNvPicPr></xdr:nvPicPr>' +
+              '<xdr:blipFill><a:blip r:embed="' + relationshipId +
+                '"/><a:stretch><a:fillRect/></a:stretch></xdr:blipFill>' +
+              '<xdr:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="' + sizeEmu +
+                '" cy="' + sizeEmu + '"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></xdr:spPr>' +
+            '</xdr:pic><xdr:clientData/></xdr:oneCellAnchor>',
+        );
+      });
+
+      archive[drawingPath] = strToU8(
+        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+        '<xdr:wsDr xmlns:xdr="http://schemas.openxmlformats.org/drawingml/2006/spreadsheetDrawing" ' +
+        'xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" ' +
+        'xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">' +
+        anchors.join("") + "</xdr:wsDr>",
+      );
+      archive[drawingRelsPath] = strToU8(
+        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+        '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
+        drawingRelationships.join("") + "</Relationships>",
+      );
+    }
+
+    archive[worksheetPath] = strToU8(worksheetXml);
+  });
+
+  if (hasImages) {
+    if (!/<Default\b[^>]*Extension="jpeg"/i.test(contentTypesXml)) {
+      contentTypesXml = contentTypesXml.replace(
+        /(<Types\b[^>]*>)/,
+        '$1<Default Extension="jpeg" ContentType="image/jpeg"/>',
+      );
+    }
+    if (drawingOverrides.length > 0) {
+      contentTypesXml = contentTypesXml.replace("</Types>", drawingOverrides.join("") + "</Types>");
+    }
+    archive["[Content_Types].xml"] = strToU8(contentTypesXml);
+  }
+
+  const zipBytes = zipSync(archive, { level: 6 });
+  const zipBuffer = zipBytes.buffer.slice(
+    zipBytes.byteOffset,
+    zipBytes.byteOffset + zipBytes.byteLength,
+  ) as ArrayBuffer;
+  const blob = new Blob([zipBuffer], {
+    type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = filename;
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+  window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+};
 
 /** Genera y descarga un libro de Excel con una hoja por tabla. */
 export const exportExcel = ({
@@ -672,6 +910,8 @@ export const exportExcel = ({
     // Ancho de cada columna según su contenido (con un mínimo y un tope) para que los nombres de
     // producto y demás textos largos no se corten con la celda vecina.
     ws["!cols"] = Array.from({ length: ncols }, (_, c) => {
+      const explicitWidth = sheet.columnWidths?.[c];
+      if (explicitWidth) return { wch: explicitWidth };
       const largo = Math.max(
         String(sheet.columns[c] ?? "").length,
         ...sheet.rows.map((row) => String(row[c] ?? "").length),
@@ -686,8 +926,19 @@ export const exportExcel = ({
 
     const address = (r: number, c: number) => XLSX.utils.encode_cell({ r, c });
 
-    // Filas del título algo más altas; el resto se ajusta solo al contenido.
-    ws["!rows"] = [{ hpt: 28 }, { hpt: 16 }, { hpt: 8 }, { hpt: 24 }];
+    // Filas del título y altura de producto: las miniaturas quedan centradas y el texto envuelto.
+    const worksheetRows: Array<{ hpt: number } | undefined> = [
+      { hpt: 28 },
+      { hpt: 16 },
+      { hpt: 8 },
+      { hpt: 24 },
+    ];
+    sheet.rows.forEach((_, rowIndex) => {
+      const rowHeight = sheet.rowHeights?.[rowIndex] ??
+        (sheet.imageColumn !== undefined ? 68 : undefined);
+      if (rowHeight) worksheetRows[headerRow + 1 + rowIndex] = { hpt: rowHeight };
+    });
+    ws["!rows"] = worksheetRows;
 
     // Las columnas que son solo números (unidades, cantidades) van centradas.
     const numericas = sheet.columns.map(
@@ -739,9 +990,12 @@ export const exportExcel = ({
       for (let c = 0; c < ncols; c += 1) {
         const cell = ws[address(r, c)];
         if (!cell) continue;
-        const rowData = sheet.rows[r - headerRow - 1];
-        const linkValue = sheet.hyperlinkColumns?.includes(c) ? rowData?.[c] : undefined;
-        const hyperlink = typeof linkValue === "string" && (linkValue.startsWith("https://") || linkValue.startsWith("http://"));
+        const dataRowIndex = r - headerRow - 1;
+        const rowData = sheet.rows[dataRowIndex];
+        const linkValue = sheet.hyperlinkTargets?.[dataRowIndex]?.[c] ??
+          (sheet.hyperlinkColumns?.includes(c) ? rowData?.[c] : undefined);
+        const hyperlink = typeof linkValue === "string" &&
+          (linkValue.startsWith("https://") || linkValue.startsWith("http://"));
         cell.s = {
           font: {
             sz: 10,
@@ -751,7 +1005,7 @@ export const exportExcel = ({
           ...(alterna ? { fill: { fgColor: { rgb: CYAN_PALE_HEX } } } : {}),
           alignment: {
             vertical: "center",
-            horizontal: numericas[c] ? "center" : "left",
+            horizontal: sheet.imageColumn === c || numericas[c] ? "center" : "left",
             wrapText: sheet.wrapColumns?.includes(c) ?? false,
           },
           border: { bottom: { style: "thin", color: { rgb: BORDER_HEX } } },
@@ -799,6 +1053,8 @@ export interface ProductCatalogItem {
 }
 
 export interface ProductCatalogLabels {
+  image: string;
+  openImage: string;
   product: string;
   reference: string;
   brand: string;
@@ -1101,10 +1357,10 @@ export const exportProductCatalogPdf = async ({
 };
 
 /**
- * Excel administrativo del catálogo. Incluye una columna con la URL pública de cada imagen;
- * el PDF es el formato que incrusta las fotografías dentro del documento.
+ * Excel administrativo y visual del catálogo: miniaturas incrustadas, enlaces directos,
+ * columnas con ancho legible, filtros, filas alternas y encabezado congelado.
  */
-export const exportProductCatalogExcel = ({
+export const exportProductCatalogExcel = async ({
   title,
   subtitle,
   filename,
@@ -1113,7 +1369,17 @@ export const exportProductCatalogExcel = ({
   includeStock,
   labels,
 }: ProductCatalogExportOptions) => {
+  const imageDataUrls: (string | null)[] = [];
+  // Limita la concurrencia para no abrir decenas de descargas de imágenes a la vez.
+  for (let index = 0; index < products.length; index += 4) {
+    const batch = await Promise.all(
+      products.slice(index, index + 4).map((product) => loadCatalogImageData(product.imageUrl)),
+    );
+    imageDataUrls.push(...batch);
+  }
+
   const columns = [
+    labels.image,
     labels.reference,
     labels.product,
     labels.brand,
@@ -1125,22 +1391,44 @@ export const exportProductCatalogExcel = ({
   if (includePrice) columns.push(labels.price);
   if (includeStock) columns.push(labels.stock);
 
-  const rows = products.map((product) => {
+  const featureTexts = products.map((product) =>
+    product.features.length
+      ? product.features.map((feature) => feature.label + ": " + feature.value).join(" · ")
+      : labels.noFeatures,
+  );
+  const rows = products.map((product, index) => {
     const row: (string | number)[] = [
+      imageDataUrls[index] ? "" : labels.imageUnavailable,
       product.sku || "—",
       product.name,
       product.brand || "—",
       product.category || "—",
       product.description?.trim() || labels.noDescription,
-      product.features.length
-        ? product.features.map((feature) => `${feature.label}: ${feature.value}`).join(" · ")
-        : labels.noFeatures,
-      product.imageUrl || "—",
+      featureTexts[index],
+      product.imageUrl ? labels.openImage : "—",
     ];
     if (includePrice) row.push(product.price || "—");
     if (includeStock) row.push(product.stock ?? 0);
     return row;
   });
+
+  const hyperlinkTargets = products.map((product) => {
+    const targets: (string | undefined)[] = Array(columns.length).fill(undefined);
+    targets[7] = product.imageUrl || undefined;
+    return targets;
+  });
+  const rowHeights = products.map((product, index) => {
+    const description = product.description?.trim() || labels.noDescription;
+    const features = featureTexts[index] || labels.noFeatures;
+    const descriptionLines = Math.max(1, Math.ceil(description.length / 38));
+    const featureLines = Math.max(1, Math.ceil(features.length / 48));
+    const extraRows = includePrice || includeStock ? 1 : 0;
+    return Math.min(180, Math.max(68, 14 + (descriptionLines + featureLines + extraRows) * 11));
+  });
+
+  const columnWidths = [14, 15, 30, 18, 20, 38, 48, 24];
+  if (includePrice) columnWidths.push(16);
+  if (includeStock) columnWidths.push(12);
 
   exportExcel({
     filename,
@@ -1151,8 +1439,16 @@ export const exportProductCatalogExcel = ({
         subtitle,
         columns,
         rows,
-        wrapColumns: [4, 5, 6],
-        hyperlinkColumns: [6],
+        wrapColumns: [5, 6],
+        hyperlinkColumns: [7],
+        hyperlinkTargets,
+        columnWidths,
+        imageColumn: 0,
+        imageDataUrls,
+        imageColumnWidth: 14,
+        imageSizePx: 72,
+        rowHeights,
+        freezeRows: 4,
       },
     ],
   });
