@@ -24,7 +24,7 @@ describe("currency formatting", () => {
   });
 
   it("sets COP as the database default for new settings rows", () => {
-    expect(currencyMigration).toContain("alter table public.nexora_settings alter column currency set default 'cop'");
+    expect(currencyMigration).toContain("alter table public.bodega_settings alter column currency set default 'cop'");
   });
 
   it("uses the currency saved in settings", () => {
