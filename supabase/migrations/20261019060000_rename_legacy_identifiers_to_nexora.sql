@@ -155,7 +155,7 @@ begin
     join pg_class c on c.oid = t.tgrelid
     join pg_namespace ns on ns.oid = c.relnamespace
     where not t.tgisinternal
-      and ns.nspname in ('public', 'storage')
+      and ns.nspname in ('public', 'storage', 'auth')
       and (left(t.tgname, 7) = 'bodega_' or left(t.tgname, 11) = 'trg_bodega_')
   loop
     v_new := case
