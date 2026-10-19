@@ -6,8 +6,8 @@ import {
 } from "./product-specs";
 
 describe("getProductTechnicalSpecFieldsForCategory", () => {
-  it("muestra exactamente siete características para celulares", () => {
-    expect(getProductTechnicalSpecFieldsForCategory("celular").map((field) => field.key)).toEqual([
+  it("muestra exactamente siete características para celulares y tablets", () => {
+    const expectedFields = [
       "storage",
       "ram",
       "processor",
@@ -15,7 +15,10 @@ describe("getProductTechnicalSpecFieldsForCategory", () => {
       "frontCamera",
       "connectivity",
       "compatibility",
-    ]);
+    ];
+
+    expect(getProductTechnicalSpecFieldsForCategory("celular").map((field) => field.key)).toEqual(expectedFields);
+    expect(getProductTechnicalSpecFieldsForCategory("tablet").map((field) => field.key)).toEqual(expectedFields);
   });
 
   it("incluye características específicas para audífonos", () => {
@@ -55,27 +58,29 @@ describe("getProductTechnicalSpecsForCategory", () => {
     });
   });
 
-  it("conserva las cámaras antiguas de un celular hasta que se completen los dos campos nuevos", () => {
-    expect(
-      getProductTechnicalSpecsForCategory("celular", {
-        cameras: "Trasera 48 MP, frontal 12 MP",
+  it("conserva las cámaras antiguas de celulares y tablets hasta completar los dos campos nuevos", () => {
+    for (const category of ["celular", "tablet"]) {
+      expect(
+        getProductTechnicalSpecsForCategory(category, {
+          cameras: "Trasera 48 MP, frontal 12 MP",
+          rearCamera: "48 MP",
+        }),
+      ).toEqual({
         rearCamera: "48 MP",
-      }),
-    ).toEqual({
-      rearCamera: "48 MP",
-      cameras: "Trasera 48 MP, frontal 12 MP",
-    });
-
-    expect(
-      getProductTechnicalSpecsForCategory("celular", {
         cameras: "Trasera 48 MP, frontal 12 MP",
+      });
+
+      expect(
+        getProductTechnicalSpecsForCategory(category, {
+          cameras: "Trasera 48 MP, frontal 12 MP",
+          rearCamera: "48 MP",
+          frontCamera: "12 MP",
+        }),
+      ).toEqual({
         rearCamera: "48 MP",
         frontCamera: "12 MP",
-      }),
-    ).toEqual({
-      rearCamera: "48 MP",
-      frontCamera: "12 MP",
-    });
+      });
+    }
   });
 
   it("omite características cuando la categoría no debe mostrar ficha técnica", () => {
