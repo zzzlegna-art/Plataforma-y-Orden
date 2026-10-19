@@ -68,7 +68,7 @@ Deno.serve(async (req) => {
     );
 
     const { data: knowledge } = await supabase
-      .from("bodega_ai_knowledge")
+      .from("nexora_ai_knowledge")
       .select("topic, content")
       .limit(10);
 
