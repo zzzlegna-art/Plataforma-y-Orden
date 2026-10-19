@@ -1,4 +1,4 @@
--- Bodega6A RLS Role and Isolation Tests
+-- Nexora RLS Role and Isolation Tests
 -- Executed inside CI against a test database.
 
 BEGIN;
