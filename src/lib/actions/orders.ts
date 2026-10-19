@@ -1,5 +1,5 @@
 /**
- * Acciones de pedidos a clientes mayoristas (flujo del prototipo Bodega 6A):
+ * Acciones de pedidos a clientes mayoristas (flujo del plataforma Nexora):
  * el pedido se arma por referencias (producto + condición + cantidad) y después
  * se serializan los IMEIs con barra de progreso por referencia. Al finalizar,
  * las unidades pasan a "vendido" y se registra la salida.
