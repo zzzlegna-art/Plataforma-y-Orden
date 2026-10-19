@@ -52,7 +52,7 @@ export const subirDocumentoGarantia = async (archivo: File, warrantyIds: string[
   }
 
   const { data: documento, error: errorDocumento } = await supabase
-    .from("bodega_documents")
+    .from("nexora_documents")
     .insert({
       storage_path: path,
       file_name: archivo.name,
@@ -68,7 +68,7 @@ export const subirDocumentoGarantia = async (archivo: File, warrantyIds: string[
   }
 
   const { error: errorEnlaces } = await supabase
-    .from("bodega_warranty_documents")
+    .from("nexora_warranty_documents")
     .insert(warrantyIds.map((warrantyId) => ({ warranty_id: warrantyId, document_id: documento.id })));
   if (errorEnlaces) {
     console.error(`No se pudo enlazar el documento a la garantía: ${errorEnlaces.message}`);
@@ -79,16 +79,16 @@ export const subirDocumentoGarantia = async (archivo: File, warrantyIds: string[
 /** Documentos enlazados a una garantía, del más nuevo al más viejo. */
 export const listarDocumentosDeGarantia = async (warrantyId: string): Promise<DocumentoGarantia[]> => {
   const { data, error } = await supabase
-    .from("bodega_warranty_documents")
-    .select("bodega_documents(id, file_name, content_type, size_bytes, created_at, storage_path)")
+    .from("nexora_warranty_documents")
+    .select("nexora_documents(id, file_name, content_type, size_bytes, created_at, storage_path)")
     .eq("warranty_id", warrantyId);
   if (error) {
     console.error(`No se pudieron leer los documentos de la garantía: ${error.message}`);
     throw new DomainError("errors.unexpected");
   }
-  type Fila = { bodega_documents: Record<string, unknown> | Record<string, unknown>[] | null };
+  type Fila = { nexora_documents: Record<string, unknown> | Record<string, unknown>[] | null };
   const documentos = ((data ?? []) as Fila[])
-    .map((fila) => (Array.isArray(fila.bodega_documents) ? fila.bodega_documents[0] : fila.bodega_documents))
+    .map((fila) => (Array.isArray(fila.nexora_documents) ? fila.nexora_documents[0] : fila.nexora_documents))
     .filter((doc): doc is Record<string, unknown> => Boolean(doc))
     .map(
       (doc): DocumentoGarantia => ({
