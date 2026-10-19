@@ -118,7 +118,7 @@ const spec = <T,>(definicion: Spec<T>): Spec<unknown> => definicion as unknown a
 const ESPECIFICACIONES: Spec<unknown>[] = [
   spec<Category>({
     coleccion: "categories",
-    tabla: "bodega_categories",
+    tabla: "nexora_categories",
     borrable: true,
     aFila: (c) => ({
       id: c.id,
@@ -135,7 +135,7 @@ const ESPECIFICACIONES: Spec<unknown>[] = [
   }),
   spec<ProductType>({
     coleccion: "productTypes",
-    tabla: "bodega_product_types",
+    tabla: "nexora_product_types",
     borrable: true,
     aFila: (t) => ({
       id: t.id,
@@ -154,7 +154,7 @@ const ESPECIFICACIONES: Spec<unknown>[] = [
   }),
   spec<Brand>({
     coleccion: "brands",
-    tabla: "bodega_brands",
+    tabla: "nexora_brands",
     borrable: true,
     aFila: (b) => ({ id: b.id, name: b.name, created_at: b.createdAt }),
     desdeFila: (f) => ({
@@ -165,7 +165,7 @@ const ESPECIFICACIONES: Spec<unknown>[] = [
   }),
   spec<Product>({
     coleccion: "products",
-    tabla: "bodega_products",
+    tabla: "nexora_products",
     borrable: true,
     aFila: (p) => ({
       id: p.id,
@@ -212,7 +212,7 @@ const ESPECIFICACIONES: Spec<unknown>[] = [
   }),
   spec<Customer>({
     coleccion: "customers",
-    tabla: "bodega_customers",
+    tabla: "nexora_customers",
     borrable: true,
     aFila: (c) => ({
       id: c.id,
@@ -246,7 +246,7 @@ const ESPECIFICACIONES: Spec<unknown>[] = [
   }),
   spec<Order>({
     coleccion: "orders",
-    tabla: "bodega_orders",
+    tabla: "nexora_orders",
     borrable: true,
     aFila: (o) => ({
       id: o.id,
@@ -279,7 +279,7 @@ const ESPECIFICACIONES: Spec<unknown>[] = [
   }),
   spec<OrderItem>({
     coleccion: "orderItems",
-    tabla: "bodega_order_items",
+    tabla: "nexora_order_items",
     borrable: true,
     aFila: (i) => ({
       id: i.id,
@@ -302,7 +302,7 @@ const ESPECIFICACIONES: Spec<unknown>[] = [
   }),
   spec<OrderItemUnit>({
     coleccion: "orderItemUnits",
-    tabla: "bodega_order_item_units",
+    tabla: "nexora_order_item_units",
     borrable: true,
     // Igual que con receptionItems: en el orden en que se fueron serializando, no por un
     // identificador interno al azar.
@@ -323,7 +323,7 @@ const ESPECIFICACIONES: Spec<unknown>[] = [
   }),
   spec<Reception>({
     coleccion: "receptions",
-    tabla: "bodega_receptions",
+    tabla: "nexora_receptions",
     borrable: true,
     aFila: (r) => ({
       id: r.id,
@@ -350,7 +350,7 @@ const ESPECIFICACIONES: Spec<unknown>[] = [
   }),
   spec<ReceptionItem>({
     coleccion: "receptionItems",
-    tabla: "bodega_reception_items",
+    tabla: "nexora_reception_items",
     borrable: true,
     // Se muestran en el orden en que se escanearon (no por un identificador interno al azar):
     // sin esto, cada vez que la pantalla se sincronizaba de nuevo con el servidor, la lista se
@@ -378,7 +378,7 @@ const ESPECIFICACIONES: Spec<unknown>[] = [
   }),
   spec<Unit>({
     coleccion: "units",
-    tabla: "bodega_units",
+    tabla: "nexora_units",
     borrable: true,
     aFila: (u) => ({
       id: u.id,
@@ -413,7 +413,7 @@ const ESPECIFICACIONES: Spec<unknown>[] = [
   }),
   spec<StockMovement>({
     coleccion: "movements",
-    tabla: "bodega_movements",
+    tabla: "nexora_movements",
     // La interfaz toma los primeros N (getMovementRows): deben ser los más recientes.
     orden: "created_at",
     soloAlta: true,
@@ -445,7 +445,7 @@ const ESPECIFICACIONES: Spec<unknown>[] = [
   }),
   spec<Technician>({
     coleccion: "tecnicos",
-    tabla: "bodega_technicians",
+    tabla: "nexora_technicians",
     borrable: true,
     aFila: (t) => ({ id: t.id, nombre: t.nombre, activo: t.activo !== false, created_at: t.createdAt }),
     desdeFila: (f) => ({
@@ -457,7 +457,7 @@ const ESPECIFICACIONES: Spec<unknown>[] = [
   }),
   spec<Warranty>({
     coleccion: "warranties",
-    tabla: "bodega_warranties",
+    tabla: "nexora_warranties",
     borrable: true,
     aFila: (w) => ({
       id: w.id,
@@ -510,7 +510,7 @@ const ESPECIFICACIONES: Spec<unknown>[] = [
   }),
   spec<WarrantyEvent>({
     coleccion: "warrantyEvents",
-    tabla: "bodega_warranty_events",
+    tabla: "nexora_warranty_events",
     // Historial: la base (migración 0013) solo permite agregar. Nunca se modifica ni se borra.
     soloAlta: true,
     borrable: false,
@@ -533,7 +533,7 @@ const ESPECIFICACIONES: Spec<unknown>[] = [
   }),
   spec<SerialPrevio>({
     coleccion: "serialesPrevios",
-    tabla: "bodega_previous_serials",
+    tabla: "nexora_previous_serials",
     borrable: true,
     aFila: (s) => ({
       id: s.id,
@@ -552,7 +552,7 @@ const ESPECIFICACIONES: Spec<unknown>[] = [
   }),
   spec<User>({
     coleccion: "users",
-    tabla: "bodega_profiles",
+    tabla: "nexora_profiles",
     // El perfil no se borra desde la app: las cuentas se activan o desactivan.
     borrable: false,
     aFila: (u) => ({
@@ -574,7 +574,7 @@ const ESPECIFICACIONES: Spec<unknown>[] = [
   }),
   spec<AuditLog>({
     coleccion: "auditLogs",
-    tabla: "bodega_audit_logs",
+    tabla: "nexora_audit_logs",
     tope: 500,
     orden: "created_at",
     soloAlta: true,
@@ -631,17 +631,17 @@ const leerColeccion = async (s: Spec<unknown>): Promise<unknown[]> => {
 
 const leerAjustes = async (): Promise<Db["settings"]> => {
   const { data, error } = await nube
-    .from("bodega_settings")
+    .from("nexora_settings")
     .select("*")
     .eq("id", "default")
     .maybeSingle();
   if (error) {
     console.error(`No se pudieron leer los ajustes: ${error.message}`);
-    return { currency: "MXN", companyName: "Nexora" };
+    return { currency: "COP", companyName: "Nexora" };
   }
   const fila = (data ?? {}) as Fila;
   return {
-    currency: texto(fila.currency) ?? "MXN",
+    currency: texto(fila.currency) ?? "COP",
     companyName: texto(fila.company_name) ?? "Nexora",
   };
 };
@@ -691,13 +691,13 @@ export const detalleTecnico = (mensaje: unknown): string => {
  */
 const traducirErrorServidor = (error: { message: string; code?: string }): DomainError => {
   const mensaje = error.message ?? "";
-  if (mensaje.includes("BODEGA_CONFLICTO_CONCURRENCIA")) {
+  if (mensaje.includes("NEXORA_CONFLICTO_CONCURRENCIA")) {
     return new DomainError("errors.saveFailed", { detalle: detalleTecnico("Otro usuario modificó este registro; actualiza la pantalla e inténtalo de nuevo") });
   }
-  if (mensaje.includes("BODEGA_UNIDAD_YA_ASIGNADA")) {
+  if (mensaje.includes("NEXORA_UNIDAD_YA_ASIGNADA")) {
     return new DomainError("errors.unitAlreadyAssigned");
   }
-  const noDisponible = /BODEGA_UNIDAD_NO_DISPONIBLE:(.*)$/.exec(mensaje);
+  const noDisponible = /NEXORA_UNIDAD_NO_DISPONIBLE:(.*)$/.exec(mensaje);
   if (noDisponible) {
     return new DomainError("errors.unitNotAvailable", { serial: noDisponible[1].trim() });
   }
@@ -785,7 +785,7 @@ export const calcularPasos = (previo: Db, siguiente: Db): Paso[] => {
   if (JSON.stringify(previo.settings) !== JSON.stringify(siguiente.settings)) {
     pasos.push({
       op: "upsert",
-      tabla: "bodega_settings",
+      tabla: "nexora_settings",
       solo_alta: false,
       esperados: [{ id: "default", currency: previo.settings.currency, company_name: previo.settings.companyName }],
       filas: [
@@ -803,7 +803,7 @@ export const calcularPasos = (previo: Db, siguiente: Db): Paso[] => {
 
 /**
  * Guardado atómico OBLIGATORIO: todos los pasos viajan en UNA llamada a la función
- * `bodega_aplicar_cambios` (migración 0004) y la base los aplica en una sola transacción:
+ * `nexora_aplicar_cambios` (migración 0004) y la base los aplica en una sola transacción:
  * o se guarda todo o no se guarda nada. Si la función no existe, no entiende el formato,
  * el paquete es demasiado grande o la respuesta no confirma `ok: true`, el guardado se
  * rechaza: nunca se vuelve a guardar tabla por tabla, porque eso podría dejar datos a medias.
@@ -861,8 +861,8 @@ export type ResultadoControl =
 const traducirErrorControl = (error: ErrorRemoto): DomainError => {
   const mensaje = error.message ?? "";
   if (funcionNoDisponible(error)) return new DomainError("control.notAvailable");
-  if (mensaje.includes("BODEGA_CONTROL_NO_ACTIVO")) return new DomainError("control.notActive");
-  if (/BODEGA_CONTROL_(PRODUCTO|UNIDAD)_NO_EXISTE/.test(mensaje)) {
+  if (mensaje.includes("NEXORA_CONTROL_NO_ACTIVO")) return new DomainError("control.notActive");
+  if (/NEXORA_CONTROL_(PRODUCTO|UNIDAD)_NO_EXISTE/.test(mensaje)) {
     return new DomainError("errors.notFound");
   }
   return new DomainError("errors.saveFailed", { detalle: detalleTecnico(mensaje) });
@@ -887,7 +887,7 @@ const desdeFilaDe = <T,>(coleccion: Coleccion, fila: Fila): T => {
 export const controlIniciar = async (productId: string): Promise<Product> =>
   desdeFilaDe<Product>(
     "products",
-    await llamarControl("bodega_control_iniciar", { p_product_id: productId }),
+    await llamarControl("nexora_control_iniciar", { p_product_id: productId }),
   );
 
 /** Marca como verificado el equipo con ese serial/IMEI (lo que se escanea). */
@@ -895,7 +895,7 @@ export const controlMarcarSerial = async (
   productId: string,
   serial: string,
 ): Promise<ResultadoControl> => {
-  const fila = await llamarControl("bodega_control_marcar_serial", {
+  const fila = await llamarControl("nexora_control_marcar_serial", {
     p_product_id: productId,
     p_serial: serial,
   });
@@ -920,7 +920,7 @@ export const controlMarcarSerial = async (
 export const controlMarcarUnidad = async (unitId: string, verificada: boolean): Promise<Unit> =>
   desdeFilaDe<Unit>(
     "units",
-    await llamarControl("bodega_control_marcar_unidad", {
+    await llamarControl("nexora_control_marcar_unidad", {
       p_unit_id: unitId,
       p_verificada: verificada,
     }),
@@ -930,7 +930,7 @@ export const controlMarcarUnidad = async (unitId: string, verificada: boolean): 
 export const controlFinalizar = async (productId: string, resumen: string): Promise<Product> =>
   desdeFilaDe<Product>(
     "products",
-    await llamarControl("bodega_control_finalizar", {
+    await llamarControl("nexora_control_finalizar", {
       p_product_id: productId,
       p_resumen: resumen,
     }),
@@ -939,7 +939,7 @@ export const controlFinalizar = async (productId: string, resumen: string): Prom
 /** Perfil del usuario autenticado (rol y estado) desde el backend. */
 export const leerPerfil = async (userId: string) => {
   const { data, error } = await nube
-    .from("bodega_profiles")
+    .from("nexora_profiles")
     .select("*")
     .eq("id", userId)
     .maybeSingle();
@@ -959,7 +959,7 @@ export type CambioRemoto = {
 };
 
 const ajustesDesdeFila = (fila: Fila): Db["settings"] => ({
-  currency: texto(fila.currency) ?? "MXN",
+  currency: texto(fila.currency) ?? "COP",
   companyName: texto(fila.company_name) ?? "Nexora",
 });
 
@@ -993,7 +993,7 @@ export const suscribirCambios = (
 
   canal = canal.on(
     "postgres_changes",
-    { event: "*", schema: "public", table: "bodega_settings" },
+    { event: "*", schema: "public", table: "nexora_settings" },
     (payload) => {
       const fila = payload.new as Fila | null;
       if (fila) {
