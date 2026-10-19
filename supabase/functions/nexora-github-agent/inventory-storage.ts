@@ -1,4 +1,4 @@
-// Bodega-6A AI Developer Agent
+// Nexora AI Developer Agent
 // Inventory storage layer
 // Prepares repository inventory persistence in Supabase.
 
