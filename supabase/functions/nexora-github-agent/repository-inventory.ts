@@ -1,4 +1,4 @@
-// Bodega-6A AI Developer
+// Nexora AI Developer
 // Repository inventory layer
 // Builds a structured inventory from repository map data.
 
