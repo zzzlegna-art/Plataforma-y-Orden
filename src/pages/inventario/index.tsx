@@ -6,6 +6,7 @@ import {
   BatteryCharging,
   Bluetooth,
   Boxes,
+  BookOpen,
   Camera,
   Check,
   Cpu,
@@ -55,11 +56,19 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Switch } from "@/components/ui/switch";
 import { useStore } from "@/hooks/use-store";
-import { exportExcel, exportPdf, exportSubtitle } from "@/lib/export";
+import {
+  exportExcel,
+  exportPdf,
+  exportProductCatalogExcel,
+  exportProductCatalogPdf,
+  exportSubtitle,
+} from "@/lib/export";
 import { getProductTechnicalSpecFieldsForCategory } from "@/lib/product-specs";
 import { formatCurrency, todayIso } from "@/lib/format";
 import { getProductRows, type ProductRow, type ProductStock } from "@/lib/selectors";
+import { etiquetaTipoProducto, tiposProductoOrdenados } from "@/lib/products";
 import type { Product, ProductCategory, ProductTechnicalSpecKey } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { ProductFormDialog } from "./ProductFormDialog";
@@ -465,6 +474,11 @@ const Inventario = () => {
   const [exportFormat, setExportFormat] = useState<"pdf" | "excel">("pdf");
   const [exportCat, setExportCat] = useState<"" | ProductCategory>("");
   const [exportCond, setExportCond] = useState<"" | "nuevo" | "seminuevo">("");
+  const [catalogExportOpen, setCatalogExportOpen] = useState(false);
+  const [catalogFormat, setCatalogFormat] = useState<"pdf" | "excel">("pdf");
+  const [catalogCat, setCatalogCat] = useState("");
+  const [catalogIncludePrice, setCatalogIncludePrice] = useState(false);
+  const [catalogIncludeStock, setCatalogIncludeStock] = useState(false);
 
   const rows = useMemo(() => {
     const needle = search.trim().toLowerCase();
@@ -553,6 +567,82 @@ const Inventario = () => {
     }
   };
 
+  const exportarCatalogo = async (format: "pdf" | "excel") => {
+    const base = getProductRows(db)
+      .filter((row) => row.product.isActive)
+      .filter((row) => (catalogCat ? row.product.categoria === catalogCat : true))
+      .sort((a, b) => a.product.name.localeCompare(b.product.name));
+
+    if (base.length === 0) {
+      toast.error(t("export.noData"));
+      return;
+    }
+
+    const products = base.map((row) => {
+      const productType = db.productTypes.find((type) => type.key === row.product.categoria);
+      const standardFeatures = getProductTechnicalSpecFieldsForCategory(row.product.categoria)
+        .flatMap((field) => {
+          const value = row.product.technicalSpecs?.[field.key]?.trim();
+          return value ? [{ label: t(field.labelKey), value }] : [];
+        });
+      const customFeatures = (row.product.technicalSpecs?.customFields ?? [])
+        .filter((field) => Boolean(field.name.trim() && field.value.trim()))
+        .map((field) => ({ label: field.name.trim(), value: field.value.trim() }));
+
+      return {
+        name: row.product.name,
+        sku: row.product.sku,
+        brand: row.brand?.name ?? "",
+        category: [
+          productType ? etiquetaTipoProducto(t, productType) : "",
+          row.category?.name ?? "",
+        ].filter(Boolean).join(" / "),
+        description: row.product.description?.trim() ?? "",
+        imageUrl: row.product.imageUrl ?? "",
+        price: formatCurrency(row.product.price),
+        stock: row.stock.enInventario,
+        features: [...standardFeatures, ...customFeatures],
+      };
+    });
+
+    const labels = {
+      product: t("export.producto"),
+      reference: t("product.sku"),
+      brand: t("export.marca"),
+      category: t("export.categoria"),
+      description: t("product.description"),
+      features: t("product.technicalDetails"),
+      price: t("product.price"),
+      stock: t("product.enInventario"),
+      imageUrl: t("catalog.imageUrl"),
+      noDescription: t("catalog.descriptionPending"),
+      noFeatures: t("catalog.featuresPending"),
+      imageUnavailable: t("catalog.imageUnavailable"),
+      moreFeatures: (count: number) => t("catalog.moreFeatures", { count }),
+    };
+    const options = {
+      title: `${t("catalog.title")} — ${db.settings.companyName}`,
+      subtitle: exportSubtitle(products.length),
+      filename: `catalogo-nexora-${todayIso()}.${format === "pdf" ? "pdf" : "xlsx"}`,
+      products,
+      includePrice: catalogIncludePrice,
+      includeStock: catalogIncludeStock,
+      labels,
+    };
+
+    const toastId = toast.loading(t("catalog.generating"));
+    try {
+      if (format === "pdf") {
+        await exportProductCatalogPdf(options);
+      } else {
+        exportProductCatalogExcel(options);
+      }
+      toast.success(t("catalog.exportSuccess"), { id: toastId });
+    } catch {
+      toast.error(t("catalog.exportFailed"), { id: toastId });
+    }
+  };
+
   /** Enlace al detalle conservando la condición elegida en el listado. */
   const detalleUrl = (productId: string) =>
     condicion ? `/inventario/${productId}?condicion=${condicion}` : `/inventario/${productId}`;
@@ -625,6 +715,16 @@ const Inventario = () => {
         description={t("product.subtitle")}
         actions={
           <div className="flex flex-wrap items-center gap-2">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setCatalogFormat("pdf");
+                setCatalogExportOpen(true);
+              }}
+            >
+              <BookOpen />
+              {t("catalog.exportButton")}
+            </Button>
             <Button
               variant="outline"
               onClick={() => {
@@ -1003,6 +1103,83 @@ const Inventario = () => {
               </label>
             ))}
           </RadioGroup>
+        </div>
+      </ExportDialog>
+
+      <ExportDialog
+        open={catalogExportOpen}
+        onOpenChange={setCatalogExportOpen}
+        title={t("catalog.title")}
+        description={t("catalog.description")}
+        onConfirm={() => void exportarCatalogo(catalogFormat)}
+      >
+        <div className="space-y-2">
+          <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            {t("catalog.format")}
+          </Label>
+          <RadioGroup
+            value={catalogFormat}
+            onValueChange={(value) => setCatalogFormat(value as "pdf" | "excel")}
+            className="gap-1.5"
+          >
+            {(
+              [
+                { value: "pdf", label: t("catalog.formatPdf") },
+                { value: "excel", label: t("catalog.formatExcel") },
+              ] as const
+            ).map((option) => (
+              <label
+                key={option.value}
+                onClick={() => setCatalogFormat(option.value)}
+                className={cn(
+                  "flex cursor-pointer items-center gap-2 rounded-md border px-3 py-2 text-sm transition-colors",
+                  catalogFormat === option.value
+                    ? "border-primary bg-primary/5"
+                    : "hover:bg-muted/50",
+                )}
+              >
+                <RadioGroupItem value={option.value} />
+                {option.label}
+              </label>
+            ))}
+          </RadioGroup>
+        </div>
+
+        <div className="space-y-2">
+          <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            {t("catalog.category")}
+          </Label>
+          <OptionSelect
+            value={catalogCat}
+            onChange={setCatalogCat}
+            emptyLabel={t("catalog.allCategories")}
+            options={tiposProductoOrdenados(db).map((type) => ({
+              value: type.key,
+              label: etiquetaTipoProducto(t, type),
+            }))}
+          />
+        </div>
+
+        <div className="flex items-center justify-between gap-3 rounded-md border px-3 py-2.5">
+          <Label htmlFor="catalog-include-price" className="cursor-pointer">
+            {t("catalog.includePrice")}
+          </Label>
+          <Switch
+            id="catalog-include-price"
+            checked={catalogIncludePrice}
+            onCheckedChange={setCatalogIncludePrice}
+          />
+        </div>
+
+        <div className="flex items-center justify-between gap-3 rounded-md border px-3 py-2.5">
+          <Label htmlFor="catalog-include-stock" className="cursor-pointer">
+            {t("catalog.includeStock")}
+          </Label>
+          <Switch
+            id="catalog-include-stock"
+            checked={catalogIncludeStock}
+            onCheckedChange={setCatalogIncludeStock}
+          />
         </div>
       </ExportDialog>
     </div>
