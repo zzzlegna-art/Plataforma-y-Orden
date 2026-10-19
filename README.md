@@ -1,122 +1,57 @@
-# Bodega 6A — Plataforma de inventario
+# Nexora — Smart Operations
 
-App de inventario por seriales/IMEIs: recepción, unidades, pedidos mayoristas,
-garantías y administración. React + Vite + TypeScript + shadcn/ui, con
-Supabase (Postgres + Auth + RLS + Realtime) como backend.
+Nexora es una plataforma de operaciones para administrar inventario por seriales/IMEIs, recepción de mercancía, unidades, pedidos mayoristas, clientes, garantías y administración.
 
-Este proyecto se desconectó de Enter.pro: ya no usa su Supabase gestionado
-(`EnterCloud`) ni sus paquetes privados (`@enter-pro/analytics-sdk`,
-`vite-plugin-enter-dev`). Corre sobre **tu propio proyecto de Supabase**.
+## Stack
 
----
+- React + TypeScript + Vite
+- Supabase: PostgreSQL, Auth, Row Level Security (RLS) y Realtime
+- Tailwind CSS y shadcn/ui
+- Vitest, Testing Library, ESLint y TypeScript
+- GitHub Actions y Vercel
 
-## 1. Crear tu proyecto de Supabase
+## Desarrollo local
 
-1. Crea un proyecto en https://supabase.com/dashboard (o usa uno propio
-   autoalojado si ya tienes Supabase corriendo en tu infraestructura).
-2. En **Project Settings → API** copia:
-   - **Project URL** → `VITE_SUPABASE_URL`
-   - **anon public key** → `VITE_SUPABASE_ANON_KEY`
+Requisitos: Node.js 22 y pnpm 8.
 
-## 2. Aplicar el esquema de base de datos
+1. Instala dependencias:
+   ```bash
+   pnpm install --frozen-lockfile
+   ```
+2. Crea un archivo `.env` en la raíz con las variables públicas de tu instancia de Supabase:
+   ```dotenv
+   VITE_SUPABASE_URL=https://YOUR_PROJECT_REF.supabase.co
+   VITE_SUPABASE_ANON_KEY=YOUR_SUPABASE_ANON_KEY
+   ```
+3. Inicia el servidor:
+   ```bash
+   pnpm dev
+   ```
 
-El archivo `supabase/migrations/00000000000001_schema.sql` contiene **todo**
-el esquema: tablas, políticas RLS, funciones de permisos, el trigger que
-convierte en `admin` al primer usuario que se registre, y la publicación de
-Realtime.
+Nunca coloques una clave `service_role`, contraseñas ni credenciales privadas en variables `VITE_*` o en el código del frontend.
 
-Opción A — Panel de Supabase (más simple):
-1. Ve a **SQL Editor** en tu proyecto.
-2. Pega el contenido completo de `supabase/migrations/00000000000001_schema.sql`
-   y ejecútalo.
+## Validaciones
 
-Opción B — Supabase CLI:
-```bash
-supabase login
-supabase link --project-ref TU_PROJECT_REF
-supabase db push
-```
-
-## 3. Desplegar la función de administración de usuarios
-
-El alta de usuarios y el restablecimiento de contraseñas los hace un
-administrador desde la app; para eso hace falta la Edge Function
-`bodega-gestion-usuarios`, que usa la `service_role key` (Supabase la inyecta
-automáticamente a las Edge Functions, no hay que configurar ningún secreto
-a mano):
+Antes de proponer una integración, ejecuta:
 
 ```bash
-supabase functions deploy bodega-gestion-usuarios --project-ref TU_PROJECT_REF
-```
-
-## 4. Configurar el frontend
-
-```bash
-cp .env.example .env
-# Edita .env con tu VITE_SUPABASE_URL y VITE_SUPABASE_ANON_KEY
-```
-
-## 5. Instalar y correr en local
-
-```bash
-pnpm install   # o npm install / yarn install
-pnpm dev
-```
-
-## 6. Primer usuario (administrador)
-
-No hay registro libre: las cuentas se crean desde **Administración → Usuarios**
-dentro de la app, pero para el primer usuario todavía no hay nadie con
-permiso de admin. Créalo desde el panel de Supabase:
-
-1. **Authentication → Users → Add user** (con email y contraseña,
-   marca "Auto Confirm User").
-2. El trigger `bodega_on_auth_user_created` crea automáticamente su perfil en
-   `bodega_profiles`. Como todavía no existe ningún admin activo, **este
-   primer usuario queda como `admin`** automáticamente.
-3. Inicia sesión con ese usuario en `/login`. Desde ahí ya puedes crear al
-   resto del equipo (rol `admin` o `bodeguero`) desde Administración →
-   Usuarios.
-
-## 7. Compilar para producción
-
-```bash
+pnpm check
+pnpm test
 pnpm build
+pnpm check:deploy
 ```
 
-Esto genera `dist/`, un sitio estático (SPA). Para hospedarlo:
+El workflow de GitHub Actions ejecuta validaciones de TypeScript/ESLint, pruebas y build al subir cambios a `main` o abrir un pull request.
 
-- **Vercel / Netlify**: importa el repo, configura las variables de entorno
-  `VITE_SUPABASE_URL` y `VITE_SUPABASE_ANON_KEY`, build command `pnpm build`,
-  output `dist`. Como es un SPA con `react-router-dom`, configura el
-  *rewrite* de todas las rutas hacia `/index.html` (Vercel/Netlify lo hacen
-  solas al detectar Vite; si usas tu propio servidor —nginx, etc.— agrega
-  un `try_files $uri /index.html;`).
-- **Servidor propio**: sirve el contenido de `dist/` como estático detrás de
-  cualquier servidor web, con el mismo *fallback* a `index.html`.
+## Despliegue
 
-La app es instalable como PWA (`manifest.webmanifest` + `sw.js`), así que
-una vez publicada con HTTPS se puede "agregar a pantalla de inicio" en
-Android/iOS.
+- Framework: Vite
+- Comando de build: `pnpm build`
+- Directorio de salida: `dist`
+- Rutas SPA: el archivo `vercel.json` redirige las rutas a `index.html`
 
----
+## Estado de aislamiento
 
-## Notas técnicas
+La marca de interfaz y la aplicación instalable usan Nexora. La configuración remota aún requiere validación: el identificador de proyecto presente en `supabase/config.toml` no coincide con la única instancia de Supabase visible para la conexión actual. No desplegar ni aplicar migraciones hasta confirmar el proyecto de destino y completar la migración de los identificadores internos del backend de forma reversible.
 
-- **Moneda / nombre de empresa**: se configuran desde Administración →
-  Datos, o cambiando la fila `default` de la tabla `bodega_settings`
-  (por defecto `MXN` / "Mi Empresa").
-- **Roles**: solo `admin` y `bodeguero`. Ver `src/lib/permissions.ts` y las
-  políticas RLS en la migración para la matriz completa.
-- **Arquitectura de datos**: `src/lib/types.ts` (modelo) → `src/lib/actions/*`
-  (funciones puras que validan reglas de negocio) → `src/store/app-provider.tsx`
-  (sincroniza con Supabase) → páginas en `src/pages/`. Ver `CodeGuideline.md`
-  para las convenciones del proyecto.
-- **Analítica**: se quitó el SDK de Enter.pro. Si quieres analítica propia
-  (Plausible, PostHog, etc.), agrégala en `src/main.tsx`.
-
-## Tech stack
-
-- Vite, TypeScript, React 19
-- shadcn-ui, Tailwind CSS
-- Supabase (Postgres, Auth, RLS, Realtime, Edge Functions)
+Las operaciones sobre inventario, seriales, pedidos, garantías, usuarios y auditoría deben conservar sus políticas de seguridad, integridad histórica y guardado atómico. No se deben hacer cambios destructivos en producción desde una rama de desarrollo.
