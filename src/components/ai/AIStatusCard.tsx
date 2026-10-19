@@ -9,7 +9,7 @@ export function AIStatusCard() {
         <Bot className="h-5 w-5" />
       </span>
       <div>
-        <h2 className="text-sm font-semibold">Bodega6A AI Automation</h2>
+        <h2 className="text-sm font-semibold">Nexora AI Automation</h2>
         <p className="text-xs text-muted-foreground">
           Motor de automatización conectado y listo para ejecutar tareas.
         </p>
