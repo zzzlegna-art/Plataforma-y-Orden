@@ -47,7 +47,7 @@ const crearCuenta = async (body: {
   nombre: string;
   rol: Role;
 }) => {
-  const { data, error } = await supabase.functions.invoke("bodega-gestion-usuarios", { body });
+  const { data, error } = await supabase.functions.invoke("nexora-gestion-usuarios", { body });
   if (error || !data?.ok) {
     const mensaje = (data as { error?: string } | null)?.error ?? error?.message ?? "";
     return { ok: false, error: traducirGestion(mensaje) };
@@ -178,7 +178,7 @@ const ResetPasswordDialog = ({ user }: { user: User }) => {
       return;
     }
     setSaving(true);
-    const { data, error } = await supabase.functions.invoke("bodega-gestion-usuarios", {
+    const { data, error } = await supabase.functions.invoke("nexora-gestion-usuarios", {
       body: { accion: "clave", userId: user.id, password },
     });
     setSaving(false);
