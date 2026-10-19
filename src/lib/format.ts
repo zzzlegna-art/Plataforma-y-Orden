@@ -2,7 +2,7 @@
 
 import { hoyBogota } from "./dates";
 
-/** Moneda de la aplicación: cambiar solo esta constante. */
+/** Moneda por defecto mientras se cargan los ajustes guardados. */
 export const APP_CURRENCY = "COP";
 export const APP_LOCALE = "es-CO";
 
