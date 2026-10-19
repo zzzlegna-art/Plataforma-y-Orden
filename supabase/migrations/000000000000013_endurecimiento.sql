@@ -1,5 +1,5 @@
 -- ============================================================
--- Bodega 6A :: endurecimiento (integridad + permisos)
+-- Nexora :: endurecimiento (integridad + permisos)
 --
 -- REVISAR ANTES DE APLICAR. Antes de correrla en producción:
 --   1) Haz un respaldo (Supabase → Database → Backups).
