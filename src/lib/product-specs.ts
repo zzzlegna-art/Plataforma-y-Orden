@@ -26,6 +26,18 @@ const COLOR = field("color", "Color del fabricante");
 const COMPATIBILITY = field("compatibility", "Modelos o sistemas compatibles");
 const MATERIAL = field("material", "Material");
 const WATER_RESISTANCE = field("waterResistance", "IP68 / 5 ATM, si aplica");
+const HEADPHONE_RESISTANCE: ProductTechnicalSpecField = {
+  ...field("waterResistance", "IPX4 / IP54 / IP67, si aplica"),
+  labelKey: "product.spec.headphoneResistance",
+};
+const HEADPHONE_AUTONOMY: ProductTechnicalSpecField = {
+  ...field("battery", "6 horas por carga / 30 h con estuche"),
+  labelKey: "product.spec.autonomy",
+};
+const SOUND_ISOLATION: ProductTechnicalSpecField = {
+  ...field("noiseCancellation", "ANC / aislamiento pasivo"),
+  labelKey: "product.spec.soundIsolation",
+};
 const WATCH_RESISTANCE: ProductTechnicalSpecField = {
   ...field("waterResistance", "IP68 / 5 ATM / resistente al agua"),
   labelKey: "product.spec.watchResistance",
@@ -60,22 +72,13 @@ export const DEVICE_TECHNICAL_SPEC_FIELDS: Record<DeviceCategory, ProductTechnic
     field("sensors", "Pulso, SpO₂, temperatura, ECG"),
   ],
   audifono: [
-    field("compatibility", "Dispositivos compatibles"),
-    field("noiseCancellation", "Cancelación activa de ruido (ANC)"),
-    field("transparencyMode", "Modo ambiente / transparencia"),
-    field("spatialAudio", "Audio espacial / seguimiento de cabeza"),
-    field("microphones", "Micrófonos y funciones de llamadas"),
-    field("soundLevel", "Nivel de sonido / sensibilidad (dB, si se publica)"),
-    field("battery", "Autonomía de los audífonos"),
-    field("caseBattery", "Autonomía total con estuche"),
-    field("chargingCase", "USB-C / Lightning / otro"),
-    field("wirelessCharging", "Carga inalámbrica"),
+    PROCESSOR,
+    HEADPHONE_RESISTANCE,
     field("connectivity", "Bluetooth / conexión multipunto"),
-    field("bluetoothVersion", "Bluetooth 5.x"),
-    field("audioCodec", "Códecs de audio compatibles"),
-    WATER_RESISTANCE,
-    MATERIAL,
-    COLOR,
+    field("compatibility", "iPhone / Android / PC / otros dispositivos"),
+    HEADPHONE_AUTONOMY,
+    field("sensors", "Detección en oído, controles táctiles"),
+    SOUND_ISOLATION,
   ],
 };
 
@@ -250,6 +253,30 @@ export const getProductTechnicalSpecsForCategory = (
       "color",
     ] as const;
     for (const key of legacyWatchKeys) {
+      const value = specs[key];
+      if (!normalized[key] && typeof value === "string" && value.trim()) {
+        normalized[key] = value.trim().slice(0, 120);
+      }
+    }
+  }
+
+  // Conserva atributos detallados de audífonos antiguos aunque la ficha simplificada ya no
+  // los muestre, para evitar borrar información al editar y guardar un producto existente.
+  if (normalizeCategory(category) === "audifono") {
+    const legacyHeadphoneKeys = [
+      "transparencyMode",
+      "spatialAudio",
+      "microphones",
+      "soundLevel",
+      "caseBattery",
+      "chargingCase",
+      "wirelessCharging",
+      "bluetoothVersion",
+      "audioCodec",
+      "material",
+      "color",
+    ] as const;
+    for (const key of legacyHeadphoneKeys) {
       const value = specs[key];
       if (!normalized[key] && typeof value === "string" && value.trim()) {
         normalized[key] = value.trim().slice(0, 120);
