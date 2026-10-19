@@ -74,7 +74,7 @@ begin
     join pg_namespace n on n.oid = c.relnamespace
     where n.nspname = 'public'
       and left(c.relname, 7) = 'bodega_'
-      and c.relkind in ('i', 'S')
+      and c.relkind in ('i', 'I', 'S')
     order by c.relkind, c.relname
   loop
     v_new := regexp_replace(r.relname, '^bodega_', 'nexora_');
@@ -134,7 +134,7 @@ begin
     join pg_class c on c.oid = p.polrelid
     join pg_namespace ns on ns.oid = c.relnamespace
     where left(p.polname, 7) = 'bodega_'
-      and ns.nspname in ('public', 'storage')
+      and ns.nspname in ('public', 'storage', 'auth')
   loop
     v_new := regexp_replace(r.polname, '^bodega_', 'nexora_');
     if exists (
@@ -180,7 +180,7 @@ begin
     select p.oid, pg_get_functiondef(p.oid) as definition
     from pg_proc p
     join pg_namespace n on n.oid = p.pronamespace
-    where n.nspname = 'public'
+    where n.nspname = 'public' and p.prokind in ('f', 'p')
       and (
         position('bodega_' in p.prosrc) > 0
         or position('BODEGA_' in p.prosrc) > 0
