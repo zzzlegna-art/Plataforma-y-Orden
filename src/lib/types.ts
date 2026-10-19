@@ -3,7 +3,7 @@
  * Todos los identificadores son strings (uuid) y las fechas ISO en texto, para que
  * un futuro backend (Postgres) use exactamente las mismas formas.
  *
- * Modelo basado en el prototipo "Bodega 6A": los equipos viven en dos ubicaciones
+ * Modelo basado en el plataforma Nexora: los equipos viven en dos ubicaciones
  * (bodega central y local) y cada serial/IMEI tiene un estado único que combina
  * su ubicación y situación comercial.
  */
@@ -132,7 +132,7 @@ export interface Brand {
   createdAt: string;
 }
 
-/** Categorías de producto (modelo del prototipo Bodega 6A). */
+/** Categorías de producto (modelo del plataforma Nexora). */
 /**
  * Tipo de producto (celular, tablet, repuesto...). Ya no es una lista fija: se administra
  * desde Administración (tabla bodega_product_types) y puede crecer con tipos nuevos. "repuesto"
