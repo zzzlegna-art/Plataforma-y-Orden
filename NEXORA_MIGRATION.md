@@ -7,18 +7,19 @@
 - Estilo visual: Emerald Tech, con tema claro/oscuro y componentes responsive.
 - HTML, metadatos, favicon, iconos PWA y navegación usan la identidad Nexora.
 
-## Arquitectura conservada
+## Arquitectura y compatibilidad
 
 - Frontend React, TypeScript y Vite.
 - Supabase para PostgreSQL, autenticación, RLS y Realtime.
-- La lógica de inventario, seriales, recepciones, pedidos, garantías y auditoría debe conservar sus validaciones y trazabilidad.
-- Las operaciones críticas requieren guardado atómico y permisos por rol.
+- La lógica de inventario, seriales, recepciones, pedidos, garantías y auditoría conserva sus validaciones y trazabilidad.
+- Las operaciones críticas mantienen el guardado atómico mediante el RPC ya desplegado `nexora_guardar_con_version`.
+- **Durante este despliegue se conservan los nombres de base de datos existentes `bodega_*`.** La marca visible Nexora no requiere renombrar las tablas internas.
 
-## Separación del esquema
+## Migración de identificadores aplazada
 
-La rama incluye la migración `supabase/migrations/20261019060000_rename_legacy_identifiers_to_nexora.sql`. La migración renombra tablas, funciones, constraints, índices, políticas y triggers con prefijo heredado, y actualiza los cuerpos de las funciones para que apunten a los nuevos nombres. Los datos y relaciones se conservan; no se elimina información.
+El renombrado masivo de tablas, funciones, índices, políticas y triggers queda fuera de este despliegue. Aplicarlo antes de coordinar el código de producción podría dejar la versión actual consultando nombres inexistentes.
 
-La migración no se ha aplicado a ningún proyecto remoto. El identificador en `supabase/config.toml` no coincide con la instancia visible en la auditoría, y el proyecto Vercel todavía tiene aliases heredados. Por eso la separación remota sigue pendiente.
+La migración de identificadores deberá prepararse por separado, probarse en un entorno aislado con una copia de respaldo y desplegarse de forma coordinada con la versión de aplicación que la utilice. No se debe ejecutar una migración de renombrado como parte de este release.
 
 ## Validación antes de integrar
 

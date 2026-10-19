@@ -85,7 +85,7 @@ describe("calcularPasos", () => {
       createdAt: ahora,
     });
 
-    const paso = calcularPasos(previo, siguiente).find((item) => item.tabla === "nexora_audit_logs");
+    const paso = calcularPasos(previo, siguiente).find((item) => item.tabla === "bodega_audit_logs");
     expect(paso?.op === "upsert" ? paso.filas[0].entity : undefined).toBe("product_type");
   });
 
@@ -103,13 +103,13 @@ describe("calcularPasos", () => {
 
     const pasos = calcularPasos(previo, sig);
     expect(pasos.map((p) => `${p.op}:${p.tabla}`)).toEqual([
-      "upsert:nexora_orders",
-      "upsert:nexora_units",
-      "upsert:nexora_movements",
-      "upsert:nexora_audit_logs",
-      "borrar:nexora_order_item_units", // se borra primero lo que depende de otra tabla
-      "borrar:nexora_order_items",
-      "upsert:nexora_settings",
+      "upsert:bodega_orders",
+      "upsert:bodega_units",
+      "upsert:bodega_movements",
+      "upsert:bodega_audit_logs",
+      "borrar:bodega_order_item_units", // se borra primero lo que depende de otra tabla
+      "borrar:bodega_order_items",
+      "upsert:bodega_settings",
     ]);
   });
 
@@ -122,7 +122,7 @@ describe("calcularPasos", () => {
     });
     expect(calcularPasos(previo, siguiente)).toContainEqual(
       expect.objectContaining({
-        op: "upsert", tabla: "nexora_warranty_events", solo_alta: true,
+        op: "upsert", tabla: "bodega_warranty_events", solo_alta: true,
       }),
     );
   });
@@ -156,7 +156,7 @@ describe("calcularPasos", () => {
       id: "w1", code: "GAR-1", unitId: "u1", productId: "", reason: "no enciende",
       status: "recibido", receivedAt: ahora, createdBy: "",
     });
-    const paso = calcularPasos(previo, sig).find((p) => p.tabla === "nexora_warranties");
+    const paso = calcularPasos(previo, sig).find((p) => p.tabla === "bodega_warranties");
     expect(paso?.op).toBe("upsert");
     if (paso?.op === "upsert") {
       expect(Object.keys(paso.filas[0])).not.toContain("replacement_unit_id");
@@ -171,7 +171,7 @@ describe("calcularPasos", () => {
       status: "reenvio_pendiente", resolucion: "cambio", replacementUnitId: "u2",
       receivedAt: ahora, createdBy: "",
     });
-    const paso = calcularPasos(previo, sig).find((p) => p.tabla === "nexora_warranties");
+    const paso = calcularPasos(previo, sig).find((p) => p.tabla === "bodega_warranties");
     expect(paso?.op === "upsert" && paso.filas[0].replacement_unit_id).toBe("u2");
   });
 
@@ -179,13 +179,13 @@ describe("calcularPasos", () => {
     const previo = antesDeDespachar();
     const pasos = calcularPasos(previo, despachado(previo));
     const soloAlta = Object.fromEntries(pasos.map((p) => [p.tabla, p.op === "upsert" ? p.solo_alta : null]));
-    expect(soloAlta).toMatchObject({ nexora_orders: false, nexora_units: false, nexora_movements: true, nexora_audit_logs: true });
+    expect(soloAlta).toMatchObject({ bodega_orders: false, bodega_units: false, bodega_movements: true, bodega_audit_logs: true });
   });
 
   it("convierte los identificadores vacíos en null (la base espera uuid)", () => {
     const previo = antesDeDespachar();
     const pasos = calcularPasos(previo, despachado(previo));
-    const unidades = pasos.find((p) => p.tabla === "nexora_units");
+    const unidades = pasos.find((p) => p.tabla === "bodega_units");
     expect(unidades?.op === "upsert" && unidades.filas[0].created_by).toBeNull();
     expect(unidades?.op === "upsert" && unidades.filas[0].product_id).toBeNull();
   });
@@ -201,7 +201,7 @@ describe("pushDb · guardado atómico", () => {
     const [nombre, args] = mocks.rpc.mock.calls[0];
     expect(nombre).toBe("nexora_guardar_con_version");
     expect(args.p_cambios.version).toBe(1);
-    expect(args.p_cambios.pasos.map((p: { tabla: string }) => p.tabla)).toEqual(["nexora_orders", "nexora_units", "nexora_movements", "nexora_audit_logs"]);
+    expect(args.p_cambios.pasos.map((p: { tabla: string }) => p.tabla)).toEqual(["bodega_orders", "bodega_units", "bodega_movements", "bodega_audit_logs"]);
     expect(mocks.registro).toEqual([]);
   });
 
@@ -239,7 +239,7 @@ describe("pushDb  guardado atomico obligatorio", () => {
   });
 
   it("rechaza formatos incompatibles sin guardar por tablas", async () => {
-    mocks.rpc.mockResolvedValue({ data: null, error: { message: "NEXORA_CAMBIOS_VERSION:2" } });
+    mocks.rpc.mockResolvedValue({ data: null, error: { message: "BODEGA_CAMBIOS_VERSION:2" } });
     const previo = antesDeDespachar();
     await expect(pushDb(previo, despachado(previo))).rejects.toMatchObject({ key: "errors.saveFailed" });
     expect(mocks.registro).toEqual([]);
@@ -292,12 +292,12 @@ describe("pushDb · rechazos del servidor (NO se reintentan por tablas)", () => 
   };
 
   it("IMEI ya asignado a otro pedido", async () => {
-    const e = await rechazo({ message: "NEXORA_UNIDAD_YA_ASIGNADA:350000000000001", code: "P0001" });
+    const e = await rechazo({ message: "BODEGA_UNIDAD_YA_ASIGNADA:350000000000001", code: "P0001" });
     expect(e.key).toBe("errors.unitAlreadyAssigned");
   });
 
   it("unidad no disponible, con su serial", async () => {
-    const e = await rechazo({ message: "NEXORA_UNIDAD_NO_DISPONIBLE:350000000000009", code: "P0001" });
+    const e = await rechazo({ message: "BODEGA_UNIDAD_NO_DISPONIBLE:350000000000009", code: "P0001" });
     expect(e.key).toBe("errors.unitNotAvailable");
     expect(e.params).toEqual({ serial: "350000000000009" });
   });
@@ -313,7 +313,7 @@ describe("pushDb · rechazos del servidor (NO se reintentan por tablas)", () => 
   });
 
   it("un rechazo NO desactiva el guardado atómico para los siguientes", async () => {
-    await rechazo({ message: "NEXORA_UNIDAD_YA_ASIGNADA:x", code: "P0001" });
+    await rechazo({ message: "BODEGA_UNIDAD_YA_ASIGNADA:x", code: "P0001" });
     mocks.rpc.mockResolvedValue({ data: { ok: true }, error: null });
     const previo = antesDeDespachar();
     await pushDb(previo, despachado(previo));
@@ -329,7 +329,7 @@ describe("control físico · las escrituras normales NO tocan las marcas", () =>
     sig.units[0].status = "vendido";
     sig.units[0].checkedAt = "2026-09-21T16:00:00.123456+00:00";
     sig.units[0].checkedBy = "u9";
-    const paso = calcularPasos(previo, sig).find((p) => p.tabla === "nexora_units");
+    const paso = calcularPasos(previo, sig).find((p) => p.tabla === "bodega_units");
     expect(paso?.op).toBe("upsert");
     const filaEnviada = paso?.op === "upsert" ? paso.filas[0] : {};
     expect(filaEnviada).not.toHaveProperty("checked_at");
@@ -343,7 +343,7 @@ describe("control físico · las escrituras normales NO tocan las marcas", () =>
     const sig = cloneDb(previo);
     sig.products[0].name = "iPhone 14";
     sig.products[0].controlStartedAt = "2026-09-21T15:00:00+00:00";
-    const paso = calcularPasos(previo, sig).find((p) => p.tabla === "nexora_products");
+    const paso = calcularPasos(previo, sig).find((p) => p.tabla === "bodega_products");
     const filaEnviada = paso?.op === "upsert" ? paso.filas[0] : {};
     expect(filaEnviada).not.toHaveProperty("control_started_at");
     expect(filaEnviada).not.toHaveProperty("control_started_by");
@@ -358,7 +358,7 @@ describe("control físico · llamadas al servidor", () => {
   it("iniciar: llama a la función con el producto y devuelve el producto con su inicio", async () => {
     mocks.rpc.mockResolvedValue({ data: filaProducto, error: null });
     const producto = await controlIniciar("p1");
-    expect(mocks.rpc).toHaveBeenCalledWith("nexora_control_iniciar", { p_product_id: "p1" });
+    expect(mocks.rpc).toHaveBeenCalledWith("bodega_control_iniciar", { p_product_id: "p1" });
     expect(producto.controlStartedAt).toBe("2026-09-21T15:00:00.5+00:00");
     expect(producto.controlStartedBy).toBe("b1");
   });
@@ -366,7 +366,7 @@ describe("control físico · llamadas al servidor", () => {
   it("marcar serial: entiende cada resultado del servidor", async () => {
     mocks.rpc.mockResolvedValue({ data: { resultado: "verificada", unidad: filaUnidad }, error: null });
     const ok = await controlMarcarSerial("p1", " 350000000000001 ");
-    expect(mocks.rpc).toHaveBeenCalledWith("nexora_control_marcar_serial", { p_product_id: "p1", p_serial: " 350000000000001 " });
+    expect(mocks.rpc).toHaveBeenCalledWith("bodega_control_marcar_serial", { p_product_id: "p1", p_serial: " 350000000000001 " });
     expect(ok.resultado).toBe("verificada");
     expect("unidad" in ok && ok.unidad.checkedAt).toBe("2026-09-21T16:00:00.123456+00:00");
 
@@ -387,12 +387,12 @@ describe("control físico · llamadas al servidor", () => {
   it("marcar/desmarcar a mano y finalizar usan sus funciones", async () => {
     mocks.rpc.mockResolvedValue({ data: filaUnidad, error: null });
     const unidad = await controlMarcarUnidad("u1", true);
-    expect(mocks.rpc).toHaveBeenCalledWith("nexora_control_marcar_unidad", { p_unit_id: "u1", p_verificada: true });
+    expect(mocks.rpc).toHaveBeenCalledWith("bodega_control_marcar_unidad", { p_unit_id: "u1", p_verificada: true });
     expect(unidad.checkedBy).toBe("b1");
 
     mocks.rpc.mockResolvedValue({ data: { ...filaProducto, control_started_at: null, control_started_by: null }, error: null });
     const cerrado = await controlFinalizar("p1", "resumen");
-    expect(mocks.rpc).toHaveBeenCalledWith("nexora_control_finalizar", { p_product_id: "p1", p_resumen: "resumen" });
+    expect(mocks.rpc).toHaveBeenCalledWith("bodega_control_finalizar", { p_product_id: "p1", p_resumen: "resumen" });
     expect(cerrado.controlStartedAt).toBeUndefined();
   });
 
@@ -401,9 +401,9 @@ describe("control físico · llamadas al servidor", () => {
       mocks.rpc.mockResolvedValue({ data: null, error });
       return controlIniciar("p1").then(() => "", (e: DomainError) => e.key);
     };
-    expect(await claveDe({ code: "PGRST202", message: "Could not find the function public.nexora_control_iniciar" })).toBe("control.notAvailable");
-    expect(await claveDe({ message: "NEXORA_CONTROL_NO_ACTIVO", code: "P0001" })).toBe("control.notActive");
-    expect(await claveDe({ message: "NEXORA_CONTROL_PRODUCTO_NO_EXISTE", code: "P0001" })).toBe("errors.notFound");
+    expect(await claveDe({ code: "PGRST202", message: "Could not find the function public.bodega_control_iniciar" })).toBe("control.notAvailable");
+    expect(await claveDe({ message: "BODEGA_CONTROL_NO_ACTIVO", code: "P0001" })).toBe("control.notActive");
+    expect(await claveDe({ message: "BODEGA_CONTROL_PRODUCTO_NO_EXISTE", code: "P0001" })).toBe("errors.notFound");
     expect(await claveDe({ message: "TypeError: Failed to fetch" })).toBe("errors.saveFailed");
   });
 });
@@ -415,7 +415,7 @@ describe("orderDate / deliveryDate · fecha del pedido no se corre un día por l
       const encadenable = {
         order: () => encadenable,
         eq: () => encadenable,
-        range: async () => ({ data: tabla === "nexora_orders" ? filasOrders : [], error: null }),
+        range: async () => ({ data: tabla === "bodega_orders" ? filasOrders : [], error: null }),
         maybeSingle: async () => ({ data: null, error: null }),
       };
       return { select: () => encadenable };
@@ -457,13 +457,13 @@ describe("orderDate / deliveryDate · fecha del pedido no se corre un día por l
 });
 
 describe("traducirErrorServidor · duplicado dentro de una recepción", () => {
-  it("un choque de duplicado en nexora_reception_items usa el mismo aviso que la validación al escanear (no el genérico de 'otro dispositivo')", async () => {
+  it("un choque de duplicado en bodega_reception_items usa el mismo aviso que la validación al escanear (no el genérico de 'otro dispositivo')", async () => {
     mocks.rpc.mockResolvedValue({
       data: null,
       error: {
         code: "23505",
         message:
-          'duplicate key value violates unique constraint "nexora_reception_items_serial_unico_por_recepcion"',
+          'duplicate key value violates unique constraint "bodega_reception_items_serial_unico_por_recepcion"',
       },
     });
     const previo = antesDeDespachar();
@@ -481,7 +481,7 @@ describe("traducirErrorServidor · duplicado dentro de una recepción", () => {
   it("un duplicado en otra tabla sigue usando el aviso genérico de conflicto", async () => {
     mocks.rpc.mockResolvedValue({
       data: null,
-      error: { code: "23505", message: 'duplicate key value violates unique constraint "nexora_units_serial_key"' },
+      error: { code: "23505", message: 'duplicate key value violates unique constraint "bodega_units_serial_key"' },
     });
     const previo = antesDeDespachar();
     const sig = cloneDb(previo);
@@ -514,16 +514,16 @@ describe("orden de seriales al recibir o serializar (no por un id interno al aza
 
     await pullDb();
 
-    expect(ordenesPedidos["nexora_reception_items"]).toContainEqual({
+    expect(ordenesPedidos["bodega_reception_items"]).toContainEqual({
       columna: "created_at",
       opciones: { ascending: true },
     });
-    expect(ordenesPedidos["nexora_order_item_units"]).toContainEqual({
+    expect(ordenesPedidos["bodega_order_item_units"]).toContainEqual({
       columna: "created_at",
       opciones: { ascending: true },
     });
     // Una bitácora (que sí quiere lo más nuevo arriba) no cambió: sigue descendente.
-    expect(ordenesPedidos["nexora_movements"]).toContainEqual({
+    expect(ordenesPedidos["bodega_movements"]).toContainEqual({
       columna: "created_at",
       opciones: { ascending: false },
     });
