@@ -135,7 +135,7 @@ export interface Brand {
 /** Categorías de producto (modelo del plataforma Nexora). */
 /**
  * Tipo de producto (celular, tablet, repuesto...). Ya no es una lista fija: se administra
- * desde Administración (tabla bodega_product_types) y puede crecer con tipos nuevos. "repuesto"
+ * desde Administración (tabla nexora_product_types) y puede crecer con tipos nuevos. "repuesto"
  * es el único con un significado especial fijo en el código (sin condición nuevo/seminuevo, se
  * entra por cantidad) — ver esProductoRepuesto en src/lib/products.ts.
  */
