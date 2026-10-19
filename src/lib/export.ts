@@ -885,9 +885,9 @@ const loadCatalogImageData = (url?: string): Promise<string | null> =>
   });
 
 /**
- * Catálogo PDF Nexora: dos fichas por página, fotografía original y datos técnicos
- * registrados. Las referencias sin descripción o características se identifican
- * explícitamente; no se inventan especificaciones.
+ * Catálogo PDF Nexora: fichas compactas de altura dinámica para aprovechar cada página.
+ * Conserva las fotografías y características registradas sin reservar media página
+ * para cada producto. Las referencias sin datos se identifican explícitamente.
  */
 export const exportProductCatalogPdf = async ({
   title,
@@ -903,33 +903,100 @@ export const exportProductCatalogPdf = async ({
   const pageH = doc.internal.pageSize.getHeight();
   const margin = 24;
   const cardWidth = pageW - margin * 2;
-  const gap = 12;
-  const cardHeight = (pageH - CONTENT_TOP - FOOTER_SPACE - gap) / 2;
-  const imageBoxSize = 148;
-  const imageSize = 136;
-  const imageX = margin + 12;
-  const textX = margin + 174;
+  const gap = 9;
+  const imageBoxSize = 92;
+  const imageSize = 84;
+  const imageX = margin + 10;
+  const imageYInset = 11;
+  const textX = imageX + imageBoxSize + 13;
   const textWidth = cardWidth - (textX - margin) - 12;
+  const bottom = pageH - FOOTER_SPACE;
   const drawHeader = () => dibujarEncabezado(doc, title, subtitle, margin);
 
-  drawHeader();
+  // Calculamos la altura según el contenido real de cada referencia. Así los productos
+  // sencillos ocupan menos espacio y los que tienen más características siguen siendo legibles.
+  const layouts = products.map((product) => {
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(11.2);
+    const nameLines = splitCatalogLines(doc, product.name, textWidth, 2);
 
-  for (let index = 0; index < products.length; index += 1) {
-    if (index > 0 && index % 2 === 0) {
+    const metadata = [
+      `${labels.reference}: ${product.sku || "—"}`,
+      product.brand ? `${labels.brand}: ${product.brand}` : null,
+      product.category ? `${labels.category}: ${product.category}` : null,
+    ].filter(Boolean).join(" · ");
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(7.6);
+    const metadataLines = splitCatalogLines(doc, metadata, textWidth, 2);
+
+    const description = product.description?.trim() || labels.noDescription;
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(7.5);
+    const descriptionLines = splitCatalogLines(doc, description, textWidth, 3);
+
+    const allFeatures = product.features ?? [];
+    const visibleFeatures = allFeatures.slice(0, 10);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(7.1);
+    const featureLines = visibleFeatures.map((feature) =>
+      splitCatalogLines(doc, `• ${feature.label}: ${feature.value}`, textWidth, 2),
+    );
+    const noFeaturesLines = splitCatalogLines(doc, labels.noFeatures, textWidth, 2);
+    const omittedFeatures = Math.max(0, allFeatures.length - visibleFeatures.length);
+
+    const textHeight =
+      nameLines.length * 12.5 + 3 +
+      metadataLines.length * 8.5 + 4 +
+      9.2 + descriptionLines.length * 8.5 + 3 +
+      9.2 +
+      (visibleFeatures.length > 0
+        ? featureLines.reduce((sum, lines) => sum + lines.length * 8.2 + 1, 0)
+        : noFeaturesLines.length * 8.2) +
+      (omittedFeatures > 0 ? 8.2 : 0) +
+      (includePrice || includeStock ? 11 : 0);
+    const cardHeight = Math.max(imageBoxSize + 22, 15 + textHeight + 10);
+
+    return {
+      product,
+      cardHeight,
+      nameLines,
+      metadataLines,
+      descriptionLines,
+      visibleFeatures,
+      featureLines,
+      noFeaturesLines,
+      omittedFeatures,
+    };
+  });
+
+  drawHeader();
+  let cardY = CONTENT_TOP;
+
+  for (const layout of layouts) {
+    if (cardY > CONTENT_TOP && cardY + layout.cardHeight > bottom) {
       doc.addPage();
       drawHeader();
+      cardY = CONTENT_TOP;
     }
 
-    const product = products[index];
-    const rowOnPage = index % 2;
-    const cardY = CONTENT_TOP + rowOnPage * (cardHeight + gap);
+    const {
+      product,
+      cardHeight,
+      nameLines,
+      metadataLines,
+      descriptionLines,
+      visibleFeatures,
+      featureLines,
+      noFeaturesLines,
+      omittedFeatures,
+    } = layout;
 
     doc.setFillColor(255, 255, 255);
     doc.setDrawColor(BORDER[0], BORDER[1], BORDER[2]);
     doc.setLineWidth(0.7);
-    doc.roundedRect(margin, cardY, cardWidth, cardHeight, 7, 7, "FD");
+    doc.roundedRect(margin, cardY, cardWidth, cardHeight, 6, 6, "FD");
 
-    const imageY = cardY + 14;
+    const imageY = cardY + imageYInset;
     doc.setFillColor(CYAN_PALE[0], CYAN_PALE[1], CYAN_PALE[2]);
     doc.setDrawColor(BORDER[0], BORDER[1], BORDER[2]);
     doc.roundedRect(imageX, imageY, imageBoxSize, imageBoxSize, 5, 5, "FD");
@@ -946,113 +1013,87 @@ export const exportProductCatalogPdf = async ({
       );
     } else {
       doc.setFont("helvetica", "normal");
-      doc.setFontSize(8);
+      doc.setFontSize(7.5);
       doc.setTextColor(MUTED[0], MUTED[1], MUTED[2]);
       doc.text(
-        splitCatalogLines(doc, labels.imageUnavailable, imageBoxSize - 16, 2),
+        splitCatalogLines(doc, labels.imageUnavailable, imageBoxSize - 14, 2),
         imageX + imageBoxSize / 2,
         imageY + imageBoxSize / 2,
         { align: "center" },
       );
     }
 
-    let cursorY = cardY + 20;
+    let cursorY = cardY + 15;
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(12);
+    doc.setFontSize(11.2);
     doc.setTextColor(NAVY[0], NAVY[1], NAVY[2]);
-    const nameLines = splitCatalogLines(doc, product.name, textWidth, 2);
     doc.text(nameLines, textX, cursorY);
-    cursorY += nameLines.length * 14 + 4;
+    cursorY += nameLines.length * 12.5 + 3;
 
-    const metadata = [
-      `${labels.reference}: ${product.sku || "—"}`,
-      product.brand ? `${labels.brand}: ${product.brand}` : null,
-      product.category ? `${labels.category}: ${product.category}` : null,
-    ].filter(Boolean).join(" · ");
     doc.setFont("helvetica", "normal");
-    doc.setFontSize(8);
+    doc.setFontSize(7.6);
     doc.setTextColor(MUTED[0], MUTED[1], MUTED[2]);
-    const metadataLines = splitCatalogLines(doc, metadata, textWidth, 2);
     doc.text(metadataLines, textX, cursorY);
-    cursorY += metadataLines.length * 10 + 6;
+    cursorY += metadataLines.length * 8.5 + 4;
 
     doc.setFont("helvetica", "bold");
     doc.setFontSize(8.2);
     doc.setTextColor(CYAN_DARK[0], CYAN_DARK[1], CYAN_DARK[2]);
     doc.text(labels.description, textX, cursorY);
-    cursorY += 10;
+    cursorY += 9.2;
 
     doc.setFont("helvetica", "normal");
-    doc.setFontSize(8);
+    doc.setFontSize(7.5);
     doc.setTextColor(TEXT[0], TEXT[1], TEXT[2]);
-    const description = product.description?.trim() || labels.noDescription;
-    const descriptionLines = splitCatalogLines(doc, description, textWidth, 3);
     doc.text(descriptionLines, textX, cursorY);
-    cursorY += descriptionLines.length * 9.5 + 5;
+    cursorY += descriptionLines.length * 8.5 + 3;
 
     doc.setFont("helvetica", "bold");
     doc.setFontSize(8.2);
     doc.setTextColor(CYAN_DARK[0], CYAN_DARK[1], CYAN_DARK[2]);
     doc.text(labels.features, textX, cursorY);
-    cursorY += 10;
+    cursorY += 9.2;
 
-    const footerReserve = includePrice || includeStock ? 25 : 12;
-    const featureBottom = cardY + cardHeight - footerReserve;
-    const features = product.features ?? [];
-    if (features.length === 0) {
-      if (cursorY + 9 <= featureBottom) {
-        doc.setFont("helvetica", "normal");
-        doc.setFontSize(7.5);
-        doc.setTextColor(MUTED[0], MUTED[1], MUTED[2]);
-        doc.text(splitCatalogLines(doc, labels.noFeatures, textWidth, 2), textX, cursorY);
-      }
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(7.1);
+    doc.setTextColor(TEXT[0], TEXT[1], TEXT[2]);
+    if (visibleFeatures.length === 0) {
+      doc.setTextColor(MUTED[0], MUTED[1], MUTED[2]);
+      doc.text(noFeaturesLines, textX, cursorY);
+      cursorY += noFeaturesLines.length * 8.2;
     } else {
-      let omitted = 0;
-      for (let featureIndex = 0; featureIndex < features.length; featureIndex += 1) {
-        const feature = features[featureIndex];
-        doc.setFont("helvetica", "normal");
-        doc.setFontSize(7.5);
-        doc.setTextColor(TEXT[0], TEXT[1], TEXT[2]);
-        const featureLines = splitCatalogLines(
-          doc,
-          `• ${feature.label}: ${feature.value}`,
-          textWidth,
-          2,
-        );
-        const featureHeight = featureLines.length * 9 + 1;
-        if (cursorY + featureHeight > featureBottom) {
-          omitted = features.length - featureIndex;
-          break;
-        }
-        doc.text(featureLines, textX, cursorY);
-        cursorY += featureHeight;
-      }
+      visibleFeatures.forEach((feature, index) => {
+        const lines = featureLines[index] ?? [];
+        doc.text(lines, textX, cursorY);
+        cursorY += lines.length * 8.2 + 1;
+      });
+    }
 
-      if (omitted > 0 && cursorY + 9 <= featureBottom) {
-        doc.setFont("helvetica", "italic");
-        doc.setFontSize(7.5);
-        doc.setTextColor(MUTED[0], MUTED[1], MUTED[2]);
-        doc.text(labels.moreFeatures(omitted), textX, cursorY);
-      }
+    if (omittedFeatures > 0) {
+      doc.setFont("helvetica", "italic");
+      doc.setTextColor(MUTED[0], MUTED[1], MUTED[2]);
+      doc.text(labels.moreFeatures(omittedFeatures), textX, cursorY);
+      cursorY += 8.2;
     }
 
     if (includePrice || includeStock) {
-      const footerY = cardY + cardHeight - 12;
       doc.setFont("helvetica", "bold");
-      doc.setFontSize(8.5);
+      doc.setFontSize(8);
       doc.setTextColor(NAVY[0], NAVY[1], NAVY[2]);
       if (includePrice) {
-        doc.text(`${labels.price}: ${product.price || "—"}`, textX, footerY);
+        doc.text(`${labels.price}: ${product.price || "—"}`, textX, cursorY);
       }
       if (includeStock) {
         doc.text(
           `${labels.stock}: ${product.stock ?? 0}`,
           textX + textWidth,
-          footerY,
+          cursorY,
           { align: "right" },
         );
       }
     }
+
+    cardY += cardHeight + gap;
   }
 
   dibujarPies(doc, title, margin);
