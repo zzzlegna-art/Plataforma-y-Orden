@@ -3,14 +3,23 @@
 import { hoyBogota } from "./dates";
 
 /** Moneda de la aplicación: cambiar solo esta constante. */
-export const APP_CURRENCY = "MXN";
-export const APP_LOCALE = "es-MX";
+export const APP_CURRENCY = "COP";
+export const APP_LOCALE = "es-CO";
 
-const currencyFormatter = new Intl.NumberFormat(APP_LOCALE, {
-  style: "currency",
-  currency: APP_CURRENCY,
-  minimumFractionDigits: 2,
-});
+const crearFormateadorMoneda = (currency: string) =>
+  new Intl.NumberFormat(APP_LOCALE, { style: "currency", currency });
+
+let monedaActual = APP_CURRENCY;
+let currencyFormatter = crearFormateadorMoneda(monedaActual);
+
+/** Aplica la moneda guardada en los ajustes sin recrear el formateador si no cambió. */
+export const setAppCurrency = (value?: string | null) => {
+  const candidata = typeof value === "string" ? value.trim().toUpperCase() : "";
+  const siguiente = /^[A-Z]{3}$/.test(candidata) ? candidata : APP_CURRENCY;
+  if (siguiente === monedaActual) return;
+  monedaActual = siguiente;
+  currencyFormatter = crearFormateadorMoneda(monedaActual);
+};
 
 const numberFormatter = new Intl.NumberFormat(APP_LOCALE);
 
