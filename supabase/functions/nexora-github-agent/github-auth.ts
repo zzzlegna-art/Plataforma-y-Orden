@@ -1,4 +1,4 @@
-// Bodega-6A AI Developer Agent
+// Nexora AI Developer Agent
 // GitHub App authentication scaffold
 //
 // Secrets required in Supabase:
