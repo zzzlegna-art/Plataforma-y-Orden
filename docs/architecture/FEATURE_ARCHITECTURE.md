@@ -1,4 +1,4 @@
-# Arquitectura por módulos - Bodega 6A
+# Arquitectura por módulos - Nexora
 
 Esta estructura prepara la plataforma para crecer separando dominios de negocio.
 
