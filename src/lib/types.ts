@@ -155,25 +155,11 @@ export interface ProductType {
 export type TipoRepuesto = "bateria" | "display" | "otro";
 
 export const PRODUCT_TECHNICAL_SPEC_KEYS = [
-  "storage", "ram", "processor", "screen", "screenResolution", "refreshRate", "cameras",
-  "battery", "connectivity", "color", "caseSize", "compatibility", "material", "waterResistance",
-  "sensors", "operatingSystem", "biometric", "stylusSupport", "keyboardSupport", "gps",
-  "cellularConnectivity", "noiseCancellation", "transparencyMode", "spatialAudio", "microphones",
-  "soundLevel", "caseBattery", "chargingCase", "wirelessCharging", "bluetoothVersion", "audioCodec",
-  "graphics", "ports", "dimensions", "weight", "power", "audioFeatures", "latency",
+  "storage", "ram", "processor", "screen", "cameras", "battery", "connectivity",
+  "color", "caseSize", "compatibility", "material", "waterResistance", "sensors",
 ] as const;
 export type ProductTechnicalSpecKey = (typeof PRODUCT_TECHNICAL_SPEC_KEYS)[number];
-
-export interface ProductCustomTechnicalSpec {
-  id: string;
-  name: string;
-  value: string;
-}
-
-/** Las claves conocidas se presentan como campos por categoría; customFields permite atributos propios por referencia. */
-export type ProductTechnicalSpecs = Partial<Record<ProductTechnicalSpecKey, string>> & {
-  customFields?: ProductCustomTechnicalSpec[];
-};
+export type ProductTechnicalSpecs = Partial<Record<ProductTechnicalSpecKey, string>>;
 
 export interface Product {
   id: string;

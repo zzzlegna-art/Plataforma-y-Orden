@@ -147,6 +147,16 @@ export const ProductFormDialog = ({
     setImageError("");
   };
 
+  const selectedProductType = db.productTypes.find((type) => type.key === form.categoria);
+  const technicalEnabled = Boolean(
+    form.categoria &&
+      form.categoria !== "repuesto" &&
+      selectedProductType?.mayoristaGroup !== "repuestos",
+  );
+  const technicalFields = technicalEnabled
+    ? getProductTechnicalSpecFieldsForCategory(form.categoria)
+    : [];
+
   const save = async () => {
     setSaving(true);
     let uploadedPath: string | undefined;
@@ -223,16 +233,6 @@ export const ProductFormDialog = ({
       setSaving(false);
     }
   };
-
-  const selectedProductType = db.productTypes.find((type) => type.key === form.categoria);
-  const technicalEnabled = Boolean(
-    form.categoria &&
-      form.categoria !== "repuesto" &&
-      selectedProductType?.mayoristaGroup !== "repuestos",
-  );
-  const technicalFields = technicalEnabled
-    ? getProductTechnicalSpecFieldsForCategory(form.categoria)
-    : [];
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>

@@ -12,23 +12,17 @@ import {
   Droplets,
   HardDrive,
   Eye,
-  Fingerprint,
   FileSpreadsheet,
   FileText,
   Headphones,
-  Mic,
   Monitor,
   Package,
-  Plug,
   Palette,
   PencilLine,
   Ruler,
   Plus,
   Smartphone,
   Tablet,
-  Volume2,
-  Keyboard,
-  MapPin,
   Watch,
   Wifi,
   Wrench,
@@ -57,7 +51,7 @@ import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useStore } from "@/hooks/use-store";
 import { exportExcel, exportPdf, exportSubtitle } from "@/lib/export";
-import { getProductTechnicalSpecFieldsForCategory } from "@/lib/product-specs";
+import { DEVICE_TECHNICAL_SPEC_FIELDS, isDeviceCategory } from "@/lib/product-specs";
 import { formatCurrency, todayIso } from "@/lib/format";
 import { getProductRows, type ProductRow, type ProductStock } from "@/lib/selectors";
 import type { Product, ProductCategory, ProductTechnicalSpecKey } from "@/lib/types";
@@ -171,8 +165,6 @@ const TECHNICAL_SPEC_ICONS: Record<ProductTechnicalSpecKey, LucideIcon> = {
   ram: Cpu,
   processor: Cpu,
   screen: Monitor,
-  screenResolution: Monitor,
-  refreshRate: Monitor,
   cameras: Camera,
   battery: BatteryCharging,
   connectivity: Wifi,
@@ -182,42 +174,17 @@ const TECHNICAL_SPEC_ICONS: Record<ProductTechnicalSpecKey, LucideIcon> = {
   material: Package,
   waterResistance: Droplets,
   sensors: Activity,
-  operatingSystem: Package,
-  biometric: Fingerprint,
-  stylusSupport: PencilLine,
-  keyboardSupport: Keyboard,
-  gps: MapPin,
-  cellularConnectivity: Wifi,
-  noiseCancellation: Volume2,
-  transparencyMode: Volume2,
-  spatialAudio: Volume2,
-  microphones: Mic,
-  soundLevel: Volume2,
-  caseBattery: BatteryCharging,
-  chargingCase: BatteryCharging,
-  wirelessCharging: BatteryCharging,
-  bluetoothVersion: Bluetooth,
-  audioCodec: Volume2,
-  graphics: Monitor,
-  ports: Plug,
-  dimensions: Ruler,
-  weight: Package,
-  power: BatteryCharging,
-  audioFeatures: Volume2,
-  latency: Activity,
 };
 
 const ProductThumbnail = ({
   product,
   brandName,
   categoryName,
-  technicalEnabled,
   size = "sm",
 }: {
   product: Product;
   brandName?: string;
   categoryName?: string;
-  technicalEnabled?: boolean;
   size?: "sm" | "md";
 }) => {
   const { t } = useTranslation();
@@ -249,15 +216,9 @@ const ProductThumbnail = ({
     "relative isolate grid shrink-0 place-items-center overflow-hidden rounded-2xl border border-border/70 bg-background shadow-sm ring-1 ring-inset ring-border/40 transition-all duration-200",
     sizeClasses,
   );
-  const showTechnicalSpecs = technicalEnabled ?? product.categoria !== "repuesto";
-  const specFields = showTechnicalSpecs ? getProductTechnicalSpecFieldsForCategory(product.categoria) : [];
+  const deviceCategory = isDeviceCategory(product.categoria) ? product.categoria : undefined;
+  const specFields = deviceCategory ? DEVICE_TECHNICAL_SPEC_FIELDS[deviceCategory] : [];
   const populatedFields = specFields.filter((field) => Boolean(product.technicalSpecs?.[field.key]?.trim()));
-  const populatedCustomFields = showTechnicalSpecs
-    ? (product.technicalSpecs?.customFields ?? []).filter(
-        (field) => Boolean(field.name.trim() && field.value.trim()),
-      )
-    : [];
-  const technicalCount = populatedFields.length + populatedCustomFields.length;
 
   if (product.imageUrl && !imageFailed) {
     return (
@@ -287,10 +248,10 @@ const ProductThumbnail = ({
         <DialogContent
           className={cn(
             "max-h-[92vh] max-w-none overflow-y-auto p-3 sm:p-5 max-sm:w-full",
-            showTechnicalSpecs ? "w-[min(94vw,1180px)]" : "w-[min(92vw,960px)]",
+            deviceCategory ? "w-[min(94vw,1180px)]" : "w-[min(92vw,960px)]",
           )}
         >
-          {showTechnicalSpecs ? (
+          {deviceCategory ? (
             <div className="grid min-w-0 gap-4 sm:grid-cols-[minmax(0,1.08fr)_minmax(300px,.92fr)]">
               <div className="min-w-0 space-y-3">
                 <DialogHeader className="px-1 pt-1">
@@ -325,10 +286,10 @@ const ProductThumbnail = ({
                       <p className="mt-1 text-xs text-muted-foreground">{t("product.technicalSpecsSubtitle")}</p>
                     </div>
                     <span className="font-tabular rounded-lg bg-primary/10 px-2 py-1 text-xs font-semibold text-primary">
-                      {technicalCount}
+                      {populatedFields.length}
                     </span>
                   </div>
-                  {technicalCount ? (
+                  {populatedFields.length ? (
                     <div className="mt-3 grid gap-2 sm:grid-cols-2">
                       {populatedFields.map((field) => {
                         const SpecIcon = TECHNICAL_SPEC_ICONS[field.key];
@@ -342,15 +303,6 @@ const ProductThumbnail = ({
                           </div>
                         );
                       })}
-                      {populatedCustomFields.map((field) => (
-                        <div key={field.id} className="min-w-0 rounded-xl border border-border/60 bg-muted/30 p-3">
-                          <div className="flex items-center gap-2 text-muted-foreground">
-                            <Package className="h-4 w-4 shrink-0" strokeWidth={1.8} />
-                            <p className="text-[11px] font-semibold uppercase tracking-wide">{field.name}</p>
-                          </div>
-                          <p className="mt-2 break-words text-sm font-semibold leading-snug">{field.value}</p>
-                        </div>
-                      ))}
                     </div>
                   ) : (
                     <div className="mt-3 rounded-xl border border-dashed border-border/80 bg-muted/30 p-3">
@@ -451,10 +403,6 @@ const CondicionPills = ({ stock }: { stock: ProductStock }) => {
 const Inventario = () => {
   const { t } = useTranslation();
   const { db } = useStore();
-  const supportsTechnicalSpecs = (product: Product) => {
-    const productType = db.productTypes.find((type) => type.key === product.categoria);
-    return product.categoria !== "repuesto" && productType?.mayoristaGroup !== "repuestos";
-  };
   const [search, setSearch] = useState("");
   const [tipo, setTipo] = useState<"" | ProductCategory>("");
   const [brandId, setBrandId] = useState("");
@@ -564,7 +512,6 @@ const Inventario = () => {
           product={row.product}
           brandName={row.brand?.name}
           categoryName={row.category?.name}
-          technicalEnabled={supportsTechnicalSpecs(row.product)}
           size="md"
         />
         <div className="min-w-0 flex-1 space-y-1.5">
@@ -814,7 +761,6 @@ const Inventario = () => {
                   product={row.product}
                   brandName={row.brand?.name}
                   categoryName={row.category?.name}
-                  technicalEnabled={supportsTechnicalSpecs(row.product)}
                 />
                 <div className="min-w-0 space-y-1">
                   <Link

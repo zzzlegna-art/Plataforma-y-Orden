@@ -117,8 +117,17 @@ const CATEGORY_TECHNICAL_SPEC_FIELDS: Record<string, ProductTechnicalSpecField[]
   reloj: DEVICE_TECHNICAL_SPEC_FIELDS.reloj,
   audifono: DEVICE_TECHNICAL_SPEC_FIELDS.audifono,
   audifonos: DEVICE_TECHNICAL_SPEC_FIELDS.audifono,
+  airpod: DEVICE_TECHNICAL_SPEC_FIELDS.audifono,
+  airpods: DEVICE_TECHNICAL_SPEC_FIELDS.audifono,
+  headphone: DEVICE_TECHNICAL_SPEC_FIELDS.audifono,
+  headphones: DEVICE_TECHNICAL_SPEC_FIELDS.audifono,
+  earbuds: DEVICE_TECHNICAL_SPEC_FIELDS.audifono,
   auricular: DEVICE_TECHNICAL_SPEC_FIELDS.audifono,
   auriculares: DEVICE_TECHNICAL_SPEC_FIELDS.audifono,
+  smartwatch: DEVICE_TECHNICAL_SPEC_FIELDS.reloj,
+  smartwatches: DEVICE_TECHNICAL_SPEC_FIELDS.reloj,
+  relojinteligente: DEVICE_TECHNICAL_SPEC_FIELDS.reloj,
+  relojesinteligentes: DEVICE_TECHNICAL_SPEC_FIELDS.reloj,
   parlante: [
     field("power", "Potencia de salida (W)"),
     CONNECTIVITY,
@@ -207,8 +216,8 @@ export const isDeviceCategory = (category?: string): category is DeviceCategory 
 export const getProductTechnicalSpecFieldsForCategory = (
   category?: string,
 ): ProductTechnicalSpecField[] => {
-  if (!category || normalizeCategory(category) === "repuesto") return [];
-  const normalized = normalizeCategory(category);
+  const normalized = category ? normalizeCategory(category) : "";
+  if (!normalized || ["repuesto", "repuestos", "accesorio", "accesorios"].includes(normalized)) return [];
   return CATEGORY_TECHNICAL_SPEC_FIELDS[normalized] ?? GENERIC_TECHNICAL_SPEC_FIELDS;
 };
 
