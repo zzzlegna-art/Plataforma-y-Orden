@@ -1,7 +1,7 @@
 import { extractCodeStructure } from "./code-structure-extractor.ts";
 
 export type IndexChunk = {
-  repository: "zzzlegna-art/Bodega-6A";
+  repository: "zzzlegna-art/Plataforma-y-Orden";
   path: string;
   sha: string;
   chunk_index: number;
@@ -24,7 +24,7 @@ export function prepareIndexChunks(path: string, sha: string, source: string): I
   const chunks: IndexChunk[] = [];
   for (let offset = 0; offset < source.length; offset += CHUNK_SIZE) {
     chunks.push({
-      repository: "zzzlegna-art/Bodega-6A",
+      repository: "zzzlegna-art/Plataforma-y-Orden",
       path,
       sha,
       chunk_index: chunks.length,
