@@ -12,7 +12,7 @@ export type Database = {
   }
   public: {
     Tables: {
-      bodega_audit_logs: {
+      nexora_audit_logs: {
         Row: {
           action: string
           created_at: string
@@ -45,7 +45,7 @@ export type Database = {
         }
         Relationships: []
       }
-      bodega_brands: {
+      nexora_brands: {
         Row: {
           created_at: string
           id: string
@@ -63,7 +63,7 @@ export type Database = {
         }
         Relationships: []
       }
-      bodega_categories: {
+      nexora_categories: {
         Row: {
           created_at: string
           description: string | null
@@ -84,7 +84,7 @@ export type Database = {
         }
         Relationships: []
       }
-      bodega_customers: {
+      nexora_customers: {
         Row: {
           address: string | null
           categoria_mayorista: string | null
@@ -129,7 +129,7 @@ export type Database = {
         }
         Relationships: []
       }
-      bodega_documents: {
+      nexora_documents: {
         Row: {
           content_type: string | null
           created_at: string
@@ -159,15 +159,15 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "bodega_documents_uploaded_by_fkey"
+            foreignKeyName: "nexora_documents_uploaded_by_fkey"
             columns: ["uploaded_by"]
             isOneToOne: false
-            referencedRelation: "bodega_profiles"
+            referencedRelation: "nexora_profiles"
             referencedColumns: ["id"]
           },
         ]
       }
-      bodega_movements: {
+      nexora_movements: {
         Row: {
           created_at: string
           created_by: string | null
@@ -206,15 +206,15 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "bodega_movements_product_id_fkey"
+            foreignKeyName: "nexora_movements_product_id_fkey"
             columns: ["product_id"]
             isOneToOne: false
-            referencedRelation: "bodega_products"
+            referencedRelation: "nexora_products"
             referencedColumns: ["id"]
           },
         ]
       }
-      bodega_order_item_units: {
+      nexora_order_item_units: {
         Row: {
           created_at: string
           id: string
@@ -235,15 +235,15 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "bodega_order_item_units_order_item_id_fkey"
+            foreignKeyName: "nexora_order_item_units_order_item_id_fkey"
             columns: ["order_item_id"]
             isOneToOne: false
-            referencedRelation: "bodega_order_items"
+            referencedRelation: "nexora_order_items"
             referencedColumns: ["id"]
           },
         ]
       }
-      bodega_order_items: {
+      nexora_order_items: {
         Row: {
           id: string
           order_id: string
@@ -273,22 +273,22 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "bodega_order_items_order_id_fkey"
+            foreignKeyName: "nexora_order_items_order_id_fkey"
             columns: ["order_id"]
             isOneToOne: false
-            referencedRelation: "bodega_orders"
+            referencedRelation: "nexora_orders"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "bodega_order_items_product_id_fkey"
+            foreignKeyName: "nexora_order_items_product_id_fkey"
             columns: ["product_id"]
             isOneToOne: false
-            referencedRelation: "bodega_products"
+            referencedRelation: "nexora_products"
             referencedColumns: ["id"]
           },
         ]
       }
-      bodega_orders: {
+      nexora_orders: {
         Row: {
           code: string
           created_at: string
@@ -330,15 +330,15 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "bodega_orders_customer_id_fkey"
+            foreignKeyName: "nexora_orders_customer_id_fkey"
             columns: ["customer_id"]
             isOneToOne: false
-            referencedRelation: "bodega_customers"
+            referencedRelation: "nexora_customers"
             referencedColumns: ["id"]
           },
         ]
       }
-      bodega_previous_serials: {
+      nexora_previous_serials: {
         Row: {
           created_at: string
           created_by: string | null
@@ -362,7 +362,7 @@ export type Database = {
         }
         Relationships: []
       }
-      bodega_product_types: {
+      nexora_product_types: {
         Row: {
           created_at: string
           id: string
@@ -386,7 +386,7 @@ export type Database = {
         }
         Relationships: []
       }
-      bodega_products: {
+      nexora_products: {
         Row: {
           brand_id: string | null
           categoria: string | null
@@ -449,22 +449,22 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "bodega_products_brand_id_fkey"
+            foreignKeyName: "nexora_products_brand_id_fkey"
             columns: ["brand_id"]
             isOneToOne: false
-            referencedRelation: "bodega_brands"
+            referencedRelation: "nexora_brands"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "bodega_products_category_id_fkey"
+            foreignKeyName: "nexora_products_category_id_fkey"
             columns: ["category_id"]
             isOneToOne: false
-            referencedRelation: "bodega_categories"
+            referencedRelation: "nexora_categories"
             referencedColumns: ["id"]
           },
         ]
       }
-      bodega_profiles: {
+      nexora_profiles: {
         Row: {
           created_at: string
           email: string
@@ -491,7 +491,7 @@ export type Database = {
         }
         Relationships: []
       }
-      bodega_reception_items: {
+      nexora_reception_items: {
         Row: {
           cost: number | null
           created_at: string
@@ -521,22 +521,22 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "bodega_reception_items_product_id_fkey"
+            foreignKeyName: "nexora_reception_items_product_id_fkey"
             columns: ["product_id"]
             isOneToOne: false
-            referencedRelation: "bodega_products"
+            referencedRelation: "nexora_products"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "bodega_reception_items_reception_id_fkey"
+            foreignKeyName: "nexora_reception_items_reception_id_fkey"
             columns: ["reception_id"]
             isOneToOne: false
-            referencedRelation: "bodega_receptions"
+            referencedRelation: "nexora_receptions"
             referencedColumns: ["id"]
           },
         ]
       }
-      bodega_receptions: {
+      nexora_receptions: {
         Row: {
           code: string
           confirmed_at: string | null
@@ -572,7 +572,7 @@ export type Database = {
         }
         Relationships: []
       }
-      bodega_settings: {
+      nexora_settings: {
         Row: {
           company_name: string
           currency: string
@@ -593,7 +593,7 @@ export type Database = {
         }
         Relationships: []
       }
-      bodega_technicians: {
+      nexora_technicians: {
         Row: {
           activo: boolean
           created_at: string
@@ -614,7 +614,7 @@ export type Database = {
         }
         Relationships: []
       }
-      bodega_units: {
+      nexora_units: {
         Row: {
           checked_at: string | null
           checked_by: string | null
@@ -662,22 +662,22 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "bodega_units_product_id_fkey"
+            foreignKeyName: "nexora_units_product_id_fkey"
             columns: ["product_id"]
             isOneToOne: false
-            referencedRelation: "bodega_products"
+            referencedRelation: "nexora_products"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "bodega_units_reception_id_fkey"
+            foreignKeyName: "nexora_units_reception_id_fkey"
             columns: ["reception_id"]
             isOneToOne: false
-            referencedRelation: "bodega_receptions"
+            referencedRelation: "nexora_receptions"
             referencedColumns: ["id"]
           },
         ]
       }
-      bodega_warranties: {
+      nexora_warranties: {
         Row: {
           cliente_manual: string | null
           code: string
@@ -749,43 +749,43 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "bodega_warranties_customer_id_fkey"
+            foreignKeyName: "nexora_warranties_customer_id_fkey"
             columns: ["customer_id"]
             isOneToOne: false
-            referencedRelation: "bodega_customers"
+            referencedRelation: "nexora_customers"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "bodega_warranties_order_id_fkey"
+            foreignKeyName: "nexora_warranties_order_id_fkey"
             columns: ["order_id"]
             isOneToOne: false
-            referencedRelation: "bodega_orders"
+            referencedRelation: "nexora_orders"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "bodega_warranties_product_id_fkey"
+            foreignKeyName: "nexora_warranties_product_id_fkey"
             columns: ["product_id"]
             isOneToOne: false
-            referencedRelation: "bodega_products"
+            referencedRelation: "nexora_products"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "bodega_warranties_tecnico_id_fkey"
+            foreignKeyName: "nexora_warranties_tecnico_id_fkey"
             columns: ["tecnico_id"]
             isOneToOne: false
-            referencedRelation: "bodega_technicians"
+            referencedRelation: "nexora_technicians"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "bodega_warranties_unit_id_fkey"
+            foreignKeyName: "nexora_warranties_unit_id_fkey"
             columns: ["unit_id"]
             isOneToOne: false
-            referencedRelation: "bodega_units"
+            referencedRelation: "nexora_units"
             referencedColumns: ["id"]
           },
         ]
       }
-      bodega_warranty_documents: {
+      nexora_warranty_documents: {
         Row: {
           created_at: string
           document_id: string
@@ -806,22 +806,22 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "bodega_warranty_documents_document_id_fkey"
+            foreignKeyName: "nexora_warranty_documents_document_id_fkey"
             columns: ["document_id"]
             isOneToOne: false
-            referencedRelation: "bodega_documents"
+            referencedRelation: "nexora_documents"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "bodega_warranty_documents_warranty_id_fkey"
+            foreignKeyName: "nexora_warranty_documents_warranty_id_fkey"
             columns: ["warranty_id"]
             isOneToOne: false
-            referencedRelation: "bodega_warranties"
+            referencedRelation: "nexora_warranties"
             referencedColumns: ["id"]
           },
         ]
       }
-      bodega_warranty_events: {
+      nexora_warranty_events: {
         Row: {
           created_at: string
           created_by: string | null
@@ -848,10 +848,10 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "bodega_warranty_events_warranty_id_fkey"
+            foreignKeyName: "nexora_warranty_events_warranty_id_fkey"
             columns: ["warranty_id"]
             isOneToOne: false
-            referencedRelation: "bodega_warranties"
+            referencedRelation: "nexora_warranties"
             referencedColumns: ["id"]
           },
         ]
@@ -861,24 +861,24 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      bodega_aplicar_cambios: { Args: { p_cambios: Json }; Returns: Json }
-      bodega_control_finalizar: {
+      nexora_aplicar_cambios: { Args: { p_cambios: Json }; Returns: Json }
+      nexora_control_finalizar: {
         Args: { p_product_id: string; p_resumen: string }
         Returns: Json
       }
-      bodega_control_iniciar: { Args: { p_product_id: string }; Returns: Json }
-      bodega_control_marcar_serial: {
+      nexora_control_iniciar: { Args: { p_product_id: string }; Returns: Json }
+      nexora_control_marcar_serial: {
         Args: { p_product_id: string; p_serial: string }
         Returns: Json
       }
-      bodega_control_marcar_unidad: {
+      nexora_control_marcar_unidad: {
         Args: { p_unit_id: string; p_verificada: boolean }
         Returns: Json
       }
-      bodega_is_admin: { Args: never; Returns: boolean }
-      bodega_is_staff: { Args: never; Returns: boolean }
-      bodega_siguiente_codigo: { Args: { p_tabla: string }; Returns: string }
-      bodega_uso_almacenamiento: { Args: never; Returns: Json }
+      nexora_is_admin: { Args: never; Returns: boolean }
+      nexora_is_staff: { Args: never; Returns: boolean }
+      nexora_siguiente_codigo: { Args: { p_tabla: string }; Returns: string }
+      nexora_uso_almacenamiento: { Args: never; Returns: Json }
     }
     Enums: {
       [_ in never]: never
