@@ -1,4 +1,4 @@
-// Bodega-6A AI Developer
+// Nexora AI Developer
 // Smart File Reader Layer
 
 export type RepositoryFileContext = {
