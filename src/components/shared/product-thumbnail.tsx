@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 type ProductThumbnailProps = {
   src?: string | null;
   alt: string;
-  size?: "xs" | "sm" | "md" | "lg" | "xl";
+  size?: "xs" | "sm" | "md" | "lg" | "xl" | "2xl";
   className?: string;
 };
 
