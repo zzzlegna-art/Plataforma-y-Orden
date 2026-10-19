@@ -6,6 +6,18 @@ import {
 } from "./product-specs";
 
 describe("getProductTechnicalSpecFieldsForCategory", () => {
+  it("muestra exactamente siete características para celulares", () => {
+    expect(getProductTechnicalSpecFieldsForCategory("celular").map((field) => field.key)).toEqual([
+      "storage",
+      "ram",
+      "processor",
+      "rearCamera",
+      "frontCamera",
+      "connectivity",
+      "compatibility",
+    ]);
+  });
+
   it("incluye características específicas para audífonos", () => {
     const keys = getProductTechnicalSpecFieldsForCategory("audifono").map((field) => field.key);
     expect(keys).toContain("noiseCancellation");
@@ -40,6 +52,29 @@ describe("getProductTechnicalSpecsForCategory", () => {
     ).toEqual({
       noiseCancellation: "ANC",
       customFields: [{ id: "1", name: "Impedancia", value: "32 ohmios" }],
+    });
+  });
+
+  it("conserva las cámaras antiguas de un celular hasta que se completen los dos campos nuevos", () => {
+    expect(
+      getProductTechnicalSpecsForCategory("celular", {
+        cameras: "Trasera 48 MP, frontal 12 MP",
+        rearCamera: "48 MP",
+      }),
+    ).toEqual({
+      rearCamera: "48 MP",
+      cameras: "Trasera 48 MP, frontal 12 MP",
+    });
+
+    expect(
+      getProductTechnicalSpecsForCategory("celular", {
+        cameras: "Trasera 48 MP, frontal 12 MP",
+        rearCamera: "48 MP",
+        frontCamera: "12 MP",
+      }),
+    ).toEqual({
+      rearCamera: "48 MP",
+      frontCamera: "12 MP",
     });
   });
 
