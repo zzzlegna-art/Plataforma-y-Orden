@@ -24,7 +24,7 @@ describe("currency formatting", () => {
   });
 
   it("sets COP as the database default for new settings rows", () => {
-    expect(currencyMigration).toContain("alter table public.bodega_settings alter column currency set default 'cop'");
+    expect(currencyMigration).toContain("alter table public.nexora_settings alter column currency set default 'cop'");
   });
 
   it("uses the currency saved in settings", () => {
@@ -43,7 +43,7 @@ describe("currency formatting", () => {
 describe("updateSettings currency validation", () => {
   it("normalizes a three-letter currency code to uppercase", () => {
     const db = emptyDb();
-    updateSettings(db, admin, { companyName: "Bodega", currency: "cop" });
+    updateSettings(db, admin, { companyName: "Nexora", currency: "cop" });
     expect(db.settings.currency).toBe("COP");
   });
 
