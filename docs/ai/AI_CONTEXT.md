@@ -1,9 +1,9 @@
 [AI_CONTEXT.md](https://github.com/user-attachments/files/33348086/AI_CONTEXT.md)
-# Bodega6A AI Context
+# Nexora AI Context
 
 ## Identidad del Proyecto
 
-Bodega6A es una plataforma de gestión operativa enfocada en inventario,
+Nexora es una plataforma de gestión operativa enfocada en inventario,
 almacenamiento, recepción, garantías, movimientos internos y
 trazabilidad completa.
 
@@ -44,5 +44,5 @@ directos en producción.
 
 ## Objetivo
 
-Convertir Bodega6A en una plataforma capaz de evolucionar mediante
+Convertir Nexora en una plataforma capaz de evolucionar mediante
 asistencia de IA segura.
