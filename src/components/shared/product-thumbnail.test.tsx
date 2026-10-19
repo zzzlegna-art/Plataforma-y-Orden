@@ -1,8 +1,10 @@
 // @vitest-environment jsdom
-import { fireEvent, render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { afterEach, describe, expect, it } from "vitest";
 
 import { ProductThumbnail } from "./product-thumbnail";
+
+afterEach(cleanup);
 
 describe("ProductThumbnail", () => {
   it("no muestra nada cuando la referencia no tiene fotografía", () => {
