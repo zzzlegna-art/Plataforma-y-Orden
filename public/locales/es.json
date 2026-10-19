@@ -140,6 +140,7 @@
   "product.createTitle": "Nuevo producto",
   "product.editTitle": "Editar producto",
   "product.formDescription": "Datos del producto y su punto de reorden.",
+  "product.draftRestored": "Se recuperó el borrador sin guardar. Continúa editando y pulsa Guardar cuando termines.",
   "product.sku": "SKU",
   "product.skuPlaceholder": "Automático según la referencia",
   "product.skuHint": "Si lo dejas vacío, el sistema lo genera a partir de la referencia.",
