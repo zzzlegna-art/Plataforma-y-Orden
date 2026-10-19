@@ -1,4 +1,4 @@
--- Bodega6A RLS automated security tests
+-- Nexora RLS automated security tests
 -- Authenticated user access validation
 
 DO $$
