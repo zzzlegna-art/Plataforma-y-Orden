@@ -7,7 +7,7 @@ const migration = readFileSync(
 ).toLowerCase();
 
 const userManagement = readFileSync(
-  new URL("../../supabase/functions/bodega-gestion-usuarios/index.ts", import.meta.url),
+  new URL("../../supabase/functions/nexora-gestion-usuarios/index.ts", import.meta.url),
   "utf8",
 ).toLowerCase();
 
