@@ -1,4 +1,4 @@
--- Bodega6A RLS Security Matrix
+-- Nexora RLS Security Matrix
 -- Validates the security model from three angles:
 -- 1. Authenticated access
 -- 2. Role permissions
