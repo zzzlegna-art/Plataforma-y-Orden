@@ -1,4 +1,4 @@
-// Bodega-6A AI Developer
+// Nexora AI Developer
 // Code Relationship Analyzer
 //
 // Builds relationships between indexed files, modules and dependencies.
