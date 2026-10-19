@@ -46,7 +46,7 @@ acción sube solo las filas que cambiaron.
 
 - **`src/lib/types.ts`** define las entidades (productos, unidades con serial/IMEI,
   recepciones, pedidos, garantías, movimientos y bitácora).
-- **`src/lib/backend.ts`** traduce entre el modelo del dominio y las tablas `bodega_*`.
+- **`src/lib/backend.ts`** traduce entre el modelo del dominio y las tablas `nexora_*`.
   `pullDb` lee todo con orden estable y **falla entera si una tabla no se puede leer**
   (nunca se trabaja con un inventario incompleto). `pushDb` compara dos versiones y
   sube solo las diferencias. Los cambios de otros dispositivos llegan por Realtime.
