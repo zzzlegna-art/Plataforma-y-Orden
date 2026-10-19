@@ -66,25 +66,20 @@ import { ProductFormDialog } from "./ProductFormDialog";
 
 type StatTone = "primary" | "info" | "warning";
 
-const STAT_TONES: Record<StatTone, { icon: string; bar: string; glow: string }> = {
+const STAT_TONES: Record<StatTone, { icon: string; glow: string }> = {
   primary: {
     icon: "bg-primary/10 text-primary",
-    bar: "bg-primary",
     glow: "from-primary/10",
   },
   info: {
     icon: "bg-info/10 text-info",
-    bar: "bg-info",
     glow: "from-info/10",
   },
   warning: {
     icon: "bg-warning/10 text-warning",
-    bar: "bg-warning",
     glow: "from-warning/10",
   },
 };
-
-const STAT_BAR_HEIGHTS = [12, 19, 27, 36, 44] as const;
 
 const InventoryStatCard = ({
   label,
@@ -127,22 +122,6 @@ const InventoryStatCard = ({
             {value.toLocaleString()}
           </p>
           <p className="mt-2 text-xs leading-4 text-muted-foreground">{hint}</p>
-        </div>
-        <div
-          aria-hidden="true"
-          className="flex h-11 shrink-0 items-end gap-1.5 pb-0.5"
-        >
-          {STAT_BAR_HEIGHTS.map((height, index) => (
-            <span
-              key={height}
-              className={cn(
-                "w-1.5 origin-bottom rounded-full opacity-70 transition-transform duration-200",
-                styles.bar,
-                "[@media(hover:hover)]:group-hover:scale-y-110",
-              )}
-              style={{ height, opacity: 0.3 + index * 0.15 }}
-            />
-          ))}
         </div>
       </div>
       <div
