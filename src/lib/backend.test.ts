@@ -71,6 +71,24 @@ beforeEach(() => {
 });
 
 describe("calcularPasos", () => {
+  it("serializa la entidad de tipo de producto con el identificador SQL normalizado", () => {
+    const previo = emptyDb();
+    const siguiente = cloneDb(previo);
+    siguiente.auditLogs.push({
+      id: "audit-product-type",
+      userId: "u1",
+      userEmail: "admin@nexora.test",
+      action: "create",
+      entity: "productType",
+      entityId: "pt1",
+      details: "Parlantes",
+      createdAt: ahora,
+    });
+
+    const paso = calcularPasos(previo, siguiente).find((item) => item.tabla === "bodega_audit_logs");
+    expect(paso?.op === "upsert" ? paso.filas[0].entity : undefined).toBe("product_type");
+  });
+
   it("no genera nada si no hay cambios", () => {
     const db = antesDeDespachar();
     expect(calcularPasos(db, cloneDb(db))).toEqual([]);

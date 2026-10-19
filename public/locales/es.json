@@ -729,6 +729,7 @@
   "audit.emptyTitle": "Sin actividad",
   "audit.emptyDescription": "Aquí aparecerá lo que hagan los usuarios del sistema.",
   "auditEntity.product": "Producto",
+  "auditEntity.productType": "Tipo de producto",
   "auditEntity.category": "Categoría",
   "auditEntity.brand": "Marca",
   "auditEntity.reception": "Recepción",

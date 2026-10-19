@@ -583,7 +583,8 @@ const ESPECIFICACIONES: Spec<unknown>[] = [
       user_id: nulo(a.userId),
       user_email: nulo(a.userEmail),
       action: a.action,
-      entity: a.entity,
+      // Persist the product-type entity using the database's snake_case identifier.
+      entity: a.entity === "productType" ? "product_type" : a.entity,
       entity_id: nulo(a.entityId),
       details: nulo(a.details),
       created_at: a.createdAt,
@@ -593,7 +594,10 @@ const ESPECIFICACIONES: Spec<unknown>[] = [
       userId: texto(f.user_id) ?? "",
       userEmail: texto(f.user_email) ?? "",
       action: (texto(f.action) as AuditLog["action"]) ?? "update",
-      entity: (texto(f.entity) as AuditLog["entity"]) ?? "session",
+      // Accept the normalized identifier and legacy camelCase rows from older open tabs.
+      entity: texto(f.entity) === "product_type" || texto(f.entity) === "productType"
+        ? "productType"
+        : (texto(f.entity) as AuditLog["entity"]) ?? "session",
       entityId: texto(f.entity_id) ?? undefined,
       details: texto(f.details) ?? undefined,
       createdAt: fecha(f.created_at),

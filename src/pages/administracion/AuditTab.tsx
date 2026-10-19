@@ -12,6 +12,7 @@ import { formatDateTime } from "@/lib/format";
 const ENTITIES = [
   "",
   "product",
+  "productType",
   "reception",
   "unit",
   "order",
