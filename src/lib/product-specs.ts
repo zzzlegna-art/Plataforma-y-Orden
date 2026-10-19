@@ -26,6 +26,10 @@ const COLOR = field("color", "Color del fabricante");
 const COMPATIBILITY = field("compatibility", "Modelos o sistemas compatibles");
 const MATERIAL = field("material", "Material");
 const WATER_RESISTANCE = field("waterResistance", "IP68 / 5 ATM, si aplica");
+const WATCH_RESISTANCE: ProductTechnicalSpecField = {
+  ...field("waterResistance", "IP68 / 5 ATM / resistente al agua"),
+  labelKey: "product.spec.watchResistance",
+};
 
 export const DEVICE_TECHNICAL_SPEC_FIELDS: Record<DeviceCategory, ProductTechnicalSpecField[]> = {
   celular: [
@@ -47,19 +51,13 @@ export const DEVICE_TECHNICAL_SPEC_FIELDS: Record<DeviceCategory, ProductTechnic
     field("compatibility", "SIM / eSIM / Dual SIM / lápiz compatible"),
   ],
   reloj: [
-    field("caseSize", "40 / 42 / 45 / 49 mm"),
+    STORAGE,
     SCREEN,
-    field("screenResolution", "Resolución de pantalla"),
+    PROCESSOR,
+    WATCH_RESISTANCE,
     CONNECTIVITY,
-    field("cellularConnectivity", "GPS / GPS + Cellular"),
-    COMPATIBILITY,
-    BATTERY,
-    MATERIAL,
-    WATER_RESISTANCE,
-    field("sensors", "Pulso, SpO₂, temperatura"),
-    field("gps", "GPS integrado / conectado"),
-    field("operatingSystem", "watchOS / Wear OS"),
-    COLOR,
+    field("compatibility", "iPhone / Android / dispositivos compatibles"),
+    field("sensors", "Pulso, SpO₂, temperatura, ECG"),
   ],
   audifono: [
     field("compatibility", "Dispositivos compatibles"),
@@ -233,6 +231,29 @@ export const getProductTechnicalSpecsForCategory = (
     const hasFrontCamera = Boolean(normalized.frontCamera);
     if (legacyCameras && !(hasRearCamera && hasFrontCamera)) {
       normalized.cameras = legacyCameras.slice(0, 120);
+    }
+  }
+
+  // Mantiene en los datos guardados las características antiguas de los relojes que ya no
+  // se muestran en el formulario simplificado, para evitar perder información histórica.
+  if (normalizeCategory(category) === "reloj") {
+    const legacyWatchKeys = [
+      "caseSize",
+      "screenResolution",
+      "refreshRate",
+      "cellularConnectivity",
+      "battery",
+      "material",
+      "gps",
+      "operatingSystem",
+      "biometric",
+      "color",
+    ] as const;
+    for (const key of legacyWatchKeys) {
+      const value = specs[key];
+      if (!normalized[key] && typeof value === "string" && value.trim()) {
+        normalized[key] = value.trim().slice(0, 120);
+      }
     }
   }
 
