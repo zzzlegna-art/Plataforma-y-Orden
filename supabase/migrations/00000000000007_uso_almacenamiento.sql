@@ -1,5 +1,5 @@
 -- ============================================================
--- Nexora :: uso de almacenamiento
+-- Nexora (migración histórica) :: uso de almacenamiento
 --
 -- Un solo número por parte, para mostrar en Administración cuánto se lleva usado del plan
 -- gratuito de Supabase (1 GB de archivos, 500 MB de base de datos): así se puede avisar antes
@@ -8,7 +8,7 @@
 -- Es aditiva: solo agrega una función de lectura. No cambia nada existente.
 -- ============================================================
 
-create or replace function public.nexora_uso_almacenamiento()
+create or replace function public.bodega_uso_almacenamiento()
 returns jsonb
 language plpgsql
 stable
@@ -19,13 +19,13 @@ declare
   v_documentos_bytes bigint;
   v_documentos_count bigint;
 begin
-  if not public.nexora_is_staff() then
-    raise exception 'NEXORA_SIN_PERMISO';
+  if not public.bodega_is_staff() then
+    raise exception 'BODEGA_SIN_PERMISO';
   end if;
 
   select coalesce(sum(size_bytes), 0), count(*)
     into v_documentos_bytes, v_documentos_count
-    from public.nexora_documents;
+    from public.bodega_documents;
 
   return jsonb_build_object(
     'documentos_bytes', v_documentos_bytes,
@@ -35,5 +35,5 @@ begin
 end;
 $$;
 
-revoke all on function public.nexora_uso_almacenamiento() from public, anon;
-grant execute on function public.nexora_uso_almacenamiento() to authenticated;
+revoke all on function public.bodega_uso_almacenamiento() from public, anon;
+grant execute on function public.bodega_uso_almacenamiento() to authenticated;
