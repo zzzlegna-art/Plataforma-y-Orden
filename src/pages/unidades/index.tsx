@@ -218,7 +218,12 @@ const Unidades = () => {
             header: t("product.title"),
             cell: (row) => (
               <div className="flex min-w-0 items-center gap-2">
-                <ProductThumbnail src={row.product?.imageUrl} alt={row.product?.name ?? "Referencia"} size="md" />
+                <ProductThumbnail
+                  src={row.product?.imageUrl}
+                  alt={row.product?.name ?? "Referencia"}
+                  size="lg"
+                  className="rounded-xl p-0"
+                />
                 <div className="min-w-0">
                   <p className="truncate text-base font-semibold leading-snug">{row.product?.name ?? "—"}</p>
                   <p className="font-tabular mt-0.5 text-xs text-muted-foreground">
