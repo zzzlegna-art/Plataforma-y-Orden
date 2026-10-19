@@ -1,9 +1,12 @@
 import fs from 'node:fs';
 
-const requiredFiles = ['package.json','pnpm-lock.yaml','vite.config.ts','vercel.json','index.html','src/integrations/supabase/client.ts'];
+const requiredFiles = ['package.json','pnpm-lock.yaml','vite.config.ts','vercel.json','index.html','.env.example','public/manifest.webmanifest','public/icons/icon.svg','src/integrations/supabase/client.ts'];
 const errors = requiredFiles.filter(file => !fs.existsSync(file)).map(file => `Archivo ausente: ${file}`);
 const pkg = JSON.parse(fs.readFileSync('package.json','utf8'));
 const vercel = JSON.parse(fs.readFileSync('vercel.json','utf8'));
+const manifest = JSON.parse(fs.readFileSync('public/manifest.webmanifest','utf8'));
+if (manifest.name !== 'Nexora' || manifest.short_name !== 'Nexora') errors.push('El manifiesto instalable debe identificar la app como Nexora');
+if (!Array.isArray(manifest.icons) || manifest.icons.length === 0 || manifest.icons.some(icon => /icon-(192|512)(-maskable)?\\.png$/i.test(icon.src))) errors.push('El manifiesto debe usar los iconos actuales de Nexora');
 if (!pkg.scripts?.build) errors.push('Falta script build');
 if (!Array.isArray(vercel.rewrites) || !vercel.rewrites.some(rule => rule.destination === '/index.html')) errors.push('Falta fallback SPA');
 const url = process.env.VITE_SUPABASE_URL;
