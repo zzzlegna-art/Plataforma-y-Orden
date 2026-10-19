@@ -1,61 +1,50 @@
-# Nexora — plan de migración de identificadores internos
+# Nexora — normalización del esquema existente
 
-## Objetivo
+## Importante: no se traslada la plataforma
 
-Eliminar los prefijos técnicos heredados de los objetos de base de datos y de las funciones remotas, manteniendo Nexora como identidad única. Esta migración debe preservar los datos, las sesiones, los permisos, las referencias y la compatibilidad durante el cambio.
+Esta operación no copia datos a otro proyecto ni crea una segunda base de datos. Se prepara para ejecutarse dentro de la instancia Supabase confirmada para Nexora: `ivholkjldntrmagcmogh`.
 
-## Estado
+## Diagnóstico de solo lectura
 
-La interfaz y la documentación se están alineando con Nexora. El esquema SQL aún usa objetos `bodega_*`. No se deben renombrar directamente desde el frontend ni ejecutar cambios destructivos en producción hasta confirmar el proyecto Supabase de destino.
+En esa misma base de datos existen dos grupos de tablas:
 
-La configuración local `supabase/config.toml` contiene la referencia `kiizldurgjtorxpzebpm`, mientras que la instancia Supabase visible en la auditoría es `ivholkjldntrmagcmogh`. Esta discrepancia debe resolverse primero.
+- Tablas heredadas `bodega_*` con datos operativos.
+- Tablas genéricas como `products`, `orders`, `users` y `customers`, actualmente vacías.
 
-## Objetos de esquema identificados
+Conteos observados durante la auditoría:
 
-Las migraciones iniciales declaran estas tablas:
+| Tabla | Filas |
+|---|---:|
+| `bodega_products` | 47 |
+| `bodega_movements` | 9 |
+| `bodega_units` | 6 |
+| `bodega_orders` | 1 |
+| `bodega_warranty_events` | 18 |
+| `bodega_audit_logs` | 106 |
+| `products` | 0 |
+| `orders` | 0 |
+| `users` | 0 |
 
-| Objeto actual | Nombre objetivo propuesto |
-|---|---|
-| `bodega_profiles` | `nexora_profiles` |
-| `bodega_categories` | `nexora_categories` |
-| `bodega_brands` | `nexora_brands` |
-| `bodega_products` | `nexora_products` |
-| `bodega_settings` | `nexora_settings` |
-| `bodega_receptions` | `nexora_receptions` |
-| `bodega_reception_items` | `nexora_reception_items` |
-| `bodega_units` | `nexora_units` |
-| `bodega_movements` | `nexora_movements` |
-| `bodega_customers` | `nexora_customers` |
-| `bodega_orders` | `nexora_orders` |
-| `bodega_order_items` | `nexora_order_items` |
-| `bodega_order_item_units` | `nexora_order_item_units` |
-| `bodega_technicians` | `nexora_technicians` |
-| `bodega_warranties` | `nexora_warranties` |
-| `bodega_warranty_events` | `nexora_warranty_events` |
-| `bodega_previous_serials` | `nexora_previous_serials` |
-| `bodega_audit_logs` | `nexora_audit_logs` |
+El código de Nexora usa nombres como `nexora_products`, `nexora_units` y `nexora_orders`, pero la base de datos todavía no tiene tablas con el prefijo `nexora_`. La función `nexora_guardar_con_version` también contiene referencias internas a nombres antiguos.
 
-Los nombres de índices, políticas, funciones, triggers, secuencias, restricciones y tipos deben inventariarse desde el esquema real antes de generar la migración completa. No asumir que la lista de tablas es exhaustiva.
+## Trabajo de reconciliación preparado
 
-## Secuencia obligatoria
+La migración versionada está diseñada para renombrar objetos dentro de la misma base de datos, conservando las filas y relaciones existentes. Incluye tablas, funciones, índices, secuencias, restricciones, tipos, vistas, políticas RLS y triggers que usan el prefijo heredado.
 
-1. **Confirmar el destino:** comprobar que la instancia Supabase seleccionada es la de Nexora y alinear la configuración local y las variables del despliegue.
-2. **Inventariar dependencias:** extraer el esquema actual y registrar tablas, vistas, índices, restricciones, secuencias, funciones, triggers, políticas RLS, grants, buckets, Edge Functions y referencias del cliente.
-3. **Preparar compatibilidad:** crear una migración SQL versionada que renombre objetos preservando los datos y reconstruya o ajuste todas las dependencias. Revisar especialmente el código que usa nombres de tablas y las llamadas a funciones remotas.
-4. **Actualizar la aplicación:** cambiar consultas, tipos generados, pruebas, funciones Edge, documentación y configuraciones de despliegue de forma coordinada.
-5. **Probar en una copia:** ejecutar migraciones y pruebas de lectura/escritura, login, roles, recepción, seriales, inventario, pedidos, garantías y auditoría.
-6. **Revisar RLS:** comprobar permisos efectivos por rol después de los renombres. Que RLS esté activado no demuestra que las políticas sean correctas.
-7. **Desplegar con reversión:** respaldar el esquema y los datos, aplicar en una ventana controlada, validar y conservar un procedimiento de reversión probado.
+La comprobación preliminar de solo lectura identificó 20 tablas con prefijo heredado, 15 funciones con ese prefijo y 60 relaciones entre índices, secuencias y vistas candidatas a renombrarse. No se encontraron colisiones de nombres para las tablas o funciones objetivo en las consultas de preflight.
 
-## No hacer
+## Configuración confirmada
 
-- No eliminar y recrear tablas para cambiarles el nombre.
-- No copiar datos a tablas nuevas y borrar las antiguas sin un plan de reconciliación.
-- No desactivar RLS globalmente.
-- No cambiar solo los nombres del frontend mientras el backend siga usando los identificadores anteriores.
-- No aplicar migraciones a un proyecto remoto hasta confirmar inequívocamente su referencia.
-- No cambiar el nombre de funciones Edge sin actualizar los clientes que las invocan y probar su despliegue.
+`supabase/config.toml` se actualizó en esta rama para apuntar a `ivholkjldntrmagcmogh`. Aún no se ha verificado que las variables de entorno de Vercel apunten a la misma instancia.
 
-## Criterio de finalización
+## Antes de ejecutar en producción
 
-La separación solo se puede declarar completa cuando el frontend, las migraciones, el esquema remoto, las funciones remotas, los permisos, la configuración de despliegue y la documentación ya no dependan de identificadores heredados, y las pruebas de regresión pasen sobre el proyecto Nexora confirmado.
+1. Revisar la migración SQL completa contra el esquema y las funciones reales.
+2. Crear o verificar una copia de seguridad y un procedimiento de reversión.
+3. Asegurar una ventana de mantenimiento para evitar escrituras concurrentes durante el cambio de nombres.
+4. Aplicar la migración de forma transaccional.
+5. Validar tablas, datos, relaciones, funciones RPC, RLS, login, inventario, seriales, pedidos y garantías.
+6. Comprobar que el despliegue de Nexora utiliza la URL y la clave pública de esta misma instancia.
+7. Mantener intactas las tablas genéricas vacías hasta confirmar que no son utilizadas por otro flujo.
+
+**Estado:** preparada en la rama de trabajo; no aplicada en la base de datos de producción.
