@@ -49,7 +49,7 @@ describe("obtenerUsoAlmacenamiento", () => {
       error: null,
     });
     const uso = await obtenerUsoAlmacenamiento();
-    expect(mocks.rpc).toHaveBeenCalledWith("bodega_uso_almacenamiento");
+    expect(mocks.rpc).toHaveBeenCalledWith("nexora_uso_almacenamiento");
     expect(uso).toEqual({ documentosBytes: 4278126, documentosCount: 2, baseDatosBytes: 17312915 });
   });
 
