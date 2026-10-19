@@ -145,6 +145,8 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
   const dbRef = useRef<Db | null>(null);
   const userRef = useRef<Actor | null>(null);
   const sesionRef = useRef<string | null | undefined>(undefined);
+  // Invalida cargas de sesión que terminen después de cerrar sesión o cambiar de usuario.
+  const intentoSesionRef = useRef(0);
   const pendientesRef = useRef<CambioRemoto[]>([]);
   const temporizadorRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Guardados en curso (desde que la acción se aplica en pantalla hasta que el servidor responde).
@@ -222,8 +224,10 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
       const id = sesion?.user?.id ?? null;
       if (sesionRef.current === id) return;
       sesionRef.current = id;
+      const intento = ++intentoSesionRef.current;
 
       if (!id) {
+        setAbriendo(false);
         aplicarUsuario(null);
         aplicarDb(null);
         return;
@@ -232,8 +236,10 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
       setAbriendo(true);
       try {
         const perfil = await buscarPerfil(id);
+        if (intentoSesionRef.current !== intento) return;
         if (!perfil || perfil.is_active === false) {
           await supabase.auth.signOut();
+          if (intentoSesionRef.current !== intento) return;
           sesionRef.current = null;
           aplicarUsuario(null);
           aplicarDb(null);
@@ -249,21 +255,26 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
 
         try {
           const cargada = await pullDb();
+          if (intentoSesionRef.current !== intento) return;
           aplicarDb(cargada);
         } catch (error) {
+          if (intentoSesionRef.current !== intento) return;
           // Entrar con un inventario vacío o incompleto permitiría duplicar seriales:
           // mejor volver al login con un aviso.
           console.error("No se pudo cargar el inventario", error);
           toast.error(t("errors.loadFailed"));
           await supabase.auth.signOut();
-          sesionRef.current = null;
-          aplicarUsuario(null);
-          aplicarDb(null);
+          if (intentoSesionRef.current === intento) {
+            sesionRef.current = null;
+            aplicarUsuario(null);
+            aplicarDb(null);
+          }
           return;
         }
+        if (intentoSesionRef.current !== intento) return;
         aplicarUsuario(actor);
       } finally {
-        setAbriendo(false);
+        if (intentoSesionRef.current === intento) setAbriendo(false);
       }
     },
     [aplicarDb, aplicarUsuario, t],
@@ -446,8 +457,11 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
   }, []);
 
   const logout = useCallback(async () => {
+    // Una carga de sesión pendiente ya no debe poder volver a autenticar la interfaz.
+    intentoSesionRef.current += 1;
     sesionRef.current = null;
     pendientesRef.current = [];
+    setAbriendo(false);
     await supabase.auth.signOut();
     aplicarUsuario(null);
     aplicarDb(null);
