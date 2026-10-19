@@ -12,6 +12,11 @@ import { strFromU8, strToU8, unzipSync, zipSync } from "fflate";
 
 import { formatDateTime } from "./format";
 
+// Se leen directamente de Vite para que importar export.ts no inicialice el cliente autenticado
+// ni rompa pruebas/pantallas que solo necesitan generar documentos.
+const CATALOG_SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string | undefined;
+const CATALOG_SUPABASE_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
+
 const NAVY: [number, number, number] = [15, 39, 64];
 const CYAN: [number, number, number] = [0, 196, 214];
 const CYAN_DARK: [number, number, number] = [0, 112, 128];
@@ -1063,7 +1068,6 @@ export interface ProductCatalogLabels {
   features: string;
   price: string;
   stock: string;
-  imageUrl: string;
   noDescription: string;
   noFeatures: string;
   imageUnavailable: string;
@@ -1096,49 +1100,68 @@ const splitCatalogLines = (doc: jsPDF, text: string, width: number, maxLines: nu
 };
 
 /**
- * Descarga una imagen pública y la convierte a JPEG cuadrado para incrustarla en el PDF.
- * Si la URL falla o el navegador bloquea el canvas por CORS, el catálogo sigue generándose.
+ * Descarga la imagen por la Edge Function del proyecto para evitar bloqueos CORS del storage.
+ * La respuesta se rasteriza a JPEG para que Excel pueda incrustarla de forma compatible.
  */
-const loadCatalogImageData = (url?: string): Promise<string | null> =>
-  new Promise((resolve) => {
-    if (!url) {
-      resolve(null);
-      return;
+const loadCatalogImageData = async (url?: string): Promise<string | null> => {
+  if (!url) return null;
+
+  try {
+    if (!CATALOG_SUPABASE_URL || !CATALOG_SUPABASE_KEY) return null;
+    const requestedUrl = new URL(url);
+    const projectUrl = new URL(CATALOG_SUPABASE_URL);
+    if (
+      requestedUrl.origin !== projectUrl.origin ||
+      !requestedUrl.pathname.startsWith("/storage/v1/object/public/product-images/")
+    ) {
+      return null;
     }
 
-    const image = new Image();
-    image.crossOrigin = "anonymous";
-    image.onload = () => {
-      try {
-        const canvas = document.createElement("canvas");
-        canvas.width = 512;
-        canvas.height = 512;
-        const context = canvas.getContext("2d");
-        if (!context || !image.naturalWidth || !image.naturalHeight) {
-          resolve(null);
-          return;
-        }
+    const response = await fetch(
+      CATALOG_SUPABASE_URL.replace(/\/+$/, "") + "/functions/v1/catalog-image-proxy",
+      {
+        method: "POST",
+        headers: {
+          apikey: CATALOG_SUPABASE_KEY,
+          Authorization: "Bearer " + CATALOG_SUPABASE_KEY,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ url: requestedUrl.href }),
+      },
+    );
+    if (!response.ok) return null;
 
-        context.fillStyle = "#FFFFFF";
-        context.fillRect(0, 0, canvas.width, canvas.height);
-        const scale = Math.min(canvas.width / image.naturalWidth, canvas.height / image.naturalHeight);
-        const width = image.naturalWidth * scale;
-        const height = image.naturalHeight * scale;
-        context.drawImage(
-          image,
-          (canvas.width - width) / 2,
-          (canvas.height - height) / 2,
-          width,
-          height,
-        );
-        resolve(canvas.toDataURL("image/jpeg", 0.9));
-      } catch {
-        resolve(null);
-      }
-    };
-    image.onerror = () => resolve(null);
-    image.src = url;
-  });
+    const blob = await response.blob();
+    if (!blob.type.startsWith("image/")) return null;
+
+    const bitmap = await createImageBitmap(blob);
+    try {
+      const canvas = document.createElement("canvas");
+      canvas.width = 512;
+      canvas.height = 512;
+      const context = canvas.getContext("2d");
+      if (!context || !bitmap.width || !bitmap.height) return null;
+
+      context.fillStyle = "#FFFFFF";
+      context.fillRect(0, 0, canvas.width, canvas.height);
+      const scale = Math.min(canvas.width / bitmap.width, canvas.height / bitmap.height);
+      const width = bitmap.width * scale;
+      const height = bitmap.height * scale;
+      context.drawImage(
+        bitmap,
+        (canvas.width - width) / 2,
+        (canvas.height - height) / 2,
+        width,
+        height,
+      );
+      return canvas.toDataURL("image/jpeg", 0.9);
+    } finally {
+      bitmap.close();
+    }
+  } catch {
+    return null;
+  }
+};
 
 /**
  * Catálogo PDF Nexora: fichas compactas de altura dinámica para aprovechar cada página.
@@ -1378,6 +1401,12 @@ export const exportProductCatalogExcel = async ({
     imageDataUrls.push(...batch);
   }
 
+  const requestedImageCount = products.filter((product) => Boolean(product.imageUrl)).length;
+  const embeddedImageCount = imageDataUrls.filter(Boolean).length;
+  if (requestedImageCount > 0 && embeddedImageCount === 0) {
+    throw new Error("CATALOG_IMAGES_UNAVAILABLE");
+  }
+
   const columns = [
     labels.image,
     labels.reference,
@@ -1386,7 +1415,6 @@ export const exportProductCatalogExcel = async ({
     labels.category,
     labels.description,
     labels.features,
-    labels.imageUrl,
   ];
   if (includePrice) columns.push(labels.price);
   if (includeStock) columns.push(labels.stock);
@@ -1398,14 +1426,13 @@ export const exportProductCatalogExcel = async ({
   );
   const rows = products.map((product, index) => {
     const row: (string | number)[] = [
-      imageDataUrls[index] ? "" : labels.imageUnavailable,
+      imageDataUrls[index] ? "" : product.imageUrl ? labels.openImage : labels.imageUnavailable,
       product.sku || "—",
       product.name,
       product.brand || "—",
       product.category || "—",
       product.description?.trim() || labels.noDescription,
       featureTexts[index],
-      product.imageUrl ? labels.openImage : "—",
     ];
     if (includePrice) row.push(product.price || "—");
     if (includeStock) row.push(product.stock ?? 0);
@@ -1414,7 +1441,7 @@ export const exportProductCatalogExcel = async ({
 
   const hyperlinkTargets = products.map((product) => {
     const targets: (string | undefined)[] = Array(columns.length).fill(undefined);
-    targets[7] = product.imageUrl || undefined;
+    targets[0] = product.imageUrl || undefined;
     return targets;
   });
   const rowHeights = products.map((product, index) => {
@@ -1426,9 +1453,9 @@ export const exportProductCatalogExcel = async ({
     return Math.min(180, Math.max(68, 14 + (descriptionLines + featureLines + extraRows) * 11));
   });
 
-  const columnWidths = [14, 15, 30, 18, 20, 38, 48, 24];
-  if (includePrice) columnWidths.push(16);
-  if (includeStock) columnWidths.push(12);
+  const columnWidths = [16, 15, 28, 16, 18, 34, 42];
+  if (includePrice) columnWidths.push(15);
+  if (includeStock) columnWidths.push(10);
 
   exportExcel({
     filename,
@@ -1440,7 +1467,6 @@ export const exportProductCatalogExcel = async ({
         columns,
         rows,
         wrapColumns: [5, 6],
-        hyperlinkColumns: [7],
         hyperlinkTargets,
         columnWidths,
         imageColumn: 0,

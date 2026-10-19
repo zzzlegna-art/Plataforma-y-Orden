@@ -136,6 +136,7 @@
   "catalog.descriptionPending": "Descripción pendiente de completar.",
   "catalog.featuresPending": "Características pendientes de completar.",
   "catalog.imageUnavailable": "Imagen no disponible",
+  "catalog.imagesLoadFailed": "No se pudieron cargar las fotografías. Revisa tu conexión e inténtalo de nuevo.",
   "catalog.moreFeatures": "{{count}} características adicionales",
   "catalog.image": "Imagen",
   "catalog.openImage": "Abrir imagen",
