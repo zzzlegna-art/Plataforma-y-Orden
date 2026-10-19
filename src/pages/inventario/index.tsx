@@ -4,6 +4,7 @@ import {
   Activity,
   AlertTriangle,
   BatteryCharging,
+  BookOpen,
   Bluetooth,
   Boxes,
   Camera,
@@ -36,6 +37,8 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { Link } from "react-router-dom";
+import autoTable from "jspdf-autotable";
+import { jsPDF } from "jspdf";
 import { toast } from "sonner";
 
 import { DataTable } from "@/components/shared/data-table";
@@ -441,6 +444,33 @@ const CondicionPills = ({ stock }: { stock: ProductStock }) => {
   );
 };
 
+const cargarImagenCatalogo = async (url?: string): Promise<string | undefined> => {
+  if (!url) return undefined;
+  try {
+    const response = await fetch(url, { mode: "cors", credentials: "omit" });
+    if (!response.ok) return undefined;
+    const bitmap = await createImageBitmap(await response.blob());
+    const maxDimension = 1400;
+    const scale = Math.min(1, maxDimension / Math.max(bitmap.width, bitmap.height));
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.max(1, Math.round(bitmap.width * scale));
+    canvas.height = Math.max(1, Math.round(bitmap.height * scale));
+    const context = canvas.getContext("2d");
+    if (!context) {
+      bitmap.close();
+      return undefined;
+    }
+    context.fillStyle = "#FFFFFF";
+    context.fillRect(0, 0, canvas.width, canvas.height);
+    context.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+    bitmap.close();
+    return canvas.toDataURL("image/jpeg", 0.9);
+  } catch {
+    // Un fallo al descargar una foto no debe impedir exportar el resto del catálogo.
+    return undefined;
+  }
+};
+
 /** Catálogo de productos con su stock por estado. */
 const Inventario = () => {
   const { t } = useTranslation();
@@ -459,6 +489,7 @@ const Inventario = () => {
   const [exportFormat, setExportFormat] = useState<"pdf" | "excel">("pdf");
   const [exportCat, setExportCat] = useState<"" | ProductCategory>("");
   const [exportCond, setExportCond] = useState<"" | "nuevo" | "seminuevo">("");
+  const [catalogExporting, setCatalogExporting] = useState(false);
 
   const rows = useMemo(() => {
     const needle = search.trim().toLowerCase();
@@ -547,6 +578,158 @@ const Inventario = () => {
           },
         ],
       });
+    }
+  };
+
+  const exportarCatalogo = async () => {
+    if (rows.length === 0) {
+      toast.error(t("export.noData"));
+      return;
+    }
+
+    setCatalogExporting(true);
+    try {
+      const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+
+      for (let index = 0; index < rows.length; index += 1) {
+        if (index > 0) pdf.addPage();
+        const row = rows[index];
+        const product = row.product;
+
+        pdf.setFillColor(11, 37, 53);
+        pdf.rect(0, 0, pageWidth, 26, "F");
+        pdf.setTextColor(255, 255, 255);
+        pdf.setFont("helvetica", "bold");
+        pdf.setFontSize(15);
+        pdf.text("NEXORA", 14, 11);
+        pdf.setFont("helvetica", "normal");
+        pdf.setFontSize(9);
+        pdf.text(t("product.catalogTitle"), 14, 19);
+        pdf.text(`${index + 1} / ${rows.length}`, pageWidth - 14, 19, { align: "right" });
+
+        pdf.setTextColor(22, 39, 52);
+        pdf.setFont("helvetica", "bold");
+        pdf.setFontSize(17);
+        const titleLines = pdf.splitTextToSize(product.name, pageWidth - 28).slice(0, 2);
+        pdf.text(titleLines, 14, 36);
+        const metaY = 36 + titleLines.length * 7;
+        pdf.setFont("helvetica", "normal");
+        pdf.setFontSize(9);
+        pdf.setTextColor(74, 91, 104);
+        pdf.text(`${t("product.sku")}: ${product.sku}`, 14, metaY);
+        const classification = [
+          row.category?.name,
+          row.brand?.name,
+        ].filter((value): value is string => Boolean(value?.trim())).join(" · ");
+        if (classification) pdf.text(pdf.splitTextToSize(classification, pageWidth - 28).slice(0, 1), 14, metaY + 5);
+
+        const imageX = 14;
+        const imageY = metaY + 10;
+        const imageW = 70;
+        const imageH = 65;
+        pdf.setFillColor(246, 249, 251);
+        pdf.setDrawColor(222, 230, 235);
+        pdf.roundedRect(imageX, imageY, imageW, imageH, 3, 3, "FD");
+        const imageData = await cargarImagenCatalogo(product.imageUrl);
+        if (imageData) {
+          const imageProperties = pdf.getImageProperties(imageData);
+          const scale = Math.min((imageW - 6) / imageProperties.width, (imageH - 6) / imageProperties.height);
+          const drawW = imageProperties.width * scale;
+          const drawH = imageProperties.height * scale;
+          pdf.addImage(imageData, "JPEG", imageX + (imageW - drawW) / 2, imageY + (imageH - drawH) / 2, drawW, drawH);
+        } else {
+          pdf.setTextColor(113, 128, 139);
+          pdf.setFontSize(9);
+          pdf.text(t("product.catalogNoImage"), imageX + imageW / 2, imageY + imageH / 2, { align: "center" });
+        }
+
+        const detailsX = 94;
+        const detailsWidth = pageWidth - detailsX - 14;
+        let detailY = imageY + 6;
+        const details = [
+          [t("product.price"), formatCurrency(product.price)],
+          [t("product.available"), String(row.stock.disponible)],
+          [t("product.enInventario"), String(row.stock.enInventario)],
+          [t("export.estado"), row.stock.lowStock ? t("product.lowStock") : t("export.estadoDisponible")],
+        ];
+        for (const [label, value] of details) {
+          pdf.setFont("helvetica", "bold");
+          pdf.setFontSize(9);
+          pdf.setTextColor(22, 39, 52);
+          pdf.text(`${label}:`, detailsX, detailY);
+          pdf.setFont("helvetica", "normal");
+          pdf.setTextColor(74, 91, 104);
+          const valueLines = pdf.splitTextToSize(value, detailsWidth - 2);
+          pdf.text(valueLines, detailsX, detailY + 5);
+          detailY += 11 + Math.max(0, valueLines.length - 1) * 4;
+        }
+
+        const descriptionY = imageY + imageH + 9;
+        pdf.setFont("helvetica", "bold");
+        pdf.setFontSize(11);
+        pdf.setTextColor(22, 39, 52);
+        pdf.text(t("product.description"), 14, descriptionY);
+        autoTable(pdf, {
+          startY: descriptionY + 3,
+          body: [[product.description?.trim() || t("product.descriptionEmpty")]],
+          theme: "plain",
+          styles: { font: "helvetica", fontSize: 9, cellPadding: 1.5, overflow: "linebreak", textColor: [74, 91, 104] },
+          columnStyles: { 0: { cellWidth: pageWidth - 28 } },
+          margin: { left: 14, right: 14, bottom: 14 },
+        });
+
+        const descriptionEndY = (pdf as jsPDF & { lastAutoTable?: { finalY: number } }).lastAutoTable?.finalY ?? descriptionY + 12;
+        const specEntries = getProductTechnicalSpecFieldsForCategory(product.categoria)
+          .flatMap((field) => {
+            const value = product.technicalSpecs?.[field.key]?.trim();
+            return value ? [[t(field.labelKey), value]] : [];
+          });
+        for (const field of product.technicalSpecs?.customFields ?? []) {
+          if (field.name.trim() && field.value.trim()) specEntries.push([field.name.trim(), field.value.trim()]);
+        }
+        const specRows = specEntries.length
+          ? specEntries
+          : [["—", t("product.technicalSpecsEmpty")]];
+        pdf.setFont("helvetica", "bold");
+        pdf.setFontSize(11);
+        pdf.setTextColor(22, 39, 52);
+        const specHeadingY = descriptionEndY + 7;
+        pdf.text(t("product.technicalDetails"), 14, specHeadingY);
+        autoTable(pdf, {
+          startY: specHeadingY + 3,
+          head: [[t("product.specification"), t("product.value")]],
+          body: specRows,
+          theme: "grid",
+          headStyles: { fillColor: [8, 126, 139], textColor: [255, 255, 255], fontStyle: "bold" },
+          styles: { font: "helvetica", fontSize: 8.5, cellPadding: 2, overflow: "linebreak" },
+          columnStyles: { 0: { cellWidth: 54 }, 1: { cellWidth: pageWidth - 28 - 54 } },
+          margin: { left: 14, right: 14, bottom: 14 },
+        });
+      }
+
+      const pageCount = pdf.getNumberOfPages();
+      for (let page = 1; page <= pageCount; page += 1) {
+        pdf.setPage(page);
+        pdf.setFont("helvetica", "normal");
+        pdf.setFontSize(8);
+        pdf.setTextColor(113, 128, 139);
+        pdf.text(
+          `${db.settings.companyName} · ${t("product.catalogTitle")} · ${page} / ${pageCount}`,
+          pageWidth / 2,
+          pageHeight - 7,
+          { align: "center" },
+        );
+      }
+
+      pdf.save(`catalogo-nexora-${todayIso()}.pdf`);
+      toast.success(t("product.catalogExportSuccess", { count: rows.length }));
+    } catch (error) {
+      console.error("No se pudo exportar el catálogo de productos", error);
+      toast.error(t("product.catalogExportFailed"));
+    } finally {
+      setCatalogExporting(false);
     }
   };
 
@@ -641,6 +824,10 @@ const Inventario = () => {
             >
               <FileSpreadsheet />
               {t("export.excel")}
+            </Button>
+            <Button variant="outline" disabled={catalogExporting} onClick={() => void exportarCatalogo()}>
+              <BookOpen />
+              {catalogExporting ? t("product.catalogExporting") : t("product.exportCatalog")}
             </Button>
             <ProductFormDialog
               trigger={
