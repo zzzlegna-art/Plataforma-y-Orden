@@ -76,10 +76,13 @@ export const ProductFormDialog = ({
   const [imageError, setImageError] = useState("");
   const imageInputRef = useRef<HTMLInputElement>(null);
   const productRef = useRef(product);
-  productRef.current = product;
   const skipDraftSaveRef = useRef(false);
   const draftKey = getProductFormDraftKey(product?.id, user?.id);
   const [draftRestored, setDraftRestored] = useState(false);
+
+  useEffect(() => {
+    productRef.current = product;
+  }, [product]);
 
   useEffect(() => {
     if (!open) return;
