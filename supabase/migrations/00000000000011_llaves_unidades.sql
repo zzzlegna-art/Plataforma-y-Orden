@@ -1,5 +1,5 @@
 -- ============================================================
--- Bodega 6A :: llaves que faltaban hacia las unidades
+-- Nexora :: llaves que faltaban hacia las unidades
 --
 -- Los movimientos de inventario y las asignaciones de serial a un pedido guardan el id de la
 -- unidad, pero la base no lo comprobaba: si una unidad se borraba por error (o un bug dejaba
@@ -19,9 +19,9 @@
 
 do $$
 begin
-  alter table public.bodega_movements
-    add constraint bodega_movements_unit_id_fkey
-    foreign key (unit_id) references public.bodega_units (id)
+  alter table public.nexora_movements
+    add constraint nexora_movements_unit_id_fkey
+    foreign key (unit_id) references public.nexora_units (id)
     on delete set null
     deferrable initially deferred;
 exception
@@ -30,17 +30,17 @@ end $$;
 
 do $$
 begin
-  alter table public.bodega_order_item_units
-    add constraint bodega_order_item_units_unit_id_fkey
-    foreign key (unit_id) references public.bodega_units (id)
+  alter table public.nexora_order_item_units
+    add constraint nexora_order_item_units_unit_id_fkey
+    foreign key (unit_id) references public.nexora_units (id)
     on delete cascade
     deferrable initially deferred;
 exception
   when duplicate_object then null;
 end $$;
 
-create index if not exists bodega_movements_unit_id_idx
-  on public.bodega_movements (unit_id);
+create index if not exists nexora_movements_unit_id_idx
+  on public.nexora_movements (unit_id);
 
-create index if not exists bodega_order_item_units_unit_id_idx
-  on public.bodega_order_item_units (unit_id);
+create index if not exists nexora_order_item_units_unit_id_idx
+  on public.nexora_order_item_units (unit_id);
