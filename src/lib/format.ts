@@ -7,7 +7,7 @@ export const APP_CURRENCY = "COP";
 export const APP_LOCALE = "es-CO";
 
 const crearFormateadorMoneda = (currency: string) =>
-  new Intl.NumberFormat(APP_LOCALE, { style: "currency", currency });
+  new Intl.NumberFormat(APP_LOCALE, { style: "currency", currency, minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 let monedaActual = APP_CURRENCY;
 let currencyFormatter = crearFormateadorMoneda(monedaActual);
