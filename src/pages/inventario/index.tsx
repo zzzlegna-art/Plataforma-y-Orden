@@ -622,8 +622,13 @@ const Inventario = () => {
       imageUnavailable: t("catalog.imageUnavailable"),
       moreFeatures: (count: number) => t("catalog.moreFeatures", { count }),
     };
+    const configuredCompanyName = db.settings.companyName?.trim();
+    const companyName = configuredCompanyName &&
+      !["mi empresa", "my company", "your company"].includes(configuredCompanyName.toLowerCase())
+      ? configuredCompanyName
+      : "NEXORA";
     const options = {
-      title: `${t("catalog.title")} — ${db.settings.companyName}`,
+      title: `${t("catalog.title")} — ${companyName}`,
       subtitle: exportSubtitle(products.length),
       filename: `catalogo-nexora-${todayIso()}.${format === "pdf" ? "pdf" : "xlsx"}`,
       products,
@@ -637,7 +642,7 @@ const Inventario = () => {
       if (format === "pdf") {
         await exportProductCatalogPdf(options);
       } else {
-        exportProductCatalogExcel(options);
+        await exportProductCatalogExcel(options);
       }
       toast.success(t("catalog.exportSuccess"), { id: toastId });
     } catch {
