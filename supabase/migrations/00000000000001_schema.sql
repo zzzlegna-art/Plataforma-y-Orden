@@ -1,5 +1,5 @@
 -- ============================================================
--- Bodega 6A :: esquema completo (instalación limpia)
+-- Nexora :: esquema completo (instalación limpia)
 -- Consolidado a partir de las migraciones originales del proyecto
 -- Enter.pro, sin las migraciones de limpieza de datos de prueba
 -- (esas solo tenían sentido en la base de datos original).
