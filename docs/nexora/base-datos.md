@@ -23,10 +23,10 @@ La base de datos registra productos, unidades físicas, movimientos, recepciones
 - Las operaciones críticas deben guardarse de forma atómica.
 - Las políticas RLS deben limitar lectura y escritura según el rol.
 
-## Migraciones
+## Migración de identificadores
 
-El esquema actual conserva identificadores técnicos heredados. Su normalización para Nexora requiere una migración coordinada de tablas, funciones, triggers, políticas, relaciones, funciones remotas, tipos y código cliente. No se deben cambiar identificadores únicamente en el frontend.
+La migración `20261019060000_rename_legacy_identifiers_to_nexora.sql` renombra objetos de base de datos heredados a `nexora_*`, actualiza los cuerpos de las funciones y conserva los datos, relaciones y permisos existentes. Está preparada en la rama de desarrollo, pero no se ha aplicado a producción.
 
-## Datos actuales auditados
+## Datos auditados
 
-La instancia visible en la auditoría contiene 47 productos y 47 URL de imagen. Las 47 fichas técnicas están vacías. Antes de completar datos técnicos, verificar el modelo exacto de cada producto.
+La única instancia Supabase visible en la auditoría contiene 47 productos y 47 URL de imagen. Las 47 fichas técnicas están vacías. Esa instancia no se ha confirmado como el destino de producción de Nexora; no completar datos ni aplicar migraciones hasta confirmar el proyecto correcto.
