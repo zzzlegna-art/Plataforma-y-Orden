@@ -1,5 +1,5 @@
 /**
- * Acciones de garantías (flujo avanzado basado en el prototipo Bodega 6A):
+ * Acciones de garantías (flujo avanzado basado en el plataforma Nexora):
  * recepción por IMEI (uno/lote), por pedido, garantía previa y falla en
  * inventario; envío a técnico externo; diagnóstico con resolución y costo;
  * entrega al cliente (con reemplazo) o devolución.
