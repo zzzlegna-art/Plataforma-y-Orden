@@ -15,7 +15,7 @@ export interface UsoAlmacenamiento {
 }
 
 export const obtenerUsoAlmacenamiento = async (): Promise<UsoAlmacenamiento> => {
-  const { data, error } = await supabase.rpc("bodega_uso_almacenamiento");
+  const { data, error } = await supabase.rpc("nexora_uso_almacenamiento");
   if (error || !data) {
     console.error(`No se pudo obtener el uso de almacenamiento: ${error?.message}`);
     throw new DomainError("errors.unexpected");
