@@ -51,7 +51,9 @@ export const updateSettings = (
 ) => {
   requirePermission(actor, "users.manage");
   db.settings.companyName = requireText(input.companyName, "errors.companyNameRequired");
-  db.settings.currency = requireText(input.currency, "errors.currencyRequired");
+  const currency = requireText(input.currency, "errors.currencyRequired").toUpperCase();
+  if (!/^[A-Z]{3}$/.test(currency)) throw new DomainError("errors.currencyInvalid");
+  db.settings.currency = currency;
   logAudit(db, actor, {
     action: "update",
     entity: "session",
