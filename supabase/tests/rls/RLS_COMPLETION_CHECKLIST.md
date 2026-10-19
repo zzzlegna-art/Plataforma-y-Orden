@@ -1,4 +1,4 @@
-# Bodega6A RLS Completion Checklist
+# Nexora RLS Completion Checklist
 
 ## Authentication
 - [x] Auth context validation prepared
