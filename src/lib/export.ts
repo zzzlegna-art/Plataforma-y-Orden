@@ -927,7 +927,7 @@ export const exportExcel = ({
     const address = (r: number, c: number) => XLSX.utils.encode_cell({ r, c });
 
     // Filas del título y altura de producto: las miniaturas quedan centradas y el texto envuelto.
-    const worksheetRows: Array<{ hpt: number } | undefined> = [
+    const worksheetRows: { hpt?: number }[] = [
       { hpt: 28 },
       { hpt: 16 },
       { hpt: 8 },
