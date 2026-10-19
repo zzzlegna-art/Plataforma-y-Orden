@@ -803,7 +803,7 @@ export const calcularPasos = (previo: Db, siguiente: Db): Paso[] => {
 
 /**
  * Guardado atómico OBLIGATORIO: todos los pasos viajan en UNA llamada a la función
- * `nexora_aplicar_cambios` (migración 0004) y la base los aplica en una sola transacción:
+ * `nexora_guardar_con_version` (migración de guardado atómico) y la base los aplica en una sola transacción:
  * o se guarda todo o no se guarda nada. Si la función no existe, no entiende el formato,
  * el paquete es demasiado grande o la respuesta no confirma `ok: true`, el guardado se
  * rechaza: nunca se vuelve a guardar tabla por tabla, porque eso podría dejar datos a medias.
