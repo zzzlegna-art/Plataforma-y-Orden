@@ -217,7 +217,7 @@ const HistorialSerial = () => {
                     const serialOriginal = db.units.find((item) => item.id === warranty.unitId)?.serial ?? warranty.imeiManual ?? "Sin serial original";
                     const serialNuevo = db.units.find((item) => item.id === warranty.replacementUnitId)?.serial;
                     return (
-                      <Link key={warranty.id} to={`/garantias/${warranty.id}`} className="rounded-lg border bg-card p-3 transition-colors hover:border-primary/40 hover:bg-muted/40">
+                      <Link key={warranty.id} to={rutaOperativaGarantia(warranty)} className="rounded-lg border bg-card p-3 transition-colors hover:border-primary/40 hover:bg-muted/40">
                         <div className="flex flex-wrap items-center justify-between gap-2">
                           <span className="text-sm font-semibold text-primary">{warranty.code}</span>
                           <Badge label={t(`warrantyStatus.${warranty.status}`)} withDot={false} />
