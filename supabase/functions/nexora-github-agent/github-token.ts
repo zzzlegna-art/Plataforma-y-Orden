@@ -1,4 +1,4 @@
-// Bodega-6A GitHub Agent
+// Nexora GitHub Agent
 // GitHub App token exchange scaffold
 
 /**
