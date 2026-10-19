@@ -47,7 +47,7 @@ Deno.serve(async (req) => {
 
   // Solo el personal administrador activo puede gestionar cuentas.
   const { data: perfil, error: perfilError } = await admin
-    .from("bodega_profiles")
+    .from("nexora_profiles")
     .select("role, is_active")
     .eq("id", uid)
     .maybeSingle();
@@ -90,7 +90,7 @@ Deno.serve(async (req) => {
 
     // El disparador de alta ya creó el perfil; aquí se fija el rol elegido.
     const { error: perfilUpdate } = await admin
-      .from("bodega_profiles")
+      .from("nexora_profiles")
       .update({ role: rol, full_name: nombre, email, is_active: true })
       .eq("id", data.user.id);
     if (perfilUpdate) {
