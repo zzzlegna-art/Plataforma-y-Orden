@@ -25,6 +25,10 @@ describe("secure public sign-up defaults", () => {
     expect(userManagement).toContain(".update({ role: rol, full_name: nombre, email, is_active: true })");
   });
 
+  it("preserves password whitespace instead of silently changing the chosen password", () => {
+    expect(userManagement).toContain('typeof body.password === "string" ? body.password : ""');
+  });
+
   it("cleans up a newly created Auth user if assigning its profile fails", () => {
     expect(userManagement).toContain("admin.auth.admin.deleteuser(data.user.id)");
   });
