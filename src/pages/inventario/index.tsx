@@ -254,7 +254,7 @@ const ProductThumbnail = ({
   const showTechnicalSpecs = technicalEnabled ?? product.categoria !== "repuesto";
   const specFields = showTechnicalSpecs ? getProductTechnicalSpecFieldsForCategory(product.categoria) : [];
   const populatedFields = specFields.filter((field) => Boolean(product.technicalSpecs?.[field.key]?.trim()));
-  const populatedCustomFields = showTechnicalSpecs && product.categoria !== "celular"
+  const populatedCustomFields = showTechnicalSpecs && !["celular", "tablet"].includes(product.categoria)
     ? (product.technicalSpecs?.customFields ?? []).filter(
         (field) => Boolean(field.name.trim() && field.value.trim()),
       )
