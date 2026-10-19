@@ -327,6 +327,32 @@ const Garantias = () => {
   // Buscar IMEI
   const [buscarResultado, setBuscarResultado] = useState<string | null>(null);
 
+  /**
+   * Agrupa los casos recibidos por lote: con pedido, el lote es el pedido. Sin pedido,
+   * las fallas de inventario se agrupan por día de ingreso y las demás por cliente.
+   */
+  const infoLote = (view: WarrantyView) => {
+    const origin = getWarrantyOrigin(view.warranty, view.order);
+    const cliente = view.customer?.name ?? view.warranty.clienteManual;
+    let key: string;
+    let title: string;
+    let subtitle: string | undefined;
+    if (view.order) {
+      key = `pedido:${view.order.id}`;
+      title = `${t("export.pedido")} ${view.order.code}`;
+      subtitle = cliente;
+    } else if (origin === "falla_inventario") {
+      const dia = formatDate(view.warranty.receivedAt);
+      key = `falla:${dia}`;
+      title = `${t("warranty.origin.falla_inventario")} · ${dia}`;
+    } else {
+      key = `${origin}:${view.warranty.customerId ?? view.warranty.clienteManual ?? "sin-datos"}`;
+      title = origin === "previa" ? t("warranty.origin.previa") : t("warranty.lote.saleNoOrder");
+      subtitle = cliente;
+    }
+    return { key, title, subtitle, origin };
+  };
+
   // Navegación desde Historial de Serial: abrir la bandeja, desplegar el lote
   // correspondiente y localizar visualmente la garantía (sin abrir su ficha).
   const focusId = params.get("focus");
@@ -868,32 +894,6 @@ const Garantias = () => {
       else ids.forEach((id) => next.add(id));
       return next;
     });
-
-  /**
-   * Agrupa los casos recibidos por lote: con pedido, el lote es el pedido. Sin pedido,
-   * las fallas de inventario se agrupan por día de ingreso y las demás por cliente.
-   */
-  const infoLote = (view: WarrantyView) => {
-    const origin = getWarrantyOrigin(view.warranty, view.order);
-    const cliente = view.customer?.name ?? view.warranty.clienteManual;
-    let key: string;
-    let title: string;
-    let subtitle: string | undefined;
-    if (view.order) {
-      key = `pedido:${view.order.id}`;
-      title = `${t("export.pedido")} ${view.order.code}`;
-      subtitle = cliente;
-    } else if (origin === "falla_inventario") {
-      const dia = formatDate(view.warranty.receivedAt);
-      key = `falla:${dia}`;
-      title = `${t("warranty.origin.falla_inventario")} · ${dia}`;
-    } else {
-      key = `${origin}:${view.warranty.customerId ?? view.warranty.clienteManual ?? "sin-datos"}`;
-      title = origin === "previa" ? t("warranty.origin.previa") : t("warranty.lote.saleNoOrder");
-      subtitle = cliente;
-    }
-    return { key, title, subtitle, origin };
-  };
 
   const agruparEnLotes = (lista: WarrantyView[]): LoteRecibido[] => {
     const lotes = new Map<string, LoteRecibido>();
