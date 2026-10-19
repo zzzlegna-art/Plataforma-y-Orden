@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ChangeEvent } from "react";
-import { ImagePlus } from "lucide-react";
+import { ImagePlus, Plus, Trash2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 
@@ -22,7 +22,7 @@ import { useRunAction } from "@/hooks/use-run-action";
 import { useStore } from "@/hooks/use-store";
 import { supabase } from "@/integrations/supabase/client";
 import { createProduct, generarSkuProducto, updateProduct } from "@/lib/actions/catalogs";
-import { DEVICE_TECHNICAL_SPEC_FIELDS, getProductTechnicalSpecsForCategory, isDeviceCategory } from "@/lib/product-specs";
+import { getProductTechnicalSpecFieldsForCategory, getProductTechnicalSpecsForCategory } from "@/lib/product-specs";
 import { etiquetaTipoProducto, tiposProductoOrdenados } from "@/lib/products";
 import type { Product, ProductCategory, ProductTechnicalSpecs } from "@/lib/types";
 
@@ -177,7 +177,7 @@ export const ProductFormDialog = ({
         name: form.name,
         description: form.description,
         imageUrl,
-        technicalSpecs: getProductTechnicalSpecsForCategory(form.categoria, technicalSpecs) ?? {},
+        technicalSpecs: getProductTechnicalSpecsForCategory(form.categoria, technicalSpecs, technicalEnabled) ?? {},
         categoryId: form.categoryId || undefined,
         brandId: form.brandId || undefined,
         categoria: (form.categoria || undefined) as ProductCategory | undefined,
@@ -224,12 +224,20 @@ export const ProductFormDialog = ({
     }
   };
 
-  const deviceCategory = isDeviceCategory(form.categoria) ? form.categoria : undefined;
+  const selectedProductType = db.productTypes.find((type) => type.key === form.categoria);
+  const technicalEnabled = Boolean(
+    form.categoria &&
+      form.categoria !== "repuesto" &&
+      selectedProductType?.mayoristaGroup !== "repuestos",
+  );
+  const technicalFields = technicalEnabled
+    ? getProductTechnicalSpecFieldsForCategory(form.categoria)
+    : [];
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>{trigger}</DialogTrigger>
-      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
+      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>{product ? t("product.editTitle") : t("product.createTitle")}</DialogTitle>
           <DialogDescription>{t("product.formDescription")}</DialogDescription>
@@ -389,14 +397,14 @@ export const ProductFormDialog = ({
             </div>
           </div>
 
-          {deviceCategory ? (
-            <div className="space-y-3 rounded-xl border border-border/70 bg-card p-3 sm:col-span-2">
+          {technicalEnabled ? (
+            <div className="space-y-4 rounded-xl border border-border/70 bg-card p-3 sm:col-span-2">
               <div>
                 <p className="text-sm font-semibold">{t("product.technicalDetails")}</p>
                 <p className="mt-1 text-xs text-muted-foreground">{t("product.technicalSpecsHint")}</p>
               </div>
               <div className="grid gap-3 sm:grid-cols-2">
-                {DEVICE_TECHNICAL_SPEC_FIELDS[deviceCategory].map((field) => (
+                {technicalFields.map((field) => (
                   <div key={field.key} className="space-y-1.5">
                     <Label htmlFor={`technical-${field.key}`}>{t(field.labelKey)}</Label>
                     <Input
@@ -408,6 +416,85 @@ export const ProductFormDialog = ({
                         setTechnicalSpecs((current) => ({ ...current, [field.key]: event.target.value }))
                       }
                     />
+                  </div>
+                ))}
+              </div>
+
+              <div className="space-y-3 border-t border-border/70 pt-3">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div>
+                    <p className="text-sm font-semibold">{t("product.customSpecsTitle")}</p>
+                    <p className="mt-1 text-xs text-muted-foreground">{t("product.customSpecsHint")}</p>
+                  </div>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() =>
+                      setTechnicalSpecs((current) => ({
+                        ...current,
+                        customFields: [
+                          ...(current.customFields ?? []),
+                          { id: crypto.randomUUID(), name: "", value: "" },
+                        ],
+                      }))
+                    }
+                  >
+                    <Plus className="mr-1.5 h-4 w-4" />
+                    {t("product.addCustomSpec")}
+                  </Button>
+                </div>
+                {(technicalSpecs.customFields ?? []).map((customField) => (
+                  <div key={customField.id} className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] sm:items-end">
+                    <div className="space-y-1.5">
+                      <Label htmlFor={`custom-spec-name-${customField.id}`}>{t("product.customSpecName")}</Label>
+                      <Input
+                        id={`custom-spec-name-${customField.id}`}
+                        value={customField.name}
+                        maxLength={80}
+                        placeholder={t("product.customSpecNamePlaceholder")}
+                        onChange={(event) =>
+                          setTechnicalSpecs((current) => ({
+                            ...current,
+                            customFields: (current.customFields ?? []).map((item) =>
+                              item.id === customField.id ? { ...item, name: event.target.value } : item,
+                            ),
+                          }))
+                        }
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor={`custom-spec-value-${customField.id}`}>{t("product.customSpecValue")}</Label>
+                      <Input
+                        id={`custom-spec-value-${customField.id}`}
+                        value={customField.value}
+                        maxLength={120}
+                        placeholder={t("product.customSpecValuePlaceholder")}
+                        onChange={(event) =>
+                          setTechnicalSpecs((current) => ({
+                            ...current,
+                            customFields: (current.customFields ?? []).map((item) =>
+                              item.id === customField.id ? { ...item, value: event.target.value } : item,
+                            ),
+                          }))
+                        }
+                      />
+                    </div>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="ghost"
+                      aria-label={t("product.removeCustomSpec")}
+                      onClick={() =>
+                        setTechnicalSpecs((current) => ({
+                          ...current,
+                          customFields: (current.customFields ?? []).filter((item) => item.id !== customField.id),
+                        }))
+                      }
+                    >
+                      <Trash2 className="mr-1.5 h-4 w-4" />
+                      {t("product.removeCustomSpec")}
+                    </Button>
                   </div>
                 ))}
               </div>
