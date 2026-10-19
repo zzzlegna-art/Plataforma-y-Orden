@@ -99,7 +99,7 @@ describe("calcularPasos", () => {
     const sig = despachado(previo);
     sig.orderItemUnits = [];
     sig.orderItems = [];
-    sig.settings = { currency: "COP", companyName: "Bodega 6A" };
+    sig.settings = { currency: "COP", companyName: "Nexora" };
 
     const pasos = calcularPasos(previo, sig);
     expect(pasos.map((p) => `${p.op}:${p.tabla}`)).toEqual([
