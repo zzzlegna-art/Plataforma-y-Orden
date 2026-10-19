@@ -1,22 +1,31 @@
-# Nexora — despliegue independiente
+# Nexora — aislamiento y despliegue seguro
 
-Este paquete no contiene credenciales ni conexión activa a Supabase.
+## Objetivo
 
-## Aislamiento obligatorio
-- Crear repositorio NUEVO `nexora` (no usar Bodega-6A).
-- Crear proyecto NUEVO `nexora` en la cuenta personal correcta de Vercel.
-- No vincular ni modificar el proyecto `bodega-6-a`.
-- No reutilizar la base de datos de una empresa sin verificar propiedad, separación de datos y políticas RLS.
-- Configurar `VITE_SUPABASE_URL` y `VITE_SUPABASE_ANON_KEY` solo después de revisar RLS y permisos. Nunca usar `service_role` en el frontend.
+Mantener Nexora como producto independiente, con identidad propia y con una infraestructura remota validada antes de publicar cambios.
 
-## Publicación
-- Framework: Vite
-- Install: `npm install`
-- Build: `npm run build`
-- Output: `dist`
-- SPA fallback: `vercel.json`
+## Estado comprobado
 
-## Estado
-- Compilación y pruebas funcionales no certificadas.
-- Vercel rechazó la creación del proyecto (403). No se publicó ningún sitio.
-- Seguridad: se detectaron 22 tablas sin RLS en el Supabase inspeccionado. No se modificaron.
+- Repositorio: `zzzlegna-art/Plataforma-y-Orden`, rama principal `main`.
+- Vercel: existe un proyecto llamado `nexora` y GitHub registra un despliegue completado para el commit `98732fedf06370f84282d72462920de56d5eb4c3`.
+- Acceso a Vercel: las consultas de proyecto, dominios y registros devuelven `403 Forbidden` para el ámbito conectado. No se pudieron verificar las variables de producción ni probar directamente el sitio.
+- Supabase visible para la conexión: referencia `ivholkjldntrmagcmogh`, estado activo.
+- La consulta de solo lectura encontró 51 tablas públicas, todas con RLS activado.
+- Catálogo: 47 productos y 47 URL de imágenes; las 47 fichas técnicas están vacías.
+- Almacenamiento: 58 archivos en el bucket de imágenes; 11 no aparecen referenciados por productos.
+- Discrepancia pendiente: `supabase/config.toml` contiene `kiizldurgjtorxpzebpm`, distinto de la instancia visible en la auditoría.
+
+## Bloqueos antes de producción
+
+1. Confirmar la instancia de Supabase que debe pertenecer a Nexora y alinear la configuración local, las variables de Vercel y el despliegue.
+2. Confirmar el acceso correcto al equipo/proyecto de Vercel.
+3. Planificar la migración de los identificadores internos heredados del backend y de las funciones remotas, conservando datos, permisos y compatibilidad.
+4. Completar y validar las fichas técnicas con datos reales de cada referencia.
+5. Revisar los archivos de imagen no referenciados antes de decidir si deben conservarse.
+
+## Reglas
+
+- No desplegar ni aplicar migraciones mientras el destino remoto no esté confirmado.
+- No eliminar productos, imágenes, usuarios, seriales, pedidos, garantías ni registros históricos como parte de una limpieza de marca.
+- Nunca incluir claves privilegiadas en el frontend o en archivos versionados.
+- Los cambios deben pasar por rama, pruebas, pull request y revisión antes de integrarse.
