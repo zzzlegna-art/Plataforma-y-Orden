@@ -168,7 +168,7 @@ describe("SKU corta automática", () => {
 
     const watch = updateProduct(db, admin, {
       id: phone.id, name: phone.name, categoria: "reloj", price: phone.price, cost: phone.cost,
-      minStock: phone.minStock, technicalSpecs: { caseSize: "45 mm", storage: "dato que no corresponde a reloj" },
+      minStock: phone.minStock, technicalSpecs: { caseSize: "45 mm", ram: "dato que no corresponde a reloj" },
     });
     expect(watch.technicalSpecs).toEqual({ caseSize: "45 mm" });
 
