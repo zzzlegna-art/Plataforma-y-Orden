@@ -26,11 +26,14 @@ pnpm check:deploy
 - Build: `pnpm build`.
 - Salida: `dist`.
 - Las rutas SPA se resuelven mediante `vercel.json`.
+- Dominio verificado sin marca heredada observado: `nexora-beige-gamma.vercel.app`. La última lectura indicó que el proyecto aún no estaba live.
 
 ## Supabase
 
 La configuración local, las variables del despliegue y el destino de las funciones remotas deben apuntar al mismo proyecto.
 
+La migración `20261019060000_rename_legacy_identifiers_to_nexora.sql` está preparada, pero no se ha aplicado a ningún backend remoto.
+
 ## Bloqueo actual
 
-La referencia de `supabase/config.toml` no coincide con la instancia visible en la auditoría, y la conexión de lectura a Vercel devuelve un error de permisos. No desplegar ni aplicar migraciones hasta resolver ambos puntos.
+La referencia de `supabase/config.toml` no coincide con la instancia visible en la auditoría. No desplegar ni aplicar migraciones hasta confirmar el destino, ejecutar pruebas en una copia y verificar RLS, funciones, triggers y permisos.
