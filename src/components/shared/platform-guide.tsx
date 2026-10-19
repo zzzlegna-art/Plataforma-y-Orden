@@ -54,9 +54,11 @@ export const PlatformGuide = ({ variant = "hero" }: { variant?: "hero" | "sideba
         type="button"
         variant={variant === "sidebar" ? "sidebar" : "outline"}
         onClick={() => setOpen(true)}
+        title={t("guide.open")}
         className={cn(
           // transition-colors: la escala/sombra no se animan aquí para no chocar con las animaciones.
           "relative w-full justify-start transition-colors active:scale-100",
+          variant === "sidebar" && "h-auto min-h-10 py-2",
           variant === "hero" && "justify-center border-primary/40 bg-primary/5 hover:bg-primary/10",
         )}
       >
@@ -68,7 +70,14 @@ export const PlatformGuide = ({ variant = "hero" }: { variant?: "hero" | "sideba
           />
         ) : null}
         <Sparkles className="shrink-0 text-primary" />
-        <span className="truncate font-medium">{t("guide.open")}</span>
+        <span
+          className={cn(
+            "min-w-0 font-medium",
+            variant === "sidebar" ? "whitespace-normal text-left text-xs leading-tight" : "truncate",
+          )}
+        >
+          {t("guide.open")}
+        </span>
         {/* Destello: contenedor propio con recorte, para no depender de overflow del botón. */}
         <span
           aria-hidden
