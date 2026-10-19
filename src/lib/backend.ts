@@ -637,12 +637,12 @@ const leerAjustes = async (): Promise<Db["settings"]> => {
     .maybeSingle();
   if (error) {
     console.error(`No se pudieron leer los ajustes: ${error.message}`);
-    return { currency: "MXN", companyName: "Bodega 6A" };
+    return { currency: "MXN", companyName: "Nexora" };
   }
   const fila = (data ?? {}) as Fila;
   return {
     currency: texto(fila.currency) ?? "MXN",
-    companyName: texto(fila.company_name) ?? "Bodega 6A",
+    companyName: texto(fila.company_name) ?? "Nexora",
   };
 };
 
@@ -960,7 +960,7 @@ export type CambioRemoto = {
 
 const ajustesDesdeFila = (fila: Fila): Db["settings"] => ({
   currency: texto(fila.currency) ?? "MXN",
-  companyName: texto(fila.company_name) ?? "Bodega 6A",
+  companyName: texto(fila.company_name) ?? "Nexora",
 });
 
 /**
@@ -971,7 +971,7 @@ export const suscribirCambios = (
   onCambio: (cambio: CambioRemoto) => void,
   opciones: { incluirAuditoria?: boolean } = {},
 ) => {
-  let canal = supabase.channel("bodega-6a-tiempo-real");
+  let canal = supabase.channel("nexora-tiempo-real");
 
   for (const s of ESPECIFICACIONES) {
     if (s.coleccion === "auditLogs" && !opciones.incluirAuditoria) continue;
