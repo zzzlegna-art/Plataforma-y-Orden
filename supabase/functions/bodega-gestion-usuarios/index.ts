@@ -91,11 +91,17 @@ Deno.serve(async (req) => {
     // El disparador de alta ya creó el perfil; aquí se fija el rol elegido.
     const { error: perfilUpdate } = await admin
       .from("bodega_profiles")
-      .update({ role: rol, full_name: nombre, email })
+      .update({ role: rol, full_name: nombre, email, is_active: true })
       .eq("id", data.user.id);
     if (perfilUpdate) {
-      console.error("No se pudo fijar el rol", perfilUpdate.message);
-      return responder({ ok: false, error: perfilUpdate.message });
+      console.error("No se pudo fijar el perfil", perfilUpdate.message);
+      // Si falla la asignación del rol, no dejar una cuenta huérfana en Auth.
+      // El perfil se crea inactivo por defecto; la eliminación es una limpieza adicional.
+      const { error: limpiezaError } = await admin.auth.admin.deleteUser(data.user.id);
+      if (limpiezaError) {
+        console.error("No se pudo limpiar la cuenta incompleta", limpiezaError.message);
+      }
+      return responder({ ok: false, error: "perfil_no_actualizado" }, 500);
     }
 
     console.log(`Cuenta creada: ${email} (${rol})`);
