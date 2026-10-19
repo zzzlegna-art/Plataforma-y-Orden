@@ -21,6 +21,19 @@ describe("getProductTechnicalSpecFieldsForCategory", () => {
     expect(getProductTechnicalSpecFieldsForCategory("tablet").map((field) => field.key)).toEqual(expectedFields);
   });
 
+  it("muestra exactamente siete características para relojes en el orden solicitado", () => {
+    expect(getProductTechnicalSpecFieldsForCategory("reloj").map((field) => field.key)).toEqual([
+      "storage",
+      "screen",
+      "processor",
+      "waterResistance",
+      "connectivity",
+      "compatibility",
+      "sensors",
+    ]);
+    expect(getProductTechnicalSpecFieldsForCategory("reloj")[3].labelKey).toBe("product.spec.watchResistance");
+  });
+
   it("incluye características específicas para audífonos", () => {
     const keys = getProductTechnicalSpecFieldsForCategory("audifono").map((field) => field.key);
     expect(keys).toContain("noiseCancellation");
@@ -55,6 +68,34 @@ describe("getProductTechnicalSpecsForCategory", () => {
     ).toEqual({
       noiseCancellation: "ANC",
       customFields: [{ id: "1", name: "Impedancia", value: "32 ohmios" }],
+    });
+  });
+
+  it("conserva características históricas de relojes aunque ya no aparezcan en el formulario", () => {
+    expect(
+      getProductTechnicalSpecsForCategory("reloj", {
+        storage: "32 GB",
+        screen: "OLED",
+        processor: "S9",
+        waterResistance: "5 ATM",
+        connectivity: "Bluetooth, Wi-Fi",
+        compatibility: "iPhone",
+        sensors: "Pulso, temperatura",
+        battery: "18 horas",
+        caseSize: "45 mm",
+        operatingSystem: "watchOS",
+      }),
+    ).toEqual({
+      storage: "32 GB",
+      screen: "OLED",
+      processor: "S9",
+      waterResistance: "5 ATM",
+      connectivity: "Bluetooth, Wi-Fi",
+      compatibility: "iPhone",
+      sensors: "Pulso, temperatura",
+      caseSize: "45 mm",
+      battery: "18 horas",
+      operatingSystem: "watchOS",
     });
   });
 
