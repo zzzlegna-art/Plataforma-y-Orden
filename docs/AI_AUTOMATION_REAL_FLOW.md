@@ -1,16 +1,19 @@
-# Bodega6A AI Automation Flow
+# Nexora — flujo de automatización asistida por IA
 
-## Flow
+## Flujo
 
-User instruction -> AI orchestrator -> Supabase task -> Repository analysis -> GitHub change -> Vercel deployment.
+Instrucción del propietario → orquestación de tareas → análisis del repositorio → propuesta de cambios en GitHub → pull request → validaciones → revisión humana → despliegue autorizado.
 
-## Security
+## Seguridad
 
-Secrets stay in Edge Functions / deployment environment variables.
+- Los secretos permanecen en las funciones remotas y variables de entorno protegidas.
+- No se escriben claves privadas, datos de clientes ni datos de inventario en el repositorio.
+- No se modifica directamente la rama principal ni se ejecutan migraciones destructivas desde el flujo de chat.
+- Todo cambio debe tener alcance, pruebas y estrategia de reversión.
 
-## Current implementation
+## Estado de integración
 
-- AI task persistence: enabled
-- Repository analysis agent: existing `bodega-github-agent`
-- AI planning agent: existing `bodega-ai-agent`
-- Deployment execution: pending provider connection
+- La persistencia de tareas de automatización está implementada.
+- Existen componentes de análisis de repositorio y planificación, pero la integración completa de ejecución y despliegue depende de conexiones autorizadas.
+- La ejecución de despliegues permanece pendiente de validar permisos del proveedor.
+- Los cambios generados deben revisarse y aprobarse antes de integrarse en producción.
