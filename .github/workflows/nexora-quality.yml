@@ -31,3 +31,5 @@ jobs:
         run: pnpm test
       - name: Production build
         run: pnpm build
+      - name: Deployment structure check
+        run: pnpm check:deploy
