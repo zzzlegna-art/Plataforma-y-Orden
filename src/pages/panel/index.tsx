@@ -18,11 +18,15 @@ import {
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import {
+  Area,
+  AreaChart,
   Bar,
   BarChart,
   CartesianGrid,
   Cell,
   LabelList,
+  Pie,
+  PieChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -285,57 +289,181 @@ const Panel = () => {
     [customersSignature],
   );
 
+  // Tendencia compacta por periodo: agrupa los movimientos en hasta diez intervalos
+  // para conservar legibilidad incluso si el usuario selecciona varios meses.
+  const movimientoChart = useMemo(() => {
+    if (!reporteDesde || !reporteHasta || reporteDesde > reporteHasta) return [];
+    const inicio = new Date(`${reporteDesde}T12:00:00`);
+    const fin = new Date(`${reporteHasta}T12:00:00`);
+    const diaMs = 24 * 60 * 60 * 1000;
+    const dias = Math.floor((fin.getTime() - inicio.getTime()) / diaMs) + 1;
+    if (!Number.isFinite(dias) || dias < 1) return [];
+    const cantidadIntervalos = Math.min(10, dias);
+    const intervalos = Array.from({ length: cantidadIntervalos }, (_, index) => {
+      const desplazamiento = Math.floor((index * dias) / cantidadIntervalos);
+      const fecha = new Date(inicio);
+      fecha.setDate(fecha.getDate() + desplazamiento);
+      const dateKey = `${fecha.getFullYear()}-${String(fecha.getMonth() + 1).padStart(2, "0")}-${String(fecha.getDate()).padStart(2, "0")}`;
+      return {
+        key: dateKey,
+        label: new Intl.DateTimeFormat("es-CO", { day: "2-digit", month: "short" }).format(fecha).replace(".", ""),
+        entradas: 0,
+        salidas: 0,
+      };
+    });
+    db.movements.forEach((movement) => {
+      const dateKey = movement.createdAt.slice(0, 10);
+      if (dateKey < reporteDesde || dateKey > reporteHasta) return;
+      if (movement.type !== "entrada" && movement.type !== "salida") return;
+      const fecha = new Date(`${dateKey}T12:00:00`);
+      const desplazamiento = Math.floor((fecha.getTime() - inicio.getTime()) / diaMs);
+      if (desplazamiento < 0 || desplazamiento >= dias) return;
+      const indice = Math.min(cantidadIntervalos - 1, Math.floor((desplazamiento * cantidadIntervalos) / dias));
+      if (movement.type === "entrada") intervalos[indice].entradas += movement.quantity;
+      else intervalos[indice].salidas += movement.quantity;
+    });
+    return intervalos;
+  }, [db.movements, reporteDesde, reporteHasta]);
+
+  const resumenOperativo = [
+    { key: "orders", label: "Pedidos abiertos", value: data.kpis.openOrders, color: "#3B82F6", to: "/pedidos" },
+    { key: "warranties", label: "Garantías abiertas", value: data.kpis.openWarranties, color: "#8B5CF6", to: "/garantias" },
+    { key: "stock", label: "Stock bajo", value: data.kpis.lowStockProducts, color: "#F59E0B", to: "/inventario" },
+    { key: "received", label: "Recibidas este mes", value: data.kpis.receivedThisMonth, color: "#06B6D4", to: "/recepcion" },
+  ];
+  const donutData = resumenOperativo.some((item) => item.value > 0)
+    ? resumenOperativo.filter((item) => item.value > 0)
+    : [{ key: "empty", label: "Sin actividad", value: 1, color: "hsl(var(--muted))", to: "/inventario" }];
+
   return (
-    <div className="space-y-8 stagger">
-      <div className="nx-dashboard-heading">
-        <div>
-          <div className="nx-eyebrow"><Sparkles className="h-3.5 w-3.5" /> CENTRO DE OPERACIONES</div>
-          <PageHeader title="Panel principal" description="Resumen general de tu inventario y operaciones." />
+    <div className="nx-dashboard-reference stagger">
+      <header className="nx-dashboard-header">
+        <div className="nx-dashboard-heading">
+          <div className="nx-dashboard-heading-copy">
+            <div className="nx-eyebrow"><Sparkles className="h-3.5 w-3.5" /> CENTRO DE OPERACIONES</div>
+            <PageHeader className="nx-dashboard-page-header" title="Panel principal" description="Resumen general de tu inventario y operaciones." />
+          </div>
+          <div className="nx-dashboard-report-controls">
+            <div className="nx-dashboard-date-field">
+              <label htmlFor="reporte-desde">Reporte desde</label>
+              <input id="reporte-desde" type="date" value={reporteDesde} max={reporteHasta} onChange={(e) => setReporteDesde(e.target.value)} className="nx-dashboard-date-input" />
+            </div>
+            <div className="nx-dashboard-date-field">
+              <label htmlFor="reporte-hasta">Hasta</label>
+              <input id="reporte-hasta" type="date" value={reporteHasta} min={reporteDesde} onChange={(e) => setReporteHasta(e.target.value)} className="nx-dashboard-date-input" />
+            </div>
+            <Button type="button" size="sm" variant="outline" className="nx-dashboard-export-button" disabled={reporteDesde > reporteHasta} onClick={exportarReporteOperativo}>
+              <Download className="mr-1.5 h-3.5 w-3.5" />Exportar CSV
+            </Button>
+          </div>
         </div>
-        <span className="nx-live-pill"><span className="nx-live-dot" /> Información de tu operación</span>
-      </div>
+      </header>
 
-      <div className="flex flex-wrap items-end gap-3 rounded-xl border bg-card p-4">
-        <div><label htmlFor="reporte-desde" className="block text-xs text-muted-foreground">Reporte desde</label><input id="reporte-desde" type="date" value={reporteDesde} max={reporteHasta} onChange={(e) => setReporteDesde(e.target.value)} className="mt-1 rounded-md border bg-background px-3 py-2 text-sm" /></div>
-        <div><label htmlFor="reporte-hasta" className="block text-xs text-muted-foreground">Hasta</label><input id="reporte-hasta" type="date" value={reporteHasta} min={reporteDesde} onChange={(e) => setReporteHasta(e.target.value)} className="mt-1 rounded-md border bg-background px-3 py-2 text-sm" /></div>
-        <Button type="button" variant="outline" disabled={reporteDesde > reporteHasta} onClick={exportarReporteOperativo}><Download className="mr-2 h-4 w-4" />Exportar reporte operativo CSV</Button>
-      </div>
-
-      <section className="nx-hero-strip">
-        <div className="nx-hero-icon"><Activity className="h-5 w-5" /></div>
-        <div className="min-w-0 flex-1">
-          <p className="font-semibold">Bienvenido a Nexora Smart Operations</p>
-          <p className="mt-1 text-xs opacity-80">Consulta tus indicadores y accede a las operaciones de tu bodega desde un solo lugar.</p>
-        </div>
-        <Link to="/seriales" className="nx-hero-link">Consultar seriales <ArrowRight className="h-4 w-4" /></Link>
-      </section>
-
-      <section className="nx-kpi-section">
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <section className="nx-dashboard-kpis">
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
           <StatCard label={t("dashboard.available")} value={<AnimatedNumber value={data.kpis.available} formatter={formatNumber} />} hint={t("dashboard.availableHint")} icon={Boxes} tone="success" />
           <StatCard label={t("dashboard.receivedThisMonth")} value={<AnimatedNumber value={data.kpis.receivedThisMonth} formatter={formatNumber} />} hint={t("dashboard.receivedHint")} icon={PackagePlus} tone="info" />
           <button
             type="button"
             onClick={() => setStockDialogOpen(true)}
             aria-label="Ver detalle de productos con stock bajo"
-            className="block w-full rounded-2xl text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 [&_.nx-stat-card]:h-full [&_.nx-stat-card]:cursor-pointer [&_.nx-stat-card]:hover:border-primary/40"
+            className="nx-dashboard-stock-trigger block w-full rounded-xl text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 [&_.nx-stat-card]:h-full [&_.nx-stat-card]:cursor-pointer [&_.nx-stat-card]:hover:border-primary/40"
           >
             <StatCard label={t("dashboard.lowStock")} value={<AnimatedNumber value={data.kpis.lowStockProducts} formatter={formatNumber} />} hint={t("dashboard.lowStockHint")} icon={TriangleAlert} tone={data.kpis.lowStockProducts > 0 ? "warning" : "success"} />
           </button>
           <StatCard label={t("dashboard.inventoryValue")} value={<AnimatedNumber value={data.kpis.inventoryValue} formatter={formatCurrency} />} hint={t("dashboard.inventoryValueHint")} icon={Coins} tone="primary" />
         </div>
-        <div className="mt-4 grid gap-4 sm:grid-cols-2">
-          <Link to="/pedidos" className="nx-wide-stat">
-            <div className="nx-wide-icon"><ClipboardList className="h-6 w-6" /></div>
-            <div className="min-w-0 flex-1"><p className="nx-wide-label">{t("dashboard.openOrders")}</p><p className="nx-wide-value"><AnimatedNumber value={data.kpis.openOrders} formatter={formatNumber} /></p><p className="nx-wide-hint">{t("dashboard.openOrdersHint")}</p></div>
-            <ArrowRight className="h-5 w-5 text-muted-foreground" />
-          </Link>
-          <Link to="/garantias" className="nx-wide-stat">
-            <div className="nx-wide-icon nx-wide-icon-blue"><ShieldCheck className="h-6 w-6" /></div>
-            <div className="min-w-0 flex-1"><p className="nx-wide-label">{t("dashboard.openWarranties")}</p><p className="nx-wide-value"><AnimatedNumber value={data.kpis.openWarranties} formatter={formatNumber} /></p><p className="nx-wide-hint">{data.kpis.staleWarranties > 0 ? t("dashboard.openWarrantiesStale", { count: data.kpis.staleWarranties, days: DIAS_GARANTIA_ESTANCADA }) : t("dashboard.openWarrantiesHint")}</p></div>
-            <ArrowRight className="h-5 w-5 text-muted-foreground" />
-          </Link>
-        </div>
+      </section>
+
+      <section className="nx-dashboard-insights">
+        <article className="nx-dashboard-chart-card nx-dashboard-movement-card">
+          <div className="nx-dashboard-card-heading">
+            <div>
+              <h2>Movimiento de inventario</h2>
+              <p>Entradas y salidas en el periodo seleccionado.</p>
+            </div>
+            <div className="nx-dashboard-chart-legend" aria-label="Leyenda del movimiento">
+              <span><i className="nx-dashboard-legend-dot nx-dashboard-legend-entries" />Entradas</span>
+              <span><i className="nx-dashboard-legend-dot nx-dashboard-legend-exits" />Salidas</span>
+            </div>
+          </div>
+          {movimientoChart.length === 0 ? (
+            <div className="nx-dashboard-chart-empty"><Activity className="h-5 w-5" /><span>Selecciona un periodo válido para consultar movimientos.</span></div>
+          ) : !movimientoChart.some((item) => item.entradas > 0 || item.salidas > 0) ? (
+            <div className="nx-dashboard-chart-empty"><Activity className="h-5 w-5" /><span>Sin movimientos registrados en este periodo.</span></div>
+          ) : (
+            <div className="nx-dashboard-movement-chart">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={movimientoChart} margin={{ top: 10, right: 8, left: -18, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="nxMovementEntries" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#06B6D4" stopOpacity={0.28} />
+                      <stop offset="100%" stopColor="#06B6D4" stopOpacity={0.015} />
+                    </linearGradient>
+                    <linearGradient id="nxMovementExits" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#8B5CF6" stopOpacity={0.18} />
+                      <stop offset="100%" stopColor="#8B5CF6" stopOpacity={0.01} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
+                  <XAxis dataKey="label" tickLine={false} axisLine={false} tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} minTickGap={14} />
+                  <YAxis tickLine={false} axisLine={false} width={28} allowDecimals={false} tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} />
+                  <Tooltip content={({ active, payload }) => {
+                    if (!active || !payload?.length) return null;
+                    const row = payload[0].payload as { label: string; entradas: number; salidas: number };
+                    return (
+                      <div className="nx-dashboard-tooltip">
+                        <p className="font-semibold">{row.label}</p>
+                        <p><span>Entradas</span><strong>{formatNumber(row.entradas)}</strong></p>
+                        <p><span>Salidas</span><strong>{formatNumber(row.salidas)}</strong></p>
+                      </div>
+                    );
+                  }} />
+                  <Area type="monotone" dataKey="entradas" name="Entradas" stroke="#06B6D4" strokeWidth={2} fill="url(#nxMovementEntries)" activeDot={{ r: 4 }} />
+                  <Area type="monotone" dataKey="salidas" name="Salidas" stroke="#8B5CF6" strokeWidth={2} fill="url(#nxMovementExits)" activeDot={{ r: 4 }} />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+        </article>
+
+        <article className="nx-dashboard-chart-card nx-dashboard-status-card">
+          <div className="nx-dashboard-card-heading">
+            <div>
+              <h2>Estado de operaciones</h2>
+              <p>Indicadores actuales de la bodega.</p>
+            </div>
+          </div>
+          <div className="nx-dashboard-status-layout">
+            <div className="nx-dashboard-donut-wrap">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie data={donutData} dataKey="value" nameKey="label" innerRadius="66%" outerRadius="88%" paddingAngle={3} stroke="none" isAnimationActive={false}>
+                    {donutData.map((item) => <Cell key={item.key} fill={item.color} />)}
+                  </Pie>
+                  <Tooltip formatter={(value) => formatNumber(Number(value))} />
+                </PieChart>
+              </ResponsiveContainer>
+              <div className="nx-dashboard-donut-center"><strong>Resumen</strong><span>operativo</span></div>
+            </div>
+            <div className="nx-dashboard-status-legend">
+              {resumenOperativo.map((item) => {
+                const contenido = (
+                  <>
+                    <i className="nx-dashboard-legend-dot" style={{ backgroundColor: item.color }} />
+                    <span className="min-w-0 flex-1">{item.label}</span>
+                    <strong className="font-tabular">{formatNumber(item.value)}</strong>
+                  </>
+                );
+                return item.key === "stock" ? (
+                  <button key={item.key} type="button" className="nx-dashboard-status-row" onClick={() => setStockDialogOpen(true)}>{contenido}</button>
+                ) : (
+                  <Link key={item.key} to={item.to} className="nx-dashboard-status-row">{contenido}</Link>
+                );
+              })}
+            </div>
+          </div>
+        </article>
       </section>
 
       <Dialog open={stockDialogOpen} onOpenChange={setStockDialogOpen}>
@@ -456,7 +584,7 @@ const Panel = () => {
         </div>
       )}
 
-      <section className="space-y-4">
+      <section className="nx-dashboard-warranties space-y-3">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h2 className="text-lg font-semibold">Prioridades de garantías</h2>

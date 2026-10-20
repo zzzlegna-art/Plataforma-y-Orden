@@ -73,11 +73,11 @@ export const Topbar = ({ onOpenMenu }: { onOpenMenu: () => void }) => {
           : t("common.appName");
 
   return (
-    <header className="nx-app-topbar safe-top sticky top-0 z-30 flex min-h-16 items-center gap-3 border-b border-border/70 bg-card/90 px-5 shadow-[0_8px_30px_-24px_rgba(16,31,32,.45)] backdrop-blur-xl lg:min-h-[66px] lg:px-8">
+    <header className="nx-app-topbar safe-top sticky top-0 z-30 flex min-h-12 items-center gap-2 border-b border-border/70 bg-card/90 px-3 shadow-[0_8px_30px_-24px_rgba(16,31,32,.45)] backdrop-blur-xl lg:min-h-[44px] lg:px-5">
       <Button
         variant="ghost"
         size="icon"
-        className="h-11 w-11 lg:hidden"
+        className="h-9 w-9 lg:hidden"
         aria-label={t("common.openMenu")}
         onClick={onOpenMenu}
       >
@@ -86,8 +86,8 @@ export const Topbar = ({ onOpenMenu }: { onOpenMenu: () => void }) => {
 
       <div className="flex min-w-0 flex-1 items-center">
         <div className="hidden min-w-0 lg:block">
-          <p className="truncate text-[15px] font-bold tracking-[-0.01em] text-foreground">{title}</p>
-          <p className="mt-0.5 hidden xl:block text-[11px] text-muted-foreground">Centro de operaciones Nexora</p>
+          <p className="truncate text-xs font-bold tracking-[-0.01em] text-foreground">{title}</p>
+          <p className="mt-0.5 hidden xl:block text-[9px] text-muted-foreground">Centro de operaciones Nexora</p>
         </div>
       </div>
 
@@ -96,7 +96,7 @@ export const Topbar = ({ onOpenMenu }: { onOpenMenu: () => void }) => {
 
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="ghost" size="icon" className="h-11 w-11" aria-label={user?.fullName ?? t("auth.user")}>
+          <Button variant="ghost" size="icon" className="h-9 w-9" aria-label={user?.fullName ?? t("auth.user")}>
             <UserRound />
           </Button>
         </DropdownMenuTrigger>
