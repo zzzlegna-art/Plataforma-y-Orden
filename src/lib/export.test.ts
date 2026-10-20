@@ -92,7 +92,12 @@ describe("exportExcel con miniaturas", () => {
     const archive = unzipSync(new Uint8Array(await downloadedBlob!.arrayBuffer()));
     const worksheetXml = strFromU8(archive["xl/worksheets/sheet1.xml"]);
     expect(worksheetXml).toContain('ySplit="2"');
-    expect(archive["xl/sharedStrings.xml"]).toBeDefined();
+    const workbookXml = Object.entries(archive)
+      .filter(([path]) => path.startsWith("xl/"))
+      .map(([, bytes]) => strFromU8(bytes))
+      .join("");
+    expect(workbookXml).toContain("Cliente de prueba");
+    expect(workbookXml).toContain("iPhone de prueba");
     vi.runOnlyPendingTimers();
   });
 
