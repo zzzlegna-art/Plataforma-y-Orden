@@ -16,13 +16,13 @@ export const AppLayout = () => {
 
   return (
     <div className="flex min-h-screen h-screen min-w-0 overflow-hidden bg-background">
-      <aside className="sticky top-0 hidden h-screen w-40 shrink-0 border-r border-sidebar-border lg:flex lg:flex-col">
+      <aside className="sticky top-0 hidden h-screen w-48 shrink-0 border-r border-sidebar-border lg:flex lg:flex-col">
         <SidebarNav />
       </aside>
 
       <div className="flex min-h-0 min-w-0 flex-1 flex-col">
         <Topbar onOpenMenu={() => setMenuOpen(true)} />
-        <main className="nx-app-main min-h-0 flex-1 overflow-y-auto px-4 pb-10 pt-4 lg:px-5 lg:pb-10 lg:pt-4">
+        <main className="nx-app-main min-h-0 flex-1 overflow-y-auto px-4 pb-10 pt-5 lg:px-6 lg:pb-10 lg:pt-5">
           <div className="flex min-h-full w-full min-w-0 flex-col">
             {/* La clave es la ruta: al cambiar de pantalla entra con un fundido suave. */}
             <div key={pathname} className="page-enter flex w-full flex-1 flex-col">
