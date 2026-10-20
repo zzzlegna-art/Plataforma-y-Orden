@@ -59,6 +59,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Switch } from "@/components/ui/switch";
 import { useStore } from "@/hooks/use-store";
 import {
+  exportCompanyName,
   exportExcel,
   exportPdf,
   exportProductCatalogExcel,
@@ -546,7 +547,7 @@ const Inventario = () => {
 
     if (format === "pdf") {
       exportPdf({
-        title: `${t("nav.inventory")} — ${db.settings.companyName}`,
+        title: `${t("nav.inventory")} — ${exportCompanyName(db.settings.companyName)}`,
         subtitle: exportSubtitle(body.length),
         head,
         body,
@@ -559,7 +560,7 @@ const Inventario = () => {
         sheets: [
           {
             name: "Inventario",
-            title: `${t("nav.inventory")} — ${db.settings.companyName}`,
+            title: `${t("nav.inventory")} — ${exportCompanyName(db.settings.companyName)}`,
             subtitle: exportSubtitle(body.length),
             columns: head,
             rows: body,
@@ -623,11 +624,7 @@ const Inventario = () => {
       imageUnavailable: t("catalog.imageUnavailable"),
       moreFeatures: (count: number) => t("catalog.moreFeatures", { count }),
     };
-    const configuredCompanyName = db.settings.companyName?.trim();
-    const companyName = configuredCompanyName &&
-      !["mi empresa", "my company", "your company"].includes(configuredCompanyName.toLowerCase())
-      ? configuredCompanyName
-      : "NEXORA";
+    const companyName = exportCompanyName(db.settings.companyName);
     const options = {
       title: `${t("catalog.title")} — ${companyName}`,
       subtitle: exportSubtitle(products.length),

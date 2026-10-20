@@ -33,6 +33,7 @@ import { usePermissions } from "@/hooks/use-permissions";
 import { useRunAction } from "@/hooks/use-run-action";
 import { useStore } from "@/hooks/use-store";
 import {
+  exportCompanyName,
   exportExcel,
   exportSubtitle,
   exportSubtitleEquipos,
@@ -1002,7 +1003,7 @@ const Garantias = () => {
       sheets: [
         {
           name: "Garantías recibidas",
-          title: `${t("export.warrantiesTitle")} — ${db.settings.companyName}`,
+          title: `${t("export.warrantiesTitle")} — ${exportCompanyName(db.settings.companyName)}`,
           subtitle: exportSubtitle(body.length),
           columns: [
             t("warranty.code"),
@@ -1112,7 +1113,7 @@ const Garantias = () => {
       sheets: [
         {
           name: "Garantías en servicio",
-          title: `${t("export.servicioTitle")} — ${db.settings.companyName}`,
+          title: `${t("export.servicioTitle")} — ${exportCompanyName(db.settings.companyName)}`,
           subtitle: exportSubtitle(body.length),
           columns: [
             t("warranty.code"),
@@ -1249,7 +1250,7 @@ const Garantias = () => {
       sheets: [
         {
           name: "Garantías en reenvío",
-          title: `${t("export.reenvioTitle")} — ${db.settings.companyName}`,
+          title: `${t("export.reenvioTitle")} — ${exportCompanyName(db.settings.companyName)}`,
           subtitle: exportSubtitle(body.length, notaFiltrosReenvio()),
           columns: [
             t("warranty.code"),

@@ -93,6 +93,15 @@ export const exportSubtitle = (count: number, note?: string) => {
   return `Generado el ${when} · ${count} ${plural}${note ? ` · ${note}` : ""}`;
 };
 
+/** Nombre consistente en los documentos: sustituye valores genéricos por la marca Nexora. */
+export const exportCompanyName = (value?: string | null): string => {
+  const name = value?.trim();
+  if (!name || ["mi empresa", "my company", "your company"].includes(name.toLowerCase())) {
+    return "NEXORA";
+  }
+  return name;
+};
+
 export interface PdfExportOptions {
   title: string;
   subtitle: string;
@@ -260,20 +269,9 @@ export const exportWarrantyPdf = ({
     y += 36;
 
     for (const item of group.items) {
-      const reasonLines = item.reason
-        ? (doc.splitTextToSize(`"${item.reason}"`, width - 22) as string[])
-        : [];
-      const height = 34 + reasonLines.length * 11;
-      if (y + height > bottom) newPage();
-
-      doc.setFillColor(255, 255, 255);
-      doc.setDrawColor(CARD_BORDER[0], CARD_BORDER[1], CARD_BORDER[2]);
-      doc.roundedRect(margin, y, width, height, 4, 4, "FD");
-
       doc.setFont("helvetica", "bold");
       doc.setFontSize(10.5);
-      doc.setTextColor(DARK[0], DARK[1], DARK[2]);
-      doc.text(`${numero}. ${item.product}`, margin + 11, y + 16);
+      const productLines = doc.splitTextToSize(`${numero}. ${item.product}`, width - 22) as string[];
 
       const meta = [
         item.serial ? `${labels.serial}: ${item.serial}` : null,
@@ -284,12 +282,44 @@ export const exportWarrantyPdf = ({
       ].filter(Boolean) as string[];
       doc.setFont("helvetica", "normal");
       doc.setFontSize(8.5);
+      const metaLines = doc.splitTextToSize(meta.join("  ·  "), width - 22) as string[];
+
+      doc.setFont("helvetica", "italic");
+      doc.setFontSize(9);
+      const reasonLines = item.reason
+        ? (doc.splitTextToSize(`"${item.reason}"`, width - 22) as string[])
+        : [];
+
+      const metaStart = 16 + productLines.length * 12 + 1;
+      const metaLastBaseline = metaStart + Math.max(0, metaLines.length - 1) * 10;
+      const reasonStart = metaLastBaseline + 13;
+      const height = Math.max(
+        34,
+        reasonLines.length > 0
+          ? reasonStart + reasonLines.length * 11 - 6
+          : metaLastBaseline + 5,
+      );
+      if (y + height > bottom) newPage();
+
+      doc.setFillColor(255, 255, 255);
+      doc.setDrawColor(CARD_BORDER[0], CARD_BORDER[1], CARD_BORDER[2]);
+      doc.roundedRect(margin, y, width, height, 4, 4, "FD");
+
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(10.5);
+      doc.setTextColor(DARK[0], DARK[1], DARK[2]);
+      doc.text(productLines, margin + 11, y + 16);
+
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(8.5);
       doc.setTextColor(GREY[0], GREY[1], GREY[2]);
-      doc.text(meta.join("  ·  "), margin + 11, y + 29);
+      doc.text(metaLines, margin + 11, y + metaStart);
 
       if (reasonLines.length > 0) {
         doc.setFont("helvetica", "italic");
-        doc.text(reasonLines, margin + 11, y + 42);
+        doc.setFontSize(9);
+        doc.setTextColor(GREY[0], GREY[1], GREY[2]);
+        doc.text(reasonLines, margin + 11, y + reasonStart);
       }
 
       y += height + 8;
@@ -368,13 +398,22 @@ export const exportPedidosHistorialPdf = ({
   };
 
   for (const pedido of pedidos) {
-    if (y + 30 > bottom) newPage();
+    const meta = [
+      pedido.cliente,
+      pedido.fecha,
+      pedido.unidades !== undefined ? `${pedido.unidades} uds` : null,
+    ].filter(Boolean).join(" · ");
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8.5);
+    const metaLines = doc.splitTextToSize(meta, width - 150) as string[];
+    const headerHeight = Math.max(24, 18 + Math.max(0, metaLines.length - 1) * 10);
+    if (y + headerHeight > bottom) newPage();
 
     doc.setFillColor(GROUP_FILL[0], GROUP_FILL[1], GROUP_FILL[2]);
     doc.setDrawColor(GROUP_BORDER[0], GROUP_BORDER[1], GROUP_BORDER[2]);
-    doc.roundedRect(margin, y, width, 24, 4, 4, "FD");
+    doc.roundedRect(margin, y, width, headerHeight, 4, 4, "FD");
     doc.setFillColor(CYAN[0], CYAN[1], CYAN[2]);
-    doc.roundedRect(margin, y, 5, 24, 2, 2, "F");
+    doc.roundedRect(margin, y, 5, headerHeight, 2, 2, "F");
     doc.setFont("helvetica", "bold");
     doc.setFontSize(10);
     doc.setTextColor(NAVY[0], NAVY[1], NAVY[2]);
@@ -382,19 +421,9 @@ export const exportPedidosHistorialPdf = ({
     doc.setFont("helvetica", "normal");
     doc.setFontSize(8.5);
     doc.setTextColor(GREY[0], GREY[1], GREY[2]);
-    doc.text(
-      [
-        pedido.cliente,
-        pedido.fecha,
-        pedido.unidades !== undefined ? `${pedido.unidades} uds` : null,
-      ]
-        .filter(Boolean)
-        .join(" · "),
-      pageW - margin - 10,
-      y + 16,
-      { align: "right" },
-    );
-    y += 32;
+    const metaStart = y + (headerHeight - Math.max(0, metaLines.length - 1) * 10) / 2 + 4;
+    doc.text(metaLines, pageW - margin - 10, metaStart, { align: "right" });
+    y += headerHeight + 8;
 
     for (const linea of pedido.lineas) {
       const tituloLineas = doc.splitTextToSize(linea.title, width - 22) as string[];
@@ -641,11 +670,16 @@ export const exportPedidosHistorialExcel = ({
   });
 
   XLSX.utils.book_append_sheet(wb, ws, "Historial");
-  if (sheets.some((sheet) => sheet.imageColumn !== undefined || sheet.freezeRows)) {
-    downloadWorkbookWithImages(wb, sheets, filename);
-  } else {
-    XLSX.writeFile(wb, filename, { cellStyles: true });
-  }
+  // El historial tiene bandas y encabezados repetidos por pedido: solo congelamos
+  // el título y subtítulo globales, no la cabecera del primer pedido.
+  downloadWorkbook(wb, [{
+    name: "Historial",
+    title,
+    subtitle,
+    columns: [],
+    rows: [],
+    freezeRows: 2,
+  }], filename);
 };
 
 export interface ExcelSheet {
@@ -727,7 +761,7 @@ const decodeJpegDataUrl = (dataUrl: string): Uint8Array | null => {
   return bytes;
 };
 
-const downloadWorkbookWithImages = (
+const downloadWorkbook = (
   workbook: ReturnType<typeof XLSX.utils.book_new>,
   sheets: ExcelSheet[],
   filename: string,
@@ -754,8 +788,10 @@ const downloadWorkbookWithImages = (
     if (!worksheetBytes) return;
 
     let worksheetXml = strFromU8(worksheetBytes);
-    if (sheet.freezeRows && sheet.freezeRows > 0) {
-      worksheetXml = freezeWorksheetRows(worksheetXml, sheet.freezeRows);
+    // Todas las tablas mantienen visibles el título y el encabezado al desplazarse.
+    const freezeRows = sheet.freezeRows ?? 4;
+    if (freezeRows > 0) {
+      worksheetXml = freezeWorksheetRows(worksheetXml, freezeRows);
     }
 
     const imageColumn = sheet.imageColumn;
@@ -827,13 +863,21 @@ const downloadWorkbookWithImages = (
         const sizeEmu = imageSize * EXCEL_EMU_PER_PIXEL;
         const pictureId = imageIndex + 1;
 
+        const imageRow = EXCEL_DATA_START_ROW + entry.rowIndex;
+        const endColumnOffset = columnOffset + sizeEmu;
+        const endRowOffset = rowOffset + sizeEmu;
+        // Dos anclajes a la misma celda hacen que Excel mueva y oculte la imagen junto con
+        // la fila al aplicar filtros, en lugar de dejarla flotando sobre otra referencia.
         anchors.push(
-          '<xdr:oneCellAnchor>' +
+          '<xdr:twoCellAnchor editAs="twoCell">' +
             '<xdr:from><xdr:col>' + imageColumn + '</xdr:col><xdr:colOff>' +
               columnOffset + '</xdr:colOff><xdr:row>' +
-              (EXCEL_DATA_START_ROW + entry.rowIndex) +
+              imageRow +
               '</xdr:row><xdr:rowOff>' + rowOffset + '</xdr:rowOff></xdr:from>' +
-            '<xdr:ext cx="' + sizeEmu + '" cy="' + sizeEmu + '"/>' +
+            '<xdr:to><xdr:col>' + imageColumn + '</xdr:col><xdr:colOff>' +
+              endColumnOffset + '</xdr:colOff><xdr:row>' +
+              imageRow +
+              '</xdr:row><xdr:rowOff>' + endRowOffset + '</xdr:rowOff></xdr:to>' +
             '<xdr:pic><xdr:nvPicPr><xdr:cNvPr id="' + pictureId +
               '" name="Imagen de producto ' + pictureId + '"/>' +
               '<xdr:cNvPicPr><a:picLocks noChangeAspect="1"/></xdr:cNvPicPr></xdr:nvPicPr>' +
@@ -841,7 +885,7 @@ const downloadWorkbookWithImages = (
                 '"/><a:stretch><a:fillRect/></a:stretch></xdr:blipFill>' +
               '<xdr:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="' + sizeEmu +
                 '" cy="' + sizeEmu + '"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></xdr:spPr>' +
-            '</xdr:pic><xdr:clientData/></xdr:oneCellAnchor>',
+            '</xdr:pic><xdr:clientData/></xdr:twoCellAnchor>',
         );
       });
 
@@ -1034,13 +1078,9 @@ export const exportExcel = ({
     XLSX.utils.book_append_sheet(wb, ws, sheet.name.slice(0, 31));
   });
 
-  // El catálogo necesita pasar por el escritor OOXML para incrustar las fotos.
-  // XLSX.writeFile() conserva los datos, pero descarta las imágenes que agregamos al ZIP.
-  if (sheets.some((sheet) => sheet.imageColumn !== undefined || sheet.freezeRows)) {
-    downloadWorkbookWithImages(wb, sheets, filename);
-  } else {
-    XLSX.writeFile(wb, filename, { cellStyles: true });
-  }
+  // Usar un único escritor para todos los Excel: aplica paneles congelados y,
+  // cuando corresponda, incrusta las imágenes en el mismo archivo XLSX.
+  downloadWorkbook(wb, sheets, filename);
 };
 
 

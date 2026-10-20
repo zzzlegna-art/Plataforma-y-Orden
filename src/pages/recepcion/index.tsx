@@ -38,6 +38,7 @@ import {
 } from "@/components/ui/sheet";
 import { useStore } from "@/hooks/use-store";
 import {
+  exportCompanyName,
   exportExcel,
   exportPdf,
   exportPedidosHistorialExcel,
@@ -190,7 +191,7 @@ const Recepciones = () => {
 
     if (format === "pdf") {
       exportPdf({
-        title: `${t("receptions.title")} — ${db.settings.companyName}`,
+        title: `${t("receptions.title")} — ${exportCompanyName(db.settings.companyName)}`,
         subtitle: exportSubtitle(body.length),
         head,
         body,
@@ -203,7 +204,7 @@ const Recepciones = () => {
         sheets: [
           {
             name: "Recepciones",
-            title: `${t("receptions.title")} — ${db.settings.companyName}`,
+            title: `${t("receptions.title")} — ${exportCompanyName(db.settings.companyName)}`,
             subtitle: exportSubtitle(body.length),
             columns: head,
             rows: body,
@@ -237,7 +238,7 @@ const Recepciones = () => {
 
     if (format === "pdf") {
       exportPedidosHistorialPdf({
-        title: t("receptions.detalleTitle"),
+        title: `${t("receptions.detalleTitle")} — ${exportCompanyName(db.settings.companyName)}`,
         subtitle: exportSubtitle(recepciones.length),
         pedidos: recepciones.map((recepcion) => ({
           code: recepcion.code,
