@@ -641,11 +641,16 @@ export const exportPedidosHistorialExcel = ({
   });
 
   XLSX.utils.book_append_sheet(wb, ws, "Historial");
-  if (sheets.some((sheet) => sheet.imageColumn !== undefined || sheet.freezeRows)) {
-    downloadWorkbookWithImages(wb, sheets, filename);
-  } else {
-    XLSX.writeFile(wb, filename, { cellStyles: true });
-  }
+  // El historial tiene bandas y encabezados repetidos por pedido: solo congelamos
+  // el título y subtítulo globales, no la cabecera del primer pedido.
+  downloadWorkbook(wb, [{
+    name: "Historial",
+    title,
+    subtitle,
+    columns: [],
+    rows: [],
+    freezeRows: 2,
+  }], filename);
 };
 
 export interface ExcelSheet {
@@ -727,7 +732,7 @@ const decodeJpegDataUrl = (dataUrl: string): Uint8Array | null => {
   return bytes;
 };
 
-const downloadWorkbookWithImages = (
+const downloadWorkbook = (
   workbook: ReturnType<typeof XLSX.utils.book_new>,
   sheets: ExcelSheet[],
   filename: string,
@@ -754,8 +759,10 @@ const downloadWorkbookWithImages = (
     if (!worksheetBytes) return;
 
     let worksheetXml = strFromU8(worksheetBytes);
-    if (sheet.freezeRows && sheet.freezeRows > 0) {
-      worksheetXml = freezeWorksheetRows(worksheetXml, sheet.freezeRows);
+    // Todas las tablas mantienen visibles el título y el encabezado al desplazarse.
+    const freezeRows = sheet.freezeRows ?? 4;
+    if (freezeRows > 0) {
+      worksheetXml = freezeWorksheetRows(worksheetXml, freezeRows);
     }
 
     const imageColumn = sheet.imageColumn;
@@ -827,13 +834,21 @@ const downloadWorkbookWithImages = (
         const sizeEmu = imageSize * EXCEL_EMU_PER_PIXEL;
         const pictureId = imageIndex + 1;
 
+        const imageRow = EXCEL_DATA_START_ROW + entry.rowIndex;
+        const endColumnOffset = columnOffset + sizeEmu;
+        const endRowOffset = rowOffset + sizeEmu;
+        // Dos anclajes a la misma celda hacen que Excel mueva y oculte la imagen junto con
+        // la fila al aplicar filtros, en lugar de dejarla flotando sobre otra referencia.
         anchors.push(
-          '<xdr:oneCellAnchor>' +
+          '<xdr:twoCellAnchor editAs="twoCell">' +
             '<xdr:from><xdr:col>' + imageColumn + '</xdr:col><xdr:colOff>' +
               columnOffset + '</xdr:colOff><xdr:row>' +
-              (EXCEL_DATA_START_ROW + entry.rowIndex) +
+              imageRow +
               '</xdr:row><xdr:rowOff>' + rowOffset + '</xdr:rowOff></xdr:from>' +
-            '<xdr:ext cx="' + sizeEmu + '" cy="' + sizeEmu + '"/>' +
+            '<xdr:to><xdr:col>' + imageColumn + '</xdr:col><xdr:colOff>' +
+              endColumnOffset + '</xdr:colOff><xdr:row>' +
+              imageRow +
+              '</xdr:row><xdr:rowOff>' + endRowOffset + '</xdr:rowOff></xdr:to>' +
             '<xdr:pic><xdr:nvPicPr><xdr:cNvPr id="' + pictureId +
               '" name="Imagen de producto ' + pictureId + '"/>' +
               '<xdr:cNvPicPr><a:picLocks noChangeAspect="1"/></xdr:cNvPicPr></xdr:nvPicPr>' +
@@ -841,7 +856,7 @@ const downloadWorkbookWithImages = (
                 '"/><a:stretch><a:fillRect/></a:stretch></xdr:blipFill>' +
               '<xdr:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="' + sizeEmu +
                 '" cy="' + sizeEmu + '"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></xdr:spPr>' +
-            '</xdr:pic><xdr:clientData/></xdr:oneCellAnchor>',
+            '</xdr:pic><xdr:clientData/></xdr:twoCellAnchor>',
         );
       });
 
@@ -1034,13 +1049,9 @@ export const exportExcel = ({
     XLSX.utils.book_append_sheet(wb, ws, sheet.name.slice(0, 31));
   });
 
-  // El catálogo necesita pasar por el escritor OOXML para incrustar las fotos.
-  // XLSX.writeFile() conserva los datos, pero descarta las imágenes que agregamos al ZIP.
-  if (sheets.some((sheet) => sheet.imageColumn !== undefined || sheet.freezeRows)) {
-    downloadWorkbookWithImages(wb, sheets, filename);
-  } else {
-    XLSX.writeFile(wb, filename, { cellStyles: true });
-  }
+  // Usar un único escritor para todos los Excel: aplica paneles congelados y,
+  // cuando corresponda, incrusta las imágenes en el mismo archivo XLSX.
+  downloadWorkbook(wb, sheets, filename);
 };
 
 
