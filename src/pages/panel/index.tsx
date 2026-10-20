@@ -411,6 +411,76 @@ const Panel = () => {
         </DialogContent>
       </Dialog>
 
+      <div className="mb-4 flex items-center justify-between">
+        <div>
+          <h2 className="text-lg font-semibold">Rendimiento de inventario</h2>
+          <p className="text-sm text-muted-foreground">Productos y clientes con mayor movimiento.</p>
+        </div>
+      </div>
+      <div className="nx-ranking-grid grid grid-cols-1 gap-5 lg:grid-cols-2">
+        <section className="min-w-0 premium-surface nx-ranking-card p-6 transition-shadow hover:shadow-md">
+          <div className="mb-3 flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <span className="rounded-md bg-primary/12 p-1.5 text-primary">
+                <TrendingUp className="h-3.5 w-3.5" />
+              </span>
+              <div>
+                <h3 className="text-sm font-semibold">{t("dashboard.topProductsTitle")}</h3>
+                <p className="text-xs text-muted-foreground">{t("dashboard.topProductsSubtitle")}</p>
+              </div>
+            </div>
+            <Link to="/inventario" className="text-xs text-primary hover:underline">
+              {t("common.viewAll")}
+            </Link>
+          </div>
+          {data.topProducts.length === 0 ? (
+            <p className="py-6 text-center text-sm text-muted-foreground">
+              {t("dashboard.noSalesRanking")}
+            </p>
+          ) : (
+            <RankChart
+              data={productsChart}
+              gradientId="rankProducts"
+              formatValue={(value) => formatNumber(value)}
+            />
+          )}
+        </section>
+
+        <section className="min-w-0 premium-surface nx-ranking-card p-6 transition-shadow hover:shadow-md">
+          <div className="mb-3 flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <span className="rounded-md bg-info/15 p-1.5 text-info">
+                <Users className="h-3.5 w-3.5" />
+              </span>
+              <div>
+                <h3 className="text-sm font-semibold">{t("dashboard.topCustomersTitle")}</h3>
+                <p className="text-xs text-muted-foreground">
+                  {clientesPorMonto
+                    ? t("dashboard.topCustomersSubtitle")
+                    : t("dashboard.topCustomersSubtitleUnits")}
+                </p>
+              </div>
+            </div>
+            <Link to="/clientes" className="text-xs text-primary hover:underline">
+              {t("common.viewAll")}
+            </Link>
+          </div>
+          {data.topCustomers.length === 0 ? (
+            <p className="py-6 text-center text-sm text-muted-foreground">
+              {t("dashboard.noSalesRanking")}
+            </p>
+          ) : (
+            <RankChart
+              data={customersChart}
+              gradientId="rankCustomers"
+              formatValue={(value) =>
+                clientesPorMonto ? formatCurrency(value) : formatNumber(value)
+              }
+            />
+          )}
+        </section>
+      </div>
+
       <section className="nx-actions-section">
         <div className="nx-section-heading"><div className="nx-section-icon"><Sparkles className="h-5 w-5" /></div><div><h2>Acciones rápidas</h2><p>Las tareas que más utilizas, siempre a un clic.</p></div></div>
         <div className="nx-action-grid">
@@ -508,75 +578,7 @@ const Panel = () => {
         )}
       </section>
 
-      <div className="mb-4 flex items-center justify-between">
-        <div>
-          <h2 className="text-lg font-semibold">Rendimiento de inventario</h2>
-          <p className="text-sm text-muted-foreground">Productos y clientes con mayor movimiento.</p>
-        </div>
-      </div>
-      <div className="nx-ranking-grid grid grid-cols-1 gap-5 lg:grid-cols-2">
-        <section className="min-w-0 premium-surface nx-ranking-card p-6 transition-shadow hover:shadow-md">
-          <div className="mb-3 flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2">
-              <span className="rounded-md bg-primary/12 p-1.5 text-primary">
-                <TrendingUp className="h-3.5 w-3.5" />
-              </span>
-              <div>
-                <h3 className="text-sm font-semibold">{t("dashboard.topProductsTitle")}</h3>
-                <p className="text-xs text-muted-foreground">{t("dashboard.topProductsSubtitle")}</p>
-              </div>
-            </div>
-            <Link to="/inventario" className="text-xs text-primary hover:underline">
-              {t("common.viewAll")}
-            </Link>
-          </div>
-          {data.topProducts.length === 0 ? (
-            <p className="py-6 text-center text-sm text-muted-foreground">
-              {t("dashboard.noSalesRanking")}
-            </p>
-          ) : (
-            <RankChart
-              data={productsChart}
-              gradientId="rankProducts"
-              formatValue={(value) => formatNumber(value)}
-            />
-          )}
-        </section>
 
-        <section className="min-w-0 premium-surface nx-ranking-card p-6 transition-shadow hover:shadow-md">
-          <div className="mb-3 flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2">
-              <span className="rounded-md bg-info/15 p-1.5 text-info">
-                <Users className="h-3.5 w-3.5" />
-              </span>
-              <div>
-                <h3 className="text-sm font-semibold">{t("dashboard.topCustomersTitle")}</h3>
-                <p className="text-xs text-muted-foreground">
-                  {clientesPorMonto
-                    ? t("dashboard.topCustomersSubtitle")
-                    : t("dashboard.topCustomersSubtitleUnits")}
-                </p>
-              </div>
-            </div>
-            <Link to="/clientes" className="text-xs text-primary hover:underline">
-              {t("common.viewAll")}
-            </Link>
-          </div>
-          {data.topCustomers.length === 0 ? (
-            <p className="py-6 text-center text-sm text-muted-foreground">
-              {t("dashboard.noSalesRanking")}
-            </p>
-          ) : (
-            <RankChart
-              data={customersChart}
-              gradientId="rankCustomers"
-              formatValue={(value) =>
-                clientesPorMonto ? formatCurrency(value) : formatNumber(value)
-              }
-            />
-          )}
-        </section>
-      </div>
 
 
     </div>
