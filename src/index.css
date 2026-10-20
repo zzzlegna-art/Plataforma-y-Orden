@@ -1091,6 +1091,8 @@ body {
 /* NEXORA — Inventario compacto, unificado con el panel principal.
    Alcance visual: mantiene intactos filtros, stock, imágenes, permisos y exportaciones. */
 .nx-operations-inventario {
+  display: flex;
+  flex-direction: column;
   max-width: none;
   gap: .85rem;
 }
