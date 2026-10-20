@@ -418,7 +418,7 @@ const NuevoPedido = () => {
                 <p className="mt-1 text-xs text-muted-foreground">{t("order.noRefsMatchHint")}</p>
               </div>
             ) : (
-              <ul className="grid content-start gap-2 sm:grid-cols-2 xl:grid-cols-3 lg:max-h-[calc(100vh-22rem)] lg:overflow-y-auto lg:pr-1">
+              <ul className="grid grid-cols-1 content-start gap-2 2xl:grid-cols-2 lg:max-h-[calc(100vh-22rem)] lg:overflow-y-auto lg:pr-1">
                 {lista.map(({ product, disponibles }) => {
                   const enPedido = cantidadEnPedido(product);
                   return (
