@@ -21,6 +21,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useStore } from "@/hooks/use-store";
 import {
+  exportCompanyName,
   exportExcel,
   exportPedidosHistorialExcel,
   exportPedidosHistorialPdf,
@@ -109,7 +110,7 @@ const Pedidos = () => {
 
     if (format === "pdf") {
       exportPdf({
-        title: `${t("nav.orders")} — ${db.settings.companyName}`,
+        title: `${t("nav.orders")} — ${exportCompanyName(db.settings.companyName)}`,
         subtitle: exportSubtitle(body.length),
         head,
         body,
@@ -122,7 +123,7 @@ const Pedidos = () => {
         sheets: [
           {
             name: "Pedidos",
-            title: `${t("nav.orders")} — ${db.settings.companyName}`,
+            title: `${t("nav.orders")} — ${exportCompanyName(db.settings.companyName)}`,
             subtitle: exportSubtitle(body.length),
             columns: head,
             rows: body,
@@ -169,7 +170,7 @@ const Pedidos = () => {
 
     if (format === "pdf") {
       exportPedidosHistorialPdf({
-        title: t("export.ordersHistoryTitle"),
+        title: `${t("export.ordersHistoryTitle")} — ${exportCompanyName(db.settings.companyName)}`,
         subtitle: exportSubtitlePedidos(pedidos.length),
         pedidos: pedidos.map((pedido) => ({
           code: pedido.code,
