@@ -269,7 +269,7 @@ const PedidoDetalle = () => {
   };
 
   return (
-    <div className="space-y-5 stagger">
+    <div className="space-y-5 stagger nx-operations nx-operations-pedidos nx-pedido-detalle">
       <Button variant="ghost" size="sm" asChild className="-ml-2 w-fit">
         <Link
           to="/pedidos"
