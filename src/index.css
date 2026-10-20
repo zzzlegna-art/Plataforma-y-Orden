@@ -2518,3 +2518,25 @@ html { font-size: 18px; }
 .nx-operations-recepcion .nx-reception-table td button:not([role="checkbox"]) {
   min-height: 34px;
 }
+
+
+/* Override de especificidad: los selectores no deben heredar la altura de los botones de acción. */
+.nx-operations-recepcion .nx-reception-selection [role="checkbox"],
+.nx-operations-recepcion .nx-reception-table [role="checkbox"],
+.nx-operations-recepcion [role="checkbox"] {
+  width: 16px !important;
+  min-width: 16px !important;
+  max-width: 16px !important;
+  height: 16px !important;
+  min-height: 16px !important;
+  max-height: 16px !important;
+  padding: 0 !important;
+  flex: 0 0 16px !important;
+  align-self: center;
+  border-radius: 4px !important;
+}
+.nx-operations-recepcion .nx-reception-selection [role="checkbox"] svg,
+.nx-operations-recepcion .nx-reception-table [role="checkbox"] svg {
+  width: 11px !important;
+  height: 11px !important;
+}
