@@ -285,6 +285,49 @@ const Panel = () => {
     [customersSignature],
   );
 
+  // Gráfica de movimiento: conserva las entradas y salidas reales del rango elegido.
+  const movementChart = useMemo(() => {
+    const start = new Date(`${reporteDesde}T12:00:00`);
+    const end = new Date(`${reporteHasta}T12:00:00`);
+    if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || start > end) return [];
+    const keyFor = (date: Date) =>
+      `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+    const byDay = new Map<string, { entradas: number; salidas: number }>();
+    db.movements.forEach((movement) => {
+      const key = movement.createdAt.slice(0, 10);
+      if (key < reporteDesde || key > reporteHasta) return;
+      const row = byDay.get(key) ?? { entradas: 0, salidas: 0 };
+      if (movement.type === "entrada" || movement.type === "devolucion") row.entradas += movement.quantity;
+      if (movement.type === "salida") row.salidas += movement.quantity;
+      byDay.set(key, row);
+    });
+    const rows: { fecha: string; label: string; entradas: number; salidas: number }[] = [];
+    const cursor = new Date(start);
+    // Limita el detalle diario a un año; rangos mayores muestran el tramo más reciente.
+    if (end.getTime() - cursor.getTime() > 365 * 24 * 60 * 60 * 1000) {
+      cursor.setTime(end.getTime() - 365 * 24 * 60 * 60 * 1000);
+    }
+    while (cursor <= end) {
+      const key = keyFor(cursor);
+      const values = byDay.get(key) ?? { entradas: 0, salidas: 0 };
+      rows.push({
+        fecha: key,
+        label: cursor.toLocaleDateString("es-CO", { day: "numeric", month: "short" }).replace(".", ""),
+        entradas: values.entradas,
+        salidas: values.salidas,
+      });
+      cursor.setDate(cursor.getDate() + 1);
+    }
+    return rows;
+  }, [db.movements, reporteDesde, reporteHasta]);
+
+  const operationsChart = [
+    { name: "Pedidos abiertos", value: data.kpis.openOrders, color: "#4385ff" },
+    { name: "Garantías abiertas", value: data.kpis.openWarranties, color: "#9360ff" },
+    { name: "Stock bajo", value: data.kpis.lowStockProducts, color: "#f5a000" },
+    { name: "Recibidas este mes", value: data.kpis.receivedThisMonth, color: "#08bfd6" },
+  ];
+
   return (
     <div className="space-y-8 stagger">
       <div className="nx-dashboard-heading">
@@ -336,6 +379,82 @@ const Panel = () => {
             <ArrowRight className="h-5 w-5 text-muted-foreground" />
           </Link>
         </div>
+      </section>
+
+      <section className="grid min-w-0 grid-cols-1 gap-4 xl:grid-cols-[1.35fr_1fr]" aria-label="Gráficas de operación">
+        <article className="min-w-0 rounded-xl border bg-card p-4">
+          <div className="mb-3 flex items-start justify-between gap-3">
+            <div>
+              <h2 className="text-base font-semibold">Movimiento de inventario</h2>
+              <p className="text-xs text-muted-foreground">Entradas y salidas en el periodo seleccionado.</p>
+            </div>
+            <div className="flex shrink-0 items-center gap-3 text-xs text-muted-foreground">
+              <span className="inline-flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-cyan-500" />Entradas</span>
+              <span className="inline-flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-violet-500" />Salidas</span>
+            </div>
+          </div>
+          <div className="h-52 w-full min-w-0">
+            <ResponsiveContainer width="100%" height="100%" debounce={120}>
+              <AreaChart data={movementChart} margin={{ top: 8, right: 4, left: 0, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="movementEntriesFill" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#08bfd6" stopOpacity={0.25} />
+                    <stop offset="100%" stopColor="#08bfd6" stopOpacity={0.02} />
+                  </linearGradient>
+                  <linearGradient id="movementExitsFill" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#9360ff" stopOpacity={0.2} />
+                    <stop offset="100%" stopColor="#9360ff" stopOpacity={0.02} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
+                <XAxis dataKey="label" tickLine={false} axisLine={false} minTickGap={18} tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} />
+                <YAxis hide allowDecimals={false} />
+                <Tooltip
+                  contentStyle={{ background: "hsl(var(--popover))", border: "1px solid hsl(var(--border))", borderRadius: 10, fontSize: 12 }}
+                  labelStyle={{ color: "hsl(var(--foreground))" }}
+                  formatter={(value, name) => [value, name === "entradas" ? "Entradas" : "Salidas"]}
+                  labelFormatter={(_, payload) => payload?.[0]?.payload?.fecha ?? ""}
+                />
+                <Area type="monotone" dataKey="entradas" name="Entradas" stroke="#08bfd6" strokeWidth={2} fill="url(#movementEntriesFill)" activeDot={{ r: 4 }} />
+                <Area type="monotone" dataKey="salidas" name="Salidas" stroke="#9360ff" strokeWidth={2} fill="url(#movementExitsFill)" activeDot={{ r: 4 }} />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        </article>
+
+        <article className="min-w-0 rounded-xl border bg-card p-4">
+          <div className="mb-3">
+            <h2 className="text-base font-semibold">Estado de operaciones</h2>
+            <p className="text-xs text-muted-foreground">Indicadores actuales de la bodega.</p>
+          </div>
+          <div className="grid min-w-0 grid-cols-1 items-center gap-3 sm:grid-cols-[minmax(150px,0.9fr)_minmax(130px,1fr)]">
+            <div className="relative mx-auto h-40 w-full max-w-[220px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie data={operationsChart} dataKey="value" nameKey="name" innerRadius={43} outerRadius={62} paddingAngle={2} stroke="none">
+                    {operationsChart.map((item) => <Cell key={item.name} fill={item.color} />)}
+                  </Pie>
+                  <Tooltip
+                    contentStyle={{ background: "hsl(var(--popover))", border: "1px solid hsl(var(--border))", borderRadius: 10, fontSize: 12 }}
+                    formatter={(value, name) => [value, name]}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+              <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center text-center">
+                <span className="text-sm font-semibold">Resumen</span>
+                <span className="text-[10px] text-muted-foreground">operativo</span>
+              </div>
+            </div>
+            <div className="space-y-3">
+              {operationsChart.map((item) => (
+                <div key={item.name} className="flex items-center justify-between gap-3 text-xs">
+                  <span className="flex min-w-0 items-center gap-2"><span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: item.color }} /><span>{item.name}</span></span>
+                  <strong className="shrink-0 tabular-nums">{formatNumber(item.value)}</strong>
+                </div>
+              ))}
+            </div>
+          </div>
+        </article>
       </section>
 
       <Dialog open={stockDialogOpen} onOpenChange={setStockDialogOpen}>
