@@ -904,7 +904,7 @@ const Inventario = () => {
           ) : undefined
         }
         renderCard={renderCard}
-        className="rounded-2xl border-border/70 shadow-sm"
+        className="nx-inventory-table rounded-xl border-border/70 shadow-none"
         rowClassName={(row) =>
           cn(
             "border-b border-border [&>td]:border-b [&>td]:border-border/80",

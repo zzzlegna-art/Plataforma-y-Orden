@@ -1086,3 +1086,246 @@ body {
   .nx-dashboard-chart-card { padding: .8rem; }
   .nx-dashboard-movement-chart { height: 175px; }
 }
+
+
+/* NEXORA — Inventario compacto, unificado con el panel principal.
+   Alcance visual: mantiene intactos filtros, stock, imágenes, permisos y exportaciones. */
+.nx-operations-inventario {
+  max-width: none;
+  gap: .85rem;
+}
+.nx-operations-inventario > :not([hidden]) ~ :not([hidden]) {
+  margin-top: 0;
+}
+.nx-operations-inventario .nx-page-header {
+  align-items: center;
+  gap: .9rem;
+  padding: .85rem 1rem;
+  border-radius: .8rem;
+  background: linear-gradient(105deg, hsl(var(--card)) 45%, hsl(var(--primary) / .045));
+  box-shadow: none;
+}
+.nx-operations-inventario .nx-page-header::after {
+  display: none;
+}
+.nx-operations-inventario .nx-page-header h1 {
+  font-size: clamp(1.35rem, 1.7vw, 1.65rem);
+  font-weight: 750;
+  letter-spacing: -.035em;
+  line-height: 1.2;
+}
+.nx-operations-inventario .nx-page-header p {
+  margin-top: .25rem;
+  font-size: .72rem;
+  line-height: 1.4;
+}
+.nx-operations-inventario .nx-page-header > div:last-child {
+  gap: .4rem;
+}
+.nx-operations-inventario .nx-page-header button,
+.nx-operations-inventario .nx-page-header a {
+  min-height: 32px;
+  height: 32px;
+  gap: .35rem;
+  border-radius: .55rem;
+  padding-inline: .65rem;
+  font-size: .68rem;
+  font-weight: 650;
+  line-height: 1;
+}
+.nx-operations-inventario .nx-page-header button svg,
+.nx-operations-inventario .nx-page-header a svg {
+  width: 14px;
+  height: 14px;
+}
+.nx-operations-inventario > .grid {
+  gap: .65rem;
+}
+.nx-operations-inventario > .grid > div {
+  min-width: 0;
+  border-radius: .8rem;
+  padding: .7rem .85rem;
+  box-shadow: none;
+}
+.nx-operations-inventario > .grid > div::before {
+  top: 16%;
+  bottom: 16%;
+  width: 2px;
+  opacity: .7;
+}
+.nx-operations-inventario > .grid > div > .relative.flex {
+  min-height: 64px;
+  gap: .65rem;
+}
+.nx-operations-inventario > .grid > div > .relative.flex > div:first-child {
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: .6rem;
+}
+.nx-operations-inventario > .grid > div > .relative.flex > div:first-child svg {
+  width: 1.1rem;
+  height: 1.1rem;
+}
+.nx-operations-inventario > .grid > div > .relative.flex > div.min-w-0 > p:first-child {
+  font-size: .58rem;
+  letter-spacing: .07em;
+  line-height: 1.35;
+}
+.nx-operations-inventario > .grid > div > .relative.flex > div.min-w-0 > p:nth-child(2) {
+  margin-top: .3rem;
+  font-size: 1.55rem;
+  font-weight: 800;
+  letter-spacing: -.04em;
+}
+.nx-operations-inventario > .grid > div > .relative.flex > div.min-w-0 > p:last-child {
+  margin-top: .25rem;
+  font-size: .62rem;
+  line-height: 1.35;
+}
+.nx-operations-inventario > .grid > div > .relative.flex > div:last-child {
+  height: 1.75rem;
+  gap: .25rem;
+}
+.nx-operations-inventario > .grid > div > .relative.flex > div:last-child span {
+  width: .25rem;
+  border-radius: 99px;
+}
+.nx-operations-inventario > .space-y-4.rounded-2xl {
+  padding: .75rem;
+  border-radius: .8rem;
+  box-shadow: none;
+}
+.nx-operations-inventario > .space-y-4.rounded-2xl > :not([hidden]) ~ :not([hidden]) {
+  margin-top: .6rem;
+}
+.nx-operations-inventario input,
+.nx-operations-inventario [role="combobox"] {
+  min-height: 34px;
+  height: 34px;
+  border-radius: .55rem;
+  font-size: .7rem;
+}
+.nx-operations-inventario .space-y-4.rounded-2xl > div:first-child {
+  gap: .5rem;
+}
+.nx-operations-inventario .space-y-4.rounded-2xl .border-t {
+  padding-top: .6rem;
+}
+.nx-operations-inventario .space-y-4.rounded-2xl .rounded-full {
+  gap: .2rem;
+  padding: .2rem;
+}
+.nx-operations-inventario .space-y-4.rounded-2xl button {
+  min-height: 28px;
+  height: 28px;
+  border-radius: .45rem;
+  padding-inline: .65rem;
+  font-size: .66rem;
+  font-weight: 600;
+}
+.nx-operations-inventario .space-y-4.rounded-2xl button svg {
+  width: 13px;
+  height: 13px;
+}
+.nx-operations-inventario .nx-inventory-table {
+  border-color: hsl(var(--border));
+  border-radius: .8rem;
+  box-shadow: none;
+}
+.nx-operations-inventario .nx-inventory-table thead {
+  background: hsl(var(--muted) / .52);
+}
+.nx-operations-inventario .nx-inventory-table th {
+  height: 37px;
+  padding: .5rem .65rem;
+  font-size: .6rem;
+  letter-spacing: .045em;
+  white-space: nowrap;
+}
+.nx-operations-inventario .nx-inventory-table th:first-child,
+.nx-operations-inventario .nx-inventory-table td:first-child {
+  min-width: 235px;
+}
+.nx-operations-inventario .nx-inventory-table tbody td {
+  padding: .5rem .65rem;
+  font-size: .72rem;
+}
+.nx-operations-inventario .nx-inventory-table tbody td:first-child .flex.items-center.gap-3 {
+  gap: .6rem;
+}
+.nx-operations-inventario .nx-inventory-table tbody td:first-child .h-20.w-20 {
+  width: 3.2rem;
+  height: 3.2rem;
+  border-radius: .65rem;
+}
+.nx-operations-inventario .nx-inventory-table tbody td:first-child .space-y-1 {
+  gap: .25rem;
+}
+.nx-operations-inventario .nx-inventory-table tbody td:first-child a.block {
+  font-size: .73rem;
+  line-height: 1.3;
+}
+.nx-operations-inventario .nx-inventory-table tbody td:first-child .text-\[11px\] {
+  font-size: .58rem;
+}
+.nx-operations-inventario .nx-inventory-table tbody td button {
+  min-height: 27px;
+  height: 27px;
+  border-radius: .5rem;
+  font-size: .66rem;
+}
+.nx-operations-inventario .nx-inventory-table tbody td button svg {
+  width: 13px;
+  height: 13px;
+}
+.nx-operations-inventario .nx-inventory-table > .divide-y > div {
+  padding: .7rem;
+}
+.nx-operations-inventario .nx-inventory-table .h-16.w-16 {
+  width: 3.2rem;
+  height: 3.2rem;
+  border-radius: .65rem;
+}
+.nx-operations-inventario .nx-inventory-table .space-y-3 {
+  gap: .55rem;
+}
+@media (max-width: 1000px) {
+  .nx-operations-inventario .nx-page-header {
+    align-items: flex-start;
+  }
+  .nx-operations-inventario .nx-page-header > div:last-child {
+    justify-content: flex-start;
+  }
+}
+@media (max-width: 640px) {
+  .nx-operations-inventario .nx-page-header {
+    padding: .8rem;
+  }
+  .nx-operations-inventario .nx-page-header > div:last-child {
+    display: grid;
+    width: 100%;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .nx-operations-inventario .nx-page-header > div:last-child > * {
+    min-width: 0;
+    width: 100%;
+  }
+  .nx-operations-inventario .nx-page-header button,
+  .nx-operations-inventario .nx-page-header a {
+    justify-content: center;
+    padding-inline: .4rem;
+    font-size: .64rem;
+  }
+  .nx-operations-inventario > .grid > div {
+    padding: .65rem;
+  }
+  .nx-operations-inventario .nx-inventory-table th:first-child,
+  .nx-operations-inventario .nx-inventory-table td:first-child {
+    min-width: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .nx-operations-inventario * {
+    transition: none !important;
+  }
+}
