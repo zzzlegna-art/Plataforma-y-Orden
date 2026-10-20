@@ -2107,3 +2107,265 @@ html { font-size: 18px; }
     min-width: 0;
   }
 }
+
+
+/* Recepción — unificación visual con el sistema corporativo Nexora. */
+.nx-operations-recepcion {
+  --nx-reception-bg: #091522;
+  --nx-reception-card: #101e2d;
+  --nx-reception-card-raised: #132538;
+  --nx-reception-border: #29465d;
+  --nx-reception-text: #e7f0fb;
+  --nx-reception-muted: #9eb2c8;
+  --nx-reception-cyan: #08c7d9;
+  color: var(--nx-reception-text);
+  gap: 1rem;
+}
+.nx-operations-recepcion .nx-page-header {
+  padding: 1.05rem 1.2rem;
+  border: 1px solid var(--nx-reception-border);
+  border-radius: .9rem;
+  background: linear-gradient(115deg, #101f30 0%, #102a38 100%);
+  gap: 1rem;
+}
+.nx-operations-recepcion .nx-page-header h1 {
+  color: var(--nx-reception-text);
+  font-size: clamp(1.65rem, 1.9vw, 2rem);
+  letter-spacing: -.035em;
+}
+.nx-operations-recepcion .nx-page-header p {
+  margin-top: .35rem;
+  color: var(--nx-reception-muted);
+  font-size: .88rem;
+}
+.nx-operations-recepcion .nx-page-header button,
+.nx-operations-recepcion .nx-page-header a {
+  min-height: 40px;
+  border-radius: .6rem;
+  font-size: .8rem;
+}
+.nx-operations-recepcion .nx-reception-filters,
+.nx-operations-recepcion .nx-reception-selection {
+  border-color: var(--nx-reception-border);
+  border-radius: .8rem;
+  background: var(--nx-reception-card);
+  box-shadow: none;
+  padding: .75rem;
+}
+.nx-operations-recepcion input,
+.nx-operations-recepcion textarea,
+.nx-operations-recepcion [role="combobox"] {
+  min-height: 40px;
+  border-color: var(--nx-reception-border);
+  border-radius: .6rem;
+  background: #091522;
+  color: var(--nx-reception-text);
+  font-size: .84rem;
+}
+.nx-operations-recepcion input::placeholder,
+.nx-operations-recepcion textarea::placeholder {
+  color: #8298af;
+}
+.nx-operations-recepcion .nx-reception-filters button,
+.nx-operations-recepcion .nx-reception-selection button {
+  min-height: 34px;
+  border-radius: .55rem;
+  font-size: .78rem;
+}
+.nx-operations-recepcion .nx-reception-table {
+  overflow: hidden;
+  border-color: var(--nx-reception-border);
+  border-radius: .9rem;
+  background: var(--nx-reception-card);
+  box-shadow: none;
+}
+.nx-operations-recepcion .nx-reception-table table {
+  color: var(--nx-reception-text);
+}
+.nx-operations-recepcion .nx-reception-table thead tr {
+  border-color: var(--nx-reception-border);
+  background: #142437;
+}
+.nx-operations-recepcion .nx-reception-table th {
+  height: 42px;
+  padding: .7rem .85rem;
+  color: #9eb5cc;
+  font-size: .72rem;
+  font-weight: 650;
+  letter-spacing: .045em;
+  text-transform: uppercase;
+}
+.nx-operations-recepcion .nx-reception-table tbody tr {
+  border-color: var(--nx-reception-border);
+  background: var(--nx-reception-card);
+  transition: background-color .16s ease;
+}
+.nx-operations-recepcion .nx-reception-table tbody tr:nth-child(even) {
+  background: #112233;
+}
+.nx-operations-recepcion .nx-reception-table tbody tr:hover {
+  background: #173044;
+}
+.nx-operations-recepcion .nx-reception-table td {
+  padding: .8rem .85rem;
+  color: var(--nx-reception-text);
+  font-size: .84rem;
+  line-height: 1.45;
+}
+.nx-operations-recepcion .nx-reception-table td .text-muted-foreground,
+.nx-operations-recepcion .nx-reception-table > div:last-child {
+  color: var(--nx-reception-muted);
+}
+.nx-operations-recepcion .nx-reception-table td button {
+  min-height: 34px;
+  border-radius: .55rem;
+  font-size: .76rem;
+}
+.nx-operations-recepcion [data-radix-collection-item],
+.nx-operations-recepcion [role="dialog"] {
+  color: var(--nx-reception-text);
+}
+.nx-operations-recepcion .rounded-lg.border,
+.nx-operations-recepcion .rounded-xl.border {
+  border-color: var(--nx-reception-border);
+}
+.nx-operations-recepcion .bg-card {
+  background-color: var(--nx-reception-card);
+}
+.nx-operations-recepcion .bg-muted\/30,
+.nx-operations-recepcion .bg-muted\/50,
+.nx-operations-recepcion .bg-muted\/60 {
+  background-color: #142437;
+}
+.nx-operations-recepcion .text-muted-foreground {
+  color: var(--nx-reception-muted);
+}
+.nx-operations-recepcion .nx-reception-selection > span {
+  color: var(--nx-reception-muted);
+}
+
+/* Nueva recepción: captura y datos a la izquierda, lista persistente a la derecha. */
+.nx-reception-capture {
+  min-width: 0;
+  color: var(--nx-reception-text);
+  gap: 1rem;
+}
+.nx-reception-capture .nx-page-header {
+  padding: .95rem 1.15rem;
+  border: 1px solid var(--nx-reception-border);
+  border-radius: .9rem;
+  background: linear-gradient(115deg, #101f30 0%, #102a38 100%);
+}
+.nx-reception-capture .nx-page-header h1 {
+  color: var(--nx-reception-text);
+  font-size: clamp(1.55rem, 1.8vw, 1.9rem);
+}
+.nx-reception-capture .nx-page-header p {
+  color: var(--nx-reception-muted);
+  font-size: .86rem;
+}
+.nx-reception-capture section {
+  min-width: 0;
+  border-color: var(--nx-reception-border);
+  border-radius: .85rem;
+  background: var(--nx-reception-card);
+  box-shadow: none;
+}
+.nx-reception-capture section h3 {
+  color: var(--nx-reception-text);
+  font-size: .9rem;
+}
+.nx-reception-capture label {
+  color: #c8d7e7;
+  font-size: .8rem;
+}
+.nx-reception-capture input,
+.nx-reception-capture textarea,
+.nx-reception-capture [role="combobox"] {
+  min-height: 40px;
+  border-color: var(--nx-reception-border);
+  border-radius: .6rem;
+  background: #091522;
+  color: var(--nx-reception-text);
+  font-size: .84rem;
+}
+.nx-reception-capture input::placeholder,
+.nx-reception-capture textarea::placeholder {
+  color: #8197ad;
+}
+.nx-reception-capture .text-muted-foreground {
+  color: var(--nx-reception-muted);
+}
+.nx-reception-capture .border-t,
+.nx-reception-capture .border-b,
+.nx-reception-capture .divide-y > :not([hidden]) ~ :not([hidden]) {
+  border-color: var(--nx-reception-border);
+}
+.nx-reception-capture .bg-muted\/30,
+.nx-reception-capture .bg-muted\/40,
+.nx-reception-capture .bg-muted\/60,
+.nx-reception-capture .bg-background {
+  background-color: #0b1928;
+}
+.nx-reception-capture .rounded-lg.border,
+.nx-reception-capture .rounded-xl.border {
+  border-color: var(--nx-reception-border);
+}
+.nx-reception-capture section > .border-b {
+  background: #132538;
+}
+.nx-reception-capture section .overflow-y-auto {
+  scrollbar-color: #38556d #0b1928;
+}
+.nx-reception-capture .fixed.bottom-\[calc\(4\.5rem\+env\(safe-area-inset-bottom\,0px\)\)\] {
+  border-color: var(--nx-reception-border);
+  background: rgba(16, 30, 45, .96);
+}
+.nx-reception-capture button {
+  border-radius: .58rem;
+  font-size: .8rem;
+}
+.nx-reception-capture button:focus-visible,
+.nx-operations-recepcion input:focus-visible,
+.nx-reception-capture input:focus-visible,
+.nx-reception-capture textarea:focus-visible {
+  outline-color: var(--nx-reception-cyan);
+}
+@media (min-width: 1024px) {
+  .nx-reception-capture > .grid {
+    grid-template-columns: minmax(19rem, 25rem) minmax(0, 1fr);
+    gap: 1rem;
+  }
+  .nx-reception-capture section {
+    padding: 1rem;
+  }
+}
+@media (max-width: 760px) {
+  .nx-operations-recepcion .nx-page-header,
+  .nx-reception-capture .nx-page-header {
+    padding: .85rem;
+  }
+  .nx-operations-recepcion .nx-page-header > div:last-child {
+    width: 100%;
+  }
+  .nx-operations-recepcion .nx-page-header > div:last-child > * {
+    flex: 1 1 auto;
+  }
+  .nx-reception-capture {
+    padding-bottom: 5.5rem;
+  }
+  .nx-reception-capture > .grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: .85rem;
+  }
+  .nx-reception-capture section {
+    padding: .9rem;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .nx-operations-recepcion *,
+  .nx-reception-capture * {
+    transition: none !important;
+    animation: none !important;
+  }
+}
