@@ -256,7 +256,7 @@ const Pedidos = () => {
         }
       />
 
-      <div className="space-y-3 rounded-lg border bg-card p-3 shadow-sm">
+      <div className="nx-pedidos-filters space-y-3 rounded-lg border bg-card p-3 shadow-sm">
         <SearchField
           value={search}
           onChange={setSearch}
@@ -286,6 +286,7 @@ const Pedidos = () => {
 
       <div key={status} className="animate-fade-in">
         <DataTable<OrderView>
+          className="nx-pedidos-table"
           rows={rows}
           rowKey={(view) => view.order.id}
           onRowClick={(view) => navigate(`/pedidos/${view.order.id}`)}
