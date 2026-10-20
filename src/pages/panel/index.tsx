@@ -18,11 +18,15 @@ import {
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import {
+  Area,
+  AreaChart,
   Bar,
   BarChart,
   CartesianGrid,
   Cell,
   LabelList,
+  Pie,
+  PieChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
