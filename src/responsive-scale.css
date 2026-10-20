@@ -1,0 +1,21 @@
+/*
+ * Nexora — escala visual cómoda y adaptable.
+ * Conserva el rediseño corporativo aprobado y escala suavemente componentes rem-based.
+ */
+html {
+  font-size: clamp(16px, calc(15px + 0.14vw), 18px);
+}
+
+@media (max-width: 767px) {
+  html {
+    font-size: 16px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+  }
+}
