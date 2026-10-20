@@ -1874,3 +1874,236 @@ html { font-size: 17px; }
     transition: none !important;
   }
 }
+
+
+/* Nexora — escala de lectura cómoda v2.
+   Prioriza legibilidad a zoom 100%, sin depender del navegador ni ampliar huecos innecesarios. */
+html { font-size: 18px; }
+@media (max-width: 1100px) {
+  html { font-size: 17px; }
+}
+@media (max-width: 640px) {
+  html { font-size: 16px; }
+}
+
+/* Marco compartido: navegación y barra superior legibles en todos los módulos. */
+.nx-app-topbar > div:first-of-type p:first-child {
+  font-size: .94rem;
+}
+.nx-app-topbar > div:first-of-type p:last-child {
+  font-size: .76rem;
+}
+.nx-app-topbar button {
+  font-size: .84rem;
+}
+.nx-sidebar-brand p:first-child {
+  font-size: .9rem;
+}
+.nx-sidebar-brand p:last-child {
+  font-size: .64rem;
+  letter-spacing: .025em;
+}
+.nx-sidebar-link {
+  min-height: 42px;
+  font-size: .84rem;
+  gap: .7rem;
+}
+.nx-sidebar-link svg {
+  width: 18px;
+  height: 18px;
+}
+
+/* Panel principal: tipografía y datos más próximos, manteniendo el orden aprobado. */
+.nx-dashboard-reference .nx-eyebrow {
+  font-size: .78rem;
+}
+.nx-dashboard-reference .nx-dashboard-page-header h1 {
+  font-size: clamp(2rem, 2.2vw, 2.4rem);
+}
+.nx-dashboard-reference .nx-dashboard-page-header p {
+  font-size: .96rem;
+}
+.nx-dashboard-date-field label {
+  font-size: .78rem;
+}
+.nx-dashboard-date-input {
+  font-size: .86rem;
+}
+.nx-dashboard-reference .nx-dashboard-export-button {
+  font-size: .84rem;
+}
+.nx-dashboard-reference .nx-stat-label {
+  font-size: .78rem;
+  line-height: 1.5;
+}
+.nx-dashboard-reference .nx-stat-card .font-tabular {
+  font-size: 1.9rem;
+}
+.nx-dashboard-reference .nx-stat-card .mt-3 {
+  font-size: .84rem;
+}
+.nx-dashboard-card-heading h2 {
+  font-size: 1.12rem;
+}
+.nx-dashboard-card-heading p {
+  font-size: .88rem;
+}
+.nx-dashboard-chart-legend {
+  font-size: .84rem;
+}
+.nx-dashboard-reference .recharts-cartesian-axis-tick text {
+  font-size: 14px !important;
+}
+.nx-dashboard-donut-center strong {
+  font-size: 1rem;
+}
+.nx-dashboard-donut-center span {
+  font-size: .8rem;
+}
+.nx-dashboard-status-row {
+  font-size: .86rem;
+  line-height: 1.5;
+  padding-block: .55rem;
+}
+.nx-dashboard-status-row strong {
+  font-size: .88rem;
+}
+.nx-dashboard-reference .nx-section-heading h2 {
+  font-size: 1.15rem;
+}
+.nx-dashboard-reference .nx-section-heading p {
+  font-size: .88rem;
+  line-height: 1.5;
+}
+.nx-dashboard-reference .nx-action-tile {
+  min-height: 70px;
+}
+.nx-dashboard-reference .nx-action-tile strong {
+  font-size: .84rem;
+}
+.nx-dashboard-reference .nx-action-tile small {
+  font-size: .76rem;
+}
+.nx-dashboard-reference .nx-dashboard-warranties > div:first-child h2 {
+  font-size: 1.2rem;
+}
+.nx-dashboard-reference .nx-dashboard-warranties > div:first-child p {
+  font-size: .9rem;
+}
+.nx-dashboard-reference .nx-dashboard-warranties > .grid > div > p:first-child {
+  font-size: .82rem;
+}
+.nx-dashboard-reference .nx-dashboard-warranties > .grid > div > p:nth-child(2) {
+  font-size: 2rem;
+}
+.nx-dashboard-reference .nx-dashboard-warranties > .grid > div > p:last-child {
+  font-size: .84rem;
+}
+.nx-dashboard-reference .nx-dashboard-warranties .divide-y > a p:first-child {
+  font-size: .9rem;
+}
+.nx-dashboard-reference .nx-dashboard-warranties .divide-y > a p:last-child {
+  font-size: .8rem;
+}
+
+/* Inventario: textos de producto, filtros y cifras a una escala cómoda. */
+.nx-operations-inventario .nx-page-header h1 {
+  font-size: clamp(1.8rem, 2vw, 2.05rem);
+}
+.nx-operations-inventario .nx-page-header p {
+  font-size: .92rem;
+}
+.nx-operations-inventario .nx-page-header button,
+.nx-operations-inventario .nx-page-header a {
+  font-size: .82rem;
+  min-height: 40px;
+  height: 40px;
+}
+.nx-operations-inventario > .grid > div > .relative.flex > div.min-w-0 > p:first-child {
+  font-size: .76rem;
+}
+.nx-operations-inventario > .grid > div > .relative.flex > div.min-w-0 > p:nth-child(2) {
+  font-size: 1.95rem;
+}
+.nx-operations-inventario > .grid > div > .relative.flex > div.min-w-0 > p:last-child {
+  font-size: .82rem;
+}
+.nx-operations-inventario input,
+.nx-operations-inventario [role="combobox"] {
+  font-size: .9rem;
+}
+.nx-operations-inventario .space-y-4.rounded-2xl button {
+  font-size: .82rem;
+}
+.nx-operations-inventario .nx-inventory-table th {
+  font-size: .76rem;
+  height: 46px;
+}
+.nx-operations-inventario .nx-inventory-table tbody td {
+  font-size: .9rem;
+  line-height: 1.5;
+}
+.nx-operations-inventario .nx-inventory-table tbody td:first-child a.block {
+  font-size: .94rem;
+}
+.nx-operations-inventario .nx-inventory-table tbody td:first-child .text-\\[11px\\] {
+  font-size: .72rem;
+}
+.nx-operations-inventario .nx-inventory-table tbody td button {
+  font-size: .82rem;
+}
+.nx-operations-inventario .nx-inventory-table footer,
+.nx-operations-inventario .nx-inventory-table > div:last-child {
+  font-size: .84rem;
+}
+
+/* Mantener una lectura cómoda sin que los controles desborden en pantallas pequeñas. */
+@media (max-width: 1100px) {
+  .nx-dashboard-reference .nx-dashboard-page-header h1 {
+    font-size: 2rem;
+  }
+  .nx-dashboard-reference .nx-dashboard-kpis > .grid {
+    gap: .7rem;
+  }
+  .nx-dashboard-reference .nx-dashboard-status-row {
+    font-size: .8rem;
+  }
+  .nx-operations-inventario .nx-page-header {
+    gap: .75rem;
+  }
+  .nx-operations-inventario .nx-inventory-table th:first-child,
+  .nx-operations-inventario .nx-inventory-table td:first-child {
+    min-width: 225px;
+  }
+}
+@media (max-width: 640px) {
+  .nx-sidebar-link {
+    font-size: .84rem;
+  }
+  .nx-dashboard-reference .nx-dashboard-page-header h1 {
+    font-size: 1.85rem;
+  }
+  .nx-dashboard-reference .nx-stat-label {
+    font-size: .76rem;
+  }
+  .nx-dashboard-reference .nx-stat-card .mt-3 {
+    font-size: .8rem;
+  }
+  .nx-dashboard-reference .nx-dashboard-card-heading h2 {
+    font-size: 1.08rem;
+  }
+  .nx-dashboard-reference .nx-dashboard-card-heading p {
+    font-size: .84rem;
+  }
+  .nx-operations-inventario .nx-page-header h1 {
+    font-size: 1.7rem;
+  }
+  .nx-operations-inventario .nx-page-header button,
+  .nx-operations-inventario .nx-page-header a {
+    font-size: .76rem;
+  }
+  .nx-operations-inventario .nx-inventory-table th:first-child,
+  .nx-operations-inventario .nx-inventory-table td:first-child {
+    min-width: 0;
+  }
+}
