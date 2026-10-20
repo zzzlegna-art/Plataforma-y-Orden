@@ -1034,7 +1034,13 @@ export const exportExcel = ({
     XLSX.utils.book_append_sheet(wb, ws, sheet.name.slice(0, 31));
   });
 
-  XLSX.writeFile(wb, filename, { cellStyles: true });
+  // El catálogo necesita pasar por el escritor OOXML para incrustar las fotos.
+  // XLSX.writeFile() conserva los datos, pero descarta las imágenes que agregamos al ZIP.
+  if (sheets.some((sheet) => sheet.imageColumn !== undefined || sheet.freezeRows)) {
+    downloadWorkbookWithImages(wb, sheets, filename);
+  } else {
+    XLSX.writeFile(wb, filename, { cellStyles: true });
+  }
 };
 
 
