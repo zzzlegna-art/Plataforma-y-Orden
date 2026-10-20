@@ -435,7 +435,7 @@ const NuevaRecepcion = () => {
   }, [items.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
-    <div className="flex flex-1 flex-col gap-5 animate-fade-in">
+    <div className="nx-operations nx-operations-recepcion nx-reception-capture flex flex-1 flex-col gap-5 animate-fade-in">
       <PageHeader
         title={
           <span className="flex items-center gap-2">
