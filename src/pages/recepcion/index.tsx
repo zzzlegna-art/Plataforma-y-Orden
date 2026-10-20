@@ -363,7 +363,7 @@ const Recepciones = () => {
         }
       />
 
-      <div className="flex flex-col gap-2 rounded-lg border bg-card p-3 shadow-sm sm:flex-row sm:items-center">
+      <div className="nx-reception-filters flex flex-col gap-2 rounded-lg border bg-card p-3 shadow-sm sm:flex-row sm:items-center">
         <SearchField
           value={search}
           onChange={setSearch}
@@ -386,7 +386,7 @@ const Recepciones = () => {
       </div>
 
       {rows.length > 0 ? (
-        <div className="flex flex-wrap items-center gap-2 rounded-md border bg-muted/30 p-2">
+        <div className="nx-reception-selection flex flex-wrap items-center gap-2 rounded-md border bg-muted/30 p-2">
           <Checkbox
             aria-label={t("export.selectAllVisible")}
             checked={rows.every((row) => seleccionados.has(row.reception.id))}
@@ -434,6 +434,7 @@ const Recepciones = () => {
       ) : null}
 
       <DataTable<ReceptionRow>
+        className="nx-reception-table"
         rows={rows}
         rowKey={(row) => row.reception.id}
         emptyTitle={search || status ? t("receptions.emptyFilteredTitle") : t("receptions.emptyTitle")}
