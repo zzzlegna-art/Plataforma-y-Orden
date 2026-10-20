@@ -2793,3 +2793,190 @@ html { font-size: 18px; }
   background: rgba(255, 255, 255, .96);
   box-shadow: 0 8px 24px -12px rgba(25, 52, 80, .2);
 }
+
+
+/* Nexora Garantías — densidad compacta y coherente en ambos temas. */
+.nx-warranties {
+  --nx-warranty-border: #29465d;
+  --nx-warranty-surface: #101e2d;
+  --nx-warranty-raised: #142538;
+  --nx-warranty-text: #e7f0fb;
+  --nx-warranty-muted: #9eb2c8;
+  min-width: 0;
+  gap: 1rem;
+}
+.nx-warranties > .nx-page-header {
+  padding: 1rem 1.2rem;
+  border-radius: .9rem;
+  background: linear-gradient(115deg, #101f30 0%, #102a38 100%);
+  border-color: var(--nx-warranty-border);
+}
+.nx-warranties > .nx-page-header h1 {
+  color: var(--nx-warranty-text);
+  font-size: clamp(1.55rem, 1.8vw, 1.9rem);
+  letter-spacing: -.035em;
+}
+.nx-warranties > .nx-page-header p {
+  margin-top: .3rem;
+  color: var(--nx-warranty-muted);
+  font-size: .86rem;
+}
+.nx-warranties > section,
+.nx-warranties > .flex.flex-wrap.gap-2 {
+  border-color: var(--nx-warranty-border);
+  border-radius: .85rem;
+  box-shadow: none;
+}
+.nx-warranties > section {
+  padding: .9rem 1rem;
+}
+.nx-warranties > section h2 {
+  letter-spacing: -.01em;
+}
+.nx-warranties > .flex.flex-wrap.gap-2 {
+  padding: .65rem;
+  gap: .45rem;
+  background: var(--nx-warranty-surface);
+}
+.nx-warranties > .flex.flex-wrap.gap-2 button,
+.nx-warranties section button {
+  border-radius: .58rem;
+}
+.nx-warranties > .flex.flex-wrap.gap-2 button {
+  min-height: 34px;
+  font-size: .78rem;
+  padding-inline: .75rem;
+}
+.nx-warranties input,
+.nx-warranties textarea,
+.nx-warranties select,
+.nx-warranties [role="combobox"] {
+  max-width: 100%;
+  border-color: var(--nx-warranty-border);
+  border-radius: .58rem;
+  font-size: .84rem;
+}
+.nx-warranties input,
+.nx-warranties select,
+.nx-warranties [role="combobox"] {
+  min-height: 38px;
+}
+.nx-warranties .surface-hover {
+  border-color: var(--nx-warranty-border);
+  border-radius: .8rem;
+  padding: .85rem;
+  background: var(--nx-warranty-surface);
+  box-shadow: none;
+}
+.nx-warranties .surface-hover:hover {
+  border-color: #34708a;
+}
+.nx-warranties .surface-hover .text-muted-foreground {
+  color: var(--nx-warranty-muted);
+}
+.nx-warranties .overflow-hidden.rounded-lg.border > .flex.flex-wrap.items-center.gap-2.border-b {
+  min-height: 48px;
+  padding: .6rem .8rem;
+  border-color: var(--nx-warranty-border);
+  background: var(--nx-warranty-raised);
+}
+.nx-warranties .overflow-hidden.rounded-lg.border > .grid,
+.nx-warranties .overflow-hidden.rounded-lg.border > div.p-3 {
+  min-width: 0;
+}
+.nx-warranties .nx-page-header button {
+  min-height: 36px;
+  border-radius: .58rem;
+  font-size: .8rem;
+}
+.nx-warranties .rounded-xl.border.bg-card,
+.nx-warranties .rounded-lg.border.bg-card {
+  box-shadow: none;
+}
+.nx-warranties .animate-fade-in > .flex.flex-wrap.gap-2 {
+  gap: .45rem;
+}
+.nx-warranties .animate-fade-in > .flex.flex-wrap.gap-2 button {
+  min-height: 34px;
+}
+.nx-warranties .font-tabular {
+  overflow-wrap: anywhere;
+}
+.nx-warranties :is(button, a, input, textarea, select):focus-visible {
+  outline-color: #08c7d9;
+}
+@media (min-width: 1280px) {
+  .nx-warranties > section {
+    padding: .9rem 1rem;
+  }
+  .nx-warranties .surface-hover {
+    padding: .85rem;
+  }
+}
+@media (max-width: 760px) {
+  .nx-warranties {
+    gap: .75rem;
+  }
+  .nx-warranties > .nx-page-header {
+    padding: .85rem;
+  }
+  .nx-warranties > section {
+    padding: .75rem;
+  }
+  .nx-warranties > .flex.flex-wrap.gap-2 {
+    padding: .5rem;
+  }
+  .nx-warranties > .flex.flex-wrap.gap-2 button {
+    flex: 0 0 auto;
+  }
+}
+
+/* Garantías en modo claro: superficies blancas y campos suaves, sin heredar el tema oscuro. */
+:root:not(.dark) .nx-warranties {
+  --nx-warranty-border: #d5e2ee;
+  --nx-warranty-surface: #ffffff;
+  --nx-warranty-raised: #edf5fa;
+  --nx-warranty-text: #172b43;
+  --nx-warranty-muted: #5f738a;
+}
+:root:not(.dark) .nx-warranties > .nx-page-header {
+  border-color: #cfe3ef;
+  background: linear-gradient(115deg, #ffffff 0%, #eef9fc 100%);
+  box-shadow: 0 8px 24px -22px rgba(20, 55, 85, .35);
+}
+:root:not(.dark) .nx-warranties > .nx-page-header h1 {
+  color: #172b43;
+}
+:root:not(.dark) .nx-warranties > .nx-page-header p {
+  color: #5f738a;
+}
+:root:not(.dark) .nx-warranties > section,
+:root:not(.dark) .nx-warranties > .flex.flex-wrap.gap-2 {
+  border-color: #d5e2ee;
+  background: #ffffff;
+  box-shadow: 0 6px 20px -20px rgba(20, 55, 85, .35);
+}
+:root:not(.dark) .nx-warranties input,
+:root:not(.dark) .nx-warranties textarea,
+:root:not(.dark) .nx-warranties select,
+:root:not(.dark) .nx-warranties [role="combobox"] {
+  border-color: #cbdbe9;
+  background-color: #f8fbfe;
+  color: #172b43;
+}
+:root:not(.dark) .nx-warranties .surface-hover {
+  border-color: #d5e2ee;
+  background: #ffffff;
+  color: #172b43;
+}
+:root:not(.dark) .nx-warranties .surface-hover:hover {
+  border-color: #9bdce7;
+  background: #fbfeff;
+}
+:root:not(.dark) .nx-warranties .overflow-hidden.rounded-lg.border > .flex.flex-wrap.items-center.gap-2.border-b {
+  border-color: #d5e2ee;
+  background: #f0f7fb;
+}
+:root:not(.dark) .nx-warranties .text-muted-foreground {
+  color: #5f738a;
+}
