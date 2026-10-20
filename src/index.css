@@ -2540,3 +2540,256 @@ html { font-size: 18px; }
   width: 11px !important;
   height: 11px !important;
 }
+
+
+/* Pedidos — sistema visual Nexora compartido por listado, creación y detalle. */
+.nx-operations-pedidos {
+  --nx-order-card: #101e2d;
+  --nx-order-raised: #142538;
+  --nx-order-border: #29465d;
+  --nx-order-text: #e7f0fb;
+  --nx-order-muted: #9eb2c8;
+  --nx-order-cyan: #08c7d9;
+  min-width: 0;
+  color: var(--nx-order-text);
+  gap: 1rem;
+}
+.nx-operations-pedidos .nx-page-header {
+  padding: 1rem 1.2rem;
+  border: 1px solid var(--nx-order-border);
+  border-radius: .9rem;
+  background: linear-gradient(115deg, #101f30 0%, #102a38 100%);
+  gap: 1rem;
+}
+.nx-operations-pedidos .nx-page-header h1 {
+  color: var(--nx-order-text);
+  font-size: clamp(1.55rem, 1.8vw, 1.95rem);
+  letter-spacing: -.035em;
+}
+.nx-operations-pedidos .nx-page-header p {
+  margin-top: .3rem;
+  color: var(--nx-order-muted);
+  font-size: .86rem;
+}
+.nx-operations-pedidos .nx-page-header button,
+.nx-operations-pedidos .nx-page-header a {
+  min-height: 38px;
+  border-radius: .6rem;
+  font-size: .8rem;
+}
+.nx-operations-pedidos .nx-pedidos-filters {
+  gap: .7rem;
+  padding: .8rem;
+  border-color: var(--nx-order-border);
+  border-radius: .8rem;
+  background: var(--nx-order-card);
+  box-shadow: none;
+}
+.nx-operations-pedidos input,
+.nx-operations-pedidos textarea,
+.nx-operations-pedidos [role="combobox"] {
+  border-color: var(--nx-order-border);
+  border-radius: .6rem;
+  background: #091522;
+  color: var(--nx-order-text);
+  font-size: .84rem;
+}
+.nx-operations-pedidos input::placeholder,
+.nx-operations-pedidos textarea::placeholder {
+  color: #8298af;
+}
+.nx-operations-pedidos .nx-pedidos-filters button {
+  min-height: 34px;
+  border-radius: .55rem;
+  font-size: .78rem;
+}
+.nx-operations-pedidos .nx-pedidos-table {
+  overflow: hidden;
+  border-color: var(--nx-order-border);
+  border-radius: .9rem;
+  background: var(--nx-order-card);
+  box-shadow: none;
+}
+.nx-operations-pedidos .nx-pedidos-table table {
+  color: var(--nx-order-text);
+}
+.nx-operations-pedidos .nx-pedidos-table thead tr {
+  border-color: var(--nx-order-border);
+  background: #142437;
+}
+.nx-operations-pedidos .nx-pedidos-table th {
+  height: 42px;
+  padding: .7rem .85rem;
+  color: #9eb5cc;
+  font-size: .72rem;
+  font-weight: 650;
+  letter-spacing: .045em;
+  text-transform: uppercase;
+}
+.nx-operations-pedidos .nx-pedidos-table tbody tr {
+  border-color: var(--nx-order-border);
+  background: var(--nx-order-card);
+  transition: background-color .16s ease;
+}
+.nx-operations-pedidos .nx-pedidos-table tbody tr:nth-child(even) {
+  background: #112233;
+}
+.nx-operations-pedidos .nx-pedidos-table tbody tr:hover {
+  background: #173044;
+}
+.nx-operations-pedidos .nx-pedidos-table td {
+  padding: .8rem .85rem;
+  color: var(--nx-order-text);
+  font-size: .84rem;
+  line-height: 1.45;
+}
+.nx-operations-pedidos .nx-pedidos-table > div:last-child {
+  border-color: var(--nx-order-border);
+  color: var(--nx-order-muted);
+}
+.nx-operations-pedidos .rounded-lg.border,
+.nx-operations-pedidos .rounded-xl.border {
+  border-color: var(--nx-order-border);
+}
+.nx-operations-pedidos .bg-card {
+  background-color: var(--nx-order-card);
+}
+.nx-operations-pedidos .text-muted-foreground {
+  color: var(--nx-order-muted);
+}
+.nx-operations-pedidos section {
+  min-width: 0;
+}
+.nx-pedido-nuevo section,
+.nx-pedido-detalle section {
+  border-radius: .85rem;
+}
+.nx-pedido-nuevo section > .rounded-lg.border,
+.nx-pedido-nuevo section > div.rounded-lg.border {
+  box-shadow: none;
+}
+.nx-pedido-nuevo .fixed.inset-x-4 {
+  border: 1px solid var(--nx-order-border);
+  border-radius: .8rem;
+  background: rgba(16, 30, 45, .96);
+  padding: .45rem;
+  backdrop-filter: blur(12px);
+}
+.nx-pedido-detalle .grid > div.rounded-lg.border {
+  padding: .9rem 1rem;
+  background: var(--nx-order-card);
+}
+.nx-pedido-detalle .font-tabular.text-xl {
+  font-size: clamp(1.1rem, 1.35vw, 1.35rem);
+}
+.nx-operations-pedidos button:focus-visible,
+.nx-operations-pedidos input:focus-visible,
+.nx-operations-pedidos textarea:focus-visible {
+  outline-color: var(--nx-order-cyan);
+}
+@media (min-width: 1024px) {
+  .nx-operations-pedidos .nx-page-header {
+    padding: 1rem 1.2rem;
+  }
+  .nx-pedido-nuevo > section {
+    padding: 1rem;
+  }
+}
+@media (max-width: 760px) {
+  .nx-operations-pedidos .nx-page-header {
+    padding: .85rem;
+  }
+  .nx-operations-pedidos .nx-page-header > div:last-child {
+    width: 100%;
+  }
+  .nx-operations-pedidos .nx-page-header > div:last-child > * {
+    flex: 1 1 auto;
+  }
+  .nx-pedido-nuevo,
+  .nx-pedido-detalle {
+    padding-bottom: 1rem;
+  }
+}
+
+/* Modo claro: mantener la identidad Nexora sin arrastrar fondos oscuros a los formularios. */
+:root:not(.dark) .nx-operations-pedidos {
+  --nx-order-card: #ffffff;
+  --nx-order-raised: #edf5fa;
+  --nx-order-border: #d5e2ee;
+  --nx-order-text: #172b43;
+  --nx-order-muted: #5f738a;
+  --nx-order-cyan: #08aebe;
+  color: var(--nx-order-text);
+}
+:root:not(.dark) .nx-operations-pedidos .nx-page-header {
+  border-color: #d5e2ee;
+  background: linear-gradient(115deg, #ffffff 0%, #eef9fc 100%);
+  box-shadow: 0 8px 24px -22px rgba(20, 55, 85, .35);
+}
+:root:not(.dark) .nx-operations-pedidos .nx-page-header h1 {
+  color: #172b43;
+}
+:root:not(.dark) .nx-operations-pedidos .nx-page-header p {
+  color: #5f738a;
+}
+:root:not(.dark) .nx-operations-pedidos .nx-pedidos-filters,
+:root:not(.dark) .nx-operations-pedidos .nx-pedidos-table,
+:root:not(.dark) .nx-pedido-nuevo section,
+:root:not(.dark) .nx-pedido-detalle section,
+:root:not(.dark) .nx-pedido-nuevo .rounded-lg.border,
+:root:not(.dark) .nx-pedido-detalle .rounded-lg.border {
+  border-color: #d5e2ee;
+  background-color: #ffffff;
+  color: #172b43;
+  box-shadow: 0 8px 22px -22px rgba(20, 55, 85, .3);
+}
+:root:not(.dark) .nx-operations-pedidos input,
+:root:not(.dark) .nx-operations-pedidos textarea,
+:root:not(.dark) .nx-operations-pedidos [role="combobox"] {
+  border-color: #cbdbe9;
+  background-color: #f8fbfe;
+  color: #172b43;
+}
+:root:not(.dark) .nx-operations-pedidos input::placeholder,
+:root:not(.dark) .nx-operations-pedidos textarea::placeholder {
+  color: #758ba2;
+}
+:root:not(.dark) .nx-operations-pedidos .nx-pedidos-table table {
+  color: #172b43;
+}
+:root:not(.dark) .nx-operations-pedidos .nx-pedidos-table thead tr {
+  border-color: #d5e2ee;
+  background: #edf5fa;
+}
+:root:not(.dark) .nx-operations-pedidos .nx-pedidos-table th {
+  color: #506b85;
+}
+:root:not(.dark) .nx-operations-pedidos .nx-pedidos-table tbody tr,
+:root:not(.dark) .nx-operations-pedidos .nx-pedidos-table tbody tr:nth-child(even) {
+  border-color: #e1eaf2;
+  background: #ffffff;
+}
+:root:not(.dark) .nx-operations-pedidos .nx-pedidos-table tbody tr:nth-child(even) {
+  background: #f7fafc;
+}
+:root:not(.dark) .nx-operations-pedidos .nx-pedidos-table tbody tr:hover {
+  background: #eaf8fb;
+}
+:root:not(.dark) .nx-operations-pedidos .nx-pedidos-table td,
+:root:not(.dark) .nx-operations-pedidos .nx-pedidos-table > div:last-child {
+  color: #203851;
+}
+:root:not(.dark) .nx-operations-pedidos .nx-pedidos-table > div:last-child {
+  border-color: #d5e2ee;
+}
+:root:not(.dark) .nx-operations-pedidos .bg-card {
+  background-color: #ffffff;
+}
+:root:not(.dark) .nx-operations-pedidos .text-muted-foreground {
+  color: #5f738a;
+}
+:root:not(.dark) .nx-pedido-nuevo .fixed.inset-x-4 {
+  border-color: #d5e2ee;
+  background: rgba(255, 255, 255, .96);
+  box-shadow: 0 8px 24px -12px rgba(25, 52, 80, .2);
+}
