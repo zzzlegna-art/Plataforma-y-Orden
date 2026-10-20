@@ -275,7 +275,7 @@ export const ProductFormDialog = ({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>{trigger}</DialogTrigger>
-      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
+      <DialogContent className="flex max-h-[min(90dvh,900px)] w-[calc(100vw-1.5rem)] flex-col overflow-hidden sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>{product ? t("product.editTitle") : t("product.createTitle")}</DialogTitle>
           <DialogDescription>{t("product.formDescription")}</DialogDescription>
@@ -286,7 +286,7 @@ export const ProductFormDialog = ({
           ) : null}
         </DialogHeader>
 
-        <div className="grid gap-4 py-2 sm:grid-cols-2">
+        <div className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain px-1 py-2 sm:grid sm:grid-cols-2 sm:gap-4 sm:space-y-0">
           <div className="space-y-2">
             <Label htmlFor="sku">{t("product.sku")}</Label>
             <Input
@@ -565,7 +565,7 @@ export const ProductFormDialog = ({
           </div>
         </div>
 
-        <DialogFooter>
+        <DialogFooter className="sticky bottom-0 z-10 mt-1 border-t border-border/70 bg-background/95 pt-3 backdrop-blur supports-[backdrop-filter]:bg-background/80">
           <Button variant="outline" type="button" onClick={() => setOpen(false)}>
             {t("common.cancel")}
           </Button>
