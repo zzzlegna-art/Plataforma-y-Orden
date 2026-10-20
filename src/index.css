@@ -2490,3 +2490,31 @@ html { font-size: 18px; }
   background: rgba(255, 255, 255, .96);
   box-shadow: 0 8px 24px -12px rgba(25, 52, 80, .2);
 }
+
+
+/* Los checkbox de selección son controles cuadrados, no botones de acción. */
+.nx-operations-recepcion [role="checkbox"],
+.nx-reception-capture [role="checkbox"] {
+  box-sizing: border-box;
+  width: 16px;
+  min-width: 16px;
+  max-width: 16px;
+  height: 16px;
+  min-height: 16px;
+  max-height: 16px;
+  padding: 0;
+  flex: 0 0 16px;
+  border-radius: 4px;
+}
+.nx-operations-recepcion [role="checkbox"] svg,
+.nx-reception-capture [role="checkbox"] svg {
+  width: 12px;
+  height: 12px;
+}
+.nx-operations-recepcion .nx-reception-filters button:not([role="checkbox"]),
+.nx-operations-recepcion .nx-reception-selection button:not([role="checkbox"]) {
+  min-height: 34px;
+}
+.nx-operations-recepcion .nx-reception-table td button:not([role="checkbox"]) {
+  min-height: 34px;
+}
