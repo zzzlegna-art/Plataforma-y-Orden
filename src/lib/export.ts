@@ -93,6 +93,15 @@ export const exportSubtitle = (count: number, note?: string) => {
   return `Generado el ${when} · ${count} ${plural}${note ? ` · ${note}` : ""}`;
 };
 
+/** Nombre consistente en los documentos: sustituye valores genéricos por la marca Nexora. */
+export const exportCompanyName = (value?: string | null): string => {
+  const name = value?.trim();
+  if (!name || ["mi empresa", "my company", "your company"].includes(name.toLowerCase())) {
+    return "NEXORA";
+  }
+  return name;
+};
+
 export interface PdfExportOptions {
   title: string;
   subtitle: string;
@@ -260,20 +269,9 @@ export const exportWarrantyPdf = ({
     y += 36;
 
     for (const item of group.items) {
-      const reasonLines = item.reason
-        ? (doc.splitTextToSize(`"${item.reason}"`, width - 22) as string[])
-        : [];
-      const height = 34 + reasonLines.length * 11;
-      if (y + height > bottom) newPage();
-
-      doc.setFillColor(255, 255, 255);
-      doc.setDrawColor(CARD_BORDER[0], CARD_BORDER[1], CARD_BORDER[2]);
-      doc.roundedRect(margin, y, width, height, 4, 4, "FD");
-
       doc.setFont("helvetica", "bold");
       doc.setFontSize(10.5);
-      doc.setTextColor(DARK[0], DARK[1], DARK[2]);
-      doc.text(`${numero}. ${item.product}`, margin + 11, y + 16);
+      const productLines = doc.splitTextToSize(`${numero}. ${item.product}`, width - 22) as string[];
 
       const meta = [
         item.serial ? `${labels.serial}: ${item.serial}` : null,
@@ -284,12 +282,44 @@ export const exportWarrantyPdf = ({
       ].filter(Boolean) as string[];
       doc.setFont("helvetica", "normal");
       doc.setFontSize(8.5);
+      const metaLines = doc.splitTextToSize(meta.join("  ·  "), width - 22) as string[];
+
+      doc.setFont("helvetica", "italic");
+      doc.setFontSize(9);
+      const reasonLines = item.reason
+        ? (doc.splitTextToSize(`"${item.reason}"`, width - 22) as string[])
+        : [];
+
+      const metaStart = 16 + productLines.length * 12 + 1;
+      const metaLastBaseline = metaStart + Math.max(0, metaLines.length - 1) * 10;
+      const reasonStart = metaLastBaseline + 13;
+      const height = Math.max(
+        34,
+        reasonLines.length > 0
+          ? reasonStart + reasonLines.length * 11 - 6
+          : metaLastBaseline + 5,
+      );
+      if (y + height > bottom) newPage();
+
+      doc.setFillColor(255, 255, 255);
+      doc.setDrawColor(CARD_BORDER[0], CARD_BORDER[1], CARD_BORDER[2]);
+      doc.roundedRect(margin, y, width, height, 4, 4, "FD");
+
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(10.5);
+      doc.setTextColor(DARK[0], DARK[1], DARK[2]);
+      doc.text(productLines, margin + 11, y + 16);
+
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(8.5);
       doc.setTextColor(GREY[0], GREY[1], GREY[2]);
-      doc.text(meta.join("  ·  "), margin + 11, y + 29);
+      doc.text(metaLines, margin + 11, y + metaStart);
 
       if (reasonLines.length > 0) {
         doc.setFont("helvetica", "italic");
-        doc.text(reasonLines, margin + 11, y + 42);
+        doc.setFontSize(9);
+        doc.setTextColor(GREY[0], GREY[1], GREY[2]);
+        doc.text(reasonLines, margin + 11, y + reasonStart);
       }
 
       y += height + 8;
@@ -368,13 +398,22 @@ export const exportPedidosHistorialPdf = ({
   };
 
   for (const pedido of pedidos) {
-    if (y + 30 > bottom) newPage();
+    const meta = [
+      pedido.cliente,
+      pedido.fecha,
+      pedido.unidades !== undefined ? `${pedido.unidades} uds` : null,
+    ].filter(Boolean).join(" · ");
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8.5);
+    const metaLines = doc.splitTextToSize(meta, width - 150) as string[];
+    const headerHeight = Math.max(24, 18 + Math.max(0, metaLines.length - 1) * 10);
+    if (y + headerHeight > bottom) newPage();
 
     doc.setFillColor(GROUP_FILL[0], GROUP_FILL[1], GROUP_FILL[2]);
     doc.setDrawColor(GROUP_BORDER[0], GROUP_BORDER[1], GROUP_BORDER[2]);
-    doc.roundedRect(margin, y, width, 24, 4, 4, "FD");
+    doc.roundedRect(margin, y, width, headerHeight, 4, 4, "FD");
     doc.setFillColor(CYAN[0], CYAN[1], CYAN[2]);
-    doc.roundedRect(margin, y, 5, 24, 2, 2, "F");
+    doc.roundedRect(margin, y, 5, headerHeight, 2, 2, "F");
     doc.setFont("helvetica", "bold");
     doc.setFontSize(10);
     doc.setTextColor(NAVY[0], NAVY[1], NAVY[2]);
@@ -382,19 +421,9 @@ export const exportPedidosHistorialPdf = ({
     doc.setFont("helvetica", "normal");
     doc.setFontSize(8.5);
     doc.setTextColor(GREY[0], GREY[1], GREY[2]);
-    doc.text(
-      [
-        pedido.cliente,
-        pedido.fecha,
-        pedido.unidades !== undefined ? `${pedido.unidades} uds` : null,
-      ]
-        .filter(Boolean)
-        .join(" · "),
-      pageW - margin - 10,
-      y + 16,
-      { align: "right" },
-    );
-    y += 32;
+    const metaStart = y + (headerHeight - Math.max(0, metaLines.length - 1) * 10) / 2 + 4;
+    doc.text(metaLines, pageW - margin - 10, metaStart, { align: "right" });
+    y += headerHeight + 8;
 
     for (const linea of pedido.lineas) {
       const tituloLineas = doc.splitTextToSize(linea.title, width - 22) as string[];
