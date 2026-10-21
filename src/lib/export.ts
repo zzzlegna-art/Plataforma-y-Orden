@@ -1140,10 +1140,70 @@ export interface ProductCatalogExportOptions {
   onProgress?: (progress: CatalogExportProgress) => void;
 }
 
-/** Corrige texto con espacios insertados entre letras en características importadas. */
-const normalizeCatalogText = (value: string): string =>
+/**
+ * Recupera palabras cuyas letras llegaron separadas por espacios en las especificaciones.
+ * La reconstrucción usa un vocabulario de términos habituales de electrónica en español e
+ * inglés para conservar los límites entre palabras (p. ej. "Apple Pencil" y "solo en la versión").
+ */
+const CATALOG_SPACED_WORDS = [
+  "almacenamiento", "adaptador", "angular", "Apple", "Bluetooth", "batería", "cámara",
+  "cámaras", "capacidad", "Cellular", "celular", "compatibilidad", "compatible",
+  "conectividad", "conector", "conexión", "conexiones", "con", "CPU", "devolución",
+  "del", "desde", "diseño", "eSIM", "en", "Engine", "estéreo", "frontal", "frecuencia",
+  "generación", "GPU", "grabación", "gran", "hasta", "inalámbrica", "inalámbrico",
+  "incluye", "iPad", "iPhone", "la", "las", "Lightning", "los", "más", "memoria",
+  "micrófono", "menos", "MP", "NFC", "Neural", "no", "núcleos", "o", "operativo",
+  "pantalla", "para", "Pencil", "por", "procesador", "puerto", "rápida", "red",
+  "resistencia", "resolución", "sensor", "sin", "sistema", "solo", "soporta", "su",
+  "sus", "trasera", "ultra", "USB", "versión", "video", "Wi-Fi", "y", "a",
+].map((word) => ({
+  word,
+  key: word.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z]/g, ""),
+})).sort((a, b) => b.key.length - a.key.length);
+
+const CATALOG_SPACED_PHRASES: Record<string, string> = {
+  applepencil: "Apple Pencil",
+  usbc: "USB-C",
+  wifi: "Wi-Fi",
+  wifipluscellular: "Wi-Fi + Cellular",
+};
+
+const splitSpacedCatalogLetters = (value: string): string => {
+  const compact = value.replace(/\s+/g, "");
+  const key = compact.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z]/g, "");
+  if (!key) return value;
+  if (CATALOG_SPACED_PHRASES[key]) return CATALOG_SPACED_PHRASES[key];
+
+  const memo = new Map<number, string[] | null>();
+  const segment = (index: number): string[] | null => {
+    if (index === key.length) return [];
+    if (memo.has(index)) return memo.get(index) ?? null;
+
+    for (const candidate of CATALOG_SPACED_WORDS) {
+      if (!key.startsWith(candidate.key, index)) continue;
+      const rest = segment(index + candidate.key.length);
+      if (rest) {
+        const result = [candidate.word, ...rest];
+        memo.set(index, result);
+        return result;
+      }
+    }
+
+    memo.set(index, null);
+    return null;
+  };
+
+  const words = segment(0);
+  if (words) return words.join(" ");
+
+  // Último recurso: elimina el espaciado artificial sin alterar el resto del contenido.
+  return compact.replace(/([a-záéíóúüñ])([A-ZÁÉÍÓÚÜÑ])/g, "$1 $2");
+};
+
+export const normalizeCatalogText = (value: string): string =>
   value
-    .replace(/(?:\b[A-Za-zÁÉÍÓÚÜÑáéíóúüñ]\s+){2,}[A-Za-zÁÉÍÓÚÜÑáéíóúüñ]\b/g, (word) => word.replace(/\s+/g, ""))
+    .replace(/(?:\b[A-Za-zÁÉÍÓÚÜÑáéíóúüñ]\s+){2,}[A-Za-zÁÉÍÓÚÜÑáéíóúüñ]\b/g, splitSpacedCatalogLetters)
+    .replace(/\b(\d+)\s+a(?=\s+generaci[oó]n\b)/gi, "$1a")
     .replace(/[ \t]{2,}/g, " ")
     .trim();
 
