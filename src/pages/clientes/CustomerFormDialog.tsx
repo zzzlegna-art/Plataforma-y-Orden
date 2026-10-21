@@ -181,7 +181,7 @@ export const CustomerFormDialog = ({
           </div>
         </div>
 
-        <DialogFooter className="shrink-0 border-t border-border/70 bg-background/95 pt-3">
+        <DialogFooter className="shrink-0 border-t border-border/70 bg-transparent pt-3">
           <Button variant="outline" type="button" onClick={() => setOpen(false)}>
             {t("common.cancel")}
           </Button>
