@@ -1096,7 +1096,6 @@ export interface ProductCatalogItem {
   sku: string;
   brand?: string;
   category?: string;
-  description?: string;
   imageUrl?: string;
   price?: string;
   stock?: number;
@@ -1110,11 +1109,9 @@ export interface ProductCatalogLabels {
   reference: string;
   brand: string;
   category: string;
-  description: string;
   features: string;
   price: string;
   stock: string;
-  noDescription: string;
   noFeatures: string;
   imageUnavailable: string;
   moreFeatures: (count: number) => string;
@@ -1143,6 +1140,18 @@ const splitCatalogLines = (doc: jsPDF, text: string, width: number, maxLines: nu
   }
   visible[lastIndex] = `${last}…`;
   return visible;
+};
+
+/** Dibuja cada renglón por separado para evitar espaciado anómalo en textos multilínea. */
+const drawCatalogLines = (
+  doc: jsPDF,
+  lines: string[],
+  x: number,
+  y: number,
+  lineHeight: number,
+  align: "left" | "center" = "left",
+) => {
+  lines.forEach((line, index) => doc.text(line, x, y + index * lineHeight, { align }));
 };
 
 /**
@@ -1228,12 +1237,12 @@ export const exportProductCatalogPdf = async ({
   const pageH = doc.internal.pageSize.getHeight();
   const margin = 24;
   const cardWidth = pageW - margin * 2;
-  const gap = 9;
-  const imageBoxSize = 92;
-  const imageSize = 84;
+  const gap = 7;
+  const imageBoxSize = 82;
+  const imageSize = 74;
   const imageX = margin + 10;
-  const imageYInset = 11;
-  const textX = imageX + imageBoxSize + 13;
+  const imageYInset = 8;
+  const textX = imageX + imageBoxSize + 12;
   const textWidth = cardWidth - (textX - margin) - 12;
   const bottom = pageH - FOOTER_SPACE;
   const drawHeader = () => dibujarEncabezado(doc, title, subtitle, margin);
@@ -1254,11 +1263,6 @@ export const exportProductCatalogPdf = async ({
     doc.setFontSize(7.6);
     const metadataLines = splitCatalogLines(doc, metadata, textWidth, 2);
 
-    const description = product.description?.trim() || labels.noDescription;
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(7.5);
-    const descriptionLines = splitCatalogLines(doc, description, textWidth, 3);
-
     const allFeatures = product.features ?? [];
     const visibleFeatures = allFeatures.slice(0, 10);
     doc.setFont("helvetica", "normal");
@@ -1270,23 +1274,21 @@ export const exportProductCatalogPdf = async ({
     const omittedFeatures = Math.max(0, allFeatures.length - visibleFeatures.length);
 
     const textHeight =
-      nameLines.length * 12.5 + 3 +
-      metadataLines.length * 8.5 + 4 +
-      9.2 + descriptionLines.length * 8.5 + 3 +
-      9.2 +
+      nameLines.length * 12.2 + 2 +
+      metadataLines.length * 8.2 + 3 +
+      8.5 +
       (visibleFeatures.length > 0
-        ? featureLines.reduce((sum, lines) => sum + lines.length * 8.2 + 1, 0)
-        : noFeaturesLines.length * 8.2) +
-      (omittedFeatures > 0 ? 8.2 : 0) +
-      (includePrice || includeStock ? 11 : 0);
-    const cardHeight = Math.max(imageBoxSize + 22, 15 + textHeight + 10);
+        ? featureLines.reduce((sum, lines) => sum + lines.length * 7.9 + 0.5, 0)
+        : noFeaturesLines.length * 7.9) +
+      (omittedFeatures > 0 ? 7.9 : 0) +
+      (includePrice || includeStock ? 10.5 : 0);
+    const cardHeight = Math.max(imageBoxSize + 16, 12 + textHeight + 8);
 
     return {
       product,
       cardHeight,
       nameLines,
       metadataLines,
-      descriptionLines,
       visibleFeatures,
       featureLines,
       noFeaturesLines,
@@ -1309,7 +1311,6 @@ export const exportProductCatalogPdf = async ({
       cardHeight,
       nameLines,
       metadataLines,
-      descriptionLines,
       visibleFeatures,
       featureLines,
       noFeaturesLines,
@@ -1348,57 +1349,45 @@ export const exportProductCatalogPdf = async ({
       );
     }
 
-    let cursorY = cardY + 15;
+    let cursorY = cardY + 12;
     doc.setFont("helvetica", "bold");
     doc.setFontSize(11.2);
     doc.setTextColor(NAVY[0], NAVY[1], NAVY[2]);
-    doc.text(nameLines, textX, cursorY);
-    cursorY += nameLines.length * 12.5 + 3;
+    drawCatalogLines(doc, nameLines, textX, cursorY, 12.2);
+    cursorY += nameLines.length * 12.2 + 2;
 
     doc.setFont("helvetica", "normal");
     doc.setFontSize(7.6);
     doc.setTextColor(MUTED[0], MUTED[1], MUTED[2]);
-    doc.text(metadataLines, textX, cursorY);
-    cursorY += metadataLines.length * 8.5 + 4;
+    drawCatalogLines(doc, metadataLines, textX, cursorY, 8.2);
+    cursorY += metadataLines.length * 8.2 + 3;
 
     doc.setFont("helvetica", "bold");
     doc.setFontSize(8.2);
     doc.setTextColor(CYAN_DARK[0], CYAN_DARK[1], CYAN_DARK[2]);
-    doc.text(labels.description, textX, cursorY);
-    cursorY += 9.2;
+    doc.text(labels.features, textX, cursorY, { align: "left" });
+    cursorY += 8.5;
 
     doc.setFont("helvetica", "normal");
-    doc.setFontSize(7.5);
-    doc.setTextColor(TEXT[0], TEXT[1], TEXT[2]);
-    doc.text(descriptionLines, textX, cursorY);
-    cursorY += descriptionLines.length * 8.5 + 3;
-
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(8.2);
-    doc.setTextColor(CYAN_DARK[0], CYAN_DARK[1], CYAN_DARK[2]);
-    doc.text(labels.features, textX, cursorY);
-    cursorY += 9.2;
-
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(7.1);
+    doc.setFontSize(7.2);
     doc.setTextColor(TEXT[0], TEXT[1], TEXT[2]);
     if (visibleFeatures.length === 0) {
       doc.setTextColor(MUTED[0], MUTED[1], MUTED[2]);
-      doc.text(noFeaturesLines, textX, cursorY);
-      cursorY += noFeaturesLines.length * 8.2;
+      drawCatalogLines(doc, noFeaturesLines, textX, cursorY, 7.9);
+      cursorY += noFeaturesLines.length * 7.9;
     } else {
       visibleFeatures.forEach((feature, index) => {
         const lines = featureLines[index] ?? [];
-        doc.text(lines, textX, cursorY);
-        cursorY += lines.length * 8.2 + 1;
+        drawCatalogLines(doc, lines, textX, cursorY, 7.9);
+        cursorY += lines.length * 7.9 + 0.5;
       });
     }
 
     if (omittedFeatures > 0) {
       doc.setFont("helvetica", "italic");
       doc.setTextColor(MUTED[0], MUTED[1], MUTED[2]);
-      doc.text(labels.moreFeatures(omittedFeatures), textX, cursorY);
-      cursorY += 8.2;
+      doc.text(labels.moreFeatures(omittedFeatures), textX, cursorY, { align: "left" });
+      cursorY += 7.9;
     }
 
     if (includePrice || includeStock) {
@@ -1459,7 +1448,6 @@ export const exportProductCatalogExcel = async ({
     labels.product,
     labels.brand,
     labels.category,
-    labels.description,
     labels.features,
   ];
   if (includePrice) columns.push(labels.price);
@@ -1477,7 +1465,6 @@ export const exportProductCatalogExcel = async ({
       product.name,
       product.brand || "—",
       product.category || "—",
-      product.description?.trim() || labels.noDescription,
       featureTexts[index],
     ];
     if (includePrice) row.push(product.price || "—");
@@ -1491,15 +1478,13 @@ export const exportProductCatalogExcel = async ({
     return targets;
   });
   const rowHeights = products.map((product, index) => {
-    const description = product.description?.trim() || labels.noDescription;
     const features = featureTexts[index] || labels.noFeatures;
-    const descriptionLines = Math.max(1, Math.ceil(description.length / 38));
     const featureLines = Math.max(1, Math.ceil(features.length / 48));
     const extraRows = includePrice || includeStock ? 1 : 0;
-    return Math.min(180, Math.max(68, 14 + (descriptionLines + featureLines + extraRows) * 11));
+    return Math.min(150, Math.max(68, 14 + (featureLines + extraRows) * 11));
   });
 
-  const columnWidths = [16, 15, 28, 16, 18, 34, 42];
+  const columnWidths = [16, 15, 28, 16, 18, 42];
   if (includePrice) columnWidths.push(15);
   if (includeStock) columnWidths.push(10);
 
@@ -1512,7 +1497,7 @@ export const exportProductCatalogExcel = async ({
         subtitle,
         columns,
         rows,
-        wrapColumns: [5, 6],
+        wrapColumns: [4, 5],
         hyperlinkTargets,
         columnWidths,
         imageColumn: 0,
