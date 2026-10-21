@@ -72,7 +72,7 @@ const rutaOperativaGarantia = (warranty: { id: string; status: string }) => {
 };
 
 /** Ficha y línea de tiempo de un serial/IMEI con acciones de mantenimiento. */
-const HistorialSerial = () => {
+const HistorialSerial = ({ embedded = false }: { embedded?: boolean }) => {
   const { t } = useTranslation();
   const { db } = useStore();
   const runAction = useRunAction();
@@ -106,14 +106,18 @@ const HistorialSerial = () => {
 
   const handleScan = (serial: string) => {
     setSearch(serial);
-    setParams({ serial }, { replace: true });
+    setParams((current) => {
+      const next = new URLSearchParams(current);
+      next.set("serial", serial);
+      return next;
+    }, { replace: true });
   };
 
   const liberable = unit && ["en_bodega", "en_local", "defectuoso"].includes(unit.status);
 
   return (
     <div className="space-y-5 stagger">
-      <PageHeader title={t("serialHistory.title")} description={t("serialHistory.subtitle")} />
+      {!embedded ? <PageHeader title={t("serialHistory.title")} description={t("serialHistory.subtitle")} /> : null}
 
       <section className="space-y-2 rounded-lg border bg-card p-4 shadow-sm">
         <SerialScanInput onScan={handleScan} />
