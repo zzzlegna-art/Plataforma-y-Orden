@@ -18,16 +18,20 @@ import {
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import {
+  Area,
+  AreaChart,
   Bar,
   BarChart,
   CartesianGrid,
   Cell,
   LabelList,
-  Legend,
+  Pie,
+  PieChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
+  Line,
 } from "recharts";
 
 import { OrderStatusBadge, UnitStatusBadge, WarrantyStatusBadge } from "@/components/shared/status-badge";
@@ -286,32 +290,50 @@ const Panel = () => {
     [customersSignature],
   );
 
-  // Movimiento diario de inventario de los últimos siete días (incluye días sin actividad).
+  // Movimiento diario en el rango elegido. Para periodos largos agrupamos por semana
+  // para conservar la lectura de la curva sin llenar el eje de etiquetas.
   const movementChartData = useMemo(() => {
-    const days = Array.from({ length: 7 }, (_, index) => {
-      const date = new Date();
-      date.setUTCHours(12, 0, 0, 0);
-      date.setUTCDate(date.getUTCDate() - (6 - index));
-      return {
-        key: date.toISOString().slice(0, 10),
-        day: new Intl.DateTimeFormat("es", { weekday: "short", timeZone: "UTC" })
-          .format(date)
-          .replace(/\.$/, ""),
+    const from = new Date(`${reporteDesde || new Date().toISOString().slice(0, 10)}T12:00:00`);
+    const to = new Date(`${reporteHasta || new Date().toISOString().slice(0, 10)}T12:00:00`);
+    const daysCount = Math.max(1, Math.min(366, Math.floor((to.getTime() - from.getTime()) / 86_400_000) + 1));
+    const weekly = daysCount > 31;
+    const buckets = new Map<string, { key: string; label: string; entradas: number; salidas: number; devoluciones: number }>();
+    for (let index = 0; index < daysCount; index += 1) {
+      const date = new Date(from);
+      date.setDate(date.getDate() + index);
+      if (weekly) date.setDate(date.getDate() - ((date.getDay() + 6) % 7));
+      const key = date.toISOString().slice(0, 10);
+      if (buckets.has(key)) continue;
+      buckets.set(key, {
+        key,
+        label: weekly
+          ? new Intl.DateTimeFormat("es", { day: "numeric", month: "short" }).format(date).replace(/\.$/, "")
+          : new Intl.DateTimeFormat("es", { day: "numeric", month: "short" }).format(date).replace(/\.$/, ""),
         entradas: 0,
         salidas: 0,
         devoluciones: 0,
-      };
-    });
-    const byDate = new Map(days.map((day) => [day.key, day] as const));
-    for (const movement of db.movements) {
-      const day = byDate.get(movement.createdAt.slice(0, 10));
-      if (!day) continue;
-      if (movement.type === "entrada") day.entradas += movement.quantity;
-      else if (movement.type === "salida") day.salidas += movement.quantity;
-      else if (movement.type === "devolucion") day.devoluciones += movement.quantity;
+      });
     }
-    return days;
-  }, [db.movements]);
+    for (const movement of db.movements) {
+      const movementDate = movement.createdAt.slice(0, 10);
+      if (movementDate < (reporteDesde || "") || movementDate > (reporteHasta || "9999-12-31")) continue;
+      const date = new Date(`${movementDate}T12:00:00`);
+      if (weekly) date.setDate(date.getDate() - ((date.getDay() + 6) % 7));
+      const bucket = buckets.get(date.toISOString().slice(0, 10));
+      if (!bucket) continue;
+      if (movement.type === "entrada") bucket.entradas += movement.quantity;
+      else if (movement.type === "salida") bucket.salidas += movement.quantity;
+      else if (movement.type === "devolucion") bucket.devoluciones += movement.quantity;
+    }
+    return [...buckets.values()];
+  }, [db.movements, reporteDesde, reporteHasta]);
+  const operationalChartData = [
+    { name: "Pedidos abiertos", value: data.kpis.openOrders, color: "#3b82f6" },
+    { name: "Garantías abiertas", value: data.kpis.openWarranties, color: "#8b5cf6" },
+    { name: "Stock bajo", value: data.kpis.lowStockProducts, color: "#f59e0b" },
+    { name: "Recibidas este mes", value: data.kpis.receivedThisMonth, color: "#06b6d4" },
+  ];
+  const operationalChartTotal = operationalChartData.reduce((total, item) => total + item.value, 0);
 
   return (
     <div className="space-y-8 stagger">
@@ -536,32 +558,78 @@ const Panel = () => {
         )}
       </section>
 
-      <section className="premium-surface nx-ranking-card p-5">
-        <div className="mb-3 flex items-center gap-2">
-          <span className="rounded-md bg-primary/12 p-1.5 text-primary"><Activity className="h-4 w-4" /></span>
-          <div>
-            <h2 className="text-base font-semibold">Movimiento de inventario</h2>
-            <p className="text-xs text-muted-foreground">Entradas, salidas y devoluciones de los últimos 7 días.</p>
+      <div className="grid min-w-0 gap-3 xl:grid-cols-[1.45fr_1fr]">
+        <section className="premium-surface nx-ranking-card min-w-0 p-4">
+          <div className="mb-3 flex items-start justify-between gap-3">
+            <div>
+              <h2 className="text-sm font-semibold">Movimiento de inventario</h2>
+              <p className="mt-1 text-xs text-muted-foreground">Entradas y salidas en el periodo seleccionado.</p>
+            </div>
+            <div className="flex shrink-0 items-center gap-3 pt-0.5 text-[11px]">
+              <span className="inline-flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-cyan-500" />Entradas</span>
+              <span className="inline-flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-violet-500" />Salidas</span>
+            </div>
           </div>
-        </div>
-        <div className="h-72 w-full">
-          <ResponsiveContainer width="100%" height="100%" debounce={150}>
-            <BarChart data={movementChartData} margin={{ top: 12, right: 8, left: 0, bottom: 0 }} barCategoryGap="24%">
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
-              <XAxis dataKey="day" tickLine={false} axisLine={false} tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} />
-              <YAxis hide allowDecimals={false} />
-              <Tooltip formatter={(value, name) => [formatNumber(Number(value)), String(name)]} />
-              <Legend verticalAlign="bottom" height={30} iconType="circle" wrapperStyle={{ fontSize: 12 }} />
-              <Bar dataKey="entradas" name="Entradas" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} maxBarSize={24} />
-              <Bar dataKey="salidas" name="Salidas" fill="hsl(var(--destructive))" radius={[4, 4, 0, 0]} maxBarSize={24} />
-              <Bar dataKey="devoluciones" name="Devoluciones" fill="hsl(var(--success))" radius={[4, 4, 0, 0]} maxBarSize={24} />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-        {movementChartData.every((day) => day.entradas === 0 && day.salidas === 0 && day.devoluciones === 0) ? (
-          <p className="mt-1 text-center text-xs text-muted-foreground">Todavía no hay movimientos registrados en este periodo.</p>
-        ) : null}
-      </section>
+          <div className="h-[205px] w-full">
+            <ResponsiveContainer width="100%" height="100%" debounce={150}>
+              <AreaChart data={movementChartData} margin={{ top: 6, right: 8, left: 0, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="movementEntriesFill" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#06b6d4" stopOpacity={0.22} />
+                    <stop offset="95%" stopColor="#06b6d4" stopOpacity={0.015} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="2 4" stroke="hsl(var(--border))" vertical={false} />
+                <XAxis dataKey="label" interval={Math.max(0, Math.ceil(movementChartData.length / 10) - 1)} tickLine={false} axisLine={false} tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} />
+                <YAxis hide allowDecimals={false} />
+                <Tooltip
+                  contentStyle={{ borderRadius: 10, border: "1px solid hsl(var(--border))", background: "hsl(var(--popover))", fontSize: 12 }}
+                  labelStyle={{ color: "hsl(var(--foreground))", fontWeight: 600 }}
+                  formatter={(value, name) => [formatNumber(Number(value)), String(name)]}
+                />
+                <Area type="monotone" dataKey="entradas" name="Entradas" stroke="#06b6d4" strokeWidth={2} fill="url(#movementEntriesFill)" activeDot={{ r: 4, strokeWidth: 0 }} />
+                <Line type="monotone" dataKey="salidas" name="Salidas" stroke="#8b5cf6" strokeWidth={2} dot={false} activeDot={{ r: 4, fill: "#8b5cf6", strokeWidth: 0 }} />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+          {movementChartData.every((day) => day.entradas === 0 && day.salidas === 0 && day.devoluciones === 0) ? (
+            <p className="mt-1 text-center text-xs text-muted-foreground">Todavía no hay movimientos registrados en este periodo.</p>
+          ) : null}
+        </section>
+
+        <section className="premium-surface nx-ranking-card min-w-0 p-4">
+          <div className="mb-1">
+            <h2 className="text-sm font-semibold">Estado de operaciones</h2>
+            <p className="mt-1 text-xs text-muted-foreground">Indicadores actuales de la bodega.</p>
+          </div>
+          <div className="grid min-h-[205px] grid-cols-[minmax(130px,0.9fr)_minmax(0,1.1fr)] items-center gap-1 sm:gap-3">
+            <div className="relative h-[190px] min-w-0">
+              <ResponsiveContainer width="100%" height="100%" debounce={150}>
+                <PieChart>
+                  <Pie data={operationalChartData} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius="64%" outerRadius="84%" paddingAngle={2} stroke="none">
+                    {operationalChartData.map((item) => <Cell key={item.name} fill={item.color} />)}
+                  </Pie>
+                  <Tooltip formatter={(value, name) => [formatNumber(Number(value)), String(name)]} />
+                </PieChart>
+              </ResponsiveContainer>
+              <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center text-center">
+                <span className="text-xs font-semibold">Resumen</span>
+                <span className="mt-0.5 text-[10px] text-muted-foreground">operativo</span>
+              </div>
+            </div>
+            <div className="min-w-0 space-y-3">
+              {operationalChartData.map((item) => (
+                <div key={item.name} className="flex min-w-0 items-center gap-2 text-[11px]">
+                  <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: item.color }} />
+                  <span className="min-w-0 flex-1 truncate">{item.name}</span>
+                  <span className="font-tabular shrink-0 font-semibold">{formatNumber(item.value)}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+          {operationalChartTotal === 0 ? <p className="text-center text-[10px] text-muted-foreground">Sin incidencias registradas.</p> : null}
+        </section>
+      </div>
 
       <div className="mb-4 flex items-center justify-between">
         <div>
