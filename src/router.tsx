@@ -17,8 +17,7 @@ import NuevoPedido from "./pages/pedidos/nuevo";
 import PedidoDetalle from "./pages/pedidos/detalle";
 import Recepciones from "./pages/recepcion";
 import NuevaRecepcion from "./pages/recepcion/nueva";
-import HistorialSerial from "./pages/seriales";
-import SerialesPrevios from "./pages/seriales-previos";
+import TrazabilidadSeriales from "./pages/trazabilidad";
 import Unidades from "./pages/unidades";
 
 export const routers = [
@@ -76,8 +75,8 @@ export const routers = [
           },
           {
             path: "seriales",
-            name: "historial-serial",
-            element: <HistorialSerial />,
+            name: "trazabilidad-seriales",
+            element: <TrazabilidadSeriales />,
           },
           {
             path: "liberar",
@@ -90,8 +89,8 @@ export const routers = [
           },
           {
             path: "seriales-previos",
-            name: "seriales-previos",
-            element: <SerialesPrevios />,
+            name: "seriales-previos-legacy",
+            element: <Navigate to="/seriales?view=previos" replace />,
           },
           {
             path: "pedidos",
