@@ -11,6 +11,8 @@ import XLSX from "xlsx-js-style";
 import { strFromU8, strToU8, unzipSync, zipSync } from "fflate";
 
 import { formatDateTime } from "./format";
+import { normalizeCatalogText } from "./catalog-text";
+export { normalizeCatalogText } from "./catalog-text";
 
 // Se leen directamente de Vite para que importar export.ts no inicialice el cliente autenticado
 // ni rompa pruebas/pantallas que solo necesitan generar documentos.
@@ -1142,10 +1144,6 @@ export interface ProductCatalogExportOptions {
   labels: ProductCatalogLabels;
   onProgress?: (progress: CatalogExportProgress) => void;
 }
-
-/** Normalizer is shared with product saving so legacy text is repaired at its source. */
-export { normalizeCatalogText } from "./catalog-text";
-import { normalizeCatalogText } from "./catalog-text";
 
 /** Ajusta texto al ancho y limita las líneas, conservando una elipsis legible. */
 const splitCatalogLines = (doc: jsPDF, text: string, width: number, maxLines: number): string[] => {
