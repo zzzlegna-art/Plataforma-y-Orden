@@ -1133,8 +1133,8 @@ export interface ProductCatalogExportOptions {
 /** Corrige texto con espacios insertados entre letras en características importadas. */
 const normalizeCatalogText = (value: string): string =>
   value
-    .replace(/(?:\\b[A-Za-zÁÉÍÓÚÜÑáéíóúüñ]\\s+){2,}[A-Za-zÁÉÍÓÚÜÑáéíóúüñ]\\b/g, (word) => word.replace(/\\s+/g, ""))
-    .replace(/[ \\t]{2,}/g, " ")
+    .replace(/(?:\b[A-Za-zÁÉÍÓÚÜÑáéíóúüñ]\s+){2,}[A-Za-zÁÉÍÓÚÜÑáéíóúüñ]\b/g, (word) => word.replace(/\s+/g, ""))
+    .replace(/[ \t]{2,}/g, " ")
     .trim();
 
 /** Ajusta texto al ancho y limita las líneas, conservando una elipsis legible. */
@@ -1459,10 +1459,10 @@ export const exportProductCatalogExcel = async ({
   const rows = products.map((product, index) => {
     const row: (string | number)[] = [
       imageDataUrls[index] ? "" : product.imageUrl ? labels.openImage : labels.imageUnavailable,
-      product.sku || "—",
-      product.name,
-      product.brand || "—",
-      product.category || "—",
+      normalizeCatalogText(product.sku || "—"),
+      normalizeCatalogText(product.name),
+      normalizeCatalogText(product.brand || "—"),
+      normalizeCatalogText(product.category || "—"),
       featureTexts[index],
     ];
     if (includePrice) row.push(product.price || "—");
@@ -1475,7 +1475,7 @@ export const exportProductCatalogExcel = async ({
     targets[0] = product.imageUrl || undefined;
     return targets;
   });
-  const rowHeights = products.map((product, index) => {
+  const rowHeights = products.map((_, index) => {
     const features = featureTexts[index] || labels.noFeatures;
     const featureLines = Math.max(1, Math.ceil(features.length / 48));
     const extraRows = includePrice || includeStock ? 1 : 0;
