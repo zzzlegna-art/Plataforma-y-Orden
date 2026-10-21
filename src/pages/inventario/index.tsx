@@ -298,12 +298,12 @@ const ProductThumbnail = ({
         </DialogTrigger>
         <DialogContent
           className={cn(
-            "max-h-[92vh] max-w-none overflow-y-auto p-3 sm:p-5 max-sm:w-full",
+            "max-h-[92vh] max-w-none overflow-y-auto p-3 pr-0 sm:p-5 sm:pr-0 max-sm:w-full",
             showTechnicalSpecs ? "w-[min(94vw,1180px)]" : "w-[min(92vw,960px)]",
           )}
         >
           {showTechnicalSpecs ? (
-            <div className="grid min-w-0 gap-4 sm:grid-cols-[minmax(0,1.08fr)_minmax(300px,.92fr)]">
+            <div className="grid min-w-0 gap-4 pr-3 sm:pr-5 sm:grid-cols-[minmax(0,1.08fr)_minmax(300px,.92fr)]">
               <div className="min-w-0 space-y-3">
                 <DialogHeader className="px-1 pt-1">
                   <DialogTitle className="pr-8 text-left">{product.name}</DialogTitle>
@@ -319,7 +319,7 @@ const ProductThumbnail = ({
                 </div>
               </div>
 
-              <div className="min-w-0 space-y-3 sm:max-h-[min(80vh,720px)] sm:overflow-y-auto sm:pr-1">
+              <div className="min-w-0 space-y-3 sm:max-h-[min(80vh,720px)] sm:overflow-y-auto sm:-mr-5 sm:pr-5">
                 <div className="flex flex-wrap items-start justify-between gap-3 rounded-xl border border-border/70 bg-card p-3">
                   <div className="min-w-0">
                     {brandName ? <p className="font-semibold">{brandName}</p> : null}
@@ -380,7 +380,7 @@ const ProductThumbnail = ({
               </div>
             </div>
           ) : (
-            <>
+            <div className="space-y-4 pr-3 sm:pr-5">
               <DialogHeader className="px-2 pt-1">
                 <DialogTitle className="pr-8 text-left">{product.name}</DialogTitle>
                 <DialogDescription>{t("product.imageZoomHint")}</DialogDescription>
@@ -393,7 +393,7 @@ const ProductThumbnail = ({
                   decoding="async"
                 />
               </div>
-            </>
+            </div>
           )}
         </DialogContent>
       </Dialog>
