@@ -2980,3 +2980,97 @@ html { font-size: 18px; }
 :root:not(.dark) .nx-warranties .text-muted-foreground {
   color: #5f738a;
 }
+
+/* Clientes: tablas y filtros compactos, respetando tema claro y oscuro. */
+.nx-customers {
+  --cx-border: hsl(var(--border));
+  --cx-surface: hsl(var(--card));
+  --cx-muted: hsl(var(--muted-foreground));
+  min-width:0;
+  gap:1rem;
+}
+.nx-customers > .nx-page-header {
+  border:1px solid var(--cx-border);
+  border-radius:.9rem;
+  padding:1rem 1.2rem;
+  background:linear-gradient(115deg,hsl(var(--card)),hsl(var(--primary)/.07));
+}
+.nx-customers > .nx-page-header h1 {
+  font-size:clamp(1.55rem,1.8vw,1.95rem);
+  letter-spacing:-.035em;
+}
+.nx-customers > .nx-page-header p {
+  margin-top:.3rem;
+  font-size:.86rem;
+  color:var(--cx-muted);
+}
+.nx-customers-filters {
+  border-color:var(--cx-border);
+  border-radius:.8rem;
+  background:var(--cx-surface);
+  box-shadow:none;
+  padding:.8rem;
+}
+.nx-customers-filters button {
+  min-height:34px;
+  border-radius:.55rem;
+  font-size:.8rem;
+}
+.nx-customers-filters input {
+  min-height:40px;
+  border-radius:.58rem;
+}
+.nx-customers-table {
+  overflow:hidden;
+  border-radius:.85rem;
+  border-color:var(--cx-border);
+  background:var(--cx-surface);
+  box-shadow:none;
+}
+.nx-customers-table thead tr {
+  background:hsl(var(--muted)/.5);
+}
+.nx-customers-table th {
+  height:42px;
+  font-size:.72rem;
+  font-weight:650;
+  letter-spacing:.04em;
+  text-transform:uppercase;
+}
+.nx-customers-table td {
+  padding:.8rem .85rem;
+  font-size:.84rem;
+  vertical-align:middle;
+}
+.nx-customers-table tbody tr:hover {
+  background:hsl(var(--primary)/.045);
+}
+.nx-customers-table td button {
+  border-radius:.55rem;
+}
+.nx-customer-dialog {
+  border-color:hsl(var(--border));
+  background:hsl(var(--card));
+  color:hsl(var(--card-foreground));
+}
+.nx-customer-dialog > div:has(> #customerName) {
+  min-width:0;
+}
+.nx-customer-dialog input,
+.nx-customer-dialog textarea {
+  min-height:40px;
+  border-radius:.6rem;
+  background:hsl(var(--background));
+  color:hsl(var(--foreground));
+}
+.nx-customer-dialog .overflow-y-auto {
+  scrollbar-color:hsl(var(--muted-foreground)/.4) transparent;
+}
+.nx-customer-dialog [role="switch"] {
+  flex-shrink:0;
+}
+@media(max-width:760px) {
+  .nx-customers > .nx-page-header {padding:.85rem}
+  .nx-customers-filters {padding:.65rem}
+  .nx-customer-dialog {max-height:90dvh}
+}
