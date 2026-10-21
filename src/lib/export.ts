@@ -1147,15 +1147,15 @@ export interface ProductCatalogExportOptions {
  */
 const CATALOG_SPACED_WORDS = [
   "almacenamiento", "adaptador", "angular", "Apple", "Bluetooth", "batería", "cámara",
-  "cámaras", "capacidad", "Cellular", "celular", "compatibilidad", "compatible",
+  "cámaras", "capacidad", "Cellular", "celular", "compatibilidad", "compatible", "cambiar",
   "conectividad", "conector", "conexión", "conexiones", "con", "CPU", "devolución",
-  "de", "del", "desde", "diseño", "eSIM", "en", "Engine", "estéreo", "frontal", "frecuencia",
-  "generación", "GPU", "grabación", "gran", "hasta", "inalámbrica", "inalámbrico",
+  "de", "del", "desde", "diseño", "Dual", "eSIM", "en", "Engine", "estéreo", "frontal", "frecuencia",
+  "G", "generación", "GPU", "grabación", "gran", "hasta", "inalámbrica", "inalámbrico", "LTE",
   "incluye", "iPad", "iPhone", "la", "las", "Lightning", "los", "más", "memoria",
-  "micrófono", "menos", "MP", "NFC", "Neural", "no", "núcleos", "o", "operativo",
+  "micrófono", "menos", "MP", "nano", "NFC", "Neural", "no", "núcleos", "o", "operativo", "puede", "RAM", "regional", "ROM", "SIM",
   "pantalla", "para", "Pencil", "por", "procesador", "puerto", "rápida", "red",
   "resistencia", "resolución", "sensor", "sin", "sistema", "solo", "soporta", "su",
-  "sus", "trasera", "ultra", "USB", "versión", "video", "Wi-Fi", "y", "a",
+  "sus", "trasera", "ultra", "USB", "variante", "versión", "video", "Wi-Fi", "y", "a",
 ].map((word) => ({
   word,
   key: word.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z]/g, ""),
@@ -1209,6 +1209,8 @@ export const normalizeCatalogText = (value: string): string =>
   value
     .replace(/(^|[^A-Za-zÁÉÍÓÚÜÑáéíóúüñ0-9])((?:[A-Za-zÁÉÍÓÚÜÑáéíóúüñ]\s+){2,}[A-Za-zÁÉÍÓÚÜÑáéíóúüñ])(?=$|[^A-Za-zÁÉÍÓÚÜÑáéíóúüñ0-9])/g, (_match, prefix: string, spaced: string) => prefix + splitSpacedCatalogLetters(spaced))
     .replace(/\b(\d+)\s+a(?=\s+generaci[oó]n\b)/gi, "$1a")
+    .replace(/(\d)\s*\.\s*(?=\d)/g, "$1.")
+    .replace(/(\d)\s+([A-Z])\b/g, "$1$2")
     .replace(/\(\s+/g, "(")
     .replace(/\s+\)/g, ")")
     .replace(/\s+([,;:])/g, "$1")
