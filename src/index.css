@@ -3102,3 +3102,35 @@ html { font-size: 18px; }
     overflow:hidden;
   }
 }
+
+/* Scrollbar refinada para los formularios de clientes (crear y editar). */
+.nx-customer-dialog > .overflow-y-auto {
+  scrollbar-width: thin;
+  scrollbar-color: hsl(var(--muted-foreground) / .42) transparent;
+  scrollbar-gutter: auto;
+  padding-right: .35rem;
+}
+.nx-customer-dialog > .overflow-y-auto::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.nx-customer-dialog > .overflow-y-auto::-webkit-scrollbar-track {
+  background: transparent;
+  margin-block: 8px;
+}
+.nx-customer-dialog > .overflow-y-auto::-webkit-scrollbar-thumb {
+  background: hsl(var(--muted-foreground) / .38);
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background-clip: padding-box;
+}
+.nx-customer-dialog > .overflow-y-auto::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--muted-foreground) / .62);
+  background-clip: padding-box;
+}
+.nx-customer-dialog > .overflow-y-auto::-webkit-scrollbar-button,
+.nx-customer-dialog > .overflow-y-auto::-webkit-scrollbar-corner {
+  display: none;
+  width: 0;
+  height: 0;
+}
