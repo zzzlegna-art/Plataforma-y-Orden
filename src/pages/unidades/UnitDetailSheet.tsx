@@ -76,8 +76,8 @@ export const UnitDetailSheet = ({
 
   return (
     <Sheet open={Boolean(unit)} onOpenChange={(open) => !open && onClose()}>
-      <SheetContent side="right" className="w-full overflow-y-auto sm:max-w-md">
-        <SheetHeader>
+      <SheetContent side="right" className="w-full overflow-y-auto pr-0 sm:max-w-md">
+        <SheetHeader className="pr-6">
           <SheetTitle className="font-tabular text-lg">{unit?.serial ?? ""}</SheetTitle>
           <div className="flex min-w-0 items-center gap-4">
             <ProductThumbnail
@@ -98,7 +98,7 @@ export const UnitDetailSheet = ({
         </SheetHeader>
 
         {unit ? (
-          <div className="mt-5 space-y-5">
+          <div className="mt-5 space-y-5 pr-6">
             <div>
               <InfoRow label={t("unit.condition")}>
                 <ConditionBadge condition={unit.condition} />
