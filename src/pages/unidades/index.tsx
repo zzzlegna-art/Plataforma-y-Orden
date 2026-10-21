@@ -28,7 +28,7 @@ const STATUSES = [
 ] as const;
 
 /** Inventario de unidades físicas identificadas por serial/IMEI. */
-const Unidades = () => {
+const Unidades = ({ embedded = false }: { embedded?: boolean }) => {
   const { t } = useTranslation();
   const { db } = useStore();
   const [search, setSearch] = useState("");
@@ -106,7 +106,7 @@ const Unidades = () => {
 
   return (
     <div className="space-y-5 stagger">
-      <PageHeader title={t("unit.title")} description={t("unit.subtitle")} />
+      {!embedded ? <PageHeader title={t("unit.title")} description={t("unit.subtitle")} /> : null}
 
       <section className="space-y-3 rounded-xl border bg-card p-4 shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-2">
