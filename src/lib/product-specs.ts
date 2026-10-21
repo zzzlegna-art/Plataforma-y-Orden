@@ -280,7 +280,7 @@ export const getProductTechnicalSpecsForCategory = (
     for (const key of legacyHeadphoneKeys) {
       const value = specs[key];
       if (!normalized[key] && typeof value === "string" && value.trim()) {
-        normalized[key] = value.trim().slice(0, 120);
+        normalized[key] = normalizeCatalogText(value).slice(0, 120);
       }
     }
   }
