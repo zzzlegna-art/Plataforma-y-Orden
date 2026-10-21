@@ -13,6 +13,7 @@ import type {
   OrderItemUnit,
   Product,
   Reception,
+  StockMovement,
   Unit,
   UnitCondition,
   Warranty,
@@ -20,6 +21,7 @@ import type {
 } from "./types";
 import { isOpenWarranty } from "./actions/warranties";
 import { esProductoRepuesto } from "./products";
+import { getMonthToDateEntryComparison } from "./dashboard-kpi-trends";
 
 /**
  * Índices reutilizables.
@@ -696,6 +698,7 @@ export interface DashboardData {
     /** Garantías abiertas sin movimiento hace DIAS_GARANTIA_ESTANCADA días o más. */
     staleWarranties: number;
     receivedThisMonth: number;
+    receivedPreviousComparablePeriod: number;
     inventoryValue: number;
   };
   lowStock: ProductRow[];
@@ -740,9 +743,7 @@ export const getDashboard = (db: Db): DashboardData => {
       return sum + (unit.cost ?? product?.cost ?? 0);
     }, 0);
 
-  const monthStart = new Date();
-  monthStart.setDate(1);
-  monthStart.setHours(0, 0, 0, 0);
+  const receivedComparison = getMonthToDateEntryComparison(db.movements);
 
   // Rankings de ventas: solo celulares en pedidos despachados.
   const dispatched = db.orders.filter((order) => order.status === "despachado");
@@ -830,12 +831,8 @@ export const getDashboard = (db: Db): DashboardData => {
       openOrders: db.orders.filter((order) => OPEN_ORDER_STATUSES.includes(order.status)).length,
       openWarranties: db.warranties.filter((warranty) => isOpenWarranty(warranty.status)).length,
       staleWarranties: garantiasEstancadas.length,
-      receivedThisMonth: db.movements
-        .filter(
-          (movement) =>
-            movement.type === "entrada" && new Date(movement.createdAt) >= monthStart,
-        )
-        .reduce((sum, movement) => sum + movement.quantity, 0),
+      receivedThisMonth: receivedComparison.current,
+      receivedPreviousComparablePeriod: receivedComparison.previous,
       inventoryValue,
     },
     lowStock: rows
