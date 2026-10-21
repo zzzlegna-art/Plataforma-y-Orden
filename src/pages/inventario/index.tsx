@@ -69,6 +69,7 @@ import {
   type CatalogExportProgress,
 } from "@/lib/export";
 import { getProductTechnicalSpecFieldsForCategory } from "@/lib/product-specs";
+import { normalizeCatalogText } from "@/lib/catalog-text";
 import { formatCurrency, todayIso } from "@/lib/format";
 import { getProductRows, type ProductRow, type ProductStock } from "@/lib/selectors";
 import { etiquetaTipoProducto, tiposProductoOrdenados } from "@/lib/products";
@@ -586,14 +587,20 @@ const Inventario = () => {
 
     const products = base.map((row) => {
       const productType = db.productTypes.find((type) => type.key === row.product.categoria);
+      // Normaliza al construir la exportación, incluso referencias antiguas que todavía
+      // guardan las letras separadas. No requiere editar ni volver a guardar el producto.
       const standardFeatures = getProductTechnicalSpecFieldsForCategory(row.product.categoria)
         .flatMap((field) => {
-          const value = row.product.technicalSpecs?.[field.key]?.trim();
-          return value ? [{ label: t(field.labelKey), value }] : [];
+          const rawValue = row.product.technicalSpecs?.[field.key]?.trim();
+          if (!rawValue) return [];
+          return [{ label: normalizeCatalogText(t(field.labelKey)), value: normalizeCatalogText(rawValue) }];
         });
       const customFeatures = (row.product.technicalSpecs?.customFields ?? [])
         .filter((field) => Boolean(field.name.trim() && field.value.trim()))
-        .map((field) => ({ label: field.name.trim(), value: field.value.trim() }));
+        .map((field) => ({
+          label: normalizeCatalogText(field.name.trim()),
+          value: normalizeCatalogText(field.value.trim()),
+        }));
 
       return {
         name: row.product.name,
