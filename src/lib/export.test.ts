@@ -28,6 +28,16 @@ describe("normalización de texto del catálogo", () => {
       "C o m p a t i b i l i d a d: A p p l e P e n c i l ( U S B C ); A p p l e P e n c i l d e 1 a g e n e r a c i ó n c o n a d a p t a d o r",
     )).toBe("Compatibilidad: Apple Pencil (USB-C); Apple Pencil de 1a generación con adaptador");
   });
+
+  it("reconstruye especificaciones completas con siglas, unidades y palabras contiguas", () => {
+    expect(normalizeCatalogText(
+      "C o n e c t i v i d a d: 5 G 4 G L T E, W i F i 6, B l u e t o o t h 5 . 0, N F C, L i g h t n i n g",
+    )).toBe("Conectividad: 5G 4G LTE, Wi-Fi 6, Bluetooth 5.0, NFC, Lightning");
+
+    expect(normalizeCatalogText(
+      "C o m p a t i b i l i d a d: D u a l S I M: n a n o S I M + e S I M; l a v a r i a n t e r e g i o n a l p u e d e c a m b i a r",
+    )).toBe("Compatibilidad: Dual SIM: nano SIM + eSIM; la variante regional puede cambiar");
+  });
 });
 
 describe("exportExcel con miniaturas", () => {
