@@ -1158,7 +1158,7 @@ const CATALOG_SPACED_WORDS = [
   "micrófono", "menos", "MP", "nano", "NFC", "Neural", "no", "núcleos", "o", "operativo", "puede", "RAM", "regional", "ROM", "SIM",
   "pantalla", "para", "Pencil", "por", "procesador", "puerto", "rápida", "red",
   "resistencia", "resolución", "sensor", "sin", "sistema", "solo", "soporta", "su",
-  "sus", "trasera", "ultra", "USB", "variante", "versión", "video", "Wi-Fi", "y", "a",
+  "región", "según", "sus", "trasera", "ultra", "USB", "variante", "versión", "video", "Wi-Fi", "y", "a",
 ].map((word) => ({
   word,
   key: word.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z]/g, ""),
@@ -1172,7 +1172,8 @@ const CATALOG_SPACED_PHRASES: Record<string, string> = {
 };
 
 const splitSpacedCatalogLetters = (value: string): string => {
-  const compact = value.replace(/\s+/g, "");
+  // Los datos pegados desde otras fuentes pueden incluir separadores Unicode invisibles.
+  const compact = value.replace(/[\u200B\u200C\u200E\u200F\u2060\uFEFF]/g, "").replace(/\s+/g, "");
   const key = compact.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z]/g, "");
   if (!key) return value;
   if (CATALOG_SPACED_PHRASES[key]) return CATALOG_SPACED_PHRASES[key];
@@ -1210,6 +1211,9 @@ const splitSpacedCatalogLetters = (value: string): string => {
 
 export const normalizeCatalogText = (value: string): string =>
   value
+    // Normaliza acentos y retira separadores invisibles que impiden reconocer letras espaciadas.
+    .normalize("NFC")
+    .replace(/[\u200B\u200C\u200E\u200F\u2060\uFEFF]/g, "")
     .replace(/(^|[^A-Za-zÁÉÍÓÚÜÑáéíóúüñ0-9])((?:[A-Za-zÁÉÍÓÚÜÑáéíóúüñ]\s+){2,}[A-Za-zÁÉÍÓÚÜÑáéíóúüñ])(?=$|[^A-Za-zÁÉÍÓÚÜÑáéíóúüñ0-9])/g, (_match, prefix: string, spaced: string) => prefix + splitSpacedCatalogLetters(spaced))
     .replace(/\b(\d+)\s+a(?=\s+generaci[oó]n\b)/gi, "$1a")
     .replace(/(\d)\s*\.\s*(?=\d)/g, "$1.")
