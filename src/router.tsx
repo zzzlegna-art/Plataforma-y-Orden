@@ -8,7 +8,6 @@ import Garantias from "./pages/garantias";
 import GarantiaDetalle from "./pages/garantias/detalle";
 import Inventario from "./pages/inventario";
 import ProductoDetalle from "./pages/inventario/detalle";
-import LiberarSeriales from "./pages/liberar";
 import Login from "./pages/login";
 import NotFound from "./pages/NotFound";
 import Panel from "./pages/panel";
@@ -18,7 +17,6 @@ import PedidoDetalle from "./pages/pedidos/detalle";
 import Recepciones from "./pages/recepcion";
 import NuevaRecepcion from "./pages/recepcion/nueva";
 import TrazabilidadSeriales from "./pages/trazabilidad";
-import Unidades from "./pages/unidades";
 
 export const routers = [
   {
@@ -70,8 +68,8 @@ export const routers = [
           },
           {
             path: "unidades",
-            name: "unidades",
-            element: <Unidades />,
+            name: "unidades-legacy",
+            element: <Navigate to="/seriales" replace />,
           },
           {
             path: "seriales",
@@ -80,10 +78,10 @@ export const routers = [
           },
           {
             path: "liberar",
-            name: "liberar-seriales",
+            name: "liberar-seriales-legacy",
             element: (
               <RequirePermission permission="users.manage">
-                <LiberarSeriales />
+                <Navigate to="/seriales?view=liberar" replace />
               </RequirePermission>
             ),
           },
