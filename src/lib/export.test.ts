@@ -2,7 +2,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { strFromU8, unzipSync } from "fflate";
 
-import { exportCompanyName, exportExcel, exportPedidosHistorialExcel } from "./export";
+import { exportCompanyName, exportExcel, exportPedidosHistorialExcel, normalizeCatalogText } from "./export";
 
 const ONE_PIXEL_JPEG =
   "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCAABAAEDASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwD6pooooA//2Q==";
@@ -13,6 +13,20 @@ describe("identidad de exportaciones", () => {
     expect(exportCompanyName("My Company")).toBe("NEXORA");
     expect(exportCompanyName("")).toBe("NEXORA");
     expect(exportCompanyName("Tecnología del Norte")).toBe("Tecnología del Norte");
+  });
+});
+
+describe("normalización de texto del catálogo", () => {
+  it("repara letras separadas sin pegar las palabras de conectividad", () => {
+    expect(normalizeCatalogText(
+      "C o n e c t i v i d a d: 5G, Bluetooth 5.3; 5G y e S I M s o l o e n l a v e r s i ó n W i F i + C e l l u l a r",
+    )).toBe("Conectividad: 5G, Bluetooth 5.3; 5G y eSIM solo en la versión Wi-Fi + Cellular");
+  });
+
+  it("conserva espacios entre nombres de producto y corrige puntuación", () => {
+    expect(normalizeCatalogText(
+      "C o m p a t i b i l i d a d: A p p l e P e n c i l ( U S B C ); A p p l e P e n c i l d e 1 a g e n e r a c i ó n c o n a d a p t a d o r",
+    )).toBe("Compatibilidad: Apple Pencil (USB-C); Apple Pencil de 1a generación con adaptador");
   });
 });
 
