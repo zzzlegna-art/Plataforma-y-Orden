@@ -38,6 +38,16 @@ describe("normalización de texto del catálogo", () => {
       "C o m p a t i b i l i d a d: D u a l S I M: n a n o S I M + e S I M; l a v a r i a n t e r e g i o n a l p u e d e c a m b i a r",
     )).toBe("Compatibilidad: Dual SIM: nano SIM + eSIM; la variante regional puede cambiar");
   });
+
+  it("corrige las características del catálogo aunque incluyan separadores Unicode invisibles", () => {
+    expect(normalizeCatalogText(
+      "C\u200B o n e c t i v i d a d: 5 G, W i F i 6, B l u e t o o t h 5 . 0, N F C, L i g h t n i n g",
+    )).toBe("Conectividad: 5G, Wi-Fi 6, Bluetooth 5.0, NFC, Lightning");
+
+    expect(normalizeCatalogText(
+      "C o m p a t i b i l i d a d: D u a l S I M: n a n o S I M + e S I M o D u a l e S I M, s e g ú n r e g i ó n",
+    )).toBe("Compatibilidad: Dual SIM: nano SIM + eSIM o Dual eSIM, según región");
+  });
 });
 
 describe("exportExcel con miniaturas", () => {
