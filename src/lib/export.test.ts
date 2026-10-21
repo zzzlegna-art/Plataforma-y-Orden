@@ -2,7 +2,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { strFromU8, unzipSync } from "fflate";
 
-import { exportCompanyName, exportExcel, exportPedidosHistorialExcel } from "./export";
+import { exportCompanyName, exportExcel, exportPedidosHistorialExcel, exportProductCatalogExcel } from "./export";
 
 const ONE_PIXEL_JPEG =
   "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCAABAAEDASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwD6pooooA//2Q==";
@@ -107,6 +107,63 @@ describe("exportExcel con miniaturas", () => {
       .join("");
     expect(workbookXml).toContain("Cliente de prueba");
     expect(workbookXml).toContain("iPhone de prueba");
+    vi.runOnlyPendingTimers();
+  });
+
+  it("exporta el catálogo sin descripción y repara características con letras separadas", async () => {
+    let downloadedBlob: Blob | undefined;
+    Object.defineProperty(URL, "createObjectURL", {
+      configurable: true,
+      value: (blob: Blob) => {
+        downloadedBlob = blob;
+        return "blob:catalog-compact-test";
+      },
+    });
+    Object.defineProperty(URL, "revokeObjectURL", { configurable: true, value: () => undefined });
+    vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => undefined);
+    vi.useFakeTimers();
+
+    await exportProductCatalogExcel({
+      title: "Catálogo de productos — NEXORA",
+      subtitle: "1 registro",
+      filename: "catalog-compact-test.xlsx",
+      products: [{
+        name: "iPad A16 128 GB",
+        sku: "A16-128",
+        brand: "Apple",
+        category: "Tablets",
+        features: [{
+          label: "C o n e c t i v i d a d:",
+          value: "W i F i 6, B l u e t o o t h 5.3",
+        }],
+      }],
+      includePrice: false,
+      includeStock: false,
+      labels: {
+        image: "Imagen",
+        openImage: "Abrir imagen",
+        product: "Producto",
+        reference: "SKU",
+        brand: "Marca",
+        category: "Categoría",
+        features: "Características del equipo",
+        price: "Precio",
+        stock: "Stock",
+        noFeatures: "Sin características registradas",
+        imageUnavailable: "Imagen no disponible",
+        moreFeatures: (count) => `y ${count} más`,
+      },
+    });
+
+    expect(downloadedBlob).toBeDefined();
+    const archive = unzipSync(new Uint8Array(await downloadedBlob!.arrayBuffer()));
+    const workbookXml = Object.entries(archive)
+      .filter(([entryPath]) => entryPath.startsWith("xl/"))
+      .map(([, bytes]) => strFromU8(bytes))
+      .join("");
+    expect(workbookXml).toContain("Conectividad: WiFi 6, Bluetooth 5.3");
+    expect(workbookXml).not.toContain("Descripción");
+    expect(strFromU8(archive["xl/worksheets/sheet1.xml"])).toContain('ySplit="4"');
     vi.runOnlyPendingTimers();
   });
 
