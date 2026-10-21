@@ -83,13 +83,13 @@ export const CustomerFormDialog = ({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>{trigger}</DialogTrigger>
-      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
+      <DialogContent className="nx-customer-dialog flex max-h-[min(90dvh,850px)] w-[calc(100vw-1.5rem)] flex-col overflow-hidden sm:max-w-xl">
         <DialogHeader>
           <DialogTitle>{customer ? t("customer.editTitle") : t("customer.createTitle")}</DialogTitle>
           <DialogDescription>{t("customer.formDescription")}</DialogDescription>
         </DialogHeader>
 
-        <div className="grid gap-4 py-2 sm:grid-cols-2">
+        <div className="grid min-h-0 flex-1 grid-cols-1 gap-4 overflow-y-auto overscroll-contain px-1 py-2 sm:grid-cols-2">
           <div className="space-y-2 sm:col-span-2">
             <Label htmlFor="customerName">{t("customer.name")}</Label>
             <Input
@@ -181,7 +181,7 @@ export const CustomerFormDialog = ({
           </div>
         </div>
 
-        <DialogFooter>
+        <DialogFooter className="shrink-0 border-t border-border/70 bg-background/95 pt-3">
           <Button variant="outline" type="button" onClick={() => setOpen(false)}>
             {t("common.cancel")}
           </Button>
