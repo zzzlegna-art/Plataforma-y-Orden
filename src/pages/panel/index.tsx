@@ -23,6 +23,7 @@ import {
   CartesianGrid,
   Cell,
   LabelList,
+  Legend,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -285,6 +286,33 @@ const Panel = () => {
     [customersSignature],
   );
 
+  // Movimiento diario de inventario de los últimos siete días (incluye días sin actividad).
+  const movementChartData = useMemo(() => {
+    const days = Array.from({ length: 7 }, (_, index) => {
+      const date = new Date();
+      date.setUTCHours(12, 0, 0, 0);
+      date.setUTCDate(date.getUTCDate() - (6 - index));
+      return {
+        key: date.toISOString().slice(0, 10),
+        day: new Intl.DateTimeFormat("es", { weekday: "short", timeZone: "UTC" })
+          .format(date)
+          .replace(/\\.$/, ""),
+        entradas: 0,
+        salidas: 0,
+        devoluciones: 0,
+      };
+    });
+    const byDate = new Map(days.map((day) => [day.key, day]));
+    for (const movement of db.movements) {
+      const day = byDate.get(movement.createdAt.slice(0, 10));
+      if (!day) continue;
+      if (movement.type === "entrada") day.entradas += movement.quantity;
+      else if (movement.type === "salida") day.salidas += movement.quantity;
+      else if (movement.type === "devolucion") day.devoluciones += movement.quantity;
+    }
+    return days;
+  }, [db.movements]);
+
   return (
     <div className="space-y-8 stagger">
       <div className="nx-dashboard-heading">
@@ -508,6 +536,33 @@ const Panel = () => {
         )}
       </section>
 
+      <section className="premium-surface nx-ranking-card p-5">
+        <div className="mb-3 flex items-center gap-2">
+          <span className="rounded-md bg-primary/12 p-1.5 text-primary"><Activity className="h-4 w-4" /></span>
+          <div>
+            <h2 className="text-base font-semibold">Movimiento de inventario</h2>
+            <p className="text-xs text-muted-foreground">Entradas, salidas y devoluciones de los últimos 7 días.</p>
+          </div>
+        </div>
+        <div className="h-72 w-full">
+          <ResponsiveContainer width="100%" height="100%" debounce={150}>
+            <BarChart data={movementChartData} margin={{ top: 12, right: 8, left: 0, bottom: 0 }} barCategoryGap="24%">
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
+              <XAxis dataKey="day" tickLine={false} axisLine={false} tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} />
+              <YAxis hide allowDecimals={false} />
+              <Tooltip formatter={(value, name) => [formatNumber(Number(value)), String(name)]} />
+              <Legend verticalAlign="bottom" height={30} iconType="circle" wrapperStyle={{ fontSize: 12 }} />
+              <Bar dataKey="entradas" name="Entradas" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} maxBarSize={24} />
+              <Bar dataKey="salidas" name="Salidas" fill="hsl(var(--destructive))" radius={[4, 4, 0, 0]} maxBarSize={24} />
+              <Bar dataKey="devoluciones" name="Devoluciones" fill="hsl(var(--success))" radius={[4, 4, 0, 0]} maxBarSize={24} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+        {movementChartData.every((day) => day.entradas === 0 && day.salidas === 0 && day.devoluciones === 0) ? (
+          <p className="mt-1 text-center text-xs text-muted-foreground">Todavía no hay movimientos registrados en este periodo.</p>
+        ) : null}
+      </section>
+
       <div className="mb-4 flex items-center justify-between">
         <div>
           <h2 className="text-lg font-semibold">Rendimiento de inventario</h2>
@@ -578,6 +633,208 @@ const Panel = () => {
         </section>
       </div>
 
+
+
+      <div className="nx-operational-grid grid gap-4 lg:grid-cols-3">
+        <section className="premium-surface nx-operation-card p-5">
+          <div className="mb-1 flex items-center justify-between">
+            <h3 className="text-sm font-semibold">{t("dashboard.alertsLowStock")}</h3>
+            <Link to="/inventario" className="text-xs text-primary hover:underline">
+              {t("common.viewAll")}
+            </Link>
+          </div>
+          <p className="mb-3 text-xs text-muted-foreground">
+            {t("dashboard.lowStockSubtitle", { count: STOCK_BAJO_CELULARES })}
+          </p>
+
+          <div className="mb-3 flex gap-2" role="group" aria-label={t("dashboard.alertsLowStock")}>
+            {(["nuevo", "seminuevo"] as const).map((condicion) => {
+              const activa = condicionAlerta === condicion;
+              return (
+                <Button
+                  key={condicion}
+                  type="button"
+                  size="sm"
+                  variant={activa ? "default" : "outline"}
+                  aria-pressed={activa}
+                  onClick={() => setCondicionAlerta(condicion)}
+                  className="flex-1"
+                >
+                  {t(`condition.${condicion}`)}
+                  <span
+                    className={cn(
+                      "font-tabular rounded-full px-1.5 text-xs",
+                      activa ? "bg-primary-foreground/20" : "bg-muted text-muted-foreground",
+                    )}
+                  >
+                    {data.lowStockCelulares[condicion].length}
+                  </span>
+                </Button>
+              );
+            })}
+          </div>
+
+          {alertas.length === 0 ? (
+            <p className="py-6 text-center text-sm text-muted-foreground">
+              {t(
+                condicionAlerta === "nuevo"
+                  ? "dashboard.noLowStockNuevo"
+                  : "dashboard.noLowStockSeminuevo",
+                { count: STOCK_BAJO_CELULARES },
+              )}
+            </p>
+          ) : (
+            <ul className="max-h-64 divide-y overflow-y-auto pr-1">
+              {alertas.map(({ row, disponible }) => (
+                <li key={row.product.id} className="flex items-center justify-between gap-3 py-2">
+                  <Link
+                    to={`/inventario/${row.product.id}`}
+                    className="min-w-0 flex-1 truncate text-sm transition-colors hover:text-primary hover:underline"
+                  >
+                    {row.product.name}
+                  </Link>
+                  <span
+                    className={cn(
+                      "font-tabular shrink-0 text-xs font-medium",
+                      disponible === 0 ? "text-destructive" : "text-warning",
+                    )}
+                  >
+                    {t("dashboard.lowStockUnits", { count: disponible })}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+
+          {data.lowStockOtros.length > 0 ? (
+            <div className="mt-3 border-t pt-3">
+              <p className="mb-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                {t("dashboard.lowStockOthers")}
+              </p>
+              <ul className="divide-y">
+                {data.lowStockOtros.slice(0, 5).map((row) => (
+                  <li key={row.product.id} className="flex items-center justify-between gap-3 py-2">
+                    <Link
+                      to={`/inventario/${row.product.id}`}
+                      className="min-w-0 flex-1 truncate text-sm transition-colors hover:text-primary hover:underline"
+                    >
+                      {row.product.name}
+                    </Link>
+                    <span className="font-tabular shrink-0 text-xs text-warning">
+                      {t("product.stockOf", {
+                        available: row.stock.disponible,
+                        min: row.stock.minStock,
+                      })}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+        </section>
+
+        <section className="premium-surface nx-operation-card p-5">
+          <div className="mb-3 flex items-center justify-between">
+            <h3 className="text-sm font-semibold">{t("dashboard.openOrders")}</h3>
+            <Link to="/pedidos" className="text-xs text-primary hover:underline">
+              {t("common.viewAll")}
+            </Link>
+          </div>
+          {data.openOrders.length === 0 ? (
+            <p className="py-6 text-center text-sm text-muted-foreground">
+              {t("dashboard.noOpenOrders")}
+            </p>
+          ) : (
+            <ul className="divide-y">
+              {data.openOrders.slice(0, 5).map((view) => (
+                <li key={view.order.id} className="flex items-center justify-between gap-3 py-2">
+                  <Link to={`/pedidos/${view.order.id}`} className="min-w-0 flex-1 transition-colors hover:text-primary">
+                    <p className="truncate text-sm font-medium">{view.order.code}</p>
+                    <p className="truncate text-xs text-muted-foreground">
+                      {view.customer?.name ?? "—"}
+                    </p>
+                  </Link>
+                  <div className="flex shrink-0 items-center gap-2">
+                    <span className="font-tabular text-xs text-muted-foreground">
+                      {view.assigned}/{view.requested}
+                    </span>
+                    <OrderStatusBadge status={view.order.status} />
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+
+        <section className="premium-surface nx-operation-card p-5">
+          <div className="mb-3 flex items-center justify-between">
+            <h3 className="text-sm font-semibold">{t("dashboard.openWarranties")}</h3>
+            <Link to="/garantias" className="text-xs text-primary hover:underline">
+              {t("common.viewAll")}
+            </Link>
+          </div>
+          {data.openWarranties.length === 0 ? (
+            <p className="py-6 text-center text-sm text-muted-foreground">
+              {t("dashboard.noOpenWarranties")}
+            </p>
+          ) : (
+            <ul className="divide-y">
+              {data.openWarranties.slice(0, 5).map((view) => {
+                const dias = diasSinMovimiento(view);
+                return (
+                  <li key={view.warranty.id} className="flex items-center justify-between gap-3 py-2">
+                    <Link to={`/garantias/${view.warranty.id}`} className="min-w-0 flex-1 transition-colors hover:text-primary">
+                      <p className="truncate text-sm font-medium">{view.warranty.code}</p>
+                      <p className="font-tabular truncate text-xs text-muted-foreground">
+                        {view.unit?.serial ?? "—"}
+                      </p>
+                    </Link>
+                    <div className="flex shrink-0 flex-col items-end gap-1">
+                      <WarrantyStatusBadge status={view.warranty.status} />
+                      <span
+                        className={cn(
+                          "font-tabular text-[11px]",
+                          dias >= DIAS_GARANTIA_CRITICA
+                            ? "font-medium text-destructive"
+                            : dias >= DIAS_GARANTIA_ESTANCADA
+                              ? "font-medium text-warning"
+                              : "text-muted-foreground",
+                        )}
+                      >
+                        {t("dashboard.daysWithoutMovement", { count: dias })}
+                      </span>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </section>
+      </div>
+
+      <section className="premium-surface nx-operation-card p-5">
+        <div className="mb-3 flex items-center justify-between">
+          <h3 className="text-sm font-semibold">{t("dashboard.unitsTitle")}</h3>
+          <Link to="/unidades" className="text-xs text-primary hover:underline">
+            {t("common.viewAll")}
+            <ArrowRight className="ml-1 inline h-3 w-3" />
+          </Link>
+        </div>
+        <ul className="divide-y">
+          {db.units.slice(0, 6).map((unit) => {
+            const product = db.products.find((item) => item.id === unit.productId);
+            return (
+              <li key={unit.id} className="flex items-center justify-between gap-3 py-2">
+                <div className="min-w-0">
+                  <p className="font-tabular truncate text-sm">{unit.serial}</p>
+                  <p className="truncate text-xs text-muted-foreground">{product?.name ?? "—"}</p>
+                </div>
+                <UnitStatusBadge status={unit.status} />
+              </li>
+            );
+          })}
+        </ul>
+      </section>
 
     </div>
   );
