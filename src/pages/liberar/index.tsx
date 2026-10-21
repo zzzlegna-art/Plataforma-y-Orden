@@ -21,7 +21,7 @@ const TONE_RESULTADO: Record<string, "success" | "warning" | "destructive" | "ne
 };
 
 /** Libera varios seriales del sistema a la vez pegando una lista. */
-const LiberarSeriales = () => {
+const LiberarSeriales = ({ embedded = false }: { embedded?: boolean }) => {
   const { t } = useTranslation();
   const runAction = useRunAction();
   const [motivo, setMotivo] = useState("");
@@ -50,7 +50,7 @@ const LiberarSeriales = () => {
 
   return (
     <div className="space-y-5 stagger">
-      <PageHeader title={t("liberar.title")} description={t("liberar.subtitle")} />
+      {!embedded ? <PageHeader title={t("liberar.title")} description={t("liberar.subtitle")} /> : null}
 
       <section className="space-y-3 rounded-lg border bg-card p-4 shadow-sm">
         <div className="space-y-2">
