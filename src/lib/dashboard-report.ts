@@ -71,9 +71,6 @@ const enRango = (value: string | undefined, desde: string, hasta: string): boole
 const textoRango = (desde: string, hasta: string): string =>
   `${desde ? fechaLegible(desde) : "Inicio"} — ${hasta ? fechaLegible(hasta) : "Hoy"}`;
 
-const totalCantidad = (values: { quantity: number }[]): number =>
-  values.reduce((total, item) => total + item.quantity, 0);
-
 /**
  * Construye las hojas del informe operativo para que CSV y Excel compartan el mismo periodo.
  * El libro queda organizado en resumen ejecutivo y tablas de detalle listas para filtrar.
