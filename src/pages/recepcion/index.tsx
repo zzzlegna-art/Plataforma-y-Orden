@@ -529,8 +529,8 @@ const Recepciones = () => {
       />
 
       <Sheet open={Boolean(selected)} onOpenChange={(open) => !open && cerrarPanel()}>
-        <SheetContent side="right" className="w-full overflow-y-auto sm:max-w-md">
-          <SheetHeader>
+        <SheetContent side="right" className="w-full overflow-y-auto pr-0 sm:max-w-md">
+          <SheetHeader className="pr-6">
             <SheetTitle className="font-tabular">{selected?.reception.code}</SheetTitle>
             <SheetDescription>
               {t("receptions.confirmedAt", {
@@ -539,7 +539,7 @@ const Recepciones = () => {
             </SheetDescription>
           </SheetHeader>
 
-          <div className="mt-5 space-y-3">
+          <div className="mt-5 space-y-3 pr-6">
             {selected?.reception.notes ? (
               <p className="rounded-md bg-muted/60 p-3 text-sm text-muted-foreground">
                 {selected.reception.notes}
@@ -675,9 +675,9 @@ const Recepciones = () => {
             ) : (
               <div className="space-y-2">
                 <p className="text-xs text-muted-foreground">{t("export.seleccionadasHint")}</p>
-                <ul className="max-h-32 space-y-1 overflow-y-auto rounded-md border bg-muted/30 p-2">
+                <ul className="max-h-32 space-y-1 overflow-y-auto rounded-md border bg-muted/30 p-2 pr-0">
                   {filasSeleccionadas.map((row) => (
-                    <li key={row.reception.id} className="font-tabular text-xs">
+                    <li key={row.reception.id} className="font-tabular pr-2 text-xs">
                       {row.reception.code}
                       {row.reception.reference ? ` · ${row.reception.reference}` : ""}
                     </li>
