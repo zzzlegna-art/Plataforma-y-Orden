@@ -275,8 +275,8 @@ export const ProductFormDialog = ({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>{trigger}</DialogTrigger>
-      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
-        <DialogHeader>
+      <DialogContent className="max-h-[90vh] overflow-y-auto pr-0 sm:max-w-2xl">
+        <DialogHeader className="pr-6">
           <DialogTitle>{product ? t("product.editTitle") : t("product.createTitle")}</DialogTitle>
           <DialogDescription>{t("product.formDescription")}</DialogDescription>
           {draftRestored ? (
@@ -286,7 +286,7 @@ export const ProductFormDialog = ({
           ) : null}
         </DialogHeader>
 
-        <div className="grid gap-4 py-2 sm:grid-cols-2">
+        <div className="grid gap-4 py-2 pr-6 sm:grid-cols-2">
           <div className="space-y-2">
             <Label htmlFor="sku">{t("product.sku")}</Label>
             <Input
@@ -565,7 +565,7 @@ export const ProductFormDialog = ({
           </div>
         </div>
 
-        <DialogFooter>
+        <DialogFooter className="pr-6">
           <Button variant="outline" type="button" onClick={() => setOpen(false)}>
             {t("common.cancel")}
           </Button>
