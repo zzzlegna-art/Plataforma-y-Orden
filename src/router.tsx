@@ -8,7 +8,6 @@ import Garantias from "./pages/garantias";
 import GarantiaDetalle from "./pages/garantias/detalle";
 import Inventario from "./pages/inventario";
 import ProductoDetalle from "./pages/inventario/detalle";
-import LiberarSeriales from "./pages/liberar";
 import Login from "./pages/login";
 import NotFound from "./pages/NotFound";
 import Panel from "./pages/panel";
@@ -17,9 +16,7 @@ import NuevoPedido from "./pages/pedidos/nuevo";
 import PedidoDetalle from "./pages/pedidos/detalle";
 import Recepciones from "./pages/recepcion";
 import NuevaRecepcion from "./pages/recepcion/nueva";
-import HistorialSerial from "./pages/seriales";
-import SerialesPrevios from "./pages/seriales-previos";
-import Unidades from "./pages/unidades";
+import TrazabilidadSeriales from "./pages/trazabilidad";
 
 export const routers = [
   {
@@ -71,27 +68,27 @@ export const routers = [
           },
           {
             path: "unidades",
-            name: "unidades",
-            element: <Unidades />,
+            name: "unidades-legacy",
+            element: <Navigate to="/seriales" replace />,
           },
           {
             path: "seriales",
-            name: "historial-serial",
-            element: <HistorialSerial />,
+            name: "trazabilidad-seriales",
+            element: <TrazabilidadSeriales />,
           },
           {
             path: "liberar",
-            name: "liberar-seriales",
+            name: "liberar-seriales-legacy",
             element: (
               <RequirePermission permission="users.manage">
-                <LiberarSeriales />
+                <Navigate to="/seriales?view=liberar" replace />
               </RequirePermission>
             ),
           },
           {
             path: "seriales-previos",
-            name: "seriales-previos",
-            element: <SerialesPrevios />,
+            name: "seriales-previos-legacy",
+            element: <Navigate to="/seriales?view=previos" replace />,
           },
           {
             path: "pedidos",
