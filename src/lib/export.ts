@@ -1194,7 +1194,12 @@ const splitSpacedCatalogLetters = (value: string): string => {
   };
 
   const words = segment(0);
-  if (words) return words.join(" ");
+  if (words) {
+    const result = words.join(" ");
+    return compact[0] && compact[0] === compact[0].toLocaleUpperCase() && compact[0] !== compact[0].toLocaleLowerCase()
+      ? result[0].toLocaleUpperCase() + result.slice(1)
+      : result;
+  }
 
   // Último recurso: elimina el espaciado artificial sin alterar el resto del contenido.
   return compact.replace(/([a-záéíóúüñ])([A-ZÁÉÍÓÚÜÑ])/g, "$1 $2");
@@ -1202,7 +1207,7 @@ const splitSpacedCatalogLetters = (value: string): string => {
 
 export const normalizeCatalogText = (value: string): string =>
   value
-    .replace(/(?:\b[A-Za-zÁÉÍÓÚÜÑáéíóúüñ]\s+){2,}[A-Za-zÁÉÍÓÚÜÑáéíóúüñ]\b/g, splitSpacedCatalogLetters)
+    .replace(/(^|[^A-Za-zÁÉÍÓÚÜÑáéíóúüñ])((?:[A-Za-zÁÉÍÓÚÜÑáéíóúüñ]\s+){2,}[A-Za-zÁÉÍÓÚÜÑáéíóúüñ])(?=$|[^A-Za-zÁÉÍÓÚÜÑáéíóúüñ])/g, (_match, prefix: string, spaced: string) => prefix + splitSpacedCatalogLetters(spaced))
     .replace(/\b(\d+)\s+a(?=\s+generaci[oó]n\b)/gi, "$1a")
     .replace(/\(\s+/g, "(")
     .replace(/\s+\)/g, ")")
