@@ -44,7 +44,6 @@ export const NAV_ITEMS: NavItem[] = [
     primary: true,
   },
   {
-  {
     to: "/seriales",
     labelKey: "nav.units",
     icon: ScanLine,
