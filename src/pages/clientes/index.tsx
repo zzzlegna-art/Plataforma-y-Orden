@@ -60,7 +60,7 @@ const Clientes = () => {
     db.orders.filter((order) => order.customerId === customerId).length;
 
   return (
-    <div className="space-y-5 stagger">
+    <div className="nx-management nx-customers space-y-4 stagger">
       <PageHeader
         title={t("customer.title")}
         description={t("customer.subtitle")}
@@ -76,7 +76,7 @@ const Clientes = () => {
         }
       />
 
-      <div className="space-y-3 rounded-lg border bg-card p-3 shadow-sm">
+      <div className="nx-customers-filters space-y-3 rounded-lg border bg-card p-3 shadow-sm">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
           <SearchField
             value={search}
@@ -110,6 +110,7 @@ const Clientes = () => {
       </div>
 
       <DataTable
+        className="nx-customers-table"
         rows={rows}
         rowKey={(customer) => customer.id}
         emptyTitle={search || categoriaFiltro ? t("customer.emptyFilteredTitle") : t("customer.emptyTitle")}
