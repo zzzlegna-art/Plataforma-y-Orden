@@ -133,7 +133,7 @@ describe("exportExcel con miniaturas", () => {
         brand: "Apple",
         category: "Tablets",
         features: [{
-          label: "C o n e c t i v i d a d:",
+          label: "C o n e c t i v i d a d",
           value: "W i F i 6, B l u e t o o t h 5.3",
         }],
       }],
