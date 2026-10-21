@@ -83,7 +83,7 @@ export const CustomerFormDialog = ({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>{trigger}</DialogTrigger>
-      <DialogContent className="nx-customer-dialog flex max-h-[min(90dvh,850px)] w-[calc(100vw-1.5rem)] flex-col overflow-hidden sm:max-w-xl">
+      <DialogContent className="nx-customer-dialog flex h-[min(90dvh,850px)] max-h-[min(90dvh,850px)] w-[calc(100vw-1.5rem)] min-h-0 flex-col overflow-hidden max-sm:overflow-y-hidden sm:max-w-xl">
         <DialogHeader>
           <DialogTitle>{customer ? t("customer.editTitle") : t("customer.createTitle")}</DialogTitle>
           <DialogDescription>{t("customer.formDescription")}</DialogDescription>
