@@ -10,6 +10,7 @@ import {
   ClipboardList,
   Coins,
   Download,
+  FileSpreadsheet,
   PackagePlus,
   ShieldCheck,
   TrendingUp,
@@ -46,6 +47,8 @@ import { usePermissions } from "@/hooks/use-permissions";
 import { useStore } from "@/hooks/use-store";
 import { formatCurrency, formatNumber } from "@/lib/format";
 import { crearCsv } from "@/lib/csv";
+import { exportExcel } from "@/lib/export";
+import { buildOperationalReportSheets } from "@/lib/dashboard-report";
 import {
   DIAS_GARANTIA_CRITICA,
   DIAS_GARANTIA_ESTANCADA,
@@ -229,20 +232,21 @@ const Panel = () => {
   };
   const [reporteDesde, setReporteDesde] = useState(() => new Date().toISOString().slice(0, 7) + "-01");
   const [reporteHasta, setReporteHasta] = useState(() => new Date().toISOString().slice(0, 10));
+  const dentroPeriodoReporte = (fecha: string) => (!reporteDesde || fecha.slice(0, 10) >= reporteDesde) &&
+    (!reporteHasta || fecha.slice(0, 10) <= reporteHasta);
+
   const exportarReporteOperativo = () => {
     if (reporteDesde && reporteHasta && reporteDesde > reporteHasta) return;
-    const dentro = (fecha: string) => (!reporteDesde || fecha.slice(0, 10) >= reporteDesde) &&
-      (!reporteHasta || fecha.slice(0, 10) <= reporteHasta);
-    const movimientos = db.movements.filter((m) => dentro(m.createdAt));
+    const movimientos = db.movements.filter((m) => dentroPeriodoReporte(m.createdAt));
     const filas: (string | number)[][] = [
       ["Indicador", "Cantidad"],
       ["Entradas", movimientos.filter((m) => m.type === "entrada").reduce((n, m) => n + m.quantity, 0)],
       ["Salidas", movimientos.filter((m) => m.type === "salida").reduce((n, m) => n + m.quantity, 0)],
       ["Devoluciones", movimientos.filter((m) => m.type === "devolucion").reduce((n, m) => n + m.quantity, 0)],
-      ["Recepciones", db.receptions.filter((r) => dentro(r.receivedAt)).length],
-      ["Pedidos", db.orders.filter((o) => dentro(o.orderDate)).length],
-      ["Garantías recibidas", db.warranties.filter((w) => dentro(w.receivedAt)).length],
-      ["Garantías cerradas", db.warranties.filter((w) => w.resolvedAt && dentro(w.resolvedAt)).length],
+      ["Recepciones", db.receptions.filter((r) => dentroPeriodoReporte(r.receivedAt)).length],
+      ["Pedidos", db.orders.filter((o) => dentroPeriodoReporte(o.orderDate)).length],
+      ["Garantías recibidas", db.warranties.filter((w) => dentroPeriodoReporte(w.receivedAt)).length],
+      ["Garantías cerradas", db.warranties.filter((w) => w.resolvedAt && dentroPeriodoReporte(w.resolvedAt)).length],
       [],
       ["Fecha", "Movimiento", "Cantidad", "Referencia", "Serial"],
       ...movimientos.map((m) => [m.createdAt, m.type, m.quantity, m.referenceType, db.units.find((u) => u.id === m.unitId)?.serial ?? ""]),
@@ -256,6 +260,14 @@ const Panel = () => {
     a.click();
     a.remove();
     window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+  };
+
+  const exportarReporteOperativoExcel = () => {
+    if (reporteDesde && reporteHasta && reporteDesde > reporteHasta) return;
+    exportExcel({
+      filename: `nexora-reporte-operativo-${reporteDesde || "inicio"}-a-${reporteHasta || "hoy"}.xlsx`,
+      sheets: buildOperationalReportSheets(db, reporteDesde, reporteHasta),
+    });
   };
   // Garantía que más tiempo lleva sin moverse (la lista ya viene ordenada de mayor a menor).
   const garantiaMasAntigua = data.staleWarranties[0];
@@ -348,7 +360,14 @@ const Panel = () => {
       <div className="flex flex-wrap items-end gap-3 rounded-xl border bg-card p-4">
         <div><label htmlFor="reporte-desde" className="block text-xs text-muted-foreground">Reporte desde</label><input id="reporte-desde" type="date" value={reporteDesde} max={reporteHasta} onChange={(e) => setReporteDesde(e.target.value)} className="mt-1 rounded-md border bg-background px-3 py-2 text-sm" /></div>
         <div><label htmlFor="reporte-hasta" className="block text-xs text-muted-foreground">Hasta</label><input id="reporte-hasta" type="date" value={reporteHasta} min={reporteDesde} onChange={(e) => setReporteHasta(e.target.value)} className="mt-1 rounded-md border bg-background px-3 py-2 text-sm" /></div>
-        <Button type="button" variant="outline" disabled={reporteDesde > reporteHasta} onClick={exportarReporteOperativo}><Download className="mr-2 h-4 w-4" />Exportar reporte operativo CSV</Button>
+        <div className="flex flex-wrap gap-2">
+          <Button type="button" disabled={reporteDesde > reporteHasta} onClick={exportarReporteOperativoExcel}>
+            <FileSpreadsheet className="mr-2 h-4 w-4" />Exportar a Excel (.xlsx)
+          </Button>
+          <Button type="button" variant="outline" disabled={reporteDesde > reporteHasta} onClick={exportarReporteOperativo}>
+            <Download className="mr-2 h-4 w-4" />Exportar CSV
+          </Button>
+        </div>
       </div>
 
       <section className="nx-hero-strip">
