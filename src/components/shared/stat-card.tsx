@@ -1,6 +1,6 @@
 import type { LucideIcon } from "lucide-react";
 import type { ReactNode } from "react";
-import { TrendingUp } from "lucide-react";
+import { Minus, TrendingDown, TrendingUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type Tone = "primary" | "success" | "warning" | "info" | "destructive";
@@ -21,6 +21,14 @@ const BAR_CLASSES: Record<Tone, string> = {
   destructive: "bg-red-400",
 };
 
+type TrendTone = "positive" | "negative" | "neutral";
+
+const TREND_CLASSES: Record<TrendTone, string> = {
+  positive: "bg-emerald-50 text-emerald-600",
+  negative: "bg-red-50 text-red-600",
+  neutral: "bg-slate-100 text-slate-600",
+};
+
 export const StatCard = ({
   label,
   value,
@@ -29,6 +37,7 @@ export const StatCard = ({
   tone = "primary",
   className,
   trend,
+  trendTone = "positive",
 }: {
   label: string;
   value: ReactNode;
@@ -37,7 +46,9 @@ export const StatCard = ({
   tone?: Tone;
   className?: string;
   trend?: string;
+  trendTone?: TrendTone;
 }) => (
+  
   <div
     className={cn(
       "group relative overflow-hidden nx-stat-card rounded-2xl border border-border/60 bg-card p-5 shadow-[0_18px_45px_-25px_rgba(15,23,42,.20)] transition hover:-translate-y-1",
@@ -49,8 +60,14 @@ export const StatCard = ({
       <div className="mt-4 flex items-center gap-2">
         <p className="font-tabular text-3xl font-extrabold leading-none">{value}</p>
         {trend ? (
-          <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-1 text-xs font-semibold text-emerald-600">
-            <TrendingUp className="h-3 w-3" />
+          <span className={cn("inline-flex items-center gap-1 rounded-full px-2 py-1 text-xs font-semibold", TREND_CLASSES[trendTone])}>
+            {trendTone === "negative" ? (
+              <TrendingDown className="h-3 w-3" />
+            ) : trendTone === "neutral" ? (
+              <Minus className="h-3 w-3" />
+            ) : (
+              <TrendingUp className="h-3 w-3" />
+            )}
             {trend}
           </span>
         ) : null}
