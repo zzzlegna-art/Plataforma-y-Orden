@@ -1204,6 +1204,10 @@ export const normalizeCatalogText = (value: string): string =>
   value
     .replace(/(?:\b[A-Za-zÁÉÍÓÚÜÑáéíóúüñ]\s+){2,}[A-Za-zÁÉÍÓÚÜÑáéíóúüñ]\b/g, splitSpacedCatalogLetters)
     .replace(/\b(\d+)\s+a(?=\s+generaci[oó]n\b)/gi, "$1a")
+    .replace(/\(\s+/g, "(")
+    .replace(/\s+\)/g, ")")
+    .replace(/\s+([,;:])/g, "$1")
+    .replace(/([,;:])(?=\S)/g, "$1 ")
     .replace(/[ \t]{2,}/g, " ")
     .trim();
 
