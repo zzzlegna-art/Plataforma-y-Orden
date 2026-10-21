@@ -683,7 +683,7 @@ const NuevaRecepcion = () => {
             </div>
           ) : (
             <>
-              <div ref={listaRef} className="min-h-0 flex-1 space-y-5 overflow-y-auto p-4">
+              <div ref={listaRef} className="min-h-0 flex-1 space-y-5 overflow-y-auto -mr-4 p-4 pr-4">
                 {grupos.map((grupo) => (
                   <div key={grupo.clave}>
                     <div className="mb-2 flex items-center justify-between gap-2">
