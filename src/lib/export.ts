@@ -1120,6 +1120,15 @@ export interface ProductCatalogLabels {
   moreFeatures: (count: number) => string;
 }
 
+export type CatalogExportPhase = "preparing" | "images" | "rendering" | "saving" | "complete";
+
+export interface CatalogExportProgress {
+  phase: CatalogExportPhase;
+  completed: number;
+  total: number;
+  percent: number;
+}
+
 export interface ProductCatalogExportOptions {
   title: string;
   subtitle: string;
@@ -1128,6 +1137,7 @@ export interface ProductCatalogExportOptions {
   includePrice: boolean;
   includeStock: boolean;
   labels: ProductCatalogLabels;
+  onProgress?: (progress: CatalogExportProgress) => void;
 }
 
 /** Corrige texto con espacios insertados entre letras en características importadas. */
@@ -1229,7 +1239,9 @@ export const exportProductCatalogPdf = async ({
   includePrice,
   includeStock,
   labels,
+  onProgress,
 }: ProductCatalogExportOptions) => {
+  onProgress?.({ phase: "preparing", completed: 0, total: products.length, percent: 3 });
   const doc = new jsPDF({ orientation: "portrait", unit: "pt", format: "a4" });
   const pageW = doc.internal.pageSize.getWidth();
   const pageH = doc.internal.pageSize.getHeight();
@@ -1294,10 +1306,29 @@ export const exportProductCatalogPdf = async ({
     };
   });
 
+  onProgress?.({ phase: "images", completed: 0, total: products.length, percent: 8 });
+  const imageDataUrls: (string | null)[] = [];
+  // Descargamos imágenes en lotes pequeños y concurrentes: evita esperar una por una
+  // y permite mostrar progreso real durante la fase que suele tardar más.
+  for (let index = 0; index < products.length; index += 4) {
+    const batch = await Promise.all(
+      products.slice(index, index + 4).map((product) => loadCatalogImageData(product.imageUrl)),
+    );
+    imageDataUrls.push(...batch);
+    onProgress?.({
+      phase: "images",
+      completed: imageDataUrls.length,
+      total: products.length,
+      percent: 8 + Math.round((imageDataUrls.length / Math.max(1, products.length)) * 48),
+    });
+  }
+
+  onProgress?.({ phase: "rendering", completed: 0, total: layouts.length, percent: 58 });
   drawHeader();
   let cardY = CONTENT_TOP;
 
-  for (const layout of layouts) {
+  for (let index = 0; index < layouts.length; index += 1) {
+    const layout = layouts[index];
     if (cardY > CONTENT_TOP && cardY + layout.cardHeight > bottom) {
       doc.addPage();
       drawHeader();
@@ -1325,7 +1356,7 @@ export const exportProductCatalogPdf = async ({
     doc.setDrawColor(BORDER[0], BORDER[1], BORDER[2]);
     doc.roundedRect(imageX, imageY, imageBoxSize, imageBoxSize, 5, 5, "FD");
 
-    const imageData = await loadCatalogImageData(product.imageUrl);
+    const imageData = imageDataUrls[index] ?? null;
     if (imageData) {
       doc.addImage(
         imageData,
@@ -1406,10 +1437,21 @@ export const exportProductCatalogPdf = async ({
     }
 
     cardY += cardHeight + gap;
+    onProgress?.({
+      phase: "rendering",
+      completed: index + 1,
+      total: layouts.length,
+      percent: 58 + Math.round(((index + 1) / Math.max(1, layouts.length)) * 36),
+    });
+    // Cede el hilo entre fichas para que el navegador pueda pintar el avance.
+    await new Promise<void>((resolve) => window.setTimeout(resolve, 0));
   }
 
   dibujarPies(doc, title, margin);
+  onProgress?.({ phase: "saving", completed: layouts.length, total: layouts.length, percent: 96 });
+  await new Promise<void>((resolve) => window.setTimeout(resolve, 0));
   doc.save(filename);
+  onProgress?.({ phase: "complete", completed: layouts.length, total: layouts.length, percent: 100 });
 };
 
 /**
@@ -1424,7 +1466,9 @@ export const exportProductCatalogExcel = async ({
   includePrice,
   includeStock,
   labels,
+  onProgress,
 }: ProductCatalogExportOptions) => {
+  onProgress?.({ phase: "preparing", completed: 0, total: products.length, percent: 3 });
   const imageDataUrls: (string | null)[] = [];
   // Limita la concurrencia para no abrir decenas de descargas de imágenes a la vez.
   for (let index = 0; index < products.length; index += 4) {
@@ -1432,6 +1476,12 @@ export const exportProductCatalogExcel = async ({
       products.slice(index, index + 4).map((product) => loadCatalogImageData(product.imageUrl)),
     );
     imageDataUrls.push(...batch);
+    onProgress?.({
+      phase: "images",
+      completed: imageDataUrls.length,
+      total: products.length,
+      percent: 8 + Math.round((imageDataUrls.length / Math.max(1, products.length)) * 58),
+    });
   }
 
   const requestedImageCount = products.filter((product) => Boolean(product.imageUrl)).length;
@@ -1486,6 +1536,10 @@ export const exportProductCatalogExcel = async ({
   if (includePrice) columnWidths.push(15);
   if (includeStock) columnWidths.push(10);
 
+  onProgress?.({ phase: "rendering", completed: products.length, total: products.length, percent: 75 });
+  await new Promise<void>((resolve) => window.setTimeout(resolve, 0));
+  onProgress?.({ phase: "saving", completed: products.length, total: products.length, percent: 92 });
+  await new Promise<void>((resolve) => window.setTimeout(resolve, 0));
   exportExcel({
     filename,
     sheets: [
@@ -1507,4 +1561,5 @@ export const exportProductCatalogExcel = async ({
       },
     ],
   });
+  onProgress?.({ phase: "complete", completed: products.length, total: products.length, percent: 100 });
 };
