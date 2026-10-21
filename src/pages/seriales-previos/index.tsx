@@ -20,7 +20,7 @@ import { buscarSerialPrevio, listarSerialesPrevios } from "@/lib/selectors";
 type Tab = "buscar" | "importar" | "lista";
 
 /** Registro de ventas anteriores a la plataforma (seriales previos). */
-const SerialesPrevios = () => {
+const SerialesPrevios = ({ embedded = false }: { embedded?: boolean }) => {
   const { t } = useTranslation();
   const { db } = useStore();
   const runAction = useRunAction();
@@ -54,7 +54,7 @@ const SerialesPrevios = () => {
 
   return (
     <div className="space-y-5 stagger">
-      <PageHeader title={t("serialesPrevios.title")} description={t("serialesPrevios.subtitle")} />
+      {!embedded ? <PageHeader title={t("serialesPrevios.title")} description={t("serialesPrevios.subtitle")} /> : null}
 
       <div className="flex flex-wrap gap-2">
         {(["buscar", "importar", "lista"] as Tab[]).map((option) => (
