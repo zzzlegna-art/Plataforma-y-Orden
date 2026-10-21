@@ -1149,7 +1149,7 @@ const CATALOG_SPACED_WORDS = [
   "almacenamiento", "adaptador", "angular", "Apple", "Bluetooth", "batería", "cámara",
   "cámaras", "capacidad", "Cellular", "celular", "compatibilidad", "compatible",
   "conectividad", "conector", "conexión", "conexiones", "con", "CPU", "devolución",
-  "del", "desde", "diseño", "eSIM", "en", "Engine", "estéreo", "frontal", "frecuencia",
+  "de", "del", "desde", "diseño", "eSIM", "en", "Engine", "estéreo", "frontal", "frecuencia",
   "generación", "GPU", "grabación", "gran", "hasta", "inalámbrica", "inalámbrico",
   "incluye", "iPad", "iPhone", "la", "las", "Lightning", "los", "más", "memoria",
   "micrófono", "menos", "MP", "NFC", "Neural", "no", "núcleos", "o", "operativo",
@@ -1207,7 +1207,7 @@ const splitSpacedCatalogLetters = (value: string): string => {
 
 export const normalizeCatalogText = (value: string): string =>
   value
-    .replace(/(^|[^A-Za-zÁÉÍÓÚÜÑáéíóúüñ])((?:[A-Za-zÁÉÍÓÚÜÑáéíóúüñ]\s+){2,}[A-Za-zÁÉÍÓÚÜÑáéíóúüñ])(?=$|[^A-Za-zÁÉÍÓÚÜÑáéíóúüñ])/g, (_match, prefix: string, spaced: string) => prefix + splitSpacedCatalogLetters(spaced))
+    .replace(/(^|[^A-Za-zÁÉÍÓÚÜÑáéíóúüñ0-9])((?:[A-Za-zÁÉÍÓÚÜÑáéíóúüñ]\s+){2,}[A-Za-zÁÉÍÓÚÜÑáéíóúüñ])(?=$|[^A-Za-zÁÉÍÓÚÜÑáéíóúüñ0-9])/g, (_match, prefix: string, spaced: string) => prefix + splitSpacedCatalogLetters(spaced))
     .replace(/\b(\d+)\s+a(?=\s+generaci[oó]n\b)/gi, "$1a")
     .replace(/\(\s+/g, "(")
     .replace(/\s+\)/g, ")")
