@@ -708,6 +708,8 @@ export interface ExcelSheet {
   imageColumnWidth?: number;
   /** Tamaño cuadrado de la miniatura, en píxeles. */
   imageSizePx?: number;
+  /** Formatos numéricos de Excel por índice de columna (por ejemplo, "#,##0"). */
+  numberFormats?: Record<number, string>;
 }
 
 
@@ -1051,6 +1053,7 @@ export const exportExcel = ({
             color: { rgb: hyperlink ? "0563C1" : TEXT_HEX },
             ...(hyperlink ? { underline: true } : {}),
           },
+          ...(sheet.numberFormats?.[c] ? { numFmt: sheet.numberFormats[c] } : {}),
           ...(alterna ? { fill: { fgColor: { rgb: CYAN_PALE_HEX } } } : {}),
           alignment: {
             vertical: "center",
