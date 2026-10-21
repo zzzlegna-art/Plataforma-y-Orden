@@ -1303,7 +1303,6 @@ export const exportProductCatalogPdf = async ({
     }));
     const visibleFeatures = allFeatures.slice(0, 10);
     doc.setFont("helvetica", "normal");
-    doc.setFontSize(7.1);
     doc.setFontSize(7.2);
     const featureLines = visibleFeatures.map((feature) =>
       splitCatalogLines(doc, `• ${feature.label}: ${feature.value}`, textWidth, 2),
