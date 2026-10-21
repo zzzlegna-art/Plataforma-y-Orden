@@ -57,6 +57,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Switch } from "@/components/ui/switch";
+import { Progress } from "@/components/ui/progress";
 import { useStore } from "@/hooks/use-store";
 import {
   exportCompanyName,
@@ -65,6 +66,7 @@ import {
   exportProductCatalogExcel,
   exportProductCatalogPdf,
   exportSubtitle,
+  type CatalogExportProgress,
 } from "@/lib/export";
 import { getProductTechnicalSpecFieldsForCategory } from "@/lib/product-specs";
 import { formatCurrency, todayIso } from "@/lib/format";
@@ -482,6 +484,7 @@ const Inventario = () => {
   const [catalogCat, setCatalogCat] = useState("");
   const [catalogIncludePrice, setCatalogIncludePrice] = useState(false);
   const [catalogIncludeStock, setCatalogIncludeStock] = useState(false);
+  const [catalogExportProgress, setCatalogExportProgress] = useState<CatalogExportProgress | null>(null);
 
   const rows = useMemo(() => {
     const needle = search.trim().toLowerCase();
@@ -633,21 +636,25 @@ const Inventario = () => {
       includePrice: catalogIncludePrice,
       includeStock: catalogIncludeStock,
       labels,
+      onProgress: setCatalogExportProgress,
     };
 
-    const toastId = toast.loading(t("catalog.generating"));
+    setCatalogExportProgress({ phase: "preparing", completed: 0, total: products.length, percent: 3 });
     try {
       if (format === "pdf") {
         await exportProductCatalogPdf(options);
       } else {
         await exportProductCatalogExcel(options);
       }
-      toast.success(t("catalog.exportSuccess"), { id: toastId });
+      toast.success(t("catalog.exportSuccess"));
+      await new Promise<void>((resolve) => window.setTimeout(resolve, 850));
     } catch (error) {
       const message = error instanceof Error && error.message === "CATALOG_IMAGES_UNAVAILABLE"
         ? t("catalog.imagesLoadFailed")
         : t("catalog.exportFailed");
-      toast.error(message, { id: toastId });
+      toast.error(message);
+    } finally {
+      setCatalogExportProgress(null);
     }
   };
 
@@ -1190,6 +1197,56 @@ const Inventario = () => {
           />
         </div>
       </ExportDialog>
+
+      <Dialog
+        open={catalogExportProgress !== null}
+        onOpenChange={(open) => {
+          if (!open && catalogExportProgress?.phase === "complete") setCatalogExportProgress(null);
+        }}
+      >
+        <DialogContent
+          className="sm:max-w-md"
+          onEscapeKeyDown={(event) => {
+            if (catalogExportProgress?.phase !== "complete") event.preventDefault();
+          }}
+          onInteractOutside={(event) => {
+            if (catalogExportProgress?.phase !== "complete") event.preventDefault();
+          }}
+        >
+          <DialogHeader>
+            <DialogTitle>Generando catálogo</DialogTitle>
+            <DialogDescription>
+              Estamos preparando las referencias y sus imágenes. Puedes seguir aquí el avance de la exportación.
+            </DialogDescription>
+          </DialogHeader>
+          {catalogExportProgress ? (
+            <div className="space-y-4 py-2" role="status" aria-live="polite">
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-sm font-medium">
+                  {catalogExportProgress.phase === "preparing" ? "Preparando catálogo…" :
+                    catalogExportProgress.phase === "images" ? "Cargando imágenes…" :
+                      catalogExportProgress.phase === "rendering" ? "Construyendo el documento…" :
+                        catalogExportProgress.phase === "saving" ? "Preparando la descarga…" : "Catálogo listo"}
+                </span>
+                <span className="font-tabular text-sm font-semibold text-primary">{catalogExportProgress.percent}%</span>
+              </div>
+              <Progress value={catalogExportProgress.percent} className="h-2.5" />
+              <div className="flex items-center justify-between gap-3 text-xs text-muted-foreground">
+                <span>
+                  {catalogExportProgress.phase === "images"
+                    ? `${catalogExportProgress.completed} de ${catalogExportProgress.total} referencias procesadas`
+                    : catalogExportProgress.phase === "rendering"
+                      ? `${catalogExportProgress.completed} de ${catalogExportProgress.total} fichas generadas`
+                      : catalogExportProgress.phase === "complete"
+                        ? "Descarga iniciada correctamente"
+                        : "No cierres esta ventana mientras se prepara el archivo."}
+                </span>
+                <span className="shrink-0 tabular-nums">{catalogExportProgress.total} productos</span>
+              </div>
+            </div>
+          ) : null}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
