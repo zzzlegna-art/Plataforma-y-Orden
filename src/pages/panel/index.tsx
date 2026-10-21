@@ -197,10 +197,10 @@ const Panel = () => {
     }
     const percent = Math.round(((current - previous) / previous) * 100);
     if (percent > 0) {
-      return { label: t("dashboard.comparisonIncrease", { percent }), tone: "positive" as const };
+      return { label: `+${percent}% ${t("dashboard.comparisonPeriod")}`, tone: "positive" as const };
     }
     if (percent < 0) {
-      return { label: t("dashboard.comparisonDecrease", { percent: Math.abs(percent) }), tone: "negative" as const };
+      return { label: `−${Math.abs(percent)}% ${t("dashboard.comparisonPeriod")}`, tone: "negative" as const };
     }
     return { label: t("dashboard.comparisonNoChange"), tone: "neutral" as const };
   })();
