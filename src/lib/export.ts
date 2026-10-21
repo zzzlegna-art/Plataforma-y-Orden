@@ -1142,16 +1142,48 @@ const splitCatalogLines = (doc: jsPDF, text: string, width: number, maxLines: nu
   return visible;
 };
 
-/** Dibuja cada renglón por separado para evitar espaciado anómalo en textos multilínea. */
-const drawCatalogLines = (
-  doc: jsPDF,
-  lines: string[],
-  x: number,
-  y: number,
-  lineHeight: number,
-  align: "left" | "center" = "left",
-) => {
-  lines.forEach((line, index) => doc.text(line, x, y + index * lineHeight, { align }));
+/**
+ * Corrige texto que llegue con espacios insertados entre cada letra. Solo se activa cuando
+ * hay muchos tokens de una sola letra, para no tocar abreviaturas ni el texto normal.
+ */
+const normalizeCatalogText = (value: string): string => {
+  const normalized = value
+    .replace(/[\u200B-\u200D\uFEFF]/g, "")
+    .replace(/\u00A0/g, " ")
+    .trim();
+  const tokens = normalized.split(/\s+/).filter(Boolean);
+  const matchLetter = (token: string) =>
+    token.match(/^([A-Za-zÁÉÍÓÚÜÑáéíóúüñ])([.,:;!?)]*)$/);
+  const spacedLetterCount = tokens.filter((token) => matchLetter(token)).length;
+
+  if (spacedLetterCount < 8 || spacedLetterCount / Math.max(tokens.length, 1) < 0.4) {
+    return normalized;
+  }
+
+  const repaired: string[] = [];
+  for (let index = 0; index < tokens.length;) {
+    const run: { letter: string; suffix: string }[] = [];
+    let end = index;
+    while (end < tokens.length) {
+      const match = matchLetter(tokens[end]);
+      if (!match) break;
+      run.push({ letter: match[1], suffix: match[2] });
+      end += 1;
+    }
+    if (run.length >= 3) {
+      repaired.push(run.map((part) => part.letter).join("") + run[run.length - 1].suffix);
+      index = end;
+    } else {
+      repaired.push(tokens[index]);
+      index += 1;
+    }
+  }
+  return repaired.join(" ");
+};
+
+/** Dibuja cada renglón por separado y alineado a la izquierda para evitar justificación extraña. */
+const drawCatalogLines = (doc: jsPDF, lines: string[], x: number, y: number, lineHeight: number) => {
+  lines.forEach((line, index) => doc.text(normalizeCatalogText(line), x, y + index * lineHeight, { align: "left" }));
 };
 
 /**
@@ -1252,18 +1284,21 @@ export const exportProductCatalogPdf = async ({
   const layouts = products.map((product) => {
     doc.setFont("helvetica", "bold");
     doc.setFontSize(11.2);
-    const nameLines = splitCatalogLines(doc, product.name, textWidth, 2);
+    const nameLines = splitCatalogLines(doc, normalizeCatalogText(product.name), textWidth, 2);
 
     const metadata = [
-      `${labels.reference}: ${product.sku || "—"}`,
-      product.brand ? `${labels.brand}: ${product.brand}` : null,
-      product.category ? `${labels.category}: ${product.category}` : null,
+      `${labels.reference}: ${normalizeCatalogText(product.sku || "—")}`,
+      product.brand ? `${labels.brand}: ${normalizeCatalogText(product.brand)}` : null,
+      product.category ? `${labels.category}: ${normalizeCatalogText(product.category)}` : null,
     ].filter(Boolean).join(" · ");
     doc.setFont("helvetica", "normal");
     doc.setFontSize(7.6);
     const metadataLines = splitCatalogLines(doc, metadata, textWidth, 2);
 
-    const allFeatures = product.features ?? [];
+    const allFeatures = (product.features ?? []).map((feature) => ({
+      label: normalizeCatalogText(feature.label),
+      value: normalizeCatalogText(feature.value),
+    }));
     const visibleFeatures = allFeatures.slice(0, 10);
     doc.setFont("helvetica", "normal");
     doc.setFontSize(7.1);
@@ -1455,16 +1490,18 @@ export const exportProductCatalogExcel = async ({
 
   const featureTexts = products.map((product) =>
     product.features.length
-      ? product.features.map((feature) => feature.label + ": " + feature.value).join(" · ")
+      ? product.features
+          .map((feature) => `${normalizeCatalogText(feature.label)}: ${normalizeCatalogText(feature.value)}`)
+          .join(" · ")
       : labels.noFeatures,
   );
   const rows = products.map((product, index) => {
     const row: (string | number)[] = [
       imageDataUrls[index] ? "" : product.imageUrl ? labels.openImage : labels.imageUnavailable,
-      product.sku || "—",
-      product.name,
-      product.brand || "—",
-      product.category || "—",
+      normalizeCatalogText(product.sku || "—"),
+      normalizeCatalogText(product.name),
+      normalizeCatalogText(product.brand || "—"),
+      normalizeCatalogText(product.category || "—"),
       featureTexts[index],
     ];
     if (includePrice) row.push(product.price || "—");
@@ -1477,8 +1514,7 @@ export const exportProductCatalogExcel = async ({
     targets[0] = product.imageUrl || undefined;
     return targets;
   });
-  const rowHeights = products.map((product, index) => {
-    const features = featureTexts[index] || labels.noFeatures;
+  const rowHeights = featureTexts.map((features) => {
     const featureLines = Math.max(1, Math.ceil(features.length / 48));
     const extraRows = includePrice || includeStock ? 1 : 0;
     return Math.min(150, Math.max(68, 14 + (featureLines + extraRows) * 11));
