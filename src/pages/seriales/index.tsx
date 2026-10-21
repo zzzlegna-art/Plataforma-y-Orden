@@ -72,7 +72,7 @@ const rutaOperativaGarantia = (warranty: { id: string; status: string }) => {
 };
 
 /** Ficha y línea de tiempo de un serial/IMEI con acciones de mantenimiento. */
-const HistorialSerial = () => {
+const HistorialSerial = ({ embedded = false }: { embedded?: boolean }) => {
   const { t } = useTranslation();
   const { db } = useStore();
   const runAction = useRunAction();
@@ -113,7 +113,7 @@ const HistorialSerial = () => {
 
   return (
     <div className="space-y-5 stagger">
-      <PageHeader title={t("serialHistory.title")} description={t("serialHistory.subtitle")} />
+      {!embedded ? <PageHeader title={t("serialHistory.title")} description={t("serialHistory.subtitle")} /> : null}
 
       <section className="space-y-2 rounded-lg border bg-card p-4 shadow-sm">
         <SerialScanInput onScan={handleScan} />
