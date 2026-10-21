@@ -1,3 +1,4 @@
+import { normalizeCatalogText } from "./catalog-text";
 import type { ProductTechnicalSpecKey, ProductTechnicalSpecs } from "./types";
 
 export type DeviceCategory = "celular" | "tablet" | "reloj" | "audifono";
@@ -223,13 +224,13 @@ export const getProductTechnicalSpecsForCategory = (
   const normalized: ProductTechnicalSpecs = {};
   for (const field of fields) {
     const value = specs[field.key];
-    if (typeof value === "string" && value.trim()) normalized[field.key] = value.trim().slice(0, 120);
+    if (typeof value === "string" && value.trim()) normalized[field.key] = normalizeCatalogText(value).slice(0, 120);
   }
 
   // Conserva las cámaras del formato anterior hasta que se completen ambos campos nuevos.
   // Así editar un celular o una tablet existente no borra silenciosamente la ficha antigua.
   if (["celular", "tablet"].includes(normalizeCategory(category))) {
-    const legacyCameras = typeof specs.cameras === "string" ? specs.cameras.trim() : "";
+    const legacyCameras = typeof specs.cameras === "string" ? normalizeCatalogText(specs.cameras) : "";
     const hasRearCamera = Boolean(normalized.rearCamera);
     const hasFrontCamera = Boolean(normalized.frontCamera);
     if (legacyCameras && !(hasRearCamera && hasFrontCamera)) {
@@ -255,7 +256,7 @@ export const getProductTechnicalSpecsForCategory = (
     for (const key of legacyWatchKeys) {
       const value = specs[key];
       if (!normalized[key] && typeof value === "string" && value.trim()) {
-        normalized[key] = value.trim().slice(0, 120);
+        normalized[key] = normalizeCatalogText(value).slice(0, 120);
       }
     }
   }
@@ -287,8 +288,8 @@ export const getProductTechnicalSpecsForCategory = (
   const customFields = Array.isArray(specs.customFields)
     ? specs.customFields.flatMap((item, index) => {
         if (!item || typeof item.name !== "string" || typeof item.value !== "string") return [];
-        const name = item.name.trim().slice(0, 80);
-        const value = item.value.trim().slice(0, 120);
+        const name = normalizeCatalogText(item.name).slice(0, 80);
+        const value = normalizeCatalogText(item.value).slice(0, 120);
         if (!name || !value) return [];
         const id = typeof item.id === "string" && item.id.trim() ? item.id : `custom-${index}`;
         return [{ id, name, value }];
