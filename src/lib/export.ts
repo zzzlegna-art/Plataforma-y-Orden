@@ -1143,87 +1143,9 @@ export interface ProductCatalogExportOptions {
   onProgress?: (progress: CatalogExportProgress) => void;
 }
 
-/**
- * Recupera palabras cuyas letras llegaron separadas por espacios en las especificaciones.
- * La reconstrucción usa un vocabulario de términos habituales de electrónica en español e
- * inglés para conservar los límites entre palabras (p. ej. "Apple Pencil" y "solo en la versión").
- */
-const CATALOG_SPACED_WORDS = [
-  "almacenamiento", "adaptador", "angular", "Apple", "Bluetooth", "batería", "cámara",
-  "cámaras", "capacidad", "Cellular", "celular", "compatibilidad", "compatible", "cambiar",
-  "conectividad", "conector", "conexión", "conexiones", "con", "CPU", "devolución",
-  "de", "del", "desde", "diseño", "Dual", "eSIM", "en", "Engine", "estéreo", "frontal", "frecuencia",
-  "G", "generación", "GPU", "grabación", "gran", "hasta", "inalámbrica", "inalámbrico", "LTE",
-  "incluye", "iPad", "iPhone", "la", "las", "Lightning", "los", "más", "memoria",
-  "micrófono", "menos", "MP", "nano", "NFC", "Neural", "no", "núcleos", "o", "operativo", "puede", "RAM", "regional", "ROM", "SIM",
-  "pantalla", "para", "Pencil", "por", "procesador", "puerto", "rápida", "red",
-  "resistencia", "resolución", "sensor", "sin", "sistema", "solo", "soporta", "su",
-  "región", "según", "sus", "trasera", "ultra", "USB", "variante", "versión", "video", "Wi-Fi", "y", "a",
-].map((word) => ({
-  word,
-  key: word.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z]/g, ""),
-})).sort((a, b) => b.key.length - a.key.length);
-
-const CATALOG_SPACED_PHRASES: Record<string, string> = {
-  applepencil: "Apple Pencil",
-  usbc: "USB-C",
-  wifi: "Wi-Fi",
-  wifipluscellular: "Wi-Fi + Cellular",
-};
-
-const splitSpacedCatalogLetters = (value: string): string => {
-  // Los datos pegados desde otras fuentes pueden incluir separadores Unicode invisibles.
-  const compact = value.replace(/[\u200B\u200C\u200E\u200F\u2060\uFEFF]/g, "").replace(/\s+/g, "");
-  const key = compact.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z]/g, "");
-  if (!key) return value;
-  if (CATALOG_SPACED_PHRASES[key]) return CATALOG_SPACED_PHRASES[key];
-
-  const memo = new Map<number, string[] | null>();
-  const segment = (index: number): string[] | null => {
-    if (index === key.length) return [];
-    if (memo.has(index)) return memo.get(index) ?? null;
-
-    for (const candidate of CATALOG_SPACED_WORDS) {
-      if (!key.startsWith(candidate.key, index)) continue;
-      const rest = segment(index + candidate.key.length);
-      if (rest) {
-        const result = [candidate.word, ...rest];
-        memo.set(index, result);
-        return result;
-      }
-    }
-
-    memo.set(index, null);
-    return null;
-  };
-
-  const words = segment(0);
-  if (words) {
-    const result = words.join(" ");
-    return compact[0] && compact[0] === compact[0].toLocaleUpperCase() && compact[0] !== compact[0].toLocaleLowerCase()
-      ? result[0].toLocaleUpperCase() + result.slice(1)
-      : result;
-  }
-
-  // Último recurso: elimina el espaciado artificial sin alterar el resto del contenido.
-  return compact.replace(/([a-záéíóúüñ])([A-ZÁÉÍÓÚÜÑ])/g, "$1 $2");
-};
-
-export const normalizeCatalogText = (value: string): string =>
-  value
-    // Normaliza acentos y retira separadores invisibles que impiden reconocer letras espaciadas.
-    .normalize("NFC")
-    .replace(/[\u200B\u200C\u200E\u200F\u2060\uFEFF]/g, "")
-    .replace(/(^|[^A-Za-zÁÉÍÓÚÜÑáéíóúüñ0-9])((?:[A-Za-zÁÉÍÓÚÜÑáéíóúüñ]\s+){2,}[A-Za-zÁÉÍÓÚÜÑáéíóúüñ])(?=$|[^A-Za-zÁÉÍÓÚÜÑáéíóúüñ0-9])/g, (_match, prefix: string, spaced: string) => prefix + splitSpacedCatalogLetters(spaced))
-    .replace(/\b(\d+)\s+a(?=\s+generaci[oó]n\b)/gi, "$1a")
-    .replace(/(\d)\s*\.\s*(?=\d)/g, "$1.")
-    .replace(/(\d)\s+([A-Z])\b/g, "$1$2")
-    .replace(/\(\s+/g, "(")
-    .replace(/\s+\)/g, ")")
-    .replace(/\s+([,;:])/g, "$1")
-    .replace(/([,;:])(?=\S)/g, "$1 ")
-    .replace(/[ \t]{2,}/g, " ")
-    .trim();
+/** Normalizer is shared with product saving so legacy text is repaired at its source. */
+export { normalizeCatalogText } from "./catalog-text";
+import { normalizeCatalogText } from "./catalog-text";
 
 /** Ajusta texto al ancho y limita las líneas, conservando una elipsis legible. */
 const splitCatalogLines = (doc: jsPDF, text: string, width: number, maxLines: number): string[] => {
