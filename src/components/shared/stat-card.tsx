@@ -48,7 +48,6 @@ export const StatCard = ({
   trend?: string;
   trendTone?: TrendTone;
 }) => (
-  
   <div
     className={cn(
       "group relative overflow-hidden nx-stat-card rounded-2xl border border-border/60 bg-card p-5 shadow-[0_18px_45px_-25px_rgba(15,23,42,.20)] transition hover:-translate-y-1",
