@@ -30,7 +30,7 @@ const normalizeCatalogCharacters = (value: string): string =>
   value
     .normalize("NFC")
     // Retira caracteres invisibles de formato y unifica espacios Unicode que llegan al pegar datos.
-    .replace(/[\u00AD\u034F\u061C\u180E\u200B\u200C\u200E\u200F\u202A-\u202E\u2060-\u206F\uFEFF]/g, "")
+    .replace(/[\u00AD\u061C\u180E\u200B\u200C\u200E\u200F\u202A-\u202E\u2060-\u206F\uFEFF]/g, "")
     .replace(/[\u00A0\u1680\u2000-\u200A\u2028\u2029\u202F\u205F\u3000]/g, " ");
 
 const splitSpacedCatalogLetters = (value: string): string => {
