@@ -113,6 +113,22 @@ describe("getProductTechnicalSpecsForCategory", () => {
     });
   });
 
+  it("repara letras separadas en las características al guardar una referencia", () => {
+    expect(
+      getProductTechnicalSpecsForCategory("celular", {
+        connectivity: "C o n e c t i v i d a d: 5 G, W i F i 6, B l u e t o o t h 5 . 0, N F C, L i g h t n i n g",
+        compatibility: "D u a l S I M: n a n o S I M + e S I M, s e g ú n r e g i ó n",
+        customFields: [
+          { id: "1", name: "C o n e c t i v i d a d", value: "W i F i 6, B l u e t o o t h 5 . 0" },
+        ],
+      }),
+    ).toEqual({
+      connectivity: "Conectividad: 5G, Wi-Fi 6, Bluetooth 5.0, NFC, Lightning",
+      compatibility: "Dual SIM: nano SIM + eSIM, según región",
+      customFields: [{ id: "1", name: "Conectividad", value: "Wi-Fi 6, Bluetooth 5.0" }],
+    });
+  });
+
   it("conserva características históricas de relojes aunque ya no aparezcan en el formulario", () => {
     expect(
       getProductTechnicalSpecsForCategory("reloj", {
