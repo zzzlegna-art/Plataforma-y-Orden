@@ -103,7 +103,7 @@ describe("reporte operativo en Excel", () => {
       "Garantías",
     ]);
 
-    const resumen = new Map(sheets[0].rows.map(([label, value]) => [label, value]));
+    const resumen = new Map(sheets[0].rows.map(([label, value]) => [String(label), value] as const));
     expect(resumen.get("Movimientos registrados")).toBe(1);
     expect(resumen.get("Entradas (unidades)")).toBe(2);
     expect(resumen.get("Salidas (unidades)")).toBe(0);
