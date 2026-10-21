@@ -7,9 +7,6 @@ import {
   Settings,
   Boxes,
   ShieldCheck,
-  History,
-  Unlock,
-  Archive,
   type LucideIcon,
 } from "lucide-react";
 
@@ -47,27 +44,9 @@ export const NAV_ITEMS: NavItem[] = [
     primary: true,
   },
   {
-    to: "/unidades",
+    to: "/seriales",
     labelKey: "nav.units",
     icon: ScanLine,
-    permission: "inventory.view",
-  },
-  {
-    to: "/seriales",
-    labelKey: "nav.serialHistory",
-    icon: History,
-    permission: "inventory.view",
-  },
-  {
-    to: "/liberar",
-    labelKey: "nav.liberarSerials",
-    icon: Unlock,
-    permission: "users.manage",
-  },
-  {
-    to: "/seriales-previos",
-    labelKey: "nav.serialesPrevios",
-    icon: Archive,
     permission: "inventory.view",
   },
   {
