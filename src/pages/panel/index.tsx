@@ -187,6 +187,23 @@ const Panel = () => {
   const { db } = useStore();
   const { can } = usePermissions();
   const data = useMemo(() => getDashboard(db), [db]);
+  const receivedTrend = (() => {
+    const current = data.kpis.receivedThisMonth;
+    const previous = data.kpis.receivedPreviousComparablePeriod;
+    if (previous === 0) {
+      return current > 0
+        ? { label: t("dashboard.comparisonNew"), tone: "positive" as const }
+        : { label: t("dashboard.comparisonNoChange"), tone: "neutral" as const };
+    }
+    const percent = Math.round(((current - previous) / previous) * 100);
+    if (percent > 0) {
+      return { label: t("dashboard.comparisonIncrease", { percent }), tone: "positive" as const };
+    }
+    if (percent < 0) {
+      return { label: t("dashboard.comparisonDecrease", { percent: Math.abs(percent) }), tone: "negative" as const };
+    }
+    return { label: t("dashboard.comparisonNoChange"), tone: "neutral" as const };
+  })();
   // Condición que se muestra en la tarjeta de alertas de stock bajo.
   const [condicionAlerta, setCondicionAlerta] = useState<UnitCondition>("nuevo");
   const [stockDialogOpen, setStockDialogOpen] = useState(false);
@@ -382,7 +399,7 @@ const Panel = () => {
       <section className="nx-kpi-section">
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <StatCard label={t("dashboard.available")} value={<AnimatedNumber value={data.kpis.available} formatter={formatNumber} />} hint={t("dashboard.availableHint")} icon={Boxes} tone="success" />
-          <StatCard label={t("dashboard.receivedThisMonth")} value={<AnimatedNumber value={data.kpis.receivedThisMonth} formatter={formatNumber} />} hint={t("dashboard.receivedHint")} icon={PackagePlus} tone="info" />
+          <StatCard label={t("dashboard.receivedThisMonth")} value={<AnimatedNumber value={data.kpis.receivedThisMonth} formatter={formatNumber} />} hint={t("dashboard.receivedHint")} icon={PackagePlus} tone="info" trend={receivedTrend.label} trendTone={receivedTrend.tone} />
           <button
             type="button"
             onClick={() => setStockDialogOpen(true)}
