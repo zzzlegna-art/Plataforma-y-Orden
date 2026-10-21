@@ -1130,6 +1130,13 @@ export interface ProductCatalogExportOptions {
   labels: ProductCatalogLabels;
 }
 
+/** Corrige texto con espacios insertados entre letras en características importadas. */
+const normalizeCatalogText = (value: string): string =>
+  value
+    .replace(/(?:\b[A-Za-zÁÉÍÓÚÜÑáéíóúüñ]\s+){2,}[A-Za-zÁÉÍÓÚÜÑáéíóúüñ]\b/g, (word) => word.replace(/\s+/g, ""))
+    .replace(/[ \t]{2,}/g, " ")
+    .trim();
+
 /** Ajusta texto al ancho y limita las líneas, conservando una elipsis legible. */
 const splitCatalogLines = (doc: jsPDF, text: string, width: number, maxLines: number): string[] => {
   const lines = doc.splitTextToSize(text, width) as string[];
@@ -1229,8 +1236,8 @@ export const exportProductCatalogPdf = async ({
   const margin = 24;
   const cardWidth = pageW - margin * 2;
   const gap = 9;
-  const imageBoxSize = 92;
-  const imageSize = 84;
+  const imageBoxSize = 76;
+  const imageSize = 68;
   const imageX = margin + 10;
   const imageYInset = 11;
   const textX = imageX + imageBoxSize + 13;
@@ -1243,28 +1250,23 @@ export const exportProductCatalogPdf = async ({
   const layouts = products.map((product) => {
     doc.setFont("helvetica", "bold");
     doc.setFontSize(11.2);
-    const nameLines = splitCatalogLines(doc, product.name, textWidth, 2);
+    const nameLines = splitCatalogLines(doc, normalizeCatalogText(product.name), textWidth, 2);
 
     const metadata = [
-      `${labels.reference}: ${product.sku || "—"}`,
-      product.brand ? `${labels.brand}: ${product.brand}` : null,
-      product.category ? `${labels.category}: ${product.category}` : null,
+      `${labels.reference}: ${normalizeCatalogText(product.sku || "—")}`,
+      product.brand ? `${labels.brand}: ${normalizeCatalogText(product.brand)}` : null,
+      product.category ? `${labels.category}: ${normalizeCatalogText(product.category)}` : null,
     ].filter(Boolean).join(" · ");
     doc.setFont("helvetica", "normal");
     doc.setFontSize(7.6);
     const metadataLines = splitCatalogLines(doc, metadata, textWidth, 2);
 
-    const description = product.description?.trim() || labels.noDescription;
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(7.5);
-    const descriptionLines = splitCatalogLines(doc, description, textWidth, 3);
-
     const allFeatures = product.features ?? [];
     const visibleFeatures = allFeatures.slice(0, 10);
     doc.setFont("helvetica", "normal");
-    doc.setFontSize(7.1);
+    doc.setFontSize(7.2);
     const featureLines = visibleFeatures.map((feature) =>
-      splitCatalogLines(doc, `• ${feature.label}: ${feature.value}`, textWidth, 2),
+      splitCatalogLines(doc, `• ${normalizeCatalogText(feature.label)}: ${normalizeCatalogText(feature.value)}`, textWidth, 2),
     );
     const noFeaturesLines = splitCatalogLines(doc, labels.noFeatures, textWidth, 2);
     const omittedFeatures = Math.max(0, allFeatures.length - visibleFeatures.length);
@@ -1272,8 +1274,7 @@ export const exportProductCatalogPdf = async ({
     const textHeight =
       nameLines.length * 12.5 + 3 +
       metadataLines.length * 8.5 + 4 +
-      9.2 + descriptionLines.length * 8.5 + 3 +
-      9.2 +
+      7 +
       (visibleFeatures.length > 0
         ? featureLines.reduce((sum, lines) => sum + lines.length * 8.2 + 1, 0)
         : noFeaturesLines.length * 8.2) +
@@ -1286,7 +1287,6 @@ export const exportProductCatalogPdf = async ({
       cardHeight,
       nameLines,
       metadataLines,
-      descriptionLines,
       visibleFeatures,
       featureLines,
       noFeaturesLines,
@@ -1309,7 +1309,6 @@ export const exportProductCatalogPdf = async ({
       cardHeight,
       nameLines,
       metadataLines,
-      descriptionLines,
       visibleFeatures,
       featureLines,
       noFeaturesLines,
@@ -1359,19 +1358,7 @@ export const exportProductCatalogPdf = async ({
     doc.setFontSize(7.6);
     doc.setTextColor(MUTED[0], MUTED[1], MUTED[2]);
     doc.text(metadataLines, textX, cursorY);
-    cursorY += metadataLines.length * 8.5 + 4;
-
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(8.2);
-    doc.setTextColor(CYAN_DARK[0], CYAN_DARK[1], CYAN_DARK[2]);
-    doc.text(labels.description, textX, cursorY);
-    cursorY += 9.2;
-
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(7.5);
-    doc.setTextColor(TEXT[0], TEXT[1], TEXT[2]);
-    doc.text(descriptionLines, textX, cursorY);
-    cursorY += descriptionLines.length * 8.5 + 3;
+    cursorY += metadataLines.length * 8.5 + 2;
 
     doc.setFont("helvetica", "bold");
     doc.setFontSize(8.2);
@@ -1390,7 +1377,7 @@ export const exportProductCatalogPdf = async ({
       visibleFeatures.forEach((feature, index) => {
         const lines = featureLines[index] ?? [];
         doc.text(lines, textX, cursorY);
-        cursorY += lines.length * 8.2 + 1;
+        cursorY += lines.length * 7.8 + 0.5;
       });
     }
 
@@ -1459,7 +1446,6 @@ export const exportProductCatalogExcel = async ({
     labels.product,
     labels.brand,
     labels.category,
-    labels.description,
     labels.features,
   ];
   if (includePrice) columns.push(labels.price);
@@ -1467,17 +1453,16 @@ export const exportProductCatalogExcel = async ({
 
   const featureTexts = products.map((product) =>
     product.features.length
-      ? product.features.map((feature) => feature.label + ": " + feature.value).join(" · ")
+      ? product.features.map((feature) => normalizeCatalogText(feature.label) + ": " + normalizeCatalogText(feature.value)).join(" · ")
       : labels.noFeatures,
   );
   const rows = products.map((product, index) => {
     const row: (string | number)[] = [
       imageDataUrls[index] ? "" : product.imageUrl ? labels.openImage : labels.imageUnavailable,
-      product.sku || "—",
-      product.name,
-      product.brand || "—",
-      product.category || "—",
-      product.description?.trim() || labels.noDescription,
+      normalizeCatalogText(product.sku || "—"),
+      normalizeCatalogText(product.name),
+      normalizeCatalogText(product.brand || "—"),
+      normalizeCatalogText(product.category || "—"),
       featureTexts[index],
     ];
     if (includePrice) row.push(product.price || "—");
@@ -1490,16 +1475,14 @@ export const exportProductCatalogExcel = async ({
     targets[0] = product.imageUrl || undefined;
     return targets;
   });
-  const rowHeights = products.map((product, index) => {
-    const description = product.description?.trim() || labels.noDescription;
+  const rowHeights = products.map((_, index) => {
     const features = featureTexts[index] || labels.noFeatures;
-    const descriptionLines = Math.max(1, Math.ceil(description.length / 38));
     const featureLines = Math.max(1, Math.ceil(features.length / 48));
     const extraRows = includePrice || includeStock ? 1 : 0;
-    return Math.min(180, Math.max(68, 14 + (descriptionLines + featureLines + extraRows) * 11));
+    return Math.min(160, Math.max(62, 14 + (featureLines + extraRows) * 11));
   });
 
-  const columnWidths = [16, 15, 28, 16, 18, 34, 42];
+  const columnWidths = [16, 15, 28, 16, 18, 42];
   if (includePrice) columnWidths.push(15);
   if (includeStock) columnWidths.push(10);
 
@@ -1512,7 +1495,7 @@ export const exportProductCatalogExcel = async ({
         subtitle,
         columns,
         rows,
-        wrapColumns: [5, 6],
+        wrapColumns: [5],
         hyperlinkTargets,
         columnWidths,
         imageColumn: 0,
