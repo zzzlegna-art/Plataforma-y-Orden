@@ -1183,7 +1183,9 @@ const normalizeCatalogText = (value: string): string => {
 
 /** Dibuja cada renglón por separado y alineado a la izquierda para evitar justificación extraña. */
 const drawCatalogLines = (doc: jsPDF, lines: string[], x: number, y: number, lineHeight: number) => {
-  lines.forEach((line, index) => doc.text(normalizeCatalogText(line), x, y + index * lineHeight, { align: "left" }));
+  lines.forEach((line, index) => {
+    doc.text(normalizeCatalogText(line), x, y + index * lineHeight, { align: "left" });
+  });
 };
 
 /**
@@ -1302,6 +1304,7 @@ export const exportProductCatalogPdf = async ({
     const visibleFeatures = allFeatures.slice(0, 10);
     doc.setFont("helvetica", "normal");
     doc.setFontSize(7.1);
+    doc.setFontSize(7.2);
     const featureLines = visibleFeatures.map((feature) =>
       splitCatalogLines(doc, `• ${feature.label}: ${feature.value}`, textWidth, 2),
     );
