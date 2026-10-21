@@ -359,7 +359,7 @@ const Panel = () => {
             </select>
             <span className="text-xs text-muted-foreground">{filasStockVisibles.length} resultados</span>
           </div>
-          <div className="max-h-[54dvh] overflow-auto px-5 py-4 sm:px-6">
+          <div className="max-h-[54dvh] overflow-auto -mr-5 px-5 py-4 pr-5 sm:-mr-6 sm:px-6 sm:pr-6">
             {filasStockVisibles.length === 0 ? (
               <div className="rounded-xl border border-dashed px-4 py-10 text-center">
                 <ShieldCheck className="mx-auto mb-2 h-8 w-8 text-emerald-600" />
