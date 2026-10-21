@@ -3134,3 +3134,37 @@ html { font-size: 18px; }
   width: 0;
   height: 0;
 }
+
+/* Final alignment: move the customer form scrollbar toward the dialog edge. */
+.nx-customer-dialog > .overflow-y-auto {
+  margin-right: -1rem;
+  padding-right: calc(1rem + .35rem);
+  scrollbar-width: thin;
+  scrollbar-color: hsl(var(--muted-foreground) / .38) transparent;
+  scrollbar-gutter: auto;
+}
+.nx-customer-dialog > .overflow-y-auto::-webkit-scrollbar {
+  width: 5px !important;
+  height: 5px !important;
+}
+.nx-customer-dialog > .overflow-y-auto::-webkit-scrollbar-track {
+  background: transparent !important;
+  border: 0 !important;
+  margin-block: 5px !important;
+}
+.nx-customer-dialog > .overflow-y-auto::-webkit-scrollbar-thumb {
+  background-color: hsl(var(--muted-foreground) / .38) !important;
+  border: 0 !important;
+  border-radius: 999px !important;
+}
+.nx-customer-dialog > .overflow-y-auto::-webkit-scrollbar-thumb:hover {
+  background-color: hsl(var(--muted-foreground) / .62) !important;
+}
+.nx-customer-dialog > .overflow-y-auto::-webkit-scrollbar-button,
+.nx-customer-dialog > .overflow-y-auto::-webkit-scrollbar-button:single-button,
+.nx-customer-dialog > .overflow-y-auto::-webkit-scrollbar-corner {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  background: transparent !important;
+}
