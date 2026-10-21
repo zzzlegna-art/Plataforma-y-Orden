@@ -296,13 +296,13 @@ const Panel = () => {
         key: date.toISOString().slice(0, 10),
         day: new Intl.DateTimeFormat("es", { weekday: "short", timeZone: "UTC" })
           .format(date)
-          .replace(/\\.$/, ""),
+          .replace(/\.$/, ""),
         entradas: 0,
         salidas: 0,
         devoluciones: 0,
       };
     });
-    const byDate = new Map(days.map((day) => [day.key, day]));
+    const byDate = new Map(days.map((day) => [day.key, day] as const));
     for (const movement of db.movements) {
       const day = byDate.get(movement.createdAt.slice(0, 10));
       if (!day) continue;
