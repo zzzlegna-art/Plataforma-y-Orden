@@ -71,9 +71,13 @@ describe("parseSerialWorkbook", () => {
     for (let i = 1; i <= 20_001; i += 1) rows.push([`SP-${String(i).padStart(5, "0")}`]);
     XLSX.utils.book_append_sheet(book, XLSX.utils.aoa_to_sheet(rows), "Datos");
 
-    expect(() => parseSerialWorkbook(bytes(book))).toThrowError(
-      expect.objectContaining({ code: "too_many" }),
-    );
+    let thrown: unknown;
+    try {
+      parseSerialWorkbook(bytes(book));
+    } catch (error) {
+      thrown = error;
+    }
+    expect(thrown).toMatchObject({ code: "too_many" });
   });
 
   it("rechaza celdas numéricas que podrían haber perdido precisión", () => {
