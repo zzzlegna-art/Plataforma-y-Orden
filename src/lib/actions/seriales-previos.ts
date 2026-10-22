@@ -37,6 +37,7 @@ export const importarSerialesPrevios = (
       duplicados += 1;
       return;
     }
+    vistos.add(clave);
     const item: SerialPrevio = {
       id: createId(),
       serial,
