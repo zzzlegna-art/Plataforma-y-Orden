@@ -1,4 +1,5 @@
 import type { ExcelSheet } from "@/lib/export";
+import { isWithinDateRange } from "./dashboard-date-range";
 import type {
   Db,
   MovementReference,
@@ -62,12 +63,6 @@ const fechaLegible = (value?: string | null): string => {
   return hour ? `${day}/${month}/${year} ${hour}:${minute}` : `${day}/${month}/${year}`;
 };
 
-const enRango = (value: string | undefined, desde: string, hasta: string): boolean => {
-  if (!value) return false;
-  const day = value.slice(0, 10);
-  return (!desde || day >= desde) && (!hasta || day <= hasta);
-};
-
 const textoRango = (desde: string, hasta: string): string =>
   `${desde ? fechaLegible(desde) : "Inicio"} — ${hasta ? fechaLegible(hasta) : "Hoy"}`;
 
@@ -81,7 +76,7 @@ export const buildOperationalReportSheets = (
   hasta: string,
   generadoEn: Date = new Date(),
 ): ExcelSheet[] => {
-  const dentro = (value: string | undefined) => enRango(value, desde, hasta);
+  const dentro = (value: string | undefined) => isWithinDateRange(value, desde, hasta);
   const moneda = db.settings.currency || "COP";
   const periodo = textoRango(desde, hasta);
   const generado = new Intl.DateTimeFormat("es-CO", {
