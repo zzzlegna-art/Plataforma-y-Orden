@@ -1,0 +1,107 @@
+import { describe, expect, it } from "vitest";
+
+import { DomainError, emptyDb } from "../db";
+import type { Actor, Db, User } from "../types";
+import { updateUser } from "./users";
+
+const adminActor: Actor = {
+  id: "admin-1",
+  email: "admin@example.com",
+  fullName: "Administradora",
+  role: "admin",
+};
+
+const makeUser = (overrides: Partial<User> = {}): User => ({
+  id: "admin-1",
+  email: "admin@example.com",
+  fullName: "Administradora",
+  role: "admin",
+  isActive: true,
+  createdAt: "2026-01-01T00:00:00.000Z",
+  ...overrides,
+});
+
+const makeDb = (...users: User[]): Db => {
+  const db = emptyDb();
+  db.users = users;
+  return db;
+};
+
+const domainErrorKey = (run: () => unknown) => {
+  try {
+    run();
+  } catch (error) {
+    expect(error).toBeInstanceOf(DomainError);
+    return (error as DomainError).key;
+  }
+  return undefined;
+};
+
+const otroAdmin: Actor = {
+  id: "admin-2",
+  email: "admin2@example.com",
+  fullName: "Segundo administrador",
+  role: "admin",
+};
+
+describe("gestión de cuentas del personal", () => {
+  it("impide que un administrador modifique su propia cuenta", () => {
+    const db = makeDb(makeUser());
+
+    expect(domainErrorKey(() => updateUser(db, adminActor, {
+      id: adminActor.id,
+      isActive: false,
+    }))).toBe("errors.cannotEditSelf");
+  });
+
+  it("impide degradar al último administrador activo", () => {
+    const db = makeDb(makeUser());
+
+    expect(domainErrorKey(() => updateUser(db, otroAdmin, {
+      id: "admin-1",
+      role: "bodeguero",
+    }))).toBe("errors.lastAdmin");
+  });
+
+  it("impide desactivar al último administrador activo", () => {
+    const db = makeDb(makeUser());
+
+    expect(domainErrorKey(() => updateUser(db, otroAdmin, {
+      id: "admin-1",
+      isActive: false,
+    }))).toBe("errors.lastAdmin");
+  });
+
+  it("deniega cambios de cuentas a un trabajador", () => {
+    const worker: Actor = {
+      id: "worker-1",
+      email: "worker@example.com",
+      fullName: "Trabajador",
+      role: "bodeguero",
+    };
+    const db = makeDb(makeUser());
+
+    expect(domainErrorKey(() => updateUser(db, worker, {
+      id: "admin-1",
+      role: "bodeguero",
+    }))).toBe("errors.forbidden");
+  });
+
+  it("permite desactivar un administrador si queda otro activo y registra auditoría", () => {
+    const db = makeDb(
+      makeUser({ id: "admin-1" }),
+      makeUser({ id: "admin-2", email: "admin2@example.com" }),
+    );
+
+    const updated = updateUser(db, otroAdmin, { id: "admin-1", isActive: false });
+
+    expect(updated.isActive).toBe(false);
+    expect(db.users.filter((user) => user.role === "admin" && user.isActive)).toHaveLength(1);
+    expect(db.auditLogs[0]).toMatchObject({
+      userId: otroAdmin.id,
+      entity: "user",
+      entityId: "admin-1",
+      action: "update",
+    });
+  });
+});
