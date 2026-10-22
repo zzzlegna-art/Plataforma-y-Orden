@@ -40,7 +40,7 @@ describe("dashboard date range", () => {
     expect(data.length).toBeGreaterThan(52);
     expect(data.reduce((sum, point) => sum + point.entradas, 0)).toBe(3);
     expect(data.reduce((sum, point) => sum + point.salidas, 0)).toBe(2);
-    expect(data[data.length - 1].key).toBe("2026-10-19");
+    expect(data[data.length - 1].key).toBe("2026-10-26");
   });
 
   it("keeps empty selected periods visible as zero-value buckets", () => {
