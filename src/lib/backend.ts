@@ -848,7 +848,6 @@ export const pushDb = async (previo: Db, siguiente: Db): Promise<void> => {
 export type ResultadoImportacionSerialesPreviosLote = {
   importados: number;
   duplicados: number;
-  seriales: SerialPrevio[];
   auditoria?: AuditLog;
 };
 
@@ -892,20 +891,13 @@ export const importarSerialesPreviosEnLote = async (
   const respuesta = data as Fila;
   const importados = numero(respuesta.importados);
   const duplicados = numero(respuesta.duplicados);
-  const filas = lista<Fila>(respuesta.seriales);
-  const importadosMapeados: SerialPrevio[] = filas.map((fila) => ({
-    id: String(fila.id ?? ""),
-    serial: texto(fila.serial) ?? "",
-    notas: texto(fila.notas) ?? undefined,
-    createdBy: texto(fila.createdBy) ?? "",
-    createdAt: fecha(fila.createdAt),
-  }));
 
-  // No confirmar el éxito ni actualizar la interfaz con un resultado incompleto.
+  // El servidor devuelve solo el resumen: la pantalla se resincroniza después,
+  // sin transferir otra vez las 20.000 filas en la respuesta del RPC.
   if (
-    importados !== importadosMapeados.length ||
     importados < 0 ||
-    duplicados < 0
+    duplicados < 0 ||
+    importados + duplicados !== seriales.length
   ) {
     throw new DomainError("errors.saveFailed");
   }
@@ -928,7 +920,6 @@ export const importarSerialesPreviosEnLote = async (
   return {
     importados,
     duplicados,
-    seriales: importadosMapeados,
     auditoria,
   };
 };
