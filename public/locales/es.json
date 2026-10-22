@@ -69,6 +69,8 @@
   "dashboard.availableHint": "Listas para vender",
   "dashboard.receivedThisMonth": "Recibidas este mes",
   "dashboard.receivedHint": "Entradas registradas en el mes",
+  "dashboard.comparisonPeriod": "vs. mismo periodo anterior",
+  "dashboard.comparisonNew": "Nuevo",
   "dashboard.lowStock": "Productos con stock bajo",
   "dashboard.lowStockHint": "Celulares con menos de 10 disponibles",
   "dashboard.lowStockSubtitle": "Celulares con menos de {{count}} unidades disponibles",
