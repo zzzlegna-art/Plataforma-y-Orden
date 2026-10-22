@@ -55,6 +55,11 @@ const SerialesPrevios = ({ embedded = false }: { embedded?: boolean }) => {
         return true;
       });
   }, [filasExcel, columnaExcel, encabezadoExcel]);
+  const cantidadEnColumna = useMemo(() => {
+    const filas = encabezadoExcel ? filasExcel.slice(1) : filasExcel;
+    return filas.filter((fila) => String(fila[columnaExcel] ?? "").trim()).length;
+  }, [filasExcel, columnaExcel, encabezadoExcel]);
+
   const duplicadosEnArchivo = useMemo(() => {
     const filas = encabezadoExcel ? filasExcel.slice(1) : filasExcel;
     let duplicados = 0;
@@ -76,7 +81,7 @@ const SerialesPrevios = ({ embedded = false }: { embedded?: boolean }) => {
     setFilasExcel([]);
     try {
       const bytes = await file.arrayBuffer();
-      const workbook = XLSX.read(bytes, { type: "array", raw: false });
+      const workbook = XLSX.read(bytes, { type: "array" });
       const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
       if (!firstSheet) throw new Error("El archivo no contiene hojas para leer.");
       const rawRows = XLSX.utils.sheet_to_json<unknown[]>(firstSheet, {
@@ -151,7 +156,7 @@ const SerialesPrevios = ({ embedded = false }: { embedded?: boolean }) => {
   };
 
   const importarExcel = async () => {
-    if (serialesExcel.length === 0 || serialesExcel.length > MAX_SERIALS_EXCEL) return;
+    if (serialesExcel.length === 0 || cantidadEnColumna > MAX_SERIALS_EXCEL) return;
     setErrorExcel("");
     await importarEnLotes(serialesExcel, duplicadosEnArchivo);
   };
@@ -273,6 +278,11 @@ const SerialesPrevios = ({ embedded = false }: { embedded?: boolean }) => {
                       ))}
                     </select>
                   </div>
+                  {cantidadEnColumna > MAX_SERIALS_EXCEL ? (
+                    <p role="alert" className="rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">
+                      La columna seleccionada contiene {cantidadEnColumna.toLocaleString("es-CO")} filas con seriales. El máximo por archivo es 20.000.
+                    </p>
+                  ) : null}
                   <div className="grid gap-2 sm:grid-cols-3">
                     <div className="rounded-md bg-muted/50 p-3">
                       <p className="text-xs text-muted-foreground">Seriales únicos para importar</p>
@@ -298,7 +308,7 @@ const SerialesPrevios = ({ embedded = false }: { embedded?: boolean }) => {
                   <Button
                     type="button"
                     loading={runAction.pending}
-                    disabled={!serialesExcel.length || serialesExcel.length > MAX_SERIALS_EXCEL}
+                    disabled={!serialesExcel.length || cantidadEnColumna > MAX_SERIALS_EXCEL}
                     onClick={() => void importarExcel()}
                   >
                     <Upload />
