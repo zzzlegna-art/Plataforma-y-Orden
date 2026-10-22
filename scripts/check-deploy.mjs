@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 
-const requiredFiles = ['package.json','pnpm-lock.yaml','vite.config.ts','vercel.json','index.html','src/integrations/supabase/client.ts'];
+const requiredFiles = ['package.json','pnpm-lock.yaml','vite.config.ts','vercel.json','index.html','src/integrations/supabase/client.ts','public/manifest.webmanifest','public/sw.js'];
 const errors = requiredFiles.filter(file => !fs.existsSync(file)).map(file => `Archivo ausente: ${file}`);
 const pkg = JSON.parse(fs.readFileSync('package.json','utf8'));
 const vercel = JSON.parse(fs.readFileSync('vercel.json','utf8'));
