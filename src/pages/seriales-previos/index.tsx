@@ -92,7 +92,7 @@ const SerialesPrevios = ({ embedded = false }: { embedded?: boolean }) => {
       });
       const rows = rawRows.map((row) => row.map((cell) => String(cell ?? "").trim()));
       if (rows.length === 0) throw new Error("La primera hoja está vacía.");
-      const encabezados = rows[0].map((cell) => cell.toLocaleLowerCase().normalize("NFD").replace(/[\\u0300-\\u036f]/g, ""));
+      const encabezados = rows[0].map((cell) => cell.toLocaleLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, ""));
       const indexEncabezado = encabezados.findIndex((cell) =>
         /^(serial(es)?|imei|imeis|sn|serial number|device serial)$/.test(cell) ||
         /serial|imei|numero de serie/.test(cell),
