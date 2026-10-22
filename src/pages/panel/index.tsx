@@ -120,7 +120,7 @@ const RankChart = ({
             tickFormatter={(key: string) => data.find((row) => row.key === key)?.short ?? ""}
             tickLine={false}
             axisLine={false}
-            interval={0}
+            interval="preserveStartEnd"
             tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
           />
           <YAxis hide />
