@@ -81,7 +81,7 @@ const ProductoDetalle = () => {
   return (
     <div className="space-y-5 animate-fade-in">
       <Button variant="ghost" size="sm" asChild className="-ml-2 w-fit">
-        <Link to="/inventario">
+        <Link to={rutaInventario}>
           <ArrowLeft />
           {t("product.backToCatalog")}
         </Link>
