@@ -5,7 +5,6 @@
 
 import { createId, DomainError, logAudit, nowIso } from "../db";
 import type { Actor, Db, SerialPrevio } from "../types";
-import { isSameText, requireText } from "./guards";
 
 const requireAdmin = (actor: Actor) => {
   if (actor.role !== "admin") throw new DomainError("errors.forbidden");
