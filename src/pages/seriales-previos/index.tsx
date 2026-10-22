@@ -1,6 +1,7 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Archive, CheckCircle2, Trash2, Upload, XCircle } from "lucide-react";
+import { Archive, CheckCircle2, FileSpreadsheet, Trash2, Upload, XCircle } from "lucide-react";
+import * as XLSX from "xlsx-js-style";
 
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { EmptyState } from "@/components/shared/empty-state";
@@ -30,7 +31,106 @@ const SerialesPrevios = ({ embedded = false }: { embedded?: boolean }) => {
   const [buscado, setBuscado] = useState<string | null>(null);
   const [textoImportar, setTextoImportar] = useState("");
   const [resultadoImport, setResultadoImport] = useState<{ importados: number; duplicados: number } | null>(null);
+  const [filasExcel, setFilasExcel] = useState<string[][]>([]);
+  const [columnaExcel, setColumnaExcel] = useState(0);
+  const [encabezadoExcel, setEncabezadoExcel] = useState(false);
+  const [archivoExcel, setArchivoExcel] = useState("");
+  const [errorExcel, setErrorExcel] = useState("");
+  const inputExcelRef = useRef<HTMLInputElement>(null);
   const [busquedaLista, setBusquedaLista] = useState("");
+
+  const MAX_SERIALS_EXCEL = 20_000;
+  const BATCH_SIZE = 500;
+  const normalizarClave = (serial: string) => serial.trim().toLocaleLowerCase();
+  const serialesExcel = useMemo(() => {
+    const filas = encabezadoExcel ? filasExcel.slice(1) : filasExcel;
+    const vistos = new Set<string>();
+    return filas
+      .map((fila) => String(fila[columnaExcel] ?? "").trim())
+      .filter(Boolean)
+      .filter((serial) => {
+        const clave = normalizarClave(serial);
+        if (vistos.has(clave)) return false;
+        vistos.add(clave);
+        return true;
+      });
+  }, [filasExcel, columnaExcel, encabezadoExcel]);
+  const duplicadosEnArchivo = useMemo(() => {
+    const filas = encabezadoExcel ? filasExcel.slice(1) : filasExcel;
+    let duplicados = 0;
+    const vistos = new Set<string>();
+    filas.forEach((fila) => {
+      const serial = String(fila[columnaExcel] ?? "").trim();
+      if (!serial) return;
+      const clave = normalizarClave(serial);
+      if (vistos.has(clave)) duplicados += 1;
+      else vistos.add(clave);
+    });
+    return duplicados;
+  }, [filasExcel, columnaExcel, encabezadoExcel]);
+
+  const leerExcel = async (file: File) => {
+    setErrorExcel("");
+    setResultadoImport(null);
+    setArchivoExcel(file.name);
+    setFilasExcel([]);
+    try {
+      const bytes = await file.arrayBuffer();
+      const workbook = XLSX.read(bytes, { type: "array", raw: false });
+      const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+      if (!firstSheet) throw new Error("El archivo no contiene hojas para leer.");
+      const rawRows = XLSX.utils.sheet_to_json<unknown[]>(firstSheet, {
+        header: 1,
+        raw: false,
+        defval: "",
+        blankrows: false,
+      });
+      const rows = rawRows.map((row) => row.map((cell) => String(cell ?? "").trim()));
+      if (rows.length === 0) throw new Error("La primera hoja está vacía.");
+      const encabezados = rows[0].map((cell) => cell.toLocaleLowerCase().normalize("NFD").replace(/[\\u0300-\\u036f]/g, ""));
+      const indexEncabezado = encabezados.findIndex((cell) =>
+        /^(serial(es)?|imei|ime(i|is)|sn|s\\/n|numero de serie|serial number|device serial)$/.test(cell),
+      );
+      const tieneEncabezado = indexEncabezado >= 0;
+      const index = tieneEncabezado ? indexEncabezado : 0;
+      const total = rows.slice(tieneEncabezado ? 1 : 0)
+        .filter((row) => String(row[index] ?? "").trim()).length;
+      if (total > MAX_SERIALS_EXCEL) {
+        throw new Error(`El archivo contiene ${total.toLocaleString("es-CO")} seriales en esa columna. El máximo permitido es 20.000.`);
+      }
+      setFilasExcel(rows);
+      setColumnaExcel(index);
+      setEncabezadoExcel(tieneEncabezado);
+    } catch (error) {
+      setErrorExcel(error instanceof Error ? error.message : "No se pudo leer el archivo.");
+      setArchivoExcel("");
+      setFilasExcel([]);
+    }
+  };
+
+  const importarEnLotes = async (seriales: string[]) => {
+    let importados = 0;
+    let duplicados = 0;
+    for (let offset = 0; offset < seriales.length; offset += BATCH_SIZE) {
+      const lote = seriales.slice(offset, offset + BATCH_SIZE);
+      const result = await runAction(
+        (db2, actor) => importarSerialesPrevios(db2, actor, { seriales: lote }),
+        { key: `seriales-previos-excel-${offset}` },
+      );
+      if (!result) {
+        setResultadoImport({ importados, duplicados });
+        return false;
+      }
+      importados += result.importados;
+      duplicados += result.duplicados;
+    }
+    setResultadoImport({ importados, duplicados });
+    setTextoImportar("");
+    setFilasExcel([]);
+    setArchivoExcel("");
+    if (inputExcelRef.current) inputExcelRef.current.value = "";
+    return true;
+  };
 
   const encontrado = useMemo(
     () => (buscado ? buscarSerialPrevio(db, buscado) : undefined),
@@ -40,16 +140,19 @@ const SerialesPrevios = ({ embedded = false }: { embedded?: boolean }) => {
   const lista = useMemo(() => listarSerialesPrevios(db, busquedaLista), [db, busquedaLista]);
 
   const importar = async () => {
-    const seriales = textoImportar.split(/[\s,;]+/).map((s) => s.trim()).filter(Boolean);
+    const seriales = textoImportar.split(/[\\s,;]+/).map((s) => s.trim()).filter(Boolean);
     if (seriales.length === 0) return;
-    const result = await runAction((db2, actor) => importarSerialesPrevios(db2, actor, { seriales }));
-    // Se limpia siempre que la acción corrió bien, sin importar cuántos se hayan omitido: cada
-    // serial que estaba en la barra ya quedó contabilizado (importado o duplicado), así que no
-    // queda nada útil que conservar y el usuario puede seguir escribiendo de inmediato.
-    if (result) {
-      setResultadoImport(result);
-      setTextoImportar("");
+    if (seriales.length > MAX_SERIALS_EXCEL) {
+      setErrorExcel("El máximo permitido es 20.000 seriales por importación.");
+      return;
     }
+    await importarEnLotes(seriales);
+  };
+
+  const importarExcel = async () => {
+    if (serialesExcel.length === 0 || serialesExcel.length > MAX_SERIALS_EXCEL) return;
+    setErrorExcel("");
+    await importarEnLotes(serialesExcel);
   };
 
   return (
@@ -119,6 +222,81 @@ const SerialesPrevios = ({ embedded = false }: { embedded?: boolean }) => {
                 className="font-tabular"
               />
               <p className="text-xs text-muted-foreground">{t("serialesPrevios.importHint")}</p>
+            </div>
+            <div className="space-y-3 rounded-lg border border-dashed p-4">
+              <div className="flex items-start gap-3">
+                <FileSpreadsheet className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
+                <div className="min-w-0 flex-1 space-y-1">
+                  <p className="text-sm font-medium">Importar desde Excel</p>
+                  <p className="text-xs text-muted-foreground">
+                    Sube un archivo .xlsx, .xls o .csv con hasta 20.000 seriales. Se revisa la primera hoja y se omiten los repetidos en el archivo o en Nexora.
+                  </p>
+                </div>
+              </div>
+              <input
+                ref={inputExcelRef}
+                type="file"
+                accept=".xlsx,.xls,.csv"
+                className="block w-full text-sm file:mr-3 file:rounded-md file:border file:bg-background file:px-3 file:py-2 file:text-sm file:font-medium"
+                disabled={runAction.pending}
+                onChange={(event) => {
+                  const file = event.target.files?.[0];
+                  if (file) void leerExcel(file);
+                }}
+              />
+              {archivoExcel ? <p className="truncate text-xs text-muted-foreground">Archivo: {archivoExcel}</p> : null}
+              {filasExcel.length > 0 ? (
+                <div className="space-y-3">
+                  <div className="space-y-1">
+                    <Label htmlFor="seriales-excel-column">Columna que contiene los seriales</Label>
+                    <select
+                      id="seriales-excel-column"
+                      value={columnaExcel}
+                      onChange={(event) => setColumnaExcel(Number(event.target.value))}
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                    >
+                      {Array.from({ length: Math.max(...filasExcel.map((row) => row.length)) }, (_, index) => (
+                        <option key={index} value={index}>
+                          Columna {String.fromCharCode(65 + (index % 26))}{index >= 26 ? Math.floor(index / 26) : ""}
+                          {encabezadoExcel && filasExcel[0]?.[index] ? ` · ${filasExcel[0][index]}` : ""}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="grid gap-2 sm:grid-cols-3">
+                    <div className="rounded-md bg-muted/50 p-3">
+                      <p className="text-xs text-muted-foreground">Seriales únicos para importar</p>
+                      <p className="text-lg font-semibold tabular-nums">{serialesExcel.length.toLocaleString("es-CO")}</p>
+                    </div>
+                    <div className="rounded-md bg-muted/50 p-3">
+                      <p className="text-xs text-muted-foreground">Repetidos dentro del archivo</p>
+                      <p className="text-lg font-semibold tabular-nums">{duplicadosEnArchivo.toLocaleString("es-CO")}</p>
+                    </div>
+                    <div className="rounded-md bg-muted/50 p-3">
+                      <p className="text-xs text-muted-foreground">Límite por archivo</p>
+                      <p className="text-lg font-semibold tabular-nums">20.000</p>
+                    </div>
+                  </div>
+                  {serialesExcel.length > 0 ? (
+                    <div className="rounded-md border p-3">
+                      <p className="mb-2 text-xs font-medium">Vista previa de los primeros seriales</p>
+                      <ul className="space-y-1 text-xs text-muted-foreground">
+                        {serialesExcel.slice(0, 5).map((serial, index) => <li key={index} className="truncate font-mono">{serial}</li>)}
+                      </ul>
+                    </div>
+                  ) : null}
+                  <Button
+                    type="button"
+                    loading={runAction.pending}
+                    disabled={!serialesExcel.length || serialesExcel.length > MAX_SERIALS_EXCEL}
+                    onClick={() => void importarExcel()}
+                  >
+                    <Upload />
+                    Importar {serialesExcel.length.toLocaleString("es-CO")} seriales
+                  </Button>
+                </div>
+              ) : null}
+              {errorExcel ? <p role="alert" className="rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">{errorExcel}</p> : null}
             </div>
             <Button
               type="button"
