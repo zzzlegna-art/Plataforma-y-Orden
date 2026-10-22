@@ -377,7 +377,8 @@ const SerialesPrevios = ({ embedded = false }: { embedded?: boolean }) => {
           {lista.length === 0 ? (
             <EmptyState icon={Archive} title={t("serialesPrevios.empty")} description={t("serialesPrevios.emptyDescription")} />
           ) : (
-            <ul className="divide-y rounded-lg border bg-card">
+            <div className="space-y-3">
+              <ul className="divide-y rounded-lg border bg-card">
               {listaPagina.map((item) => (
                 <li key={item.id} className="flex items-center justify-between gap-3 px-4 py-2.5">
                   <div className="min-w-0">
@@ -445,6 +446,7 @@ const SerialesPrevios = ({ embedded = false }: { embedded?: boolean }) => {
                 </div>
               </div>
             ) : null}
+            </div>
           )}
         </div>
       ) : null}
