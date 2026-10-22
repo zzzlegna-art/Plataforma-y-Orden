@@ -21,21 +21,20 @@ export const importarSerialesPrevios = (
   input: { seriales: string[]; notas?: string },
 ): { importados: number; duplicados: number } => {
   requireAdmin(actor);
+  if (input.seriales.length > 20_000) {
+    throw new DomainError("errors.saveFailed", { detalle: "Máximo 20.000 seriales por lote." });
+  }
   const notas = input.notas?.trim() || undefined;
   let importados = 0;
   let duplicados = 0;
   const vistos = new Set<string>();
+  const existentes = new Set(db.serialesPrevios.map((item) => item.serial.trim().toLocaleLowerCase()));
 
   input.seriales.forEach((raw) => {
     const serial = raw.trim();
     if (!serial) return;
-    const clave = serial.toLowerCase();
-    if (vistos.has(clave)) {
-      duplicados += 1;
-      return;
-    }
-    vistos.add(clave);
-    if (db.serialesPrevios.some((item) => isSameText(item.serial, serial))) {
+    const clave = serial.toLocaleLowerCase();
+    if (vistos.has(clave) || existentes.has(clave)) {
       duplicados += 1;
       return;
     }
