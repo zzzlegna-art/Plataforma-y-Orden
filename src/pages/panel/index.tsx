@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   ArrowRight,
@@ -21,11 +21,8 @@ import { Link } from "react-router-dom";
 import {
   Area,
   AreaChart,
-  Bar,
-  BarChart,
   CartesianGrid,
   Cell,
-  LabelList,
   Pie,
   PieChart,
   ResponsiveContainer,
@@ -68,116 +65,108 @@ import {
 } from "@/lib/dashboard-charts";
 
 /** Nexora fase 2: panel premium conservando selectores y permisos originales. */
-/** Gráfica de ranking con degradado Emerald Tech. */
+/** Ranking horizontal premium: legible en móvil y con contexto de participación. */
 const RankChart = ({
   data,
-  gradientId,
   formatValue,
+  summaryLabel,
 }: {
   data: RankDatum[];
-  gradientId: string;
   formatValue: (value: number) => string;
+  summaryLabel: string;
 }) => {
-  const { t } = useTranslation();
-  // Barra sobre la que está el cursor (o el dedo en móvil); null si ninguna.
-  const [activeIndex, setActiveIndex] = useState<number | null>(null);
-  // Solo se anima la entrada la primera vez que la gráfica aparece en pantalla; una
-  // actualización en vivo posterior (con datos que sí cambiaron de verdad) no la repite, para
-  // no volver a exponerse al problema de animaciones interrumpidas por una actualización.
-  const animarEntradaRef = useRef(true);
-  useEffect(() => {
-    animarEntradaRef.current = false;
-  }, []);
+  const totalValue = data.reduce((total, row) => total + Math.max(0, row.value), 0);
+  const maxValue = data.reduce((max, row) => Math.max(max, row.value), 0);
+  const leader = data[0];
+  const leaderShare = leader && totalValue > 0 ? Math.round((leader.value / totalValue) * 100) : 0;
+
   return (
-    <div className="h-56 w-full">
-      {/* debounce: evita que un contenedor medido en 0×0 a mitad de una transición de página
-         (por ejemplo el fade-in con el que entra el panel) se quede grabado como el tamaño
-         final de la gráfica. */}
-      <ResponsiveContainer width="100%" height="100%" debounce={150}>
-        <BarChart
-          data={data}
-          margin={{ top: 16, right: 4, left: 4, bottom: 0 }}
-          barCategoryGap="28%"
-          onMouseMove={(state: { activeTooltipIndex?: number | string | null }) => {
-            const index = state?.activeTooltipIndex;
-            setActiveIndex(index === null || index === undefined ? null : Number(index));
-          }}
-          onMouseLeave={() => setActiveIndex(null)}
-        >
-          <defs>
-            <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="hsl(var(--primary-glow))" />
-              <stop offset="100%" stopColor="hsl(var(--primary))" />
-            </linearGradient>
-          </defs>
-          <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
-          <XAxis
-            // dataKey="key" (no "short"): varios nombres truncados coinciden (p. ej. varios
-            // "Apple iPhon…"), y Recharts identifica cada barra por el valor del eje, así que
-            // con etiquetas repetidas todas las barras "encontraban" siempre la primera
-            // coincidencia al pasar el cursor. La key del producto/cliente es única; el texto
-            // corto solo se usa para lo que se ve dibujado.
-            dataKey="key"
-            tickFormatter={(key: string) => data.find((row) => row.key === key)?.short ?? ""}
-            tickLine={false}
-            axisLine={false}
-            interval="preserveStartEnd"
-            tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
-          />
-          <YAxis hide />
-          <Tooltip
-            cursor={false}
-            content={({ active, payload }) => {
-              if (!active || !payload?.length) return null;
-              const row = payload[0].payload as RankDatum;
-              return (
-                <div className="animate-in fade-in-0 zoom-in-95 rounded-md border bg-popover px-3 py-2 text-xs shadow-elegant duration-150">
-                  <p className="font-medium">{row.name}</p>
-                  <p className="font-tabular mt-0.5 font-semibold">{formatValue(row.value)}</p>
-                  <p className="text-muted-foreground">
-                    {t("dashboard.unitsTotal", { count: row.units })}
-                  </p>
+    <div className="space-y-3">
+      <div className="relative isolate overflow-hidden rounded-2xl border border-primary/15 bg-gradient-to-br from-primary/[0.08] via-card to-card p-4">
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute -right-8 -top-10 h-28 w-28 rounded-full bg-primary/10 blur-3xl"
+        />
+        <div className="relative flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-primary">
+              <Sparkles className="h-3 w-3" />
+              Resumen del ranking
+            </span>
+            <p className="font-tabular mt-3 text-2xl font-bold tracking-tight">{formatValue(totalValue)}</p>
+            <p className="mt-1 text-xs leading-4 text-muted-foreground">{summaryLabel}</p>
+          </div>
+          {leader ? (
+            <div className="max-w-[44%] shrink-0 text-right">
+              <span className="inline-flex items-center gap-1 rounded-full border border-amber-500/25 bg-amber-500/10 px-2.5 py-1 text-[10px] font-semibold text-amber-700 dark:text-amber-300">
+                <span aria-hidden="true">✦</span>
+                LÍDER
+              </span>
+              <p title={leader.name} className="mt-2 truncate text-sm font-semibold">{leader.name}</p>
+              <p className="font-tabular mt-0.5 text-xs text-muted-foreground">{leaderShare}% del total</p>
+            </div>
+          ) : null}
+        </div>
+      </div>
+
+      <div className="space-y-1">
+        {data.map((row, index) => {
+          const share = totalValue > 0 ? Math.round((row.value / totalValue) * 100) : 0;
+          const barWidth = maxValue > 0 ? Math.max(row.value > 0 ? 4 : 0, (row.value / maxValue) * 100) : 0;
+          const rankTone =
+            index === 0
+              ? "border-amber-500/25 bg-amber-500/10 text-amber-700 dark:text-amber-300"
+              : index === 1
+                ? "border-slate-400/30 bg-slate-400/10 text-slate-600 dark:text-slate-300"
+                : index === 2
+                  ? "border-orange-700/20 bg-orange-700/10 text-orange-700 dark:text-orange-300"
+                  : "border-border bg-muted/60 text-muted-foreground";
+
+          return (
+            <div
+              key={row.key}
+              className="group rounded-xl border border-transparent px-2.5 py-3 transition-all duration-200 hover:border-border/70 hover:bg-muted/35"
+            >
+              <div className="flex items-center gap-3">
+                <span
+                  className={cn(
+                    "grid h-9 w-9 shrink-0 place-items-center rounded-xl border text-[11px] font-bold tabular-nums transition-transform duration-200 group-hover:scale-105",
+                    rankTone,
+                  )}
+                  aria-label={"Puesto " + (index + 1)}
+                >
+                  {String(index + 1).padStart(2, "0")}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <div className="mb-2 flex items-start justify-between gap-3">
+                    <p title={row.name} className="min-w-0 truncate text-sm font-semibold leading-5">
+                      {row.name}
+                    </p>
+                    <span className="font-tabular shrink-0 text-sm font-bold">{formatValue(row.value)}</span>
+                  </div>
+                  <div
+                    role="img"
+                    aria-label={row.name + ": " + formatValue(row.value) + ", " + share + "% del total del ranking"}
+                    className="h-2 overflow-hidden rounded-full bg-muted/80 ring-1 ring-inset ring-border/40"
+                  >
+                    <div
+                      className="h-full rounded-full transition-[width] duration-700 ease-out"
+                      style={{
+                        width: String(barWidth) + "%",
+                        background: "linear-gradient(90deg, hsl(var(--primary)) 0%, hsl(var(--primary-glow)) 100%)",
+                      }}
+                    />
+                  </div>
+                  <div className="mt-1.5 flex items-center justify-between gap-2 text-[10px] text-muted-foreground">
+                    <span>{index === 0 ? "Mayor aporte" : "Participación del ranking"}</span>
+                    <span className="font-tabular font-medium">{share}%</span>
+                  </div>
                 </div>
-              );
-            }}
-          />
-          <Bar
-            dataKey="value"
-            fill={`url(#${gradientId})`}
-            radius={[6, 6, 0, 0]}
-            maxBarSize={46}
-            isAnimationActive={animarEntradaRef.current}
-            animationDuration={700}
-            animationEasing="ease-out"
-          >
-            {data.map((row, index) => {
-              const isActive = activeIndex === index;
-              const isDimmed = activeIndex !== null && !isActive;
-              return (
-                <Cell
-                  key={row.key}
-                  style={{
-                    // La barra elegida se ensancha y brilla; las demás se atenúan.
-                    opacity: isDimmed ? 0.4 : 1,
-                    filter: isActive ? "drop-shadow(0 0 8px hsl(var(--primary) / 0.65)) brightness(1.08)" : "none",
-                    transform: isActive ? "scale(1.08, 1.03)" : "scale(1)",
-                    transformBox: "fill-box",
-                    transformOrigin: "bottom center",
-                    transition: "opacity 200ms ease, filter 200ms ease, transform 200ms cubic-bezier(0.34, 1.56, 0.64, 1)",
-                    cursor: "pointer",
-                  }}
-                />
-              );
-            })}
-            <LabelList
-              dataKey="value"
-              position="top"
-              formatter={(value) => formatValue(Number(value))}
-              style={{ fontSize: 10, fontWeight: 600, fill: "hsl(var(--foreground))" }}
-            />
-          </Bar>
-        </BarChart>
-      </ResponsiveContainer>
+              </div>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 };
@@ -642,70 +631,86 @@ const Panel = () => {
         </div>
       </div>
       <div className="nx-ranking-grid grid grid-cols-1 gap-5 lg:grid-cols-2">
-        <section className="min-w-0 premium-surface nx-ranking-card p-6 transition-shadow hover:shadow-md">
-          <div className="mb-3 flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2">
-              <span className="rounded-md bg-primary/12 p-1.5 text-primary">
-                <TrendingUp className="h-3.5 w-3.5" />
+        <section className="premium-surface nx-ranking-card relative min-w-0 overflow-hidden p-4 transition-all duration-200 hover:shadow-elegant sm:p-5">
+          <div aria-hidden="true" className="pointer-events-none absolute -right-10 -top-12 h-32 w-32 rounded-full bg-primary/10 blur-3xl" />
+          <div className="relative mb-4 flex items-start justify-between gap-3">
+            <div className="flex min-w-0 items-start gap-3">
+              <span className="rounded-xl bg-primary/12 p-2 text-primary ring-1 ring-primary/10">
+                <TrendingUp className="h-4 w-4" />
               </span>
-              <div>
-                <h3 className="text-sm font-semibold">{t("dashboard.topProductsTitle")}</h3>
-                <p className="text-xs text-muted-foreground">{t("dashboard.topProductsSubtitle")}</p>
+              <div className="min-w-0">
+                <h3 className="text-sm font-semibold tracking-tight">{t("dashboard.topProductsTitle")}</h3>
+                <p className="mt-1 text-xs leading-4 text-muted-foreground">{t("dashboard.topProductsSubtitle")}</p>
               </div>
             </div>
-            <Link to="/inventario" className="text-xs text-primary hover:underline">
+            <Link
+              to="/inventario"
+              className="inline-flex shrink-0 items-center gap-1 rounded-full border border-primary/15 bg-background/70 px-3 py-1.5 text-xs font-medium text-primary transition-colors hover:bg-primary/10"
+            >
               {t("common.viewAll")}
+              <ArrowRight className="h-3 w-3" />
             </Link>
           </div>
-          {data.topProducts.length === 0 ? (
-            <p className="py-6 text-center text-sm text-muted-foreground">
-              {t("dashboard.noSalesRanking")}
-            </p>
-          ) : (
-            <RankChart
-              data={productsChart}
-              gradientId="rankProducts"
-              formatValue={(value) => formatNumber(value)}
-            />
-          )}
+          <div className="relative">
+            {data.topProducts.length === 0 ? (
+              <p className="rounded-xl border border-dashed px-4 py-8 text-center text-sm text-muted-foreground">
+                {t("dashboard.noSalesRanking")}
+              </p>
+            ) : (
+              <RankChart
+                data={productsChart}
+                summaryLabel={t("dashboard.unitsTotal", { count: productsChart.reduce((total, row) => total + row.value, 0) })}
+                formatValue={(value) => formatNumber(value)}
+              />
+            )}
+          </div>
         </section>
 
-        <section className="min-w-0 premium-surface nx-ranking-card p-6 transition-shadow hover:shadow-md">
-          <div className="mb-3 flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2">
-              <span className="rounded-md bg-info/15 p-1.5 text-info">
-                <Users className="h-3.5 w-3.5" />
+        <section className="premium-surface nx-ranking-card relative min-w-0 overflow-hidden p-4 transition-all duration-200 hover:shadow-elegant sm:p-5">
+          <div aria-hidden="true" className="pointer-events-none absolute -right-10 -top-12 h-32 w-32 rounded-full bg-info/10 blur-3xl" />
+          <div className="relative mb-4 flex items-start justify-between gap-3">
+            <div className="flex min-w-0 items-start gap-3">
+              <span className="rounded-xl bg-info/15 p-2 text-info ring-1 ring-info/10">
+                <Users className="h-4 w-4" />
               </span>
-              <div>
-                <h3 className="text-sm font-semibold">{t("dashboard.topCustomersTitle")}</h3>
-                <p className="text-xs text-muted-foreground">
+              <div className="min-w-0">
+                <h3 className="text-sm font-semibold tracking-tight">{t("dashboard.topCustomersTitle")}</h3>
+                <p className="mt-1 text-xs leading-4 text-muted-foreground">
                   {clientesPorMonto
                     ? t("dashboard.topCustomersSubtitle")
                     : t("dashboard.topCustomersSubtitleUnits")}
                 </p>
               </div>
             </div>
-            <Link to="/clientes" className="text-xs text-primary hover:underline">
+            <Link
+              to="/clientes"
+              className="inline-flex shrink-0 items-center gap-1 rounded-full border border-info/20 bg-background/70 px-3 py-1.5 text-xs font-medium text-info transition-colors hover:bg-info/10"
+            >
               {t("common.viewAll")}
+              <ArrowRight className="h-3 w-3" />
             </Link>
           </div>
-          {data.topCustomers.length === 0 ? (
-            <p className="py-6 text-center text-sm text-muted-foreground">
-              {t("dashboard.noSalesRanking")}
-            </p>
-          ) : (
-            <RankChart
-              data={customersChart}
-              gradientId="rankCustomers"
-              formatValue={(value) =>
-                clientesPorMonto ? formatCurrency(value) : formatNumber(value)
-              }
-            />
-          )}
+          <div className="relative">
+            {data.topCustomers.length === 0 ? (
+              <p className="rounded-xl border border-dashed px-4 py-8 text-center text-sm text-muted-foreground">
+                {t("dashboard.noSalesRanking")}
+              </p>
+            ) : (
+              <RankChart
+                data={customersChart}
+                summaryLabel={
+                  clientesPorMonto
+                    ? "Valor acumulado de los clientes destacados"
+                    : t("dashboard.unitsTotal", { count: customersChart.reduce((total, row) => total + row.value, 0) })
+                }
+                formatValue={(value) =>
+                  clientesPorMonto ? formatCurrency(value) : formatNumber(value)
+                }
+              />
+            )}
+          </div>
         </section>
       </div>
-
-
 
       <section className="premium-surface nx-operation-card p-5">
         <div className="mb-3 flex items-center justify-between">
