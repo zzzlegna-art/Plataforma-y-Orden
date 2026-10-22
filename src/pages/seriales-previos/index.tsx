@@ -89,7 +89,8 @@ const SerialesPrevios = ({ embedded = false }: { embedded?: boolean }) => {
       if (rows.length === 0) throw new Error("La primera hoja está vacía.");
       const encabezados = rows[0].map((cell) => cell.toLocaleLowerCase().normalize("NFD").replace(/[\\u0300-\\u036f]/g, ""));
       const indexEncabezado = encabezados.findIndex((cell) =>
-        /^(serial(es)?|imei|ime(i|is)|sn|s\\/n|numero de serie|serial number|device serial)$/.test(cell),
+        /^(serial(es)?|imei|imeis|sn|s\\/n|serial number|device serial)$/.test(cell) ||
+        /serial|imei|numero de serie/.test(cell),
       );
       const tieneEncabezado = indexEncabezado >= 0;
       const index = tieneEncabezado ? indexEncabezado : 0;
@@ -108,9 +109,9 @@ const SerialesPrevios = ({ embedded = false }: { embedded?: boolean }) => {
     }
   };
 
-  const importarEnLotes = async (seriales: string[]) => {
+  const importarEnLotes = async (seriales: string[], duplicadosIniciales = 0) => {
     let importados = 0;
-    let duplicados = 0;
+    let duplicados = duplicadosIniciales;
     for (let offset = 0; offset < seriales.length; offset += BATCH_SIZE) {
       const lote = seriales.slice(offset, offset + BATCH_SIZE);
       const result = await runAction(
@@ -152,7 +153,7 @@ const SerialesPrevios = ({ embedded = false }: { embedded?: boolean }) => {
   const importarExcel = async () => {
     if (serialesExcel.length === 0 || serialesExcel.length > MAX_SERIALS_EXCEL) return;
     setErrorExcel("");
-    await importarEnLotes(serialesExcel);
+    await importarEnLotes(serialesExcel, duplicadosEnArchivo);
   };
 
   return (
@@ -247,6 +248,15 @@ const SerialesPrevios = ({ embedded = false }: { embedded?: boolean }) => {
               {archivoExcel ? <p className="truncate text-xs text-muted-foreground">Archivo: {archivoExcel}</p> : null}
               {filasExcel.length > 0 ? (
                 <div className="space-y-3">
+                  <label className="flex items-center gap-2 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={encabezadoExcel}
+                      onChange={(event) => setEncabezadoExcel(event.target.checked)}
+                      className="h-4 w-4 rounded border-input"
+                    />
+                    La primera fila contiene encabezados y no debe importarse
+                  </label>
                   <div className="space-y-1">
                     <Label htmlFor="seriales-excel-column">Columna que contiene los seriales</Label>
                     <select
