@@ -36,7 +36,7 @@ import {
   ZoomIn,
   type LucideIcon,
 } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 
 import { DataTable } from "@/components/shared/data-table";
@@ -69,6 +69,7 @@ import {
   type CatalogExportProgress,
 } from "@/lib/export";
 import { getProductTechnicalSpecFieldsForCategory } from "@/lib/product-specs";
+import { clearInventoryFilters, getInventoryFilters, updateInventoryFilter } from "@/lib/inventory-filters";
 import { formatCurrency, todayIso } from "@/lib/format";
 import { getProductRows, type ProductRow, type ProductStock } from "@/lib/selectors";
 import { etiquetaTipoProducto, tiposProductoOrdenados } from "@/lib/products";
@@ -469,12 +470,20 @@ const Inventario = () => {
     const productType = db.productTypes.find((type) => type.key === product.categoria);
     return product.categoria !== "repuesto" && productType?.mayoristaGroup !== "repuestos";
   };
-  const [search, setSearch] = useState("");
-  const [tipo, setTipo] = useState<"" | ProductCategory>("");
-  const [brandId, setBrandId] = useState("");
-  const [lowOnly, setLowOnly] = useState(false);
-  const [includeInactive, setIncludeInactive] = useState(false);
-  const [condicion, setCondicion] = useState<"" | "nuevo" | "seminuevo">("");
+  const [params, setParams] = useSearchParams();
+  const { search, tipo, brandId, lowOnly, includeInactive, condicion } = getInventoryFilters(params);
+  const updateFilter = (
+    key: "q" | "tipo" | "marca" | "bajo" | "inactivos" | "condicion",
+    value: string | boolean,
+  ) => {
+    setParams((previous) => updateInventoryFilter(previous, key, value), { replace: true });
+  };
+  const setSearch = (value: string) => updateFilter("q", value);
+  const setTipo = (value: "" | ProductCategory) => updateFilter("tipo", value);
+  const setBrandId = (value: string) => updateFilter("marca", value);
+  const setLowOnly = (value: boolean) => updateFilter("bajo", value);
+  const setIncludeInactive = (value: boolean) => updateFilter("inactivos", value);
+  const setCondicion = (value: "" | "nuevo" | "seminuevo") => updateFilter("condicion", value);
   const [exportOpen, setExportOpen] = useState(false);
   const [exportFormat, setExportFormat] = useState<"pdf" | "excel">("pdf");
   const [exportCat, setExportCat] = useState<"" | ProductCategory>("");
@@ -658,9 +667,11 @@ const Inventario = () => {
     }
   };
 
-  /** Enlace al detalle conservando la condición elegida en el listado. */
-  const detalleUrl = (productId: string) =>
-    condicion ? `/inventario/${productId}?condicion=${condicion}` : `/inventario/${productId}`;
+  /** Enlace al detalle conservando todos los filtros del listado. */
+  const detalleUrl = (productId: string) => {
+    const query = params.toString();
+    return query ? `/inventario/${productId}?${query}` : `/inventario/${productId}`;
+  };
 
   const renderCard = (row: ProductRow) => (
     <div className="space-y-3">
@@ -851,14 +862,7 @@ const Inventario = () => {
               variant="ghost"
               size="sm"
               className="h-8 rounded-full"
-              onClick={() => {
-                setSearch("");
-                setTipo("");
-                setBrandId("");
-                setLowOnly(false);
-                setIncludeInactive(false);
-                setCondicion("");
-              }}
+              onClick={() => setParams((previous) => clearInventoryFilters(previous), { replace: true })}
             >
               Limpiar filtros
             </Button>
@@ -866,7 +870,7 @@ const Inventario = () => {
               variant={lowOnly ? "default" : "outline"}
               size="sm"
               className="h-8 rounded-full"
-              onClick={() => setLowOnly((previous) => !previous)}
+              onClick={() => setLowOnly(!lowOnly)}
             >
               {lowOnly ? <Check /> : null}
               {t("product.onlyLowStock")}
@@ -875,7 +879,7 @@ const Inventario = () => {
               variant={includeInactive ? "default" : "outline"}
               size="sm"
               className="h-8 rounded-full"
-              onClick={() => setIncludeInactive((previous) => !previous)}
+              onClick={() => setIncludeInactive(!includeInactive)}
             >
               {includeInactive ? <Check /> : null}
               {t("product.includeInactive")}
