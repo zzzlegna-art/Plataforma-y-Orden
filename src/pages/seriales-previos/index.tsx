@@ -24,7 +24,7 @@ import { usePermissions } from "@/hooks/use-permissions";
 import { useRunAction } from "@/hooks/use-run-action";
 import { useStore } from "@/hooks/use-store";
 import { eliminarSerialPrevio, importarSerialesPrevios } from "@/lib/actions/seriales-previos";
-import { importarSerialesPreviosEnLote, type CambioRemoto } from "@/lib/backend";
+import { importarSerialesPreviosEnLote } from "@/lib/backend";
 import { DomainError } from "@/lib/db";
 import { formatDate } from "@/lib/format";
 import {
@@ -41,7 +41,7 @@ type Tab = "buscar" | "importar" | "lista";
 /** Registro de ventas anteriores a la plataforma (seriales previos). */
 const SerialesPrevios = ({ embedded = false }: { embedded?: boolean }) => {
   const { t } = useTranslation();
-  const { db, aplicarCambios } = useStore();
+  const { db, refrescar } = useStore();
   const runAction = useRunAction();
   const { isAdmin } = usePermissions();
 
@@ -135,15 +135,8 @@ const SerialesPrevios = ({ embedded = false }: { embedded?: boolean }) => {
     setImportandoExcel(true);
     try {
       const resultado = await importarSerialesPreviosEnLote(archivoExcel.seriales);
-      const cambios: CambioRemoto[] = resultado.seriales.map((item) => ({
-        coleccion: "serialesPrevios",
-        tipo: "guardar",
-        item,
-      }));
-      if (resultado.auditoria) {
-        cambios.push({ coleccion: "auditLogs", tipo: "guardar", item: resultado.auditoria });
-      }
-      aplicarCambios(cambios);
+      // Una recarga completa evita aplicar 20.000 cambios con búsquedas repetidas en memoria.
+      await refrescar();
       setResultadoExcel({
         leidos: archivoExcel.seriales.length,
         importados: resultado.importados,
