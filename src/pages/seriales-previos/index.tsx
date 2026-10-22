@@ -54,6 +54,7 @@ const SerialesPrevios = ({ embedded = false }: { embedded?: boolean }) => {
   const [errorExcel, setErrorExcel] = useState<string | null>(null);
   const [leyendoExcel, setLeyendoExcel] = useState(false);
   const [importandoExcel, setImportandoExcel] = useState(false);
+  const [importandoManual, setImportandoManual] = useState(false);
   const [resultadoExcel, setResultadoExcel] = useState<{ leidos: number; importados: number; duplicados: number } | null>(null);
   const [paginaLista, setPaginaLista] = useState(0);
   const excelInputRef = useRef<HTMLInputElement>(null);
@@ -160,6 +161,7 @@ const SerialesPrevios = ({ embedded = false }: { embedded?: boolean }) => {
   };
 
   const importar = async () => {
+    if (importandoManual) return;
     const seriales = textoImportar.split(/[\s,;]+/).map((s) => s.trim()).filter(Boolean);
     if (seriales.length === 0) return;
     if (seriales.length > MAX_SERIAL_IMPORT) {
@@ -167,6 +169,7 @@ const SerialesPrevios = ({ embedded = false }: { embedded?: boolean }) => {
       return;
     }
 
+    setImportandoManual(true);
     try {
       // El pegado manual usa la misma RPC atómica que Excel: evita un guardado enorme
       // tabla por tabla y mantiene la deduplicación segura en el servidor.
@@ -186,6 +189,8 @@ const SerialesPrevios = ({ embedded = false }: { embedded?: boolean }) => {
     } catch (error) {
       if (error instanceof DomainError) toast.error(t(error.key, error.params));
       else toast.error(t("serialesPrevios.excelImportError"));
+    } finally {
+      setImportandoManual(false);
     }
   };
 
@@ -355,8 +360,8 @@ const SerialesPrevios = ({ embedded = false }: { embedded?: boolean }) => {
               </div>
               <Button
                 type="button"
-                loading={runAction.pending}
-                disabled={!textoImportar.trim()}
+                loading={importandoManual}
+                disabled={!textoImportar.trim() || importandoManual}
                 onClick={() => void importar()}
               >
                 <Upload />
