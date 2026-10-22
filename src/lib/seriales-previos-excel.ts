@@ -39,7 +39,7 @@ const normalizarCabecera = (valor: unknown) =>
 
 const esCabeceraSerial = (valor: unknown) => {
   const texto = normalizarCabecera(valor);
-  return /(^| )(serial(?:es)?(?: (?:no|number|numero|\d+))?|imei\s*\d*|sn|s n|numero de serie|nro de serie|no de serie)( |$)/.test(texto);
+  return /(^| )(serial(?:es|s)?(?: (?:no|number|numero|\d+))?|imei\s*\d*|sn|s n|numero de serie|nro de serie|no de serie)( |$)/.test(texto);
 };
 
 const valorCelda = (
@@ -65,9 +65,24 @@ const valorCelda = (
     const mostrado = typeof celda.w === "string" ? celda.w.trim() : "";
     // Respeta formatos de Excel como 000000000000123, que conservan ceros iniciales.
     if (mostrado && /^\d+$/.test(mostrado) && Number(mostrado) === celda.v) {
+      if (mostrado.replace(/^0+/, "").length > 15) {
+        throw new SerialWorkbookError(
+          "unsafe_number",
+          "Excel solo conserva 15 dígitos significativos en celdas numéricas.",
+          `${nombreHoja}!${direccion}`,
+        );
+      }
       return mostrado;
     }
-    return String(celda.v);
+    const numerico = String(celda.v);
+    if (numerico.replace(/^0+/, "").length > 15) {
+      throw new SerialWorkbookError(
+        "unsafe_number",
+        "Excel solo conserva 15 dígitos significativos en celdas numéricas.",
+        `${nombreHoja}!${direccion}`,
+      );
+    }
+    return numerico;
   }
 
   if (typeof celda.v === "bigint") return celda.v.toString();
