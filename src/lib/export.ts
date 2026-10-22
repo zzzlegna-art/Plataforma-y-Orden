@@ -1482,11 +1482,9 @@ export const exportProductCatalogExcel = async ({
     });
   }
 
-  const requestedImageCount = products.filter((product) => Boolean(product.imageUrl)).length;
-  const embeddedImageCount = imageDataUrls.filter(Boolean).length;
-  if (requestedImageCount > 0 && embeddedImageCount === 0) {
-    throw new Error("CATALOG_IMAGES_UNAVAILABLE");
-  }
+  // La exportación no debe depender de que el navegador pueda incrustar las imágenes.
+  // Si falla el proxy/CORS, la hoja conserva el enlace directo de cada imagen en la primera columna.
+  // Así el usuario recibe el Excel completo en vez de perder toda la exportación por un recurso opcional.
 
   const columns = [
     labels.image,
