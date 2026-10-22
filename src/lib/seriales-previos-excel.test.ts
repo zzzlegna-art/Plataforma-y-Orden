@@ -65,6 +65,17 @@ describe("parseSerialWorkbook", () => {
     expect(parseSerialWorkbook(bytes(book)).seriales).toEqual(["SP-001", "sp-001"]);
   });
 
+  it("rechaza más de 20.000 seriales en un mismo archivo", () => {
+    const book = XLSX.utils.book_new();
+    const rows: string[][] = [["Serial"]];
+    for (let i = 1; i <= 20_001; i += 1) rows.push([`SP-${String(i).padStart(5, "0")}`]);
+    XLSX.utils.book_append_sheet(book, XLSX.utils.aoa_to_sheet(rows), "Datos");
+
+    expect(() => parseSerialWorkbook(bytes(book))).toThrowError(
+      expect.objectContaining({ code: "too_many" }),
+    );
+  });
+
   it("rechaza celdas numéricas que podrían haber perdido precisión", () => {
     const book = XLSX.utils.book_new();
     const sheet = XLSX.utils.aoa_to_sheet([["Serial"]]);
