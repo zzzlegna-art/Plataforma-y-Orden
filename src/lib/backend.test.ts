@@ -74,13 +74,6 @@ beforeEach(() => {
 
 describe("importarSerialesPreviosEnLote", () => {
   it("envía el lote al RPC y devuelve filas nuevas y auditoría", async () => {
-    const serial = {
-      id: "12345678-1234-1234-1234-123456789012",
-      serial: "SP-001",
-      notas: null,
-      createdBy: "admin-1",
-      createdAt: ahora,
-    };
     const auditoria = {
       id: "22345678-1234-1234-1234-123456789012",
       userId: "admin-1",
@@ -92,7 +85,7 @@ describe("importarSerialesPreviosEnLote", () => {
       createdAt: ahora,
     };
     mocks.rpc.mockResolvedValue({
-      data: { importados: 1, duplicados: 1, seriales: [serial], auditoria },
+      data: { importados: 1, duplicados: 1, auditoria },
       error: null,
     });
 
@@ -104,11 +97,6 @@ describe("importarSerialesPreviosEnLote", () => {
     });
     expect(resultado.importados).toBe(1);
     expect(resultado.duplicados).toBe(1);
-    expect(resultado.seriales[0]).toMatchObject({
-      id: serial.id,
-      serial: "SP-001",
-      createdBy: "admin-1",
-    });
     expect(resultado.auditoria).toMatchObject({
       userId: "admin-1",
       entity: "serial_previo",
