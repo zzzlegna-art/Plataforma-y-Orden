@@ -23,7 +23,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { usePermissions } from "@/hooks/use-permissions";
 import { useRunAction } from "@/hooks/use-run-action";
 import { useStore } from "@/hooks/use-store";
-import { eliminarSerialPrevio, importarSerialesPrevios } from "@/lib/actions/seriales-previos";
+import { eliminarSerialPrevio } from "@/lib/actions/seriales-previos";
 import { importarSerialesPreviosEnLote } from "@/lib/backend";
 import { DomainError } from "@/lib/db";
 import { formatDate } from "@/lib/format";
