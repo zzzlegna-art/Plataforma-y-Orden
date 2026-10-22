@@ -83,7 +83,7 @@ describe("parseSerialWorkbook", () => {
   it("rechaza celdas numéricas que podrían haber perdido precisión", () => {
     const book = XLSX.utils.book_new();
     const sheet = XLSX.utils.aoa_to_sheet([["Serial"]]);
-    sheet["A2"] = { t: "n", v: Number.MAX_SAFE_INTEGER + 10 };
+    sheet["A2"] = { t: "n", v: 1234567890123456 };
     sheet["!ref"] = "A1:A2";
     XLSX.utils.book_append_sheet(book, sheet, "Datos");
 
