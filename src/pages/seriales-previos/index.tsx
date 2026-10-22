@@ -162,13 +162,30 @@ const SerialesPrevios = ({ embedded = false }: { embedded?: boolean }) => {
   const importar = async () => {
     const seriales = textoImportar.split(/[\s,;]+/).map((s) => s.trim()).filter(Boolean);
     if (seriales.length === 0) return;
-    const result = await runAction((db2, actor) => importarSerialesPrevios(db2, actor, { seriales }));
-    // Se limpia siempre que la acción corrió bien, sin importar cuántos se hayan omitido: cada
-    // serial que estaba en la barra ya quedó contabilizado (importado o duplicado), así que no
-    // queda nada útil que conservar y el usuario puede seguir escribiendo de inmediato.
-    if (result) {
-      setResultadoImport(result);
+    if (seriales.length > MAX_SERIAL_IMPORT) {
+      toast.error(t("serialesPrevios.excelErrorTooMany"));
+      return;
+    }
+
+    try {
+      // El pegado manual usa la misma RPC atómica que Excel: evita un guardado enorme
+      // tabla por tabla y mantiene la deduplicación segura en el servidor.
+      const resultado = await importarSerialesPreviosEnLote(seriales);
+      await refrescar();
+      setResultadoImport({
+        importados: resultado.importados,
+        duplicados: resultado.duplicados,
+      });
       setTextoImportar("");
+      toast.success(
+        t("serialesPrevios.imported", { count: resultado.importados }) +
+          (resultado.duplicados > 0
+            ? \` · \${t("serialesPrevios.duplicados", { count: resultado.duplicados })}\`
+            : ""),
+      );
+    } catch (error) {
+      if (error instanceof DomainError) toast.error(t(error.key, error.params));
+      else toast.error(t("serialesPrevios.excelImportError"));
     }
   };
 
