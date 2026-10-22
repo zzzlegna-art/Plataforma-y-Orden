@@ -91,6 +91,10 @@ const SerialesPrevios = ({ embedded = false }: { embedded?: boolean }) => {
     setPaginaLista(0);
   }, [busquedaLista]);
 
+  useEffect(() => {
+    setPaginaLista((pagina) => Math.min(pagina, totalPaginas - 1));
+  }, [totalPaginas]);
+
   const cargarExcel = async (file: File) => {
     setErrorExcel(null);
     setArchivoExcel(null);
