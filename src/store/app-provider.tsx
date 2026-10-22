@@ -26,6 +26,7 @@ import { LoadingScreen } from "@/components/shared/loading-screen";
 import { supabase } from "@/integrations/supabase/client";
 import {
   detalleTecnico,
+  consultarPerfilSesion,
   leerPerfil,
   pullDb,
   pushDb,
@@ -148,6 +149,7 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
   const sesionRef = useRef<string | null | undefined>(undefined);
   // Invalida cargas de sesión que terminen después de cerrar sesión o cambiar de usuario.
   const intentoSesionRef = useRef(0);
+  const comprobandoPerfilRef = useRef(false);
   const pendientesRef = useRef<CambioRemoto[]>([]);
   const temporizadorRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Guardados en curso (desde que la acción se aplica en pantalla hasta que el servidor responde).
@@ -307,15 +309,6 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
     };
   }, [abrirSesion]);
 
-  /** Tiempo real: cualquier cambio de otro dispositivo se refleja al instante. */
-  useEffect(() => {
-    if (!user) return;
-    const desuscribir = suscribirCambios(recibirCambio, {
-      incluirAuditoria: user.role === "admin",
-    });
-    return () => desuscribir();
-  }, [user, recibirCambio]);
-
   useEffect(
     () => () => {
       if (temporizadorRef.current) clearTimeout(temporizadorRef.current);
@@ -464,10 +457,92 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
     sesionRef.current = null;
     pendientesRef.current = [];
     setAbriendo(false);
-    await supabase.auth.signOut();
-    aplicarUsuario(null);
-    aplicarDb(null);
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) console.error("No se pudo invalidar la sesión remota", error.message);
+    } catch (error) {
+      console.error("No se pudo invalidar la sesión remota", error);
+    } finally {
+      // No dejar la información privada visible aunque falle la petición de cierre.
+      aplicarUsuario(null);
+      aplicarDb(null);
+    }
   }, [aplicarDb, aplicarUsuario]);
+
+  /** Comprueba el estado real del empleado y sincroniza el rol sin recargar la app. */
+  const validarPerfilSesion = useCallback(async () => {
+    const actorInicial = userRef.current;
+    if (!actorInicial || comprobandoPerfilRef.current) return;
+
+    comprobandoPerfilRef.current = true;
+    const intento = intentoSesionRef.current;
+    try {
+      const perfil = await consultarPerfilSesion(actorInicial.id);
+      if (
+        intento !== intentoSesionRef.current ||
+        userRef.current?.id !== actorInicial.id
+      ) {
+        return;
+      }
+
+      // Una fila invisible por RLS o una cuenta desactivada no puede conservar la sesión.
+      if (!perfil || perfil.is_active === false) {
+        toast.error(t("errors.userInactive"));
+        await logout();
+        return;
+      }
+
+      const actorActual = userRef.current;
+      if (!actorActual || actorActual.id !== actorInicial.id) return;
+
+      const actualizado: Actor = {
+        id: actorActual.id,
+        email: String(perfil.email ?? actorActual.email),
+        fullName: String(perfil.full_name ?? perfil.email ?? actorActual.fullName),
+        role: perfil.role === "admin" ? "admin" : "bodeguero",
+      };
+      if (
+        actualizado.email !== actorActual.email ||
+        actualizado.fullName !== actorActual.fullName ||
+        actualizado.role !== actorActual.role
+      ) {
+        aplicarUsuario(actualizado);
+      }
+    } catch (error) {
+      // Un fallo temporal de red no equivale a una cuenta desactivada.
+      console.warn("No se pudo verificar el perfil; se volverá a intentar.", error);
+    } finally {
+      comprobandoPerfilRef.current = false;
+    }
+  }, [aplicarUsuario, logout, t]);
+
+  /** Actualiza permisos inmediatamente por tiempo real y también al volver a la pestaña. */
+  useEffect(() => {
+    if (!user) return;
+    const desuscribir = suscribirCambios(recibirCambio, {
+      incluirAuditoria: user.role === "admin",
+      perfilUsuarioId: user.id,
+      alCambiarPerfil: () => void validarPerfilSesion(),
+    });
+    return () => desuscribir();
+  }, [user, recibirCambio, validarPerfilSesion]);
+
+  /** Respaldo si el evento de perfil no llega: revalida cada minuto y al volver al frente. */
+  useEffect(() => {
+    if (!user) return;
+
+    const alVolver = () => {
+      if (document.visibilityState === "visible") void validarPerfilSesion();
+    };
+    const intervalo = window.setInterval(() => void validarPerfilSesion(), 60_000);
+    document.addEventListener("visibilitychange", alVolver);
+    alVolver();
+
+    return () => {
+      window.clearInterval(intervalo);
+      document.removeEventListener("visibilitychange", alVolver);
+    };
+  }, [user?.id, validarPerfilSesion]);
 
   const value = useMemo<AppValue>(
     () => ({
