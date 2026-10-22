@@ -19,6 +19,8 @@ export interface AppValue {
    * el tiempo real con los cambios de otros dispositivos.
    */
   aplicarCambios: (cambios: CambioRemoto[]) => void;
+  /** Resincroniza una foto completa del servidor sin aplicar miles de cambios uno por uno. */
+  refrescar: () => Promise<void>;
   login: (email: string, password: string) => Promise<{ ok: boolean; error?: string }>;
   logout: () => Promise<void>;
 }
