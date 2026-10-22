@@ -33,6 +33,8 @@ const ProductoDetalle = () => {
   const buscada = params.get("condicion");
   const condicion: UnitCondition | undefined =
     buscada === "nuevo" || buscada === "seminuevo" ? buscada : undefined;
+  // Al volver desde la ficha, regresar al listado con los filtros que originaron la navegación.
+  const rutaInventario = params.toString() ? `/inventario?${params.toString()}` : "/inventario";
 
   const cambiarCondicion = (siguiente?: UnitCondition) => {
     const next = new URLSearchParams(params);
@@ -64,7 +66,7 @@ const ProductoDetalle = () => {
         description={t("product.notFoundDescription")}
         action={
           <Button asChild>
-            <Link to="/inventario">{t("product.backToCatalog")}</Link>
+            <Link to={rutaInventario}>{t("product.backToCatalog")}</Link>
           </Button>
         }
       />
@@ -147,7 +149,7 @@ const ProductoDetalle = () => {
                     (db2, actor) => deleteProduct(db2, actor, { id: product.id }),
                     { success: "product.deleted" },
                   );
-                  if (result !== null) navigate("/inventario");
+                  if (result !== null) navigate(rutaInventario);
                 }}
               />
             ) : null}
