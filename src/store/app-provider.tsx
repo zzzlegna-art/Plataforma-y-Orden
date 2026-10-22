@@ -552,10 +552,11 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
       role: user?.role as Role | undefined,
       run,
       aplicarCambios,
+      refrescar,
       login,
       logout,
     }),
-    [db, ready, user, run, aplicarCambios, login, logout],
+    [db, ready, user, run, aplicarCambios, refrescar, login, logout],
   );
 
   if (user && !db) {
