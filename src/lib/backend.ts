@@ -860,15 +860,16 @@ export const importarSerialesPreviosEnLote = async (
   seriales: string[],
   notas?: string,
 ): Promise<ResultadoImportacionSerialesPreviosLote> => {
-  if (seriales.length > 20_000) {
+  const valores = seriales.map((serial) => serial.trim()).filter(Boolean);
+  if (valores.length > 20_000) {
     throw new DomainError("serialesPrevios.excelErrorTooMany");
   }
-  if (seriales.length === 0) {
-    return { importados: 0, duplicados: 0, seriales: [] };
+  if (valores.length === 0) {
+    return { importados: 0, duplicados: 0 };
   }
 
   const { data, error } = await nube.rpc("nexora_importar_seriales_previos", {
-    p_seriales: seriales,
+    p_seriales: valores,
     p_notas: notas?.trim() || null,
   });
 
@@ -897,7 +898,7 @@ export const importarSerialesPreviosEnLote = async (
   if (
     importados < 0 ||
     duplicados < 0 ||
-    importados + duplicados !== seriales.length
+    importados + duplicados !== valores.length
   ) {
     throw new DomainError("errors.saveFailed");
   }
