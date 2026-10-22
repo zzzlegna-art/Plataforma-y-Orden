@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { DomainError, emptyDb } from "../db";
-import type { Actor, Db, Role, User } from "../types";
+import type { Actor, Db, User } from "../types";
 import { updateUser } from "./users";
 
 const adminActor: Actor = {
@@ -37,6 +37,13 @@ const domainErrorKey = (run: () => unknown) => {
   return undefined;
 };
 
+const otroAdmin: Actor = {
+  id: "admin-2",
+  email: "admin2@example.com",
+  fullName: "Segundo administrador",
+  role: "admin",
+};
+
 describe("gestión de cuentas del personal", () => {
   it("impide que un administrador modifique su propia cuenta", () => {
     const db = makeDb(makeUser());
@@ -50,26 +57,19 @@ describe("gestión de cuentas del personal", () => {
   it("impide degradar al último administrador activo", () => {
     const db = makeDb(makeUser());
 
-    expect(domainErrorKey(() => updateUser(db, adminActor, {
-      id: adminActor.id,
+    expect(domainErrorKey(() => updateUser(db, otroAdmin, {
+      id: "admin-1",
       role: "bodeguero",
-    }))).toBe("errors.cannotEditSelf");
+    }))).toBe("errors.lastAdmin");
   });
 
-  it("impide desactivar al último administrador activo desde otra cuenta", () => {
-    const actor = { ...adminActor, id: "admin-2", email: "admin2@example.com" };
-    const db = makeDb(
-      makeUser(),
-      makeUser({ id: "admin-2", email: "admin2@example.com" }),
-    );
-    db.users = [makeUser({ id: "admin-1" }), makeUser({ id: "admin-2", email: "admin2@example.com" })];
-    // El segundo administrador no puede desactivarse a sí mismo; se prueba el último administrador restante.
-    const targetDb = makeDb(makeUser({ id: "admin-1" }));
-    expect(domainErrorKey(() => updateUser(targetDb, actor, {
+  it("impide desactivar al último administrador activo", () => {
+    const db = makeDb(makeUser());
+
+    expect(domainErrorKey(() => updateUser(db, otroAdmin, {
       id: "admin-1",
       isActive: false,
     }))).toBe("errors.lastAdmin");
-    expect(db.users).toHaveLength(2);
   });
 
   it("deniega cambios de cuentas a un trabajador", () => {
@@ -79,27 +79,26 @@ describe("gestión de cuentas del personal", () => {
       fullName: "Trabajador",
       role: "bodeguero",
     };
-    const db = makeDb(makeUser({ id: "admin-1" }));
+    const db = makeDb(makeUser());
 
     expect(domainErrorKey(() => updateUser(db, worker, {
       id: "admin-1",
-      role: "bodeguero" as Role,
+      role: "bodeguero",
     }))).toBe("errors.forbidden");
   });
 
   it("permite desactivar un administrador si queda otro activo y registra auditoría", () => {
-    const actor = { ...adminActor, id: "admin-2", email: "admin2@example.com" };
     const db = makeDb(
       makeUser({ id: "admin-1" }),
       makeUser({ id: "admin-2", email: "admin2@example.com" }),
     );
 
-    const updated = updateUser(db, actor, { id: "admin-1", isActive: false });
+    const updated = updateUser(db, otroAdmin, { id: "admin-1", isActive: false });
 
     expect(updated.isActive).toBe(false);
     expect(db.users.filter((user) => user.role === "admin" && user.isActive)).toHaveLength(1);
     expect(db.auditLogs[0]).toMatchObject({
-      userId: actor.id,
+      userId: otroAdmin.id,
       entity: "user",
       entityId: "admin-1",
       action: "update",
