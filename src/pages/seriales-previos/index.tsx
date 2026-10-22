@@ -180,7 +180,7 @@ const SerialesPrevios = ({ embedded = false }: { embedded?: boolean }) => {
       toast.success(
         t("serialesPrevios.imported", { count: resultado.importados }) +
           (resultado.duplicados > 0
-            ? \` · \${t("serialesPrevios.duplicados", { count: resultado.duplicados })}\`
+            ? ` · ${t("serialesPrevios.duplicados", { count: resultado.duplicados })}`
             : ""),
       );
     } catch (error) {
