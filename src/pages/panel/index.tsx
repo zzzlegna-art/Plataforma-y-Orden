@@ -49,6 +49,7 @@ import { formatCurrency, formatNumber } from "@/lib/format";
 import { crearCsv } from "@/lib/csv";
 import { exportExcel } from "@/lib/export";
 import { buildOperationalReportSheets } from "@/lib/dashboard-report";
+import { buildDashboardMovementChartData, getLocalDateInputValue, isWithinDateRange } from "@/lib/dashboard-date-range";
 import {
   DIAS_GARANTIA_CRITICA,
   DIAS_GARANTIA_ESTANCADA,
@@ -230,10 +231,9 @@ const Panel = () => {
     enlace.remove();
     window.setTimeout(() => URL.revokeObjectURL(url), 1000);
   };
-  const [reporteDesde, setReporteDesde] = useState(() => new Date().toISOString().slice(0, 7) + "-01");
-  const [reporteHasta, setReporteHasta] = useState(() => new Date().toISOString().slice(0, 10));
-  const dentroPeriodoReporte = (fecha: string) => (!reporteDesde || fecha.slice(0, 10) >= reporteDesde) &&
-    (!reporteHasta || fecha.slice(0, 10) <= reporteHasta);
+  const [reporteDesde, setReporteDesde] = useState(() => getLocalDateInputValue().slice(0, 7) + "-01");
+  const [reporteHasta, setReporteHasta] = useState(() => getLocalDateInputValue());
+  const dentroPeriodoReporte = (fecha: string) => isWithinDateRange(fecha, reporteDesde, reporteHasta);
 
   const exportarReporteOperativo = () => {
     if (reporteDesde && reporteHasta && reporteDesde > reporteHasta) return;
@@ -302,43 +302,11 @@ const Panel = () => {
     [customersSignature],
   );
 
-  // Movimiento diario en el rango elegido. Para periodos largos agrupamos por semana
-  // para conservar la lectura de la curva sin llenar el eje de etiquetas.
-  const movementChartData = useMemo(() => {
-    const from = new Date(`${reporteDesde || new Date().toISOString().slice(0, 10)}T12:00:00`);
-    const to = new Date(`${reporteHasta || new Date().toISOString().slice(0, 10)}T12:00:00`);
-    const daysCount = Math.max(1, Math.min(366, Math.floor((to.getTime() - from.getTime()) / 86_400_000) + 1));
-    const weekly = daysCount > 31;
-    const buckets = new Map<string, { key: string; label: string; entradas: number; salidas: number; devoluciones: number }>();
-    for (let index = 0; index < daysCount; index += 1) {
-      const date = new Date(from);
-      date.setDate(date.getDate() + index);
-      if (weekly) date.setDate(date.getDate() - ((date.getDay() + 6) % 7));
-      const key = date.toISOString().slice(0, 10);
-      if (buckets.has(key)) continue;
-      buckets.set(key, {
-        key,
-        label: weekly
-          ? new Intl.DateTimeFormat("es", { day: "numeric", month: "short" }).format(date).replace(/\.$/, "")
-          : new Intl.DateTimeFormat("es", { day: "numeric", month: "short" }).format(date).replace(/\.$/, ""),
-        entradas: 0,
-        salidas: 0,
-        devoluciones: 0,
-      });
-    }
-    for (const movement of db.movements) {
-      const movementDate = movement.createdAt.slice(0, 10);
-      if (movementDate < (reporteDesde || "") || movementDate > (reporteHasta || "9999-12-31")) continue;
-      const date = new Date(`${movementDate}T12:00:00`);
-      if (weekly) date.setDate(date.getDate() - ((date.getDay() + 6) % 7));
-      const bucket = buckets.get(date.toISOString().slice(0, 10));
-      if (!bucket) continue;
-      if (movement.type === "entrada") bucket.entradas += movement.quantity;
-      else if (movement.type === "salida") bucket.salidas += movement.quantity;
-      else if (movement.type === "devolucion") bucket.devoluciones += movement.quantity;
-    }
-    return [...buckets.values()];
-  }, [db.movements, reporteDesde, reporteHasta]);
+  // La gráfica comparte el filtro inclusivo de los informes y conserva rangos largos completos.
+  const movementChartData = useMemo(
+    () => buildDashboardMovementChartData(db.movements, reporteDesde, reporteHasta),
+    [db.movements, reporteDesde, reporteHasta],
+  );
   const operationalChartData = [
     { name: "Pedidos abiertos", value: data.kpis.openOrders, color: "#3b82f6" },
     { name: "Garantías abiertas", value: data.kpis.openWarranties, color: "#8b5cf6" },
