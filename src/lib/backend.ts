@@ -936,18 +936,28 @@ export const controlFinalizar = async (productId: string, resumen: string): Prom
     }),
   );
 
-/** Perfil del usuario autenticado (rol y estado) desde el backend. */
-export const leerPerfil = async (userId: string) => {
+/** Lee el perfil actual. A diferencia de leerPerfil, conserva los errores de red para no confundirlos con una cuenta inactiva. */
+export const consultarPerfilSesion = async (userId: string) => {
   const { data, error } = await nube
     .from("bodega_profiles")
     .select("*")
     .eq("id", userId)
     .maybeSingle();
   if (error) {
-    console.error(`No se pudo leer el perfil: ${error.message}`);
-    return null;
+    throw new Error(`No se pudo verificar el perfil: ${error.message}`);
   }
   return (data ?? null) as Fila | null;
+};
+
+/** Perfil del usuario autenticado (rol y estado) desde el backend. */
+export const leerPerfil = async (userId: string) => {
+  try {
+    return await consultarPerfilSesion(userId);
+  } catch (error) {
+    const mensaje = error instanceof Error ? error.message : String(error);
+    console.error(`No se pudo leer el perfil: ${mensaje}`);
+    return null;
+  }
 };
 
 /** Cambio que llegó en vivo desde otro dispositivo. */
@@ -969,7 +979,11 @@ const ajustesDesdeFila = (fila: Fila): Db["settings"] => ({
  */
 export const suscribirCambios = (
   onCambio: (cambio: CambioRemoto) => void,
-  opciones: { incluirAuditoria?: boolean } = {},
+  opciones: {
+    incluirAuditoria?: boolean;
+    perfilUsuarioId?: string;
+    alCambiarPerfil?: () => void;
+  } = {},
 ) => {
   let canal = supabase.channel("bodega-6a-tiempo-real");
 
@@ -1001,6 +1015,21 @@ export const suscribirCambios = (
       }
     },
   );
+
+  // El perfil actualiza el rol/estado de la sesión sin esperar a recargar la página.
+  // La verificación de respaldo por intervalo cubre eventos que RLS no entregue.
+  if (opciones.perfilUsuarioId && opciones.alCambiarPerfil) {
+    canal = canal.on(
+      "postgres_changes",
+      {
+        event: "*",
+        schema: "public",
+        table: "bodega_profiles",
+        filter: `id=eq.${opciones.perfilUsuarioId}`,
+      },
+      () => opciones.alCambiarPerfil?.(),
+    );
+  }
 
   canal.subscribe();
   console.log("Tiempo real conectado");

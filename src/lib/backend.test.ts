@@ -18,6 +18,7 @@ import {
   controlIniciar,
   controlMarcarSerial,
   controlMarcarUnidad,
+  consultarPerfilSesion,
   pullDb,
   pushDb,
   reiniciarModoDeGuardado,
@@ -68,6 +69,41 @@ beforeEach(() => {
       },
     }),
   }));
+});
+
+describe("consultarPerfilSesion", () => {
+  it("lee el perfil actual de la cuenta autenticada", async () => {
+    const perfil = {
+      id: "worker-1",
+      email: "worker@example.com",
+      full_name: "Trabajador",
+      role: "bodeguero",
+      is_active: true,
+    };
+    const maybeSingle = vi.fn().mockResolvedValue({ data: perfil, error: null });
+    const eq = vi.fn().mockReturnValue({ maybeSingle });
+    const select = vi.fn().mockReturnValue({ eq });
+    mocks.from.mockReturnValue({ select } as never);
+
+    await expect(consultarPerfilSesion("worker-1")).resolves.toEqual(perfil);
+    expect(mocks.from).toHaveBeenCalledWith("bodega_profiles");
+    expect(select).toHaveBeenCalledWith("*");
+    expect(eq).toHaveBeenCalledWith("id", "worker-1");
+  });
+
+  it("propaga errores de red para no confundirlos con una cuenta desactivada", async () => {
+    const maybeSingle = vi.fn().mockResolvedValue({
+      data: null,
+      error: { message: "network unavailable" },
+    });
+    const eq = vi.fn().mockReturnValue({ maybeSingle });
+    const select = vi.fn().mockReturnValue({ eq });
+    mocks.from.mockReturnValue({ select } as never);
+
+    await expect(consultarPerfilSesion("worker-1")).rejects.toThrow(
+      "No se pudo verificar el perfil: network unavailable",
+    );
+  });
 });
 
 describe("calcularPasos", () => {
