@@ -159,6 +159,23 @@ describe("auditoría: entityId debe ser un uuid o no estar (la columna es uuid)"
     expect(db.auditLogs[0].entityId).toBeUndefined();
   });
 
+  it("omite seriales ya registrados sin distinguir mayúsculas y minúsculas", () => {
+    const db = emptyDb();
+    db.serialesPrevios.push({
+      id: "prev-1",
+      serial: "OLD-1",
+      createdBy: admin.id,
+      createdAt: now,
+    });
+
+    const resultado = importarSerialesPrevios(db, admin, {
+      seriales: ["old-1", "NEW-1", "new-1"],
+    });
+
+    expect(resultado).toEqual({ importados: 1, duplicados: 2 });
+    expect(db.serialesPrevios.map((item) => item.serial)).toEqual(["OLD-1", "NEW-1"]);
+  });
+
   it("despachar y anular pedidos usan siempre el id del pedido", () => {
     const db = escenario("en_preparacion", ["en_bodega"]);
     db.orders[0].id = "11111111-1111-4111-8111-111111111111";

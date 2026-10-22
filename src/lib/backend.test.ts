@@ -19,6 +19,7 @@ import {
   controlMarcarSerial,
   controlMarcarUnidad,
   consultarPerfilSesion,
+  importarSerialesPreviosEnLote,
   pullDb,
   pushDb,
   reiniciarModoDeGuardado,
@@ -69,6 +70,57 @@ beforeEach(() => {
       },
     }),
   }));
+});
+
+describe("importarSerialesPreviosEnLote", () => {
+  it("envía el lote al RPC y devuelve filas nuevas y auditoría", async () => {
+    const auditoria = {
+      id: "22345678-1234-1234-1234-123456789012",
+      userId: "admin-1",
+      userEmail: "admin@example.com",
+      action: "create",
+      entity: "serial_previo",
+      entityId: null,
+      details: "1 seriales previos importados (lote)",
+      createdAt: ahora,
+    };
+    mocks.rpc.mockResolvedValue({
+      data: { importados: 1, duplicados: 1, auditoria },
+      error: null,
+    });
+
+    const resultado = await importarSerialesPreviosEnLote(["SP-001", "sp-001"]);
+
+    expect(mocks.rpc).toHaveBeenCalledWith("nexora_importar_seriales_previos", {
+      p_seriales: ["SP-001", "sp-001"],
+      p_notas: null,
+    });
+    expect(resultado.importados).toBe(1);
+    expect(resultado.duplicados).toBe(1);
+    expect(resultado.auditoria).toMatchObject({
+      userId: "admin-1",
+      entity: "serial_previo",
+      entityId: undefined,
+    });
+  });
+
+  it("rechaza lotes mayores de 20.000 antes de llamar al servidor", async () => {
+    await expect(
+      importarSerialesPreviosEnLote(Array.from({ length: 20_001 }, (_, i) => `SP-${i}`)),
+    ).rejects.toMatchObject({ key: "serialesPrevios.excelErrorTooMany" });
+    expect(mocks.rpc).not.toHaveBeenCalled();
+  });
+
+  it("traduce el rechazo del servidor para un usuario sin permiso", async () => {
+    mocks.rpc.mockResolvedValue({
+      data: null,
+      error: { code: "42501", message: "BODEGA_FORBIDDEN" },
+    });
+
+    await expect(importarSerialesPreviosEnLote(["SP-001"])).rejects.toMatchObject({
+      key: "errors.forbidden",
+    });
+  });
 });
 
 describe("consultarPerfilSesion", () => {

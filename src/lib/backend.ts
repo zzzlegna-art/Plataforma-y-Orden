@@ -844,6 +844,87 @@ export const pushDb = async (previo: Db, siguiente: Db): Promise<void> => {
   }
 };
 
+/** Resultado de una importación masiva de seriales previos confirmada por el servidor. */
+export type ResultadoImportacionSerialesPreviosLote = {
+  importados: number;
+  duplicados: number;
+  auditoria?: AuditLog;
+};
+
+/**
+ * Importa hasta 20.000 seriales en una transacción del servidor. La base de datos
+ * vuelve a validar el rol y aplica la deduplicación incluso frente a importaciones
+ * simultáneas desde otros dispositivos.
+ */
+export const importarSerialesPreviosEnLote = async (
+  seriales: string[],
+  notas?: string,
+): Promise<ResultadoImportacionSerialesPreviosLote> => {
+  const valores = seriales.map((serial) => serial.trim()).filter(Boolean);
+  if (valores.length > 20_000) {
+    throw new DomainError("serialesPrevios.excelErrorTooMany");
+  }
+  if (valores.length === 0) {
+    return { importados: 0, duplicados: 0 };
+  }
+
+  const { data, error } = await nube.rpc("nexora_importar_seriales_previos", {
+    p_seriales: valores,
+    p_notas: notas?.trim() || null,
+  });
+
+  if (error) {
+    if (error.code === "42501" || error.message.includes("BODEGA_FORBIDDEN")) {
+      throw new DomainError("errors.forbidden");
+    }
+    if (error.message.includes("BODEGA_SERIAL_PREVIOS_LIMITE")) {
+      throw new DomainError("serialesPrevios.excelErrorTooMany");
+    }
+    throw new DomainError("errors.saveFailed", {
+      detalle: detalleTecnico(error.message),
+    });
+  }
+
+  if (!data || typeof data !== "object") {
+    throw new DomainError("errors.saveFailed");
+  }
+
+  const respuesta = data as Fila;
+  const importados = numero(respuesta.importados);
+  const duplicados = numero(respuesta.duplicados);
+
+  // El servidor devuelve solo el resumen: la pantalla se resincroniza después,
+  // sin transferir otra vez las 20.000 filas en la respuesta del RPC.
+  if (
+    importados < 0 ||
+    duplicados < 0 ||
+    importados + duplicados !== valores.length
+  ) {
+    throw new DomainError("errors.saveFailed");
+  }
+
+  let auditoria: AuditLog | undefined;
+  if (respuesta.auditoria && typeof respuesta.auditoria === "object") {
+    const fila = respuesta.auditoria as Fila;
+    auditoria = {
+      id: String(fila.id ?? ""),
+      userId: texto(fila.userId) ?? "",
+      userEmail: texto(fila.userEmail) ?? "",
+      action: (texto(fila.action) as AuditLog["action"]) ?? "create",
+      entity: (texto(fila.entity) as AuditLog["entity"]) ?? "serial_previo",
+      entityId: texto(fila.entityId) ?? undefined,
+      details: texto(fila.details) ?? undefined,
+      createdAt: fecha(fila.createdAt),
+    };
+  }
+
+  return {
+    importados,
+    duplicados,
+    auditoria,
+  };
+};
+
 // ---------------------------------------------------------------------------
 // Control físico de seriales (migración 0005)
 //

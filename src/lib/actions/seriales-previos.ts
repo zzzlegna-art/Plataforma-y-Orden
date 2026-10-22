@@ -5,7 +5,6 @@
 
 import { createId, DomainError, logAudit, nowIso } from "../db";
 import type { Actor, Db, SerialPrevio } from "../types";
-import { isSameText, requireText } from "./guards";
 
 const requireAdmin = (actor: Actor) => {
   if (actor.role !== "admin") throw new DomainError("errors.forbidden");
@@ -24,7 +23,8 @@ export const importarSerialesPrevios = (
   const notas = input.notas?.trim() || undefined;
   let importados = 0;
   let duplicados = 0;
-  const vistos = new Set<string>();
+  // Construir el índice una sola vez evita una búsqueda O(n²) al importar miles de filas.
+  const vistos = new Set(db.serialesPrevios.map((item) => item.serial.trim().toLowerCase()));
 
   input.seriales.forEach((raw) => {
     const serial = raw.trim();
@@ -35,10 +35,6 @@ export const importarSerialesPrevios = (
       return;
     }
     vistos.add(clave);
-    if (db.serialesPrevios.some((item) => isSameText(item.serial, serial))) {
-      duplicados += 1;
-      return;
-    }
     const item: SerialPrevio = {
       id: createId(),
       serial,
