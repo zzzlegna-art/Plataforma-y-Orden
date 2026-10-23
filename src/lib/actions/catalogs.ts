@@ -68,7 +68,7 @@ export const generarSkuProducto = (db: Db, name: string, ignoreId?: string): str
 
   const base = (modelo + (capacidad ? "-" + capacidad : "")).slice(0, 12);
   const taken = (sku: string) =>
-    db.products.some((product) => product.id !== ignoreId && product.sku.toUpperCase() === sku);
+    db.products.some((product) => product.id !== ignoreId && product.sku.trim().toUpperCase() === sku);
   if (!taken(base)) return base;
 
   let counter = 2;
@@ -372,7 +372,7 @@ export const updateProduct = (
   const sku = (input.sku?.trim().toUpperCase() || generarSkuProducto(db, name, product.id)).slice(0, 40);
   if (
     db.products.some(
-      (item) => item.id !== product.id && item.sku.toUpperCase() === sku,
+      (item) => item.id !== product.id && item.sku.trim().toUpperCase() === sku,
     )
   ) {
     throw new DomainError("errors.skuDuplicated");
