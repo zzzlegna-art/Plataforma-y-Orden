@@ -185,6 +185,7 @@ export const parseProductCsv = (text: string): ProductCsvRow[] => {
     const imageUrl = get("imageUrl");
     const errors = [
       !name ? "El nombre del producto es obligatorio." : undefined,
+      get("sku").length > 40 ? "La referencia no puede superar los 40 caracteres." : undefined,
       price.error,
       cost.error,
       minStock.error,
