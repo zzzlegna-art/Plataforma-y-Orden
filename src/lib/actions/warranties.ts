@@ -332,6 +332,33 @@ export const createWarrantiesPrevias = (
     }
   });
 
+/**
+ * Falla en inventario: un equipo disponible en bodega o local presenta una falla
+ * sin haberse vendido. Se registra por serial y sigue el mismo circuito de servicio
+ * técnico, pero sin asociarlo a un cliente.
+ */
+export const createWarrantyFallaInventario = (
+  db: Db,
+  actor: Actor,
+  input: { items: WarrantyItemInput[] },
+): WarrantyItemResult[] =>
+  input.items.map((item) => {
+    try {
+      requirePermission(actor, "warranties.manage");
+      const unit = findUnitBySerial(db, item.imei);
+      if (!unit) throw new DomainError("errors.unitNotFound", { serial: item.imei });
+      if (unit.status !== "en_bodega" && unit.status !== "en_local") {
+        throw new DomainError("errors.unitNotInInventory", { serial: item.imei });
+      }
+      assertNoOpenWarranty(db, unit);
+      const reason = requireText(item.observacion, "errors.warrantyReasonRequired");
+      const warranty = receiveUnit(db, actor, unit, reason);
+      return { imei: item.imei, ok: true, warrantyId: warranty.id };
+    } catch (error) {
+      return resultadoConError(item.imei, error);
+    }
+  });
+
 /** Envía garantías recibidas al técnico externo seleccionado. */
 export const enviarATecnico = (
   db: Db,
@@ -360,9 +387,10 @@ export const enviarATecnico = (
 };
 
 /**
- * Registra el diagnóstico del taller: texto, resolución y costo.
- * `sin_falla` y `defectuoso` devuelven la unidad a inventario al instante;
- * `reparado`/`cambio` (este último con el serial del reemplazo) dejan el caso en "reenvío pendiente" hasta entregar.
+ * Registra el diagnóstico del técnico y deja la decisión de destino para la bandeja
+ * Reenvío. Si es un cambio, el serial de reemplazo se valida y reserva desde aquí.
+ * Un equipo que se considera irreparable no se recibe como garantía y por eso no se
+ * acepta "defectuoso" como diagnóstico de un caso nuevo.
  */
 export const registrarDiagnostico = (
   db: Db,
@@ -381,53 +409,33 @@ export const registrarDiagnostico = (
   if (warranty.status !== "recibido" && warranty.status !== "en_servicio_tecnico") {
     throw new DomainError("errors.invalidTransition");
   }
+  if (input.resolucion === "defectuoso") {
+    throw new DomainError("errors.invalidTransition");
+  }
   const diagnostico = requireText(input.diagnostico, "errors.diagnosticoRequired");
-  // Con "cambio" se pide el serial del reemplazo ya en el diagnóstico (antes de tocar nada).
   const replacement =
     input.resolucion === "cambio"
       ? requireReplacement(db, warranty, input.replacementUnitId)
       : undefined;
+
   warranty.diagnostico = diagnostico;
   warranty.resolucion = input.resolucion;
   warranty.replacementUnitId = replacement?.id;
   warranty.costo = input.costo && input.costo > 0 ? input.costo : undefined;
-
-  const unit = warranty.unitId
-    ? db.units.find((item) => item.id === warranty.unitId)
-    : undefined;
-  if (unit) {
-    if (input.resolucion === "sin_falla" && unit.status === "en_reparacion") {
-      unit.status = "en_bodega";
-      // Vuelve a ser stock de la bodega, no del cliente que lo compró: si queda ligada a esa
-      // venta, una futura garantía sobre este mismo serial mostraría a ese cliente por error.
-      db.orderItemUnits = db.orderItemUnits.filter((row) => row.unitId !== unit.id);
-      logMovement(db, actor, {
-        productId: unit.productId,
-        unitId: unit.id,
-        type: "devolucion",
-        referenceType: "garantia",
-        referenceId: warranty.id,
-        notes: `Sin falla encontrada, devuelto a bodega (${warranty.code})`,
-      });
-    }
-    // "Defectuoso" es el diagnóstico, no una decisión de destino.
-    // El equipo sigue en reparación hasta decidir cambio o reembolso.
-
-  }
+  // No mover la unidad al registrar el diagnóstico: en Reenvío se decide si el equipo
+  // vuelve al cliente o queda disponible en bodega. El cambio es la única excepción
+  // de selección inmediata: aquí se valida el serial, pero el movimiento ocurre al confirmar.
 
   warranty.status = "reenvio_pendiente";
-  addEvent(
-    db,
-    actor,
-    warranty.id,
-    "reenvio_pendiente",
-    `${input.resolucion}${input.costo ? ` · costo ${input.costo}` : ""}`,
-  );
+  const notaDiagnostico = input.resolucion === "cambio" && replacement
+    ? `Cambio aprobado · serial de reemplazo ${replacement.serial}${input.costo ? ` · costo ${input.costo}` : ""}`
+    : `${input.resolucion}${input.costo ? ` · costo ${input.costo}` : ""}`;
+  addEvent(db, actor, warranty.id, "reenvio_pendiente", notaDiagnostico);
   logAudit(db, actor, {
     action: "resolve",
     entity: "warranty",
     entityId: warranty.id,
-    details: `${warranty.code} · diagnóstico: ${input.resolucion}`,
+    details: `${warranty.code} · diagnóstico: ${input.resolucion}${replacement ? ` · reemplazo ${replacement.serial}` : ""}`,
   });
   return warranty;
 };
@@ -483,9 +491,10 @@ export const deshacerEstadoGarantia = (
 };
 
 /**
- * Entrega la garantía al cliente. Con resolución "cambio" se elige la unidad de
- * reemplazo (mismo producto, en bodega/local): el reemplazo sale para el cliente y el equipo
- * original que trajo entra a la bodega, disponible para vender.
+ * Cierra el reenvío con el destino físico registrado:
+ * - reparado/sin_falla: vuelve al cliente o queda disponible en bodega;
+ * - cambio: el serial de reemplazo sale al cliente y el original vuelve disponible a bodega;
+ * - garantía previa devuelta a bodega: el serial manual se incorpora al inventario.
  */
 export const entregarGarantia = (
   db: Db,
@@ -497,11 +506,13 @@ export const entregarGarantia = (
   if (warranty.status !== "reenvio_pendiente") {
     throw new DomainError("errors.invalidTransition");
   }
+
   const unit = warranty.unitId
     ? db.units.find((item) => item.id === warranty.unitId)
     : undefined;
-
+  const serialOriginal = unit?.serial ?? warranty.imeiManual ?? "serial no disponible";
   const sinCliente = !garantiaTieneCliente(warranty);
+  // Solo para casos históricos: "defectuoso" ya no se puede elegir en diagnósticos nuevos.
   const destinoDefectuoso = warranty.resolucion === "defectuoso"
     ? (sinCliente ? "bodega" : input.destinoDefectuoso)
     : undefined;
@@ -512,15 +523,17 @@ export const entregarGarantia = (
   if (reembolso && (sinCliente || warranty.resolucion === "cambio" || destinoDefectuoso === "cambio")) {
     throw new DomainError("errors.invalidTransition");
   }
+
   const esCambio = warranty.resolucion === "cambio" || destinoDefectuoso === "cambio";
+  let serialReemplazo: string | undefined;
   if (esCambio) {
-    // Usa el serial elegido en el diagnóstico; si el caso es anterior a ese cambio, se elige aquí.
     const replacement = requireReplacement(
       db,
       warranty,
       input.replacementUnitId ?? warranty.replacementUnitId,
     );
     warranty.replacementUnitId = replacement.id;
+    serialReemplazo = replacement.serial;
     replacement.status = "entregado_garantia";
     logMovement(db, actor, {
       productId: replacement.productId,
@@ -528,14 +541,12 @@ export const entregarGarantia = (
       type: "salida",
       referenceType: "garantia",
       referenceId: warranty.id,
-      notes: `Cambio por garantía ${warranty.code}: se entrega ${replacement.serial} en lugar de ${unit?.serial ?? warranty.imeiManual ?? "equipo anterior"}`,
+      notes: `Cambio por garantía ${warranty.code}: serial ${replacement.serial} entregado al cliente en lugar de ${serialOriginal}`,
     });
+
     if (unit) {
-      // Un cambio normal devuelve el equipo a bodega. Solo un diagnóstico
-      // explícito "defectuoso" lo clasifica como no recuperable.
-      unit.status = warranty.resolucion === "defectuoso" ? "defectuoso" : "en_bodega";
-      // Ya no es "su" venta: si siguiera vinculado al pedido original, la ficha del serial lo
-      // mostraría como si todavía fuera de este cliente, aunque ahora es de la bodega.
+      const originalNoRecuperable = warranty.resolucion === "defectuoso";
+      unit.status = originalNoRecuperable ? "defectuoso" : "en_bodega";
       db.orderItemUnits = db.orderItemUnits.filter((row) => row.unitId !== unit.id);
       logMovement(db, actor, {
         productId: unit.productId,
@@ -543,45 +554,58 @@ export const entregarGarantia = (
         type: "entrada",
         referenceType: "garantia",
         referenceId: warranty.id,
-        notes: `Cambio por garantía ${warranty.code}: ${unit.serial} regresa a bodega (${unit.status}); reemplazado por ${replacement.serial}`,
+        notes: originalNoRecuperable
+          ? `Cambio por garantía ${warranty.code}: serial original ${unit.serial} queda defectuoso en bodega; reemplazado por ${replacement.serial}`
+          : `Cambio por garantía ${warranty.code}: serial original ${unit.serial} vuelve disponible en bodega; reemplazado por ${replacement.serial}`,
       });
     } else if (warranty.imeiManual) {
-      // Garantía previa: el cliente entrega su equipo a cambio del reemplazo, así que ahora es de
-      // la bodega. Se toma el producto del reemplazo entregado (es un cambio de equipo).
+      const productId = replacement.productId;
       darDeAltaEquipoPrevio(
         db,
         actor,
         warranty,
-        replacement.productId,
-        `Cambio por garantía ${warranty.code}: equipo previo ${warranty.imeiManual} recibido en bodega; reemplazado por ${replacement.serial}`,
+        productId,
+        `Cambio por garantía ${warranty.code}: serial original ${warranty.imeiManual} recibido y disponible en bodega; reemplazado por ${replacement.serial}`,
         warranty.resolucion === "defectuoso" ? "defectuoso" : "en_bodega",
       );
     }
   }
 
-  // Una falla de inventario (sin cliente ni pedido) no se le entrega a nadie: el equipo
-  // reparado vuelve a la bodega. Con cliente, el negocio también puede decidir no devolverlo.
-  const aBodega =
-    warranty.resolucion === "reparado" &&
-    Boolean(unit) &&
-    (sinCliente || input.devolverABodega === true || reembolso);
+  const resolucionConEquipo = warranty.resolucion === "reparado" || warranty.resolucion === "sin_falla";
+  const aBodega = resolucionConEquipo && (
+    sinCliente || input.devolverABodega === true || reembolso
+  );
 
-  if (warranty.resolucion === "reparado" && unit) {
+  if (resolucionConEquipo && (unit || (aBodega && warranty.imeiManual))) {
     if (aBodega) {
-      unit.status = "en_bodega";
-      // Vuelve a ser mercancía de la bodega, no del cliente que lo envió.
-      db.orderItemUnits = db.orderItemUnits.filter((row) => row.unitId !== unit.id);
-      logMovement(db, actor, {
-        productId: unit.productId,
-        unitId: unit.id,
-        type: "devolucion",
-        referenceType: "garantia",
-        referenceId: warranty.id,
-        notes: sinCliente
-          ? `Reparado y devuelto a bodega, sin cliente (${warranty.code})`
-          : `Reparado; se decide no devolverlo al cliente, vuelve a bodega (${warranty.code})`,
-      });
-    } else {
+      if (unit) {
+        const yaDisponible = unit.status === "en_bodega";
+        const seguiaLigadaAVenta = db.orderItemUnits.some((row) => row.unitId === unit.id);
+        unit.status = "en_bodega";
+        db.orderItemUnits = db.orderItemUnits.filter((row) => row.unitId !== unit.id);
+        if (!yaDisponible || seguiaLigadaAVenta) {
+          logMovement(db, actor, {
+            productId: unit.productId,
+            unitId: unit.id,
+            type: "devolucion",
+            referenceType: "garantia",
+            referenceId: warranty.id,
+            notes: `${warranty.resolucion === "sin_falla" ? "Equipo sin falla" : "Equipo reparado"} ${unit.serial} queda disponible en bodega${sinCliente ? ", sin cliente" : ""} (${warranty.code})${reembolso ? "; reembolso acordado, dinero por registrar por separado" : ""}`,
+          });
+        }
+      } else if (warranty.imeiManual) {
+        const productId = warranty.productId ?? productoPorReferencia(db, warranty.referenciaManual);
+        if (!productId) throw new DomainError("errors.unitProductMismatch");
+        darDeAltaEquipoPrevio(
+          db,
+          actor,
+          warranty,
+          productId,
+          `${warranty.resolucion === "sin_falla" ? "Equipo sin falla" : "Equipo reparado"} ${warranty.imeiManual} recibido de garantía y disponible en bodega (${warranty.code})${reembolso ? "; reembolso acordado, dinero por registrar por separado" : ""}`,
+          "en_bodega",
+        );
+      }
+    } else if (unit) {
       unit.status = "entregado_garantia";
       logMovement(db, actor, {
         productId: unit.productId,
@@ -589,11 +613,12 @@ export const entregarGarantia = (
         type: "devolucion",
         referenceType: "garantia",
         referenceId: warranty.id,
-        notes: `Reparado y entregado al cliente (${warranty.code})`,
+        notes: `Garantía ${warranty.code}: serial ${unit.serial} entregado al cliente tras diagnóstico ${warranty.resolucion}`,
       });
     }
   }
 
+  // Mantener el comportamiento de registros históricos que sí se marcaron como defectuosos.
   if (warranty.resolucion === "defectuoso" && destinoDefectuoso !== "cambio") {
     if (unit) {
       unit.status = "defectuoso";
@@ -605,35 +630,57 @@ export const entregarGarantia = (
         referenceType: "garantia",
         referenceId: warranty.id,
         notes: destinoDefectuoso === "reembolso"
-          ? `Reembolso acordado para garantía ${warranty.code}; equipo defectuoso queda en bodega (pago no registrado automáticamente)`
-          : `Falla de inventario ${warranty.code}: equipo defectuoso queda en bodega`,
+          ? `Registro histórico de garantía ${warranty.code}: serial ${unit.serial} queda defectuoso en bodega; reembolso por registrar por separado`
+          : `Registro histórico de garantía ${warranty.code}: serial ${unit.serial} queda defectuoso en bodega`,
       });
     } else if (warranty.imeiManual) {
       const productId = warranty.productId ?? productoPorReferencia(db, warranty.referenciaManual);
       if (!productId) throw new DomainError("errors.unitProductMismatch");
-      darDeAltaEquipoPrevio(db, actor, warranty, productId,
-        `Garantía ${warranty.code}: equipo defectuoso recibido en bodega; ${destinoDefectuoso === "reembolso" ? "reembolso acordado (pago pendiente de registrar)" : "falla de inventario"}`,
-        "defectuoso");
+      darDeAltaEquipoPrevio(
+        db,
+        actor,
+        warranty,
+        productId,
+        `Registro histórico de garantía ${warranty.code}: serial ${warranty.imeiManual} queda defectuoso en bodega`,
+        "defectuoso",
+      );
     }
   }
 
-  // Reembolso es una decisión comercial: nunca modifica por sí sola el diagnóstico.
-  // Sin falla ya regresó al stock durante el diagnóstico; reparado regresa aquí.
-  const cierreEnBodega = reembolso || destinoDefectuoso === "bodega";
+  const cierreEnBodega = aBodega || reembolso || destinoDefectuoso === "bodega";
   warranty.status = cierreEnBodega ? "devuelto" : "entregado";
   warranty.resolvedAt = nowIso();
+
+  let notaCierre: string;
+  if (destinoDefectuoso === "bodega") {
+    notaCierre = `Registro histórico: serial ${serialOriginal} queda defectuoso en bodega`;
+  } else if (esCambio) {
+    notaCierre = warranty.resolucion === "defectuoso"
+      ? `Cambio completado: serial original ${serialOriginal} queda defectuoso en bodega; serial de reemplazo ${serialReemplazo ?? "—"} entregado al cliente`
+      : `Cambio completado: serial original ${serialOriginal} queda disponible en bodega; serial de reemplazo ${serialReemplazo ?? "—"} entregado al cliente`;
+  } else if (reembolso) {
+    notaCierre = warranty.resolucion === "defectuoso"
+      ? `Reembolso acordado; serial original ${serialOriginal} queda defectuoso en bodega. El movimiento de dinero se registra por separado`
+      : `Reembolso acordado; serial original ${serialOriginal} queda disponible en bodega. El movimiento de dinero se registra por separado`;
+  } else if (aBodega) {
+    const diagnosticoFinal = warranty.resolucion === "sin_falla" ? "sin falla encontrada" : "reparado";
+    notaCierre = `Equipo original ${serialOriginal} ${diagnosticoFinal} y disponible en bodega${sinCliente ? " (falla de inventario, sin cliente)" : ""}`;
+  } else {
+    notaCierre = `Garantía entregada al cliente: serial ${serialOriginal}`;
+  }
+
   addEvent(
     db,
     actor,
     warranty.id,
     cierreEnBodega ? "devuelto" : "entregado",
-    reembolso ? `Reembolso acordado; diagnóstico: ${warranty.resolucion ?? "pendiente"}; sin movimiento de dinero` : destinoDefectuoso === "bodega" ? "Equipo defectuoso retenido en bodega" : esCambio ? "Cambio de serial entregado al cliente" : aBodega ? "Reparado y devuelto a bodega" : "Entregado al cliente",
+    notaCierre,
   );
   logAudit(db, actor, {
     action: "resolve",
     entity: "warranty",
     entityId: warranty.id,
-    details: `${warranty.code} · ${reembolso ? "reembolso acordado, sin pago automático" : destinoDefectuoso === "bodega" ? "defectuoso en bodega" : aBodega ? "devuelto a bodega" : "entregado"}`,
+    details: `${warranty.code} · ${notaCierre}`,
   });
   return warranty;
 };
