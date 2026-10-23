@@ -295,8 +295,12 @@ export const getProductTechnicalSpecsForCategory = (
     ] as const;
     for (const key of legacyHeadphoneKeys) {
       const value = specs[key];
-      if (!normalized[key] && typeof value === "string" && value.trim()) {
-        normalized[key] = normalizeCatalogText(value);
+      if (
+        !normalized[key] &&
+        typeof value === "string" &&
+        (normalizarTexto ? Boolean(value.trim()) : true)
+      ) {
+        normalized[key] = normalizar(value);
       }
     }
   }
