@@ -1,7 +1,7 @@
 /**
- * Acciones de garantías: recepción por IMEI (uno/lote) o garantía previa;
- * envío a técnico externo; diagnóstico con resolución y costo; entrega al cliente
- * (con reemplazo) o devolución a bodega.
+ * Acciones de garantías: recepción por IMEI (uno/lote), falla de inventario
+ * (uno/lote) o garantía previa; envío a técnico externo; diagnóstico y destino final
+ * del equipo con movimientos trazables de inventario.
  */
 
 import { createId, DomainError, logAudit, logMovement, nextDailyCode, nowIso } from "../db";
@@ -451,12 +451,12 @@ export const registrarDiagnostico = (
 
 /**
  * Estado al que volvería un caso si se deshace su último paso, o `null` si no se puede deshacer
- * desde la plataforma. Solo se deshacen pasos que NO movieron inventario:
+ * desde la plataforma. Solo se deshacen pasos sin movimientos de inventario:
  * - en servicio técnico -> recibido (se quita el técnico asignado)
- * - reenvío pendiente -> en servicio técnico (si pasó por un técnico) o recibido, siempre que el
- *   diagnóstico fuera "reparado" o "cambio". Un diagnóstico "sin falla" o "defectuoso" ya devolvió
- *   el equipo al inventario y lo desvinculó de su venta, así que no se revierte con un botón.
- * Entregado y devuelto tampoco: mueven unidades.
+ * - reenvío pendiente -> en servicio técnico (si pasó por un técnico) o recibido, cuando el
+ *   diagnóstico fue reparado/cambio. "Sin falla" conserva la restricción para proteger casos
+ *   históricos que movían unidades al registrar el diagnóstico antes de decidir el destino.
+ * Entregado y devuelto tampoco se deshacen: el destino final ya movió o liberó una unidad.
  */
 export const estadoAnteriorGarantia = (
   warranty: Pick<Warranty, "status" | "resolucion" | "tecnicoId">,
