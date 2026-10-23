@@ -189,6 +189,9 @@ export const parseProductCsv = (text: string): ProductCsvRow[] => {
       price.error,
       cost.error,
       minStock.error,
+      Number.isInteger(minStock.value)
+        ? undefined
+        : "El campo stock mínimo debe ser un número entero mayor o igual a cero.",
       validarUrlImagen(imageUrl),
     ].filter((error): error is string => Boolean(error));
 

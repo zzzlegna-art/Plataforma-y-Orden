@@ -54,6 +54,16 @@ describe("parseProductCsv", () => {
     const rows = parseProductCsv("Producto;Referencia\nTablet;" + "X".repeat(41));
     expect(rows[0].error).toContain("40 caracteres");
   });
+  it("rechaza stock mínimo fraccionario porque la existencia mínima debe ser entera", () => {
+    const rows = parseProductCsv("Producto;Stock mínimo\nTablet;1.5");
+    expect(rows[0].error).toContain("stock mínimo debe ser un número entero");
+  });
+
+  it("acepta stock mínimo entero y no altera precios fraccionarios válidos", () => {
+    const rows = parseProductCsv("Producto;Stock mínimo;Precio\nTablet;2;1299.99");
+    expect(rows[0]).toMatchObject({ minStock: 2, price: 1299.99, error: "" });
+  });
+
 
   it("rechaza archivos sin columna de nombre o sin filas de datos", () => {
     expect(() => parseProductCsv("Referencia;Precio\nSKU-1;100")).toThrowError(ProductCsvImportError);
