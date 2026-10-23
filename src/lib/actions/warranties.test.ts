@@ -160,15 +160,13 @@ describe("registrarDiagnostico · resolución cambio pide el serial de reemplazo
     expect(db.units.find((u) => u.id === "un1")?.status).toBe("en_bodega");
   });
 
-  it("garantía previa (sin producto ni unidad): acepta cualquier unidad disponible", () => {
+  it("garantía previa sin referencia del catálogo no permite cambiar a ciegas", () => {
     const db = dbCon({ unitId: undefined, productId: undefined, imeiManual: "123", clienteManual: "Cliente previo", status: "en_servicio_tecnico" });
     db.units = [reemplazo()];
-    registrarDiagnostico(db, admin, {
+    expect(() => registrarDiagnostico(db, admin, {
       warrantyId: "w1", diagnostico: "no enciende", resolucion: "cambio", replacementUnitId: "un2",
-    });
-    entregarGarantia(db, admin, { warrantyId: "w1" });
-    expect(db.warranties[0].status).toBe("entregado");
-    expect(db.units[0].status).toBe("entregado_garantia");
+    })).toThrow();
+    expect(db.warranties[0].status).toBe("en_servicio_tecnico");
   });
 
   it("garantía previa con referencia conocida exige el mismo producto como reemplazo", () => {
@@ -192,7 +190,7 @@ describe("registrarDiagnostico · resolución cambio pide el serial de reemplazo
   });
 
   it("caso previo que ya quedó en reenvío sin serial: se puede entregar eligiéndolo al entregar", () => {
-    const db = dbCon({ unitId: undefined, productId: undefined, imeiManual: "123", clienteManual: "Cliente previo", resolucion: "cambio" });
+    const db = dbCon({ unitId: undefined, productId: "p1", imeiManual: "123", referenciaManual: "iPhone 13", clienteManual: "Cliente previo", resolucion: "cambio" });
     db.units = [reemplazo()];
     entregarGarantia(db, admin, { warrantyId: "w1", replacementUnitId: "un2" });
     expect(db.warranties[0].status).toBe("entregado");
@@ -283,7 +281,14 @@ describe("entregarGarantia · cambio de equipo: el original entra a bodega y el 
 
 describe("entregarGarantia · cambio en una garantía previa: el equipo original queda disponible", () => {
   const dbPrevia = () => {
-    const db = dbCon({ unitId: undefined, productId: undefined, imeiManual: "356528187284484", resolucion: "cambio", clienteManual: "Ana" });
+    const db = dbCon({
+      unitId: undefined, productId: "p9", imeiManual: "356528187284484", referenciaManual: "iPhone 13",
+      resolucion: "cambio", clienteManual: "Ana",
+    });
+    db.products = [{
+      id: "p9", sku: "IPH13", name: "iPhone 13", price: 0, cost: 0, minStock: 0,
+      isActive: true, createdAt: now, updatedAt: now,
+    }];
     db.units = [
       { id: "un2", productId: "p9", serial: "353669753132930", condition: "nuevo", status: "en_bodega", receivedAt: now, createdBy: "u1" },
     ];
@@ -304,7 +309,7 @@ describe("entregarGarantia · cambio en una garantía previa: el equipo original
 
   it("si el serial ya existía como liberado, lo reutiliza en vez de duplicarlo", () => {
     const db = dbPrevia();
-    db.units.push({ id: "un3", productId: "p1", serial: "356528187284484", condition: "nuevo", status: "liberado", receivedAt: now, createdBy: "u1" });
+    db.units.push({ id: "un3", productId: "p9", serial: "356528187284484", condition: "nuevo", status: "liberado", receivedAt: now, createdBy: "u1" });
     entregarGarantia(db, admin, { warrantyId: "w1", replacementUnitId: "un2" });
     expect(db.units.filter((u) => u.serial === "356528187284484")).toHaveLength(1);
     expect(db.units.find((u) => u.id === "un3")?.status).toBe("en_bodega");
@@ -312,7 +317,7 @@ describe("entregarGarantia · cambio en una garantía previa: el equipo original
 
   it("si el serial ya está activo en el inventario, no lo duplica ni bloquea la entrega", () => {
     const db = dbPrevia();
-    db.units.push({ id: "un4", productId: "p1", serial: "356528187284484", condition: "nuevo", status: "en_bodega", receivedAt: now, createdBy: "u1" });
+    db.units.push({ id: "un4", productId: "p9", serial: "356528187284484", condition: "nuevo", status: "en_bodega", receivedAt: now, createdBy: "u1" });
     const resultado = entregarGarantia(db, admin, { warrantyId: "w1", replacementUnitId: "un2" });
     expect(resultado.status).toBe("entregado");
     expect(db.units.filter((u) => u.serial === "356528187284484")).toHaveLength(1);
