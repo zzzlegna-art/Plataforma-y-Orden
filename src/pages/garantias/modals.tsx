@@ -181,17 +181,12 @@ export const EntregarDialog = ({
   const puedeElegirBodega =
     (warranty.resolucion === "reparado" || warranty.resolucion === "sin_falla") &&
     garantiaTieneCliente(warranty);
-  const reemplazoGuardado = warranty.replacementUnitId
-    ? db.units.find((item) => item.id === warranty.replacementUnitId)
-    : undefined;
-  const nombreProducto = (productId: string) =>
-    db.products.find((item) => item.id === productId)?.name ?? "";
   const serialOriginal = warranty.unitId
     ? db.units.find((item) => item.id === warranty.unitId)?.serial
     : warranty.imeiManual;
   const serialReemplazo = replacementUnitId
     ? db.units.find((item) => item.id === replacementUnitId)?.serial
-    : reemplazoGuardado?.serial;
+    : undefined;
   // Las fallas de inventario no tienen cliente: al terminar el servicio regresan a bodega.
   const sinClienteReparado =
     (warranty.resolucion === "reparado" || warranty.resolucion === "sin_falla") &&
