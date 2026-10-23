@@ -549,7 +549,7 @@
   "warranty.lote.selectAll": "Seleccionar lote",
   "warranty.lote.deselectAll": "Quitar selección",
   "warranty.lote.saleNoOrder": "Venta sin pedido registrado",
-  "warranty.mode.imei": "Venta registrada",
+  "warranty.mode.imei": "Por IMEI",
   "warranty.mode.previa": "Garantía previa",
   "warranty.oneByOne": "Uno por uno",
   "warranty.byLot": "Por lote",
