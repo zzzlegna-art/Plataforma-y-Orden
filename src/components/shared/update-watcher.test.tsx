@@ -73,4 +73,40 @@ describe("UpdateWatcher · versiones publicadas", () => {
     expect(fetch).not.toHaveBeenCalled();
     expect(toastMock).not.toHaveBeenCalled();
   });
+  it("vuelve a comprobar al regresar a la pestaña si la primera consulta falló", async () => {
+    prepararScript();
+    vi.mocked(fetch)
+      .mockRejectedValueOnce(new Error("offline"))
+      .mockResolvedValueOnce({
+        ok: true,
+        text: async () => '<script type="module" src="/assets/index-nuevo.js"></script>',
+      } as Response);
+
+    render(<UpdateWatcher />);
+
+    await waitFor(() => expect(fetch).toHaveBeenCalledTimes(1));
+    Object.defineProperty(document, "visibilityState", { configurable: true, value: "hidden" });
+    document.dispatchEvent(new Event("visibilitychange"));
+    Object.defineProperty(document, "visibilityState", { configurable: true, value: "visible" });
+    document.dispatchEvent(new Event("visibilitychange"));
+
+    await waitFor(() => expect(toastMock).toHaveBeenCalledOnce());
+    expect(fetch).toHaveBeenCalledTimes(2);
+  });
+
+  it("no duplica el aviso cuando varias comprobaciones detectan la misma versión", async () => {
+    prepararScript();
+    vi.mocked(fetch).mockResolvedValue({
+      ok: true,
+      text: async () => '<script type="module" src="/assets/index-nuevo.js"></script>',
+    } as Response);
+
+    render(<UpdateWatcher />);
+
+    await waitFor(() => expect(toastMock).toHaveBeenCalledOnce());
+    document.dispatchEvent(new Event("visibilitychange"));
+    await waitFor(() => expect(fetch).toHaveBeenCalledTimes(2));
+    expect(toastMock).toHaveBeenCalledOnce();
+  });
+
 });
