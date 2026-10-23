@@ -101,8 +101,13 @@ const requireReplacement = (db: Db, warranty: Warranty, replacementUnitId?: stri
   if (replacement.status !== "en_bodega" && replacement.status !== "en_local") {
     throw new DomainError("errors.unitNotAvailable", { serial: replacement.serial });
   }
-  // En una garantía previa no hay producto en el sistema: no hay con qué compararlo.
-  if (warranty.productId && replacement.productId !== warranty.productId) {
+  // En garantías previas, la referencia escrita debe corresponder a un producto del catálogo.
+  // Así también se exige la misma referencia cuando el cliente no tenía una venta registrada.
+  const productoEsperado = warranty.productId ?? productoPorReferencia(db, warranty.referenciaManual);
+  if (productoEsperado && replacement.productId !== productoEsperado) {
+    throw new DomainError("errors.unitProductMismatch");
+  }
+  if (!productoEsperado && warranty.referenciaManual?.trim()) {
     throw new DomainError("errors.unitProductMismatch");
   }
   return replacement;
