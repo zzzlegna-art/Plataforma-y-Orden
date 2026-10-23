@@ -84,7 +84,8 @@ export const ProductImportDialog = ({ trigger }: { trigger: React.ReactNode }) =
   const [fileError, setFileError] = useState("");
 
   const preparedRows = useMemo<PreparedRow[]>(() => {
-    const existingSkus = new Set(db.products.map((product) => normalize(product.sku)));
+    const normalizeSku = (value: string) => value.trim().toUpperCase();
+    const existingSkus = new Set(db.products.map((product) => normalizeSku(product.sku)));
     const seenSkus = new Set<string>();
 
     return rows.map((row) => {
@@ -98,7 +99,9 @@ export const ProductImportDialog = ({ trigger }: { trigger: React.ReactNode }) =
         const parts = row.category.split(/\s+\/\s+/).map((part) => part.trim()).filter(Boolean);
         const first = parts[0] ?? "";
         const foundType = matchType(first, db.productTypes, t);
-        const foundCategory = db.categories.find((category) => sameName(category.name, parts.length > 1 ? parts.slice(1).join(" / ") : first));
+        const foundCategory = parts.length > 1
+          ? db.categories.find((category) => sameName(category.name, parts.slice(1).join(" / ")))
+          : undefined;
 
         if (foundType) {
           categoria = foundType.key;
@@ -106,8 +109,10 @@ export const ProductImportDialog = ({ trigger }: { trigger: React.ReactNode }) =
             return { row, status: "invalid", reason: t("productImport.unknownCategory", { category: parts.slice(1).join(" / ") }) };
           }
           categoryId = foundCategory?.id;
-        } else if (parts.length === 1 && foundCategory) {
-          categoryId = foundCategory.id;
+        } else if (parts.length === 1) {
+          const categoryOnly = db.categories.find((category) => sameName(category.name, first));
+          if (categoryOnly) categoryId = categoryOnly.id;
+          else return { row, status: "invalid", reason: t("productImport.unknownType", { category: first }) };
         } else {
           return { row, status: "invalid", reason: t("productImport.unknownType", { category: first }) };
         }
@@ -120,7 +125,7 @@ export const ProductImportDialog = ({ trigger }: { trigger: React.ReactNode }) =
       }
 
       if (row.sku) {
-        const key = normalize(row.sku);
+        const key = normalizeSku(row.sku);
         if (existingSkus.has(key) || seenSkus.has(key)) {
           return { row, status: "duplicate", reason: t("productImport.duplicateSku", { sku: row.sku }) };
         }
