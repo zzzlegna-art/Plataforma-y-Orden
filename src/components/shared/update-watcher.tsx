@@ -4,8 +4,6 @@ import { toast } from "sonner";
 
 /** Cada cuánto se revisa si hay una versión nueva mientras la app está abierta. */
 const INTERVALO_REVISION_MS = 5 * 60 * 1000;
-/** Si la app estuvo oculta al menos este tiempo, al volver se actualiza sola. */
-const AUSENCIA_PARA_RECARGA_MS = 5 * 60 * 1000;
 
 const PATRON_SCRIPT = /\/assets\/index-[^"'\s]+\.js/;
 
@@ -36,7 +34,6 @@ export const UpdateWatcher = () => {
   const { t } = useTranslation();
   const versionActual = useRef<string | null>(null);
   const avisado = useRef(false);
-  const ocultoDesde = useRef<number | null>(null);
 
   useEffect(() => {
     versionActual.current = scriptCargado();
@@ -72,18 +69,10 @@ export const UpdateWatcher = () => {
     };
 
     const alCambiarVisibilidad = () => {
-      if (document.visibilityState === "hidden") {
-        ocultoDesde.current = Date.now();
-        return;
-      }
-      const ausencia = ocultoDesde.current ? Date.now() - ocultoDesde.current : 0;
-      ocultoDesde.current = null;
-      void (async () => {
-        const nueva = await hayVersionNueva();
-        if (!activo || !nueva) return;
-        if (ausencia >= AUSENCIA_PARA_RECARGA_MS) window.location.reload();
-        else avisar();
-      })();
+      if (document.visibilityState !== "visible") return;
+      // Nunca recargar automáticamente al volver del segundo plano: puede haber
+      // formularios o guardados pendientes. Avisamos y dejamos la recarga al usuario.
+      void revisar();
     };
 
     const temporizador = window.setInterval(() => void revisar(), INTERVALO_REVISION_MS);
