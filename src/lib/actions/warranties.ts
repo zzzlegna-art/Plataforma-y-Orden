@@ -423,7 +423,15 @@ export const registrarDiagnostico = (
   if (warranty.status !== "recibido" && warranty.status !== "en_servicio_tecnico") {
     throw new DomainError("errors.invalidTransition");
   }
-  if (input.resolucion === "defectuoso") {
+  if (input.resolucion === "defectuoso" && garantiaTieneCliente(warranty)) {
+    // Si el daño irreparable se detecta antes de aceptar una garantía de cliente,
+    // el caso no debe registrarse. El diagnóstico defectuoso queda reservado a fallas
+    // del inventario que ya estaban dentro de Nexora.
+    throw new DomainError("errors.invalidTransition");
+  }
+  if (input.resolucion === "cambio" && !garantiaTieneCliente(warranty)) {
+    // Un cambio de cliente necesita una entrega real a un cliente; una falla interna
+    // de inventario no puede sacar el reemplazo como si fuera una garantía de cliente.
     throw new DomainError("errors.invalidTransition");
   }
   const diagnostico = requireText(input.diagnostico, "errors.diagnosticoRequired");
