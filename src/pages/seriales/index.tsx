@@ -280,7 +280,7 @@ const HistorialSerial = ({ embedded = false }: { embedded?: boolean }) => {
                         </div>
                         <p className="mt-1 text-xs text-muted-foreground">
                           {esReemplazo
-                            ? (Boolean(warranty.customerId || warranty.orderId || warranty.clienteManual?.trim())
+                            ? (warranty.customerId || warranty.orderId || warranty.clienteManual?.trim()
                                 ? "Entregado como reemplazo"
                                 : "Seleccionado como reemplazo de inventario")
                             : (warranty.imeiManual ? t("warranty.origin.previa") : "Equipo recibido en garantía")}
