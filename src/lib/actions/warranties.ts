@@ -138,7 +138,11 @@ const darDeAltaEquipoPrevio = (
   if (!serial) return undefined;
   const existente = findUnitBySerial(db, serial);
   if (existente && existente.status !== "liberado") return undefined;
-  if (existente && existente.productId !== productId) {
+  if (
+    existente &&
+    existente.productId !== productId &&
+    (warranty.productId || warranty.referenciaManual?.trim())
+  ) {
     throw new DomainError("errors.unitProductMismatch");
   }
   const unidad: Unit = existente ?? {
