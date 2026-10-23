@@ -1209,5 +1209,7 @@
   "warranty.intakeHint": "Antes de registrar una garantía, revisa el equipo en bodega. Si el daño no tiene reparación, no lo ingreses a Nexora. Para equipos de tu propio inventario que fallen, usa «Falla de inventario».",
   "warranty.mode.falla": "Falla de inventario",
   "warranty.scanHint.falla": "Escanea un serial disponible en bodega o local que presente una falla de inventario.",
-  "warranty.notice.notInInventory": "El equipo {{serial}} figura como «{{status}}». La falla de inventario aplica solo a equipos disponibles en bodega o local."
+  "warranty.notice.notInInventory": "El equipo {{serial}} figura como «{{status}}». La falla de inventario aplica solo a equipos disponibles en bodega o local.",
+  "warranty.finalDestination.stock": "Disponible en bodega",
+  "warranty.finalDestination.customer": "Garantía entregada al cliente"
 }
