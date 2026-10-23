@@ -15,6 +15,7 @@ import {
   Eye,
   Fingerprint,
   FileSpreadsheet,
+  FileUp,
   FileText,
   Headphones,
   Mic,
@@ -78,6 +79,7 @@ import { etiquetaTipoProducto, tiposProductoOrdenados } from "@/lib/products";
 import type { Product, ProductCategory, ProductTechnicalSpecKey } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { ProductFormDialog } from "./ProductFormDialog";
+import { ProductImportDialog } from "./ProductImportDialog";
 
 type StatTone = "primary" | "info" | "warning";
 
@@ -789,6 +791,14 @@ const Inventario = () => {
         description={t("product.subtitle")}
         actions={
           <div className="flex flex-wrap items-center gap-2">
+            <ProductImportDialog
+              trigger={
+                <Button variant="outline">
+                  <FileUp />
+                  {t("productImport.openButton")}
+                </Button>
+              }
+            />
             <Button
               variant="outline"
               onClick={() => {
