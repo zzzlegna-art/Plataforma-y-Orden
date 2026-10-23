@@ -13,6 +13,7 @@ import {
   Badge,
   ConditionBadge,
   UnitStatusBadge,
+  WarrantyStatusBadge,
 } from "@/components/shared/status-badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -38,6 +39,7 @@ import {
 import { formatCurrency, formatDateTime } from "@/lib/format";
 import { imprimirEtiquetas } from "@/lib/print-labels";
 import {
+  buscarSerialPrevio,
   findUnitBySerial,
   getUnitOrigen,
   getUnitTimeline,
@@ -86,6 +88,7 @@ const HistorialSerial = ({ embedded = false }: { embedded?: boolean }) => {
   }, [params]);
 
   const unit = useMemo(() => (search ? findUnitBySerial(db, search) : undefined), [db, search]);
+  const serialPrevio = useMemo(() => (search ? buscarSerialPrevio(db, search) : undefined), [db, search]);
   const garantiasPorSerialManual = useMemo(
     () => search
       ? db.warranties
@@ -133,7 +136,7 @@ const HistorialSerial = ({ embedded = false }: { embedded?: boolean }) => {
         <SerialScanInput onScan={handleScan} />
       </section>
 
-      {search && !unit && garantiasPorSerialManual.length === 0 ? (
+      {search && !unit && garantiasPorSerialManual.length === 0 && !serialPrevio ? (
         <EmptyState
           icon={ShieldAlert}
           title={t("serialHistory.notFound")}
@@ -180,6 +183,24 @@ const HistorialSerial = ({ embedded = false }: { embedded?: boolean }) => {
               );
             })}
           </div>
+        </section>
+      ) : null}
+
+      {search && !unit && garantiasPorSerialManual.length === 0 && serialPrevio ? (
+        <section className="space-y-2 rounded-lg border border-warning/40 bg-warning/5 p-4 shadow-sm">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h2 className="text-sm font-semibold">{t("serialHistory.priorSaleTitle")}</h2>
+            <Badge tone="warning" label={t("warranty.origin.previa")} withDot={false} />
+          </div>
+          <p className="text-sm text-muted-foreground">
+            {t("serialHistory.priorSaleDescription", { serial: serialPrevio.serial })}
+          </p>
+          <p className="text-xs text-muted-foreground">
+            {t("serialHistory.priorSaleImportedAt", { date: formatDateTime(serialPrevio.createdAt) })}
+          </p>
+          {serialPrevio.notas ? (
+            <p className="text-sm">{t("common.notes")}: {serialPrevio.notas}</p>
+          ) : null}
         </section>
       ) : null}
 
