@@ -159,6 +159,24 @@ export const parseProductCsv = (text: string): ProductCsvRow[] => {
 
   const headers = records[0].map((header) => header.trim());
   const fields = Object.keys(HEADER_ALIASES) as (keyof typeof HEADER_ALIASES)[];
+  const recognizedColumns = new Map<keyof typeof HEADER_ALIASES, number[]>();
+  headers.forEach((header, index) => {
+    const normalized = normalizeHeader(header);
+    const field = fields.find((candidate) => HEADER_ALIASES[candidate].includes(normalized));
+    if (!field) return;
+    const indexes = recognizedColumns.get(field) ?? [];
+    indexes.push(index);
+    recognizedColumns.set(field, indexes);
+  });
+  const duplicatedFields = [...recognizedColumns.entries()]
+    .filter(([, indexes]) => indexes.length > 1)
+    .map(([field]) => HEADER_ALIASES[field][0]);
+  if (duplicatedFields.length) {
+    throw new ProductCsvImportError(
+      "malformed",
+      `El CSV contiene columnas repetidas para: ${duplicatedFields.join(", ")}. Deja una sola columna por campo.`,
+    );
+  }
   const columns = Object.fromEntries(
     fields.map((field) => [field, findColumn(headers, field)]),
   ) as Record<keyof typeof HEADER_ALIASES, number>;
