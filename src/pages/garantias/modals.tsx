@@ -306,7 +306,7 @@ export const EntregarDialog = ({
               : reembolsoElegido && !defectuoso
                 ? `Reembolso acordado. Serial original ${serialOriginal ?? "—"}: disponible en bodega. El movimiento de dinero se registra por separado.`
                 : defectuoso
-                  ? (destinoDefectuoso === "cambio" && conCliente ? "Registro histórico: el reemplazo sale del inventario y el original queda marcado como defectuoso." : "Registro histórico: el equipo queda defectuoso en bodega; el reembolso se registra por separado.")
+                  ? (destinoDefectuoso === "cambio" && conCliente ? "Registro histórico: el reemplazo sale del inventario y el original queda marcado como defectuoso." : "El equipo de inventario queda marcado como defectuoso en bodega; cualquier ajuste de dinero se registra por separado.")
                   : aBodega
                     ? t("warranty.deliverEffect.bodega")
                     : t(`warranty.deliverEffect.${warranty.resolucion ?? "reparado"}`)}
