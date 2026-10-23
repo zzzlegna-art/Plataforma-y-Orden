@@ -1,8 +1,7 @@
 /**
- * Acciones de garantías (flujo avanzado basado en el prototipo Bodega 6A):
- * recepción por IMEI (uno/lote), por pedido, garantía previa y falla en
- * inventario; envío a técnico externo; diagnóstico con resolución y costo;
- * entrega al cliente (con reemplazo) o devolución.
+ * Acciones de garantías: recepción por IMEI (uno/lote) o garantía previa;
+ * envío a técnico externo; diagnóstico con resolución y costo; entrega al cliente
+ * (con reemplazo) o devolución a bodega.
  */
 
 import { createId, DomainError, logAudit, logMovement, nextDailyCode, nowIso } from "../db";
@@ -256,39 +255,6 @@ export const createWarrantiesByImeis = (
     }
   });
 
-/** Recibe en garantía equipos de un pedido entregado específico. */
-export const createWarrantyByOrder = (
-  db: Db,
-  actor: Actor,
-  input: { orderId: string; items: WarrantyItemInput[] },
-): number => {
-  requirePermission(actor, "warranties.manage");
-  const order = db.orders.find((item) => item.id === input.orderId);
-  if (!order) throw new DomainError("errors.notFound");
-  const orderUnits = new Set(
-    db.orderItemUnits
-      .filter((row) =>
-        db.orderItems.some((item) => item.id === row.orderItemId && item.orderId === order.id),
-      )
-      .map((row) => row.unitId),
-  );
-  let count = 0;
-  input.items.forEach((item) => {
-    const unit = findUnitBySerial(db, item.imei);
-    if (!unit || !orderUnits.has(unit.id)) {
-      throw new DomainError("errors.unitNotInOrder", { serial: item.imei });
-    }
-    if (unit.status !== "vendido" && unit.status !== "entregado_garantia") {
-      throw new DomainError("errors.unitNotReturnable", { serial: item.imei });
-    }
-    assertNoOpenWarranty(db, unit);
-    const reason = requireText(item.observacion, "errors.warrantyReasonRequired");
-    receiveUnit(db, actor, unit, reason, order);
-    count += 1;
-  });
-  return count;
-};
-
 /**
  * "Garantía previa": reclamo de un equipo vendido antes de la plataforma.
  * No existe unidad en el sistema; el caso se guarda con datos manuales.
@@ -363,32 +329,6 @@ export const createWarrantiesPrevias = (
       return { imei: item.imeiManual, ok: true, warrantyId: warranty.id };
     } catch (error) {
       return resultadoConError(item.imeiManual, error);
-    }
-  });
-
-/**
- * Falla en inventario: un equipo en bodega o local presenta falla sin haberse
- * vendido. Se registra la garantía y pasa a reparación.
- */
-export const createWarrantyFallaInventario = (
-  db: Db,
-  actor: Actor,
-  input: { items: WarrantyItemInput[] },
-): WarrantyItemResult[] =>
-  input.items.map((item) => {
-    try {
-      requirePermission(actor, "warranties.manage");
-      const unit = findUnitBySerial(db, item.imei);
-      if (!unit) throw new DomainError("errors.unitNotFound", { serial: item.imei });
-      if (unit.status !== "en_bodega" && unit.status !== "en_local") {
-        throw new DomainError("errors.unitNotInInventory", { serial: item.imei });
-      }
-      assertNoOpenWarranty(db, unit);
-      const reason = requireText(item.observacion, "errors.warrantyReasonRequired");
-      const warranty = receiveUnit(db, actor, unit, reason);
-      return { imei: item.imei, ok: true, warrantyId: warranty.id };
-    } catch (error) {
-      return resultadoConError(item.imei, error);
     }
   });
 
