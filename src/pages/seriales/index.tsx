@@ -86,6 +86,14 @@ const HistorialSerial = ({ embedded = false }: { embedded?: boolean }) => {
   }, [params]);
 
   const unit = useMemo(() => (search ? findUnitBySerial(db, search) : undefined), [db, search]);
+  const garantiasPorSerialManual = useMemo(
+    () => search
+      ? db.warranties
+          .filter((warranty) => warranty.imeiManual?.trim().toLocaleLowerCase() === search.trim().toLocaleLowerCase())
+          .sort((a, b) => b.receivedAt.localeCompare(a.receivedAt))
+      : [],
+    [db, search],
+  );
   const product = unit ? db.products.find((item) => item.id === unit.productId) : undefined;
   const timeline = useMemo(() => (unit ? getUnitTimeline(db, unit.id) : []), [db, unit]);
 
@@ -94,7 +102,13 @@ const HistorialSerial = ({ embedded = false }: { embedded?: boolean }) => {
   const reception = origen?.reception;
   const order = origen?.order;
   const customer = origen?.customer;
-  const warranties = origen?.warranties ?? [];
+  const warranties = unit
+    ? db.warranties.filter(
+        (warranty) =>
+          warranty.unitId === unit.id ||
+          warranty.imeiManual?.trim().toLocaleLowerCase() === unit.serial.trim().toLocaleLowerCase(),
+      )
+    : [];
   const reemplazos = unit ? db.warranties.filter((warranty) => warranty.replacementUnitId === unit.id && warranty.unitId !== unit.id) : [];
   const garantiasRelacionadas = [...warranties, ...reemplazos].sort((a, b) => b.receivedAt.localeCompare(a.receivedAt));
 
@@ -119,12 +133,54 @@ const HistorialSerial = ({ embedded = false }: { embedded?: boolean }) => {
         <SerialScanInput onScan={handleScan} />
       </section>
 
-      {search && !unit ? (
+      {search && !unit && garantiasPorSerialManual.length === 0 ? (
         <EmptyState
           icon={ShieldAlert}
           title={t("serialHistory.notFound")}
           description={t("serialHistory.notFoundDescription", { serial: search })}
         />
+      ) : null}
+
+      {search && !unit && garantiasPorSerialManual.length > 0 ? (
+        <section className="space-y-3 rounded-lg border bg-card p-4 shadow-sm">
+          <div>
+            <h2 className="text-sm font-semibold">{t("serialHistory.priorWarrantyTitle")}</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {t("serialHistory.priorWarrantyHint", { serial: search })}
+            </p>
+          </div>
+          <div className="grid gap-2">
+            {garantiasPorSerialManual.map((warranty) => {
+              const referencia = db.products.find((item) => item.id === warranty.productId)?.name
+                ?? db.products.find((item) => item.name.trim().toLocaleLowerCase() === warranty.referenciaManual?.trim().toLocaleLowerCase())?.name
+                ?? warranty.referenciaManual
+                ?? "—";
+              const ultimoEvento = db.warrantyEvents
+                .filter((event) => event.warrantyId === warranty.id)
+                .sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0];
+              return (
+                <Link
+                  key={warranty.id}
+                  to={rutaOperativaGarantia(warranty)}
+                  className="rounded-lg border bg-muted/20 p-3 transition-colors hover:border-primary/40 hover:bg-muted/40"
+                >
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <span className="text-sm font-semibold text-primary">{warranty.code}</span>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Badge label={t("warranty.origin.previa")} withDot={false} />
+                      <WarrantyStatusBadge status={warranty.status} />
+                    </div>
+                  </div>
+                  <p className="mt-2 text-sm font-medium">{referencia}</p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {t("warranty.previaCliente")}: {warranty.clienteManual ?? "—"} · {warranty.imeiManual}
+                  </p>
+                  <p className="mt-2 text-xs text-muted-foreground">{ultimoEvento?.notes ?? warranty.reason}</p>
+                </Link>
+              );
+            })}
+          </div>
+        </section>
       ) : null}
 
       {unit ? (
@@ -222,7 +278,13 @@ const HistorialSerial = ({ embedded = false }: { embedded?: boolean }) => {
                           <span className="text-sm font-semibold text-primary">{warranty.code}</span>
                           <Badge label={t(`warrantyStatus.${warranty.status}`)} withDot={false} />
                         </div>
-                        <p className="mt-1 text-xs text-muted-foreground">{esReemplazo ? "Entregado como reemplazo" : "Equipo recibido en garantía"}</p>
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          {esReemplazo
+                            ? (Boolean(warranty.customerId || warranty.orderId || warranty.clienteManual?.trim())
+                                ? "Entregado como reemplazo"
+                                : "Seleccionado como reemplazo de inventario")
+                            : (warranty.imeiManual ? t("warranty.origin.previa") : "Equipo recibido en garantía")}
+                        </p>
                         {serialNuevo ? (
                           <p className="mt-2 break-all text-xs">Original: <span className="font-medium">{serialOriginal}</span> · Reemplazo: <span className="font-medium">{serialNuevo}</span></p>
                         ) : null}
