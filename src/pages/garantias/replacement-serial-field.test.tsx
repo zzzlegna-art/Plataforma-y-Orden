@@ -123,11 +123,12 @@ describe("ReplacementSerialField · el serial de reemplazo se escribe, no se eli
     expect(mocks.toastError).toHaveBeenCalled();
   });
 
-  it("en una garantía previa (sin producto) acepta cualquier unidad disponible", async () => {
+  it("en una garantía previa sin referencia no permite elegir un modelo a ciegas", async () => {
     const onPick = vi.fn();
     render(<Campo onPick={onPick} />);
     await escribir("S-200");
-    expect(onPick).toHaveBeenCalledWith("a2");
+    expect(onPick).not.toHaveBeenCalled();
+    expect(mocks.toastError).toHaveBeenCalled();
   });
 
   it("confirma solo un serial válido, sin presionar Enter", async () => {
