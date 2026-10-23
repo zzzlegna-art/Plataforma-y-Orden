@@ -13,11 +13,11 @@ type ProductThumbnailProps = {
 // sin una URL de imagen guardada en el catálogo.
 const REFERENCE_IMAGE_FALLBACKS = [
   {
-    pattern: /\\biphone\\s*16\\s*pro\\s*max\\b/i,
+    pattern: /\biphone\s*16\s*pro\s*max\b/i,
     src: "https://theapplewiki.com/images/applewiki/thumb/0/06/IPhone_16_Pro_Max.png/815px-IPhone_16_Pro_Max.png.webp",
   },
   {
-    pattern: /\\biphone\\s*16\\s*pro\\b/i,
+    pattern: /\biphone\s*16\s*pro\b/i,
     src: "https://theapplewiki.com/images/applewiki/thumb/9/98/IPhone_16_Pro.png/826px-IPhone_16_Pro.png.webp",
   },
 ] as const;
@@ -25,8 +25,8 @@ const REFERENCE_IMAGE_FALLBACKS = [
 const getReferenceImageFallback = (reference: string): string | undefined => {
   const normalized = reference
     .normalize("NFD")
-    .replace(/[\\u0300-\\u036f]/g, "")
-    .replace(/\\s+/g, " ")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/\s+/g, " ")
     .trim();
 
   return REFERENCE_IMAGE_FALLBACKS.find(({ pattern }) => pattern.test(normalized))?.src;
