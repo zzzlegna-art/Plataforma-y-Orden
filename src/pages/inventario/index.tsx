@@ -69,6 +69,7 @@ import {
   exportSubtitle,
   type CatalogExportProgress,
 } from "@/lib/export";
+import { descargarCsv } from "@/lib/csv";
 import { getProductTechnicalSpecFieldsForCategory } from "@/lib/product-specs";
 import { clearInventoryFilters, getInventoryFilters, updateInventoryFilter } from "@/lib/inventory-filters";
 import { formatCurrency, todayIso } from "@/lib/format";
@@ -503,7 +504,7 @@ const Inventario = () => {
   const [exportCat, setExportCat] = useState<"" | ProductCategory>("");
   const [exportCond, setExportCond] = useState<"" | "nuevo" | "seminuevo">("");
   const [catalogExportOpen, setCatalogExportOpen] = useState(false);
-  const [catalogFormat, setCatalogFormat] = useState<"pdf" | "excel">("pdf");
+  const [catalogFormat, setCatalogFormat] = useState<"pdf" | "excel" | "csv">("pdf");
   const [catalogCat, setCatalogCat] = useState("");
   const [catalogIncludePrice, setCatalogIncludePrice] = useState(false);
   const [catalogIncludeStock, setCatalogIncludeStock] = useState(false);
@@ -596,7 +597,7 @@ const Inventario = () => {
     }
   };
 
-  const exportarCatalogo = async (format: "pdf" | "excel") => {
+  const exportarCatalogo = async (format: "pdf" | "excel" | "csv") => {
     const base = getProductRows(db)
       .filter((row) => row.product.isActive)
       .filter((row) => (catalogCat ? row.product.categoria === catalogCat : true))
@@ -644,6 +645,7 @@ const Inventario = () => {
       price: t("product.price"),
       stock: t("product.enInventario"),
       image: t("catalog.image"),
+      imageUrl: t("catalog.imageUrl"),
       openImage: t("catalog.openImage"),
       noDescription: t("catalog.descriptionPending"),
       noFeatures: t("catalog.featuresPending"),
@@ -654,13 +656,45 @@ const Inventario = () => {
     const options = {
       title: `${t("catalog.title")} — ${companyName}`,
       subtitle: exportSubtitle(products.length),
-      filename: `catalogo-nexora-${todayIso()}.${format === "pdf" ? "pdf" : "xlsx"}`,
+      filename: `catalogo-nexora-${todayIso()}.${format === "pdf" ? "pdf" : format === "csv" ? "csv" : "xlsx"}`,
       products,
       includePrice: catalogIncludePrice,
       includeStock: catalogIncludeStock,
       labels,
       onProgress: setCatalogExportProgress,
     };
+
+    if (format === "csv") {
+      try {
+        const columns = [
+          labels.product,
+          labels.reference,
+          labels.brand,
+          labels.category,
+          labels.description,
+          labels.features,
+          labels.imageUrl,
+          ...(catalogIncludePrice ? [labels.price] : []),
+          ...(catalogIncludeStock ? [labels.stock] : []),
+        ];
+        const rows = products.map((product) => [
+          product.name,
+          product.sku,
+          product.brand ?? "",
+          product.category ?? "",
+          product.description ?? "",
+          (product.features ?? []).map((feature) => `${feature.label}: ${feature.value}`).join(" | "),
+          product.imageUrl ?? "",
+          ...(catalogIncludePrice ? [product.price ?? ""] : []),
+          ...(catalogIncludeStock ? [product.stock ?? 0] : []),
+        ]);
+        descargarCsv(options.filename, [columns, ...rows]);
+        toast.success(t("catalog.exportSuccess"));
+      } catch {
+        toast.error(t("catalog.exportFailed"));
+      }
+      return;
+    }
 
     setCatalogExportProgress({ phase: "preparing", completed: 0, total: products.length, percent: 3 });
     try {
@@ -1152,13 +1186,14 @@ const Inventario = () => {
           </Label>
           <RadioGroup
             value={catalogFormat}
-            onValueChange={(value) => setCatalogFormat(value as "pdf" | "excel")}
+            onValueChange={(value) => setCatalogFormat(value as "pdf" | "excel" | "csv")}
             className="gap-1.5"
           >
             {(
               [
                 { value: "pdf", label: t("catalog.formatPdf") },
                 { value: "excel", label: t("catalog.formatExcel") },
+                { value: "csv", label: t("catalog.formatCsv") },
               ] as const
             ).map((option) => (
               <label
