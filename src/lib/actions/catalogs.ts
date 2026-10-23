@@ -327,7 +327,7 @@ export const createProduct = (db: Db, actor: Actor, input: ProductInput): Produc
   requirePermission(actor, "inventory.manage");
   const name = requireText(input.name, "errors.productNameRequired");
   const sku = (input.sku?.trim().toUpperCase() || generarSkuProducto(db, name)).slice(0, 40);
-  if (db.products.some((product) => product.sku.toUpperCase() === sku)) {
+  if (db.products.some((product) => product.sku.trim().toUpperCase() === sku)) {
     throw new DomainError("errors.skuDuplicated");
   }
   const product: Product = {
