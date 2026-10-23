@@ -222,9 +222,13 @@ export const getProductTechnicalSpecsForCategory = (
   if (!fields.length) return undefined;
 
   const normalized: ProductTechnicalSpecs = {};
+  // No truncar aquí: esta función también se usa al cargar filas existentes desde el servidor.
+  // Recortar valores históricos largos hace que la referencia enviada al guardado optimista
+  // difiera del valor real en la base y provoca falsos conflictos de concurrencia. Los límites
+  // para lo que el usuario escribe se aplican en los controles del formulario.
   for (const field of fields) {
     const value = specs[field.key];
-    if (typeof value === "string" && value.trim()) normalized[field.key] = normalizeCatalogText(value).slice(0, 120);
+    if (typeof value === "string" && value.trim()) normalized[field.key] = normalizeCatalogText(value);
   }
 
   // Conserva las cámaras del formato anterior hasta que se completen ambos campos nuevos.
@@ -234,7 +238,7 @@ export const getProductTechnicalSpecsForCategory = (
     const hasRearCamera = Boolean(normalized.rearCamera);
     const hasFrontCamera = Boolean(normalized.frontCamera);
     if (legacyCameras && !(hasRearCamera && hasFrontCamera)) {
-      normalized.cameras = legacyCameras.slice(0, 120);
+      normalized.cameras = legacyCameras;
     }
   }
 
@@ -256,7 +260,7 @@ export const getProductTechnicalSpecsForCategory = (
     for (const key of legacyWatchKeys) {
       const value = specs[key];
       if (!normalized[key] && typeof value === "string" && value.trim()) {
-        normalized[key] = normalizeCatalogText(value).slice(0, 120);
+        normalized[key] = normalizeCatalogText(value);
       }
     }
   }
@@ -280,7 +284,7 @@ export const getProductTechnicalSpecsForCategory = (
     for (const key of legacyHeadphoneKeys) {
       const value = specs[key];
       if (!normalized[key] && typeof value === "string" && value.trim()) {
-        normalized[key] = normalizeCatalogText(value).slice(0, 120);
+        normalized[key] = normalizeCatalogText(value);
       }
     }
   }
@@ -288,8 +292,8 @@ export const getProductTechnicalSpecsForCategory = (
   const customFields = Array.isArray(specs.customFields)
     ? specs.customFields.flatMap((item, index) => {
         if (!item || typeof item.name !== "string" || typeof item.value !== "string") return [];
-        const name = normalizeCatalogText(item.name).slice(0, 80);
-        const value = normalizeCatalogText(item.value).slice(0, 120);
+        const name = normalizeCatalogText(item.name);
+        const value = normalizeCatalogText(item.value);
         if (!name || !value) return [];
         const id = typeof item.id === "string" && item.id.trim() ? item.id : `custom-${index}`;
         return [{ id, name, value }];
