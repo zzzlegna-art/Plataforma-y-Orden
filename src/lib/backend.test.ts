@@ -447,6 +447,17 @@ describe("pushDb · rechazos del servidor (NO se reintentan por tablas)", () => 
     expect((await rechazo({ message: "deadlock detected", code: "40P01" })).key).toBe("errors.saveConflict");
   });
 
+  it("un SKU duplicado en la base muestra el error específico de catálogo", async () => {
+    expect(
+      (
+        await rechazo({
+          message: 'duplicate key value violates unique constraint "bodega_products_sku_normalized_uniq"',
+          code: "23505",
+        })
+      ).key,
+    ).toBe("errors.skuDuplicated");
+  });
+
   it("permisos (RLS) o corte de red: aviso genérico, sin reintento", async () => {
     expect((await rechazo({ message: "new row violates row-level security policy", code: "42501" })).key).toBe("errors.saveFailed");
     expect((await rechazo({ message: "TypeError: Failed to fetch" })).key).toBe("errors.saveFailed");
