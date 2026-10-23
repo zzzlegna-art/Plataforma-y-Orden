@@ -104,10 +104,12 @@ const requireReplacement = (db: Db, warranty: Warranty, replacementUnitId?: stri
   // En garantías previas, la referencia escrita debe corresponder a un producto del catálogo.
   // Así también se exige la misma referencia cuando el cliente no tenía una venta registrada.
   const productoEsperado = warranty.productId ?? productoPorReferencia(db, warranty.referenciaManual);
-  if (productoEsperado && replacement.productId !== productoEsperado) {
-    throw new DomainError("errors.unitProductMismatch");
+  if (!productoEsperado) {
+    throw new DomainError("errors.warrantyReferenceNotInCatalog", {
+      reference: warranty.referenciaManual ?? "",
+    });
   }
-  if (!productoEsperado && warranty.referenciaManual?.trim()) {
+  if (replacement.productId !== productoEsperado) {
     throw new DomainError("errors.unitProductMismatch");
   }
   return replacement;
@@ -137,7 +139,6 @@ const darDeAltaEquipoPrevio = (
   const serial = warranty.imeiManual;
   if (!serial) return undefined;
   const existente = findUnitBySerial(db, serial);
-  if (existente && existente.status !== "liberado") return undefined;
   if (
     existente &&
     existente.productId !== productId &&
@@ -145,6 +146,7 @@ const darDeAltaEquipoPrevio = (
   ) {
     throw new DomainError("errors.unitProductMismatch");
   }
+  if (existente && existente.status !== "liberado") return undefined;
   const unidad: Unit = existente ?? {
     id: createId(),
     productId,
