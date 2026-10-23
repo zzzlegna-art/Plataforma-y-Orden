@@ -59,6 +59,7 @@ import type { UnitCondition } from "@/lib/types";
 import {
   firmaRankClientes,
   firmaRankProductos,
+  getRankSharePercent,
   rankDatumsDeClientes,
   rankDatumsDeProductos,
   type RankDatum,
@@ -76,9 +77,8 @@ const RankChart = ({
   summaryLabel: string;
 }) => {
   const totalValue = data.reduce((total, row) => total + Math.max(0, row.value), 0);
-  const maxValue = data.reduce((max, row) => Math.max(max, row.value), 0);
   const leader = data[0];
-  const leaderShare = leader && totalValue > 0 ? Math.round((leader.value / totalValue) * 100) : 0;
+  const leaderShare = leader ? Math.round(getRankSharePercent(leader.value, totalValue)) : 0;
 
   return (
     <div className="space-y-3">
@@ -111,8 +111,8 @@ const RankChart = ({
 
       <div className="space-y-1">
         {data.map((row, index) => {
-          const share = totalValue > 0 ? Math.round((row.value / totalValue) * 100) : 0;
-          const barWidth = maxValue > 0 ? Math.max(row.value > 0 ? 4 : 0, (row.value / maxValue) * 100) : 0;
+          const barWidth = getRankSharePercent(row.value, totalValue);
+          const share = Math.round(barWidth);
           const rankTone =
             index === 0
               ? "border-amber-500/25 bg-amber-500/10 text-amber-700 dark:text-amber-300"
