@@ -51,7 +51,7 @@ describe("parseProductCsv", () => {
   });
 
   it("marca referencias demasiado largas antes de que el guardado las trunque", () => {
-    const rows = parseProductCsv(`Producto;Referencia\nTablet;\${"X".repeat(41)}`);
+    const rows = parseProductCsv("Producto;Referencia\nTablet;" + "X".repeat(41));
     expect(rows[0].error).toContain("40 caracteres");
   });
 
