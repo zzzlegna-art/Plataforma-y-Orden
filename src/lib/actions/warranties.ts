@@ -654,8 +654,8 @@ export const entregarGarantia = (
         referenceType: "garantia",
         referenceId: warranty.id,
         notes: destinoDefectuoso === "reembolso"
-          ? `Registro histórico de garantía ${warranty.code}: serial ${unit.serial} queda defectuoso en bodega; reembolso por registrar por separado`
-          : `Registro histórico de garantía ${warranty.code}: serial ${unit.serial} queda defectuoso en bodega`,
+          ? `Garantía ${warranty.code}: serial ${unit.serial} queda defectuoso en bodega; reembolso por registrar por separado`
+          : `Falla de inventario ${warranty.code}: serial ${unit.serial} queda defectuoso en bodega`,
       });
     } else if (warranty.imeiManual) {
       const productId = warranty.productId ?? productoPorReferencia(db, warranty.referenciaManual);
@@ -665,7 +665,7 @@ export const entregarGarantia = (
         actor,
         warranty,
         productId,
-        `Registro histórico de garantía ${warranty.code}: serial ${warranty.imeiManual} queda defectuoso en bodega`,
+        `Garantía ${warranty.code}: serial ${warranty.imeiManual} queda defectuoso en bodega`,
         "defectuoso",
       );
     }
@@ -677,7 +677,7 @@ export const entregarGarantia = (
 
   let notaCierre: string;
   if (destinoDefectuoso === "bodega") {
-    notaCierre = `Registro histórico: serial ${serialOriginal} queda defectuoso en bodega`;
+    notaCierre = `Serial original ${serialOriginal} queda defectuoso en bodega`;
   } else if (esCambio) {
     notaCierre = warranty.resolucion === "defectuoso"
       ? `Cambio completado: serial original ${serialOriginal} queda defectuoso en bodega; serial de reemplazo ${serialReemplazo ?? "—"} entregado al cliente`
