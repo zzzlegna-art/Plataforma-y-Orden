@@ -4,6 +4,7 @@ import { X } from "lucide-react";
 import { SerialScanInput } from "@/components/shared/serial-scan-input";
 import { Button } from "@/components/ui/button";
 import { useStore } from "@/hooks/use-store";
+import { isOpenWarranty } from "@/lib/actions/warranties";
 import { isSameText } from "@/lib/actions/guards";
 import { getReplacementUnits } from "@/lib/selectors";
 import type { Warranty } from "@/lib/types";
@@ -18,7 +19,7 @@ export const ReplacementSerialField = ({
   value,
   onChange,
 }: {
-  warranty: Pick<Warranty, "productId" | "referenciaManual">;
+  warranty: Pick<Warranty, "id" | "productId" | "referenciaManual">;
   /** Id de la unidad elegida ("" si aún no hay). */
   value: string;
   onChange: (unitId: string) => void;
@@ -39,7 +40,18 @@ export const ReplacementSerialField = ({
   const coincidencias = (serial: string) => db.units.filter((unit) => isSameText(unit.serial, serial));
   const disponible = (serial: string) => {
     if (requiereReferencia && !productoEsperado) return undefined;
-    const ids = new Set(getReplacementUnits(db, productoEsperado).map((unit) => unit.id));
+    const ids = new Set(
+      getReplacementUnits(db, productoEsperado)
+        .filter((unit) =>
+          !db.warranties.some(
+            (other) =>
+              other.id !== warranty.id &&
+              other.replacementUnitId === unit.id &&
+              isOpenWarranty(other.status),
+          ),
+        )
+        .map((unit) => unit.id),
+    );
     return coincidencias(serial).find((unit) => ids.has(unit.id));
   };
 
