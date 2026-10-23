@@ -40,6 +40,7 @@ import { Link, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 
 import { DataTable } from "@/components/shared/data-table";
+import { getProductReferenceImageFallback } from "@/components/shared/product-thumbnail";
 import { ExportDialog } from "@/components/shared/export-dialog";
 import { PageHeader } from "@/components/shared/page-header";
 import { SearchField } from "@/components/shared/search-field";
@@ -237,7 +238,17 @@ const ProductThumbnail = ({
 }) => {
   const { t } = useTranslation();
   const [imageFailed, setImageFailed] = useState(false);
-  useEffect(() => setImageFailed(false), [product.imageUrl]);
+  const [referenceImageFailed, setReferenceImageFailed] = useState(false);
+  useEffect(() => {
+    setImageFailed(false);
+    setReferenceImageFailed(false);
+  }, [product.imageUrl, product.name]);
+  const referenceImageUrl = getProductReferenceImageFallback(product.name);
+  const imageUrl = product.imageUrl && !imageFailed
+    ? product.imageUrl
+    : referenceImageUrl && !referenceImageFailed
+      ? referenceImageUrl
+      : undefined;
 
   const Icon =
     product.categoria === "celular"
@@ -274,7 +285,7 @@ const ProductThumbnail = ({
     : [];
   const technicalCount = populatedFields.length + populatedCustomFields.length;
 
-  if (product.imageUrl && !imageFailed) {
+  if (imageUrl) {
     return (
       <Dialog>
         <DialogTrigger asChild>
@@ -287,11 +298,14 @@ const ProductThumbnail = ({
             )}
           >
             <img
-              src={product.imageUrl}
+              src={imageUrl}
               alt={product.name}
               loading="lazy"
               decoding="async"
-              onError={() => setImageFailed(true)}
+              onError={() => {
+                if (product.imageUrl && !imageFailed) setImageFailed(true);
+                else setReferenceImageFailed(true);
+              }}
               className="absolute inset-0 z-10 h-full w-full object-contain p-1.5"
             />
             <span className="absolute bottom-1 right-1 z-20 rounded-lg bg-black/65 p-1.5 text-white opacity-0 shadow-sm transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100">
@@ -314,7 +328,7 @@ const ProductThumbnail = ({
                 </DialogHeader>
                 <div className="grid min-h-[280px] place-items-center overflow-hidden rounded-xl bg-muted/30 p-2 sm:min-h-[min(72vh,620px)]">
                   <img
-                    src={product.imageUrl}
+                    src={imageUrl}
                     alt={product.name}
                     className="max-h-[72vh] w-full object-contain"
                     decoding="async"
@@ -390,7 +404,7 @@ const ProductThumbnail = ({
               </DialogHeader>
               <div className="grid min-h-0 place-items-center overflow-hidden rounded-xl bg-muted/30 p-1 sm:p-2">
                 <img
-                  src={product.imageUrl}
+                  src={imageUrl}
                   alt={product.name}
                   className="max-h-[76vh] w-full object-contain"
                   decoding="async"
