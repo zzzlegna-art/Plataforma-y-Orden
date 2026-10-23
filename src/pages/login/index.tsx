@@ -83,11 +83,11 @@ const Login = () => {
       </div>
 
       <main className="relative z-10 grid w-full max-w-5xl overflow-hidden rounded-[28px] border border-border/80 bg-card shadow-[0_28px_100px_-40px_rgba(0,0,0,0.65)] lg:min-h-[590px] lg:grid-cols-[0.9fr_1.1fr]">
-        <section className="relative hidden flex-col justify-between overflow-hidden bg-[#0b1420] p-8 text-white sm:p-10 lg:flex">
+        <section className="relative hidden flex-col justify-between overflow-hidden bg-gradient-to-br from-slate-50 via-white to-cyan-50 p-8 text-slate-900 sm:p-10 dark:bg-[#0b1420] dark:bg-none dark:text-white lg:flex">
           <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden">
-            <div className="absolute -right-24 -top-24 h-72 w-72 rounded-full bg-cyan-400/15 blur-3xl" />
-            <div className="absolute -bottom-32 -left-20 h-72 w-72 rounded-full bg-sky-500/10 blur-3xl" />
-            <div className="absolute inset-0 bg-[linear-gradient(145deg,rgba(11,20,32,.1),rgba(11,20,32,.92))]" />
+            <div className="absolute -right-24 -top-24 h-72 w-72 rounded-full bg-cyan-400/20 blur-3xl dark:bg-cyan-400/15" />
+            <div className="absolute -bottom-32 -left-20 h-72 w-72 rounded-full bg-sky-500/15 blur-3xl dark:bg-sky-500/10" />
+            <div className="absolute inset-0 bg-[linear-gradient(145deg,rgba(255,255,255,.08),rgba(236,254,255,.18))] dark:bg-[linear-gradient(145deg,rgba(11,20,32,.1),rgba(11,20,32,.92))]" />
           </div>
 
           <div className="relative flex items-center gap-3">
@@ -98,12 +98,12 @@ const Login = () => {
             />
             <div className="min-w-0">
               <p className="text-lg font-semibold tracking-tight">{t("common.appName")}</p>
-              <p className="text-xs text-slate-300">{t("auth.brandTagline")}</p>
+              <p className="text-xs text-slate-600 dark:text-slate-300">{t("auth.brandTagline")}</p>
             </div>
           </div>
 
           <div className="relative mt-10 max-w-md space-y-5">
-            <span className="inline-flex items-center gap-2 rounded-full border border-cyan-200/15 bg-white/[0.06] px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-cyan-100">
+            <span className="inline-flex items-center gap-2 rounded-full border border-cyan-700/15 bg-cyan-900/[0.04] px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-cyan-800 dark:border-cyan-200/15 dark:bg-white/[0.06] dark:text-cyan-100">
               <Sparkles className="h-3.5 w-3.5 text-cyan-300" />
               Control operativo
             </span>
@@ -111,7 +111,7 @@ const Login = () => {
               <h1 className="max-w-sm text-3xl font-semibold leading-tight tracking-[-0.04em] xl:text-[2.15rem]">
                 {t("auth.heroTitle")}
               </h1>
-              <p className="max-w-sm text-sm leading-6 text-slate-300">
+              <p className="max-w-sm text-sm leading-6 text-slate-600 dark:text-slate-300">
                 {t("auth.heroSubtitle")}
               </p>
             </div>
@@ -120,26 +120,26 @@ const Login = () => {
               {FEATURES.map((feature) => (
                 <li
                   key={feature.key}
-                  className="flex items-center gap-3 rounded-xl border border-white/[0.08] bg-white/[0.045] px-3 py-3 text-sm text-slate-100"
+                  className="flex items-center gap-3 rounded-xl border border-slate-200/90 bg-white/75 px-3 py-3 text-sm text-slate-800 shadow-sm dark:border-white/[0.08] dark:bg-white/[0.045] dark:text-slate-100"
                 >
-                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-cyan-300/10 text-cyan-300">
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-cyan-100 text-cyan-700 dark:bg-cyan-300/10 dark:text-cyan-300">
                     <feature.icon className="h-[18px] w-[18px]" />
                   </span>
                   <span className="leading-5">{t(feature.key)}</span>
-                  <CheckCircle2 className="ml-auto h-4 w-4 shrink-0 text-cyan-300/75" />
+                  <CheckCircle2 className="ml-auto h-4 w-4 shrink-0 text-cyan-700/75 dark:text-cyan-300/75" />
                 </li>
               ))}
             </ul>
           </div>
 
-          <div className="relative mt-10 flex items-center justify-between gap-4 border-t border-white/10 pt-5">
+          <div className="relative mt-10 flex items-center justify-between gap-4 border-t border-slate-200 pt-5 dark:border-white/10">
             <div className="flex min-w-0 items-center gap-2.5">
-              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-emerald-300/15 bg-emerald-300/10 text-emerald-300">
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-300/15 dark:bg-emerald-300/10 dark:text-emerald-300">
                 <ShieldCheck className="h-[18px] w-[18px]" />
               </span>
               <div className="min-w-0">
-                <p className="text-xs font-semibold text-slate-100">Acceso protegido</p>
-                <p className="mt-0.5 text-[11px] leading-4 text-slate-400">Tu operación, en un solo lugar</p>
+                <p className="text-xs font-semibold text-slate-800 dark:text-slate-100">Acceso protegido</p>
+                <p className="mt-0.5 text-[11px] leading-4 text-slate-600 dark:text-slate-400">Tu operación, en un solo lugar</p>
               </div>
             </div>
             <span className="hidden text-[10px] font-semibold tracking-[0.16em] text-slate-500 xl:block">
