@@ -29,7 +29,7 @@ describe("parseProductCsv", () => {
 
   it("detecta CSV con comas, comillas escapadas y saltos de línea dentro de campos", () => {
     const rows = parseProductCsv(
-      'Product,Reference,Description,Price\r\n"iPhone 16","IP16","Incluye ""cable"", cargador\ny garantía",1,299.99',
+      'Product,Reference,Description,Price\r\n"iPhone 16","IP16","Incluye ""cable"", cargador\ny garantía","1,299.99"',
     );
 
     expect(rows[0].description).toBe('Incluye "cable", cargador\ny garantía');
