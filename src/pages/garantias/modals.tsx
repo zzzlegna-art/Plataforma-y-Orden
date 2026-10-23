@@ -51,7 +51,14 @@ export const DiagnosticoDialog = ({
   const [costo, setCosto] = useState("");
   const [replacementUnitId, setReplacementUnitId] = useState("");
 
+  const tieneCliente = garantiaTieneCliente(warranty);
   const esCambio = resolucion === "cambio";
+  const opcionesResolucion: WarrantyResolution[] = [
+    "reparado",
+    ...(tieneCliente ? ["cambio" as const] : []),
+    "sin_falla",
+    ...(!tieneCliente ? ["defectuoso" as const] : []),
+  ];
 
   const save = async () => {
     if (!resolucion) return;
@@ -99,13 +106,7 @@ export const DiagnosticoDialog = ({
             <OptionSelect
               value={resolucion || undefined}
               onChange={(value) => setResolucion(value as WarrantyResolution)}
-              options={(
-                [
-                  "reparado",
-                  "cambio",
-                  "sin_falla",
-                ] as WarrantyResolution[]
-              ).map((value) => ({
+              options={opcionesResolucion.map((value) => ({
                 value,
                 label: t(`warrantyResolution.${value}`),
               }))}
