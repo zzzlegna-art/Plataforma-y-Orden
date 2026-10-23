@@ -8,6 +8,8 @@ import {
   enviarATecnico,
   entregarGarantia,
   createWarrantyFallaInventario,
+  createWarrantyPrevia,
+  devolverGarantiasABodega,
   estadoAnteriorGarantia,
   garantiaTieneCliente,
   registrarDiagnostico,
@@ -317,6 +319,79 @@ describe("entregarGarantia · cambio en una garantía previa: el equipo original
   });
 });
 
+describe("devolverGarantiasABodega · cierre por lote desde Recibidos", () => {
+  it("devuelve garantías de cliente y de inventario a bodega como disponibles", () => {
+    const db = emptyDb();
+    db.units = [
+      unidad({ id: "un1", serial: "SERIAL-CLIENTE", status: "en_reparacion" }),
+      unidad({ id: "un2", serial: "SERIAL-INVENTARIO", status: "en_reparacion" }),
+    ];
+    db.warranties = [
+      garantia({ id: "w1", code: "GAR-1", unitId: "un1", productId: "p1", customerId: "c1", status: "recibido", resolucion: undefined }),
+      garantia({ id: "w2", code: "GAR-2", unitId: "un2", productId: "p1", status: "recibido", resolucion: undefined }),
+    ];
+    const count = devolverGarantiasABodega(db, admin, { warrantyIds: ["w1", "w2"] });
+    expect(count).toBe(2);
+    expect(db.units.map((unit) => unit.status)).toEqual(["en_bodega", "en_bodega"]);
+    expect(db.warranties.map((warranty) => warranty.status)).toEqual(["devuelto", "devuelto"]);
+    expect(db.warrantyEvents.every((event) => event.notes?.includes("disponible en bodega para venta"))).toBe(true);
+  });
+
+  it("da de alta y vincula el serial de una garantía previa al devolverla directamente a bodega", () => {
+    const db = emptyDb();
+    db.products = [{
+      id: "p1", sku: "IPH13", name: "iPhone 13", price: 0, cost: 0, minStock: 0,
+      isActive: true, createdAt: now, updatedAt: now,
+    }];
+    db.warranties = [garantia({
+      id: "w1", code: "GAR-1", unitId: undefined, productId: undefined, imeiManual: "PREVIA-123",
+      referenciaManual: "iPhone 13", clienteManual: "Cliente previo", status: "recibido", resolucion: undefined,
+    })];
+    devolverGarantiasABodega(db, admin, { warrantyIds: ["w1"] });
+    const unit = db.units.find((item) => item.serial === "PREVIA-123");
+    expect(unit?.status).toBe("en_bodega");
+    expect(db.warranties[0]?.unitId).toBe(unit?.id);
+    expect(db.warranties[0]?.productId).toBe("p1");
+    expect(db.warranties[0]?.status).toBe("devuelto");
+  });
+
+  it("valida todo el lote antes de mover seriales", () => {
+    const db = emptyDb();
+    db.units = [unidad({ id: "un1", status: "en_reparacion" })];
+    db.warranties = [
+      garantia({ id: "w1", unitId: "un1", status: "recibido" }),
+      garantia({ id: "w2", unitId: undefined, imeiManual: "PREVIA-2", referenciaManual: "Modelo que no existe", clienteManual: "Cliente", status: "recibido" }),
+    ];
+    expect(() => devolverGarantiasABodega(db, admin, { warrantyIds: ["w1", "w2"] })).toThrow();
+    expect(db.units[0]?.status).toBe("en_reparacion");
+    expect(db.warranties[0]?.status).toBe("recibido");
+  });
+});
+
+describe("createWarrantyPrevia · referencia del catálogo", () => {
+  const input = { imeiManual: "PREVIA-123", referenciaManual: "iPhone 13", clienteManual: "Cliente previo", observacion: "No carga" };
+  const conProducto = () => {
+    const db = emptyDb();
+    db.products = [{
+      id: "p1", sku: "IPH13", name: "iPhone 13", price: 0, cost: 0, minStock: 0,
+      isActive: true, createdAt: now, updatedAt: now,
+    }];
+    return db;
+  };
+
+  it("rechaza una referencia que no existe en el catálogo", () => {
+    const db = conProducto();
+    expect(() => createWarrantyPrevia(db, admin, { ...input, referenciaManual: "Modelo desconocido" })).toThrow();
+    expect(db.warranties).toHaveLength(0);
+  });
+
+  it("guarda el nombre canónico del catálogo aunque se escriba con otro uso de mayúsculas", () => {
+    const db = conProducto();
+    const warranty = createWarrantyPrevia(db, admin, { ...input, referenciaManual: "iphone 13" });
+    expect(warranty.referenciaManual).toBe("iPhone 13");
+  });
+});
+
 describe("devolverGarantia · vuelve a bodega en reparación y sale del pedido", () => {
   const dbConPedido = (status: Warranty["status"]) => {
     const db = dbCon({ status, customerId: "c1", orderId: "o1" }, { status: "en_reparacion" });
@@ -434,7 +509,7 @@ describe("deshacerEstadoGarantia · devolver un caso al estado anterior", () => 
     expect(() => deshacerEstadoGarantia(db, admin, { warrantyId: "w1" })).toThrow();
   });
 
-  it("permite marcar como defectuosa una unidad de inventario que el técnico no pudo recuperar", () => {
+  it("ya no permite usar defectuoso como resolución en un diagnóstico nuevo", () => {
     const db = dbCon({
       productId: "p1",
       customerId: undefined,
@@ -442,14 +517,39 @@ describe("deshacerEstadoGarantia · devolver un caso al estado anterior", () => 
       clienteManual: undefined,
       status: "en_servicio_tecnico",
     }, { status: "en_reparacion" });
+    expect(() => registrarDiagnostico(db, admin, {
+      warrantyId: "w1", diagnostico: "No tiene solución", resolucion: "defectuoso",
+    })).toThrow();
+    expect(db.warranties[0]?.status).toBe("en_servicio_tecnico");
+  });
+
+  it("en falla de inventario, cambio exige un serial de la misma referencia y retira el original", () => {
+    const db = dbCon({
+      productId: "p1",
+      customerId: undefined,
+      orderId: undefined,
+      clienteManual: undefined,
+      status: "en_servicio_tecnico",
+    }, { status: "en_reparacion" });
+    db.products = [{
+      id: "p1", sku: "IPH13", name: "iPhone 13", price: 0, cost: 0, minStock: 0,
+      isActive: true, createdAt: now, updatedAt: now,
+    }];
+    db.units.push({
+      id: "un2", productId: "p1", serial: "IPH13-REEMPLAZO", condition: "nuevo",
+      status: "en_bodega", receivedAt: now, createdBy: "u1",
+    });
     registrarDiagnostico(db, admin, {
-      warrantyId: "w1", diagnostico: "Placa irrecuperable", resolucion: "defectuoso",
+      warrantyId: "w1", diagnostico: "No tiene solución", resolucion: "cambio", replacementUnitId: "un2",
     });
     expect(db.warranties[0]?.status).toBe("reenvio_pendiente");
     entregarGarantia(db, admin, { warrantyId: "w1" });
-    expect(db.units[0]?.status).toBe("defectuoso");
+    expect(db.units.find((unit) => unit.id === "un1")?.status).toBe("liberado");
+    expect(db.units.find((unit) => unit.id === "un2")?.status).toBe("en_bodega");
     expect(db.warranties[0]?.status).toBe("devuelto");
-    expect(db.warrantyEvents[db.warrantyEvents.length - 1]?.notes).toContain("defectuoso en bodega");
+    expect(db.warrantyEvents[db.warrantyEvents.length - 1]?.notes).toContain("serial original 354198263141008 retirado del inventario");
+    expect(db.warrantyEvents[db.warrantyEvents.length - 1]?.notes).toContain("serial IPH13-REEMPLAZO permanece disponible");
+    expect(db.movements.some((movement) => movement.unitId === "un1" && movement.type === "liberacion")).toBe(true);
   });
 
   it("no permite registrar un equipo irreparable como garantía nueva", () => {
