@@ -519,12 +519,40 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
   /** Actualiza permisos inmediatamente por tiempo real y también al volver a la pestaña. */
   useEffect(() => {
     if (!user) return;
-    const desuscribir = suscribirCambios(recibirCambio, {
-      incluirAuditoria: user.role === "admin",
-      perfilUsuarioId: user.id,
-      alCambiarPerfil: () => void validarPerfilSesion(),
+
+    let cancelado = false;
+    let desuscribir: (() => void) | undefined;
+
+    // La sesión puede haberse aplicado a React antes de que Realtime termine
+    // de recibir el JWT. Esperar explícitamente setAuth evita registrar filtros
+    // de perfil con el rol anon durante esa pequeña ventana de inicialización.
+    void (async () => {
+      const { data, error } = await supabase.auth.getSession();
+      if (error) throw error;
+      if (cancelado) return;
+
+      const sesion = data.session;
+      if (!sesion || sesion.user.id !== user.id) {
+        console.warn("Tiempo real pendiente: no coincide la sesión con el usuario activo.");
+        return;
+      }
+
+      await supabase.realtime.setAuth(sesion.access_token);
+      if (cancelado) return;
+
+      desuscribir = suscribirCambios(recibirCambio, {
+        incluirAuditoria: user.role === "admin",
+        perfilUsuarioId: user.id,
+        alCambiarPerfil: () => void validarPerfilSesion(),
+      });
+    })().catch((error: unknown) => {
+      if (!cancelado) console.warn("No se pudo iniciar tiempo real autenticado.", error);
     });
-    return () => desuscribir();
+
+    return () => {
+      cancelado = true;
+      desuscribir?.();
+    };
   }, [user, recibirCambio, validarPerfilSesion]);
 
   /** Respaldo si el evento de perfil no llega: revalida cada minuto y al volver al frente. */
