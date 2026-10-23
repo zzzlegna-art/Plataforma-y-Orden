@@ -71,6 +71,20 @@ describe("parseProductCsv", () => {
   });
 
 
+  it("rechaza cabeceras duplicadas para un campo reconocido", () => {
+    expect(() => parseProductCsv("Producto;Nombre;Precio\nTablet;Otra tablet;100")).toThrowError(
+      expect.objectContaining({
+        code: "malformed",
+        message: expect.stringContaining("columnas repetidas"),
+      }),
+    );
+  });
+
+  it("permite cabeceras desconocidas adicionales", () => {
+    const rows = parseProductCsv("Producto;Precio;Nota interna\nTablet;100;Importado");
+    expect(rows[0]).toMatchObject({ name: "Tablet", price: 100, error: "" });
+  });
+
   it("rechaza archivos sin columna de nombre o sin filas de datos", () => {
     expect(() => parseProductCsv("Referencia;Precio\nSKU-1;100")).toThrowError(ProductCsvImportError);
     expect(() => parseProductCsv("Producto;Referencia\n")).toThrowError(ProductCsvImportError);
