@@ -170,6 +170,7 @@ export const ProductImportDialog = ({ trigger }: { trigger: React.ReactNode }) =
     const file = event.target.files?.[0];
     if (!file) return;
     setFileError("");
+    setFileName("");
     setRows([]);
     if (file.size > MAX_PRODUCT_CSV_IMPORT_BYTES) {
       setFileError(t("productImport.fileTooLarge"));
