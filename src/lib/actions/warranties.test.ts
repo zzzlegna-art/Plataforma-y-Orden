@@ -205,6 +205,23 @@ describe("registrarDiagnostico · resolución cambio pide el serial de reemplazo
       }),
     ).toThrow();
   });
+
+  it("no permite reservar el mismo serial de reemplazo en dos garantías abiertas", () => {
+    const db = dbCon({ productId: "p1", customerId: "c1", status: "en_servicio_tecnico" });
+    db.units.push(reemplazo());
+    db.warranties.push(garantia({
+      id: "w2",
+      code: "GAR-2",
+      unitId: "un-other",
+      productId: "p1",
+      customerId: "c2",
+      status: "reenvio_pendiente",
+      replacementUnitId: "un2",
+    }));
+    expect(() => registrarDiagnostico(db, admin, {
+      warrantyId: "w1", diagnostico: "pantalla rota", resolucion: "cambio", replacementUnitId: "un2",
+    })).toThrow();
+  });
 });
 
 describe("entregarGarantia · garantía previa (cliente escrito a mano) no es falla de inventario", () => {
