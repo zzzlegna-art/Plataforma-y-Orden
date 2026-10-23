@@ -89,6 +89,15 @@ const requireReplacement = (db: Db, warranty: Warranty, replacementUnitId?: stri
     return pedido?.status === "en_preparacion";
   });
   if (asignado) throw new DomainError("errors.unitAlreadyAssigned");
+  const reservadoEnOtraGarantia = db.warranties.some(
+    (item) =>
+      item.id !== warranty.id &&
+      item.replacementUnitId === replacement.id &&
+      isOpenWarranty(item.status),
+  );
+  if (reservadoEnOtraGarantia) {
+    throw new DomainError("errors.unitNotAvailable", { serial: replacement.serial });
+  }
   if (replacement.status !== "en_bodega" && replacement.status !== "en_local") {
     throw new DomainError("errors.unitNotAvailable", { serial: replacement.serial });
   }
