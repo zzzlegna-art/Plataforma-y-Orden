@@ -44,7 +44,8 @@ export const ProductThumbnail = ({
 }: ProductThumbnailProps) => {
   const [failedSrc, setFailedSrc] = useState<string | null>(null);
   const fallbackSrc = getReferenceImageFallback(alt);
-  const imageSrc = src && failedSrc !== src ? src : fallbackSrc;
+  const primaryAvailable = Boolean(src && failedSrc !== src && failedSrc !== fallbackSrc);
+  const imageSrc = primaryAvailable ? src : fallbackSrc;
 
   if (!imageSrc || failedSrc === imageSrc) return null;
 
