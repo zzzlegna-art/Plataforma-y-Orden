@@ -364,7 +364,7 @@ const Garantias = () => {
       };
     }
     const cliente = (view.customer?.name ?? view.warranty.clienteManual ?? t("warranty.history.unknownCustomer")).trim();
-    const claveCliente = cliente.toLocaleLowerCase().normalize("NFD").replace(/[\\u0300-\\u036f]/g, "");
+    const claveCliente = cliente.toLocaleLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
     return {
       key: `historial:cliente:${claveCliente}`,
       title: cliente,
