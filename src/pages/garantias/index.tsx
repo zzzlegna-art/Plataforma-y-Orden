@@ -44,6 +44,7 @@ import { imprimirEtiquetas } from "@/lib/print-labels";
 import {
   contarGarantiasPorEstado,
   createWarrantyByImei,
+  createWarrantyFallaInventario,
   createWarrantiesByImeis,
   createWarrantyPrevia,
   createWarrantiesPrevias,
@@ -253,7 +254,7 @@ const Garantias = () => {
       },
       { replace: true },
     );
-  const [modo, setModo] = useState<"imei" | "previa">("imei");
+  const [modo, setModo] = useState<"imei" | "previa" | "falla">("imei");
   const [imeiMode, setImeiMode] = useState<"uno" | "lote">("uno");
 
   // Recepción por IMEI
@@ -504,6 +505,74 @@ const Garantias = () => {
       resultado.motivo_params ?? { serial: resultado.imei },
     );
 
+  /**
+   * Valida el serial según el flujo elegido:
+   * - Venta registrada: debe estar vendido/entregado por garantía.
+   * - Falla de inventario: debe estar disponible en bodega/local.
+   * Si no existe en el sistema, solo el flujo de venta registrada puede continuar
+   * como garantía previa.
+   */
+  const evaluarSerial = (serial: string, modoActual: "imei" | "falla"): EvaluacionSerial => {
+    const valor = serial.trim();
+    const unit = findUnitBySerial(db, valor);
+
+    if (!unit) {
+      if (modoActual === "imei") {
+        const previo = buscarSerialPrevio(db, valor);
+        return {
+          tipo: "aviso",
+          aviso: {
+            tone: "warning",
+            text: previo
+              ? t("warranty.notice.notFoundPrevio", { serial: valor })
+              : t("warranty.notice.notFound", { serial: valor }),
+            // También se permite garantía previa cuando la venta anterior no se importó.
+            previaSerial: previo?.serial ?? valor,
+          },
+        };
+      }
+      return {
+        tipo: "aviso",
+        aviso: {
+          tone: "error",
+          text: t("warranty.notice.notFound", { serial: valor }),
+        },
+      };
+    }
+
+    const abierta = db.warranties.find(
+      (warranty) => warranty.unitId === unit.id && isOpenWarranty(warranty.status),
+    );
+    if (abierta) {
+      return {
+        tipo: "aviso",
+        aviso: {
+          tone: "warning",
+          text: t("warranty.notice.open", { serial: unit.serial, code: abierta.code }),
+        },
+      };
+    }
+
+    const valido =
+      modoActual === "falla"
+        ? unit.status === "en_bodega" || unit.status === "en_local"
+        : unit.status === "vendido" || unit.status === "entregado_garantia";
+    if (!valido) {
+      return {
+        tipo: "aviso",
+        aviso: {
+          tone: "warning",
+          text: t(
+            modoActual === "falla" ? "warranty.notice.notInInventory" : "warranty.notice.notSold",
+            { serial: unit.serial, status: t(`unitStatus.${unit.status}`) },
+          ),
+        },
+      };
+    }
+
+    return { tipo: "ok", unit };
+  };
+
   const infoDeVenta = (unit: Unit) => {
     const row = db.orderItemUnits.find((r) => r.unitId === unit.id);
     const item = row ? db.orderItems.find((i) => i.id === row.orderItemId) : undefined;
@@ -512,12 +581,14 @@ const Garantias = () => {
     return { order, customer };
   };
 
+  const modoDeSerial = modo === "falla" ? "falla" : "imei";
+
   const buscarUnidadParaGarantia = (serial: string) => {
     setUnidadEncontrada(null);
     setUnidadInfo({});
     setMotivoUno("");
     setAviso(null);
-    const evaluacion = evaluarSerial(serial);
+    const evaluacion = evaluarSerial(serial, modoDeSerial);
     if (evaluacion.tipo === "aviso") {
       setAviso(evaluacion.aviso);
       return;
@@ -533,7 +604,7 @@ const Garantias = () => {
       setAviso({ tone: "info", text: t("warranty.notice.duplicate", { serial: valor }) });
       return;
     }
-    const evaluacion = evaluarSerial(valor);
+    const evaluacion = evaluarSerial(valor, modoDeSerial);
     if (evaluacion.tipo === "aviso") {
       setAviso(evaluacion.aviso);
       return;
@@ -566,6 +637,26 @@ const Garantias = () => {
   const recibirUno = async () => {
     if (!unidadEncontrada) return;
     const imei = unidadEncontrada.serial;
+    if (modo === "falla") {
+      const resultados = await runAction((db2, actor) =>
+        createWarrantyFallaInventario(db2, actor, {
+          items: [{ imei, observacion: motivoUno }],
+        }),
+      );
+      if (!resultados) return;
+      const fallo = resultados.find((resultado) => !resultado.ok);
+      if (fallo) {
+        toast.error(textoDeFallo(fallo));
+        return;
+      }
+      toast.success(t("warranty.created"));
+      const ids = resultados.filter((resultado) => resultado.ok && resultado.warrantyId).map((resultado) => resultado.warrantyId!);
+      await subirSiHayArchivo(archivoUno, ids, t);
+      setUnidadEncontrada(null);
+      setMotivoUno("");
+      setArchivoUno(null);
+      return;
+    }
     const result = await runAction(
       (db2, actor) =>
         createWarrantyByImei(db2, actor, {
@@ -585,7 +676,9 @@ const Garantias = () => {
   const recibirLote = async () => {
     const items = lote.map((item) => ({ imei: item.imei, observacion: loteObs[item.imei] ?? item.obs }));
     const resultados = await runAction((db2, actor) =>
-      createWarrantiesByImeis(db2, actor, { items }),
+      modo === "falla"
+        ? createWarrantyFallaInventario(db2, actor, { items })
+        : createWarrantiesByImeis(db2, actor, { items }),
     );
     if (!resultados) return;
 
@@ -1172,6 +1265,16 @@ const Garantias = () => {
           <p className="truncate text-sm">{info.producto}</p>
         </div>
         <p className="truncate text-xs text-muted-foreground">{info.cliente}</p>
+        {view.warranty.replacementUnitId ? (
+          <p className="mt-1 break-all text-xs font-medium text-primary">
+            Serial de reemplazo para el cliente: {db.units.find((unit) => unit.id === view.warranty.replacementUnitId)?.serial ?? "—"}
+          </p>
+        ) : null}
+        {!isOpen && view.events.length > 0 && view.events[view.events.length - 1].notes ? (
+          <p className="mt-2 rounded-md bg-muted/40 px-2 py-1.5 text-xs text-muted-foreground">
+            {view.events[view.events.length - 1].notes}
+          </p>
+        ) : null}
         <p className="mt-1 text-xs text-muted-foreground">{formatDateTime(view.warranty.receivedAt)}</p>
         {view.tecnico ? (
           <p className="mt-1 text-xs text-muted-foreground">
@@ -1379,7 +1482,7 @@ const Garantias = () => {
       {tab === "recibir" ? (
         <section className="animate-fade-in space-y-4 rounded-lg border bg-card p-4 shadow-sm">
           <div className="flex flex-wrap gap-2">
-            {(["imei", "previa"] as const).map((option) => (
+            {(["imei", "previa", "falla"] as const).map((option) => (
               <Button
                 key={option}
                 variant={modo === option ? "secondary" : "ghost"}
@@ -1399,7 +1502,7 @@ const Garantias = () => {
           </div>
           <p className="text-sm text-muted-foreground">{t("warranty.intakeHint")}</p>
 
-          {modo === "imei" ? (
+          {modo === "imei" || modo === "falla" ? (
             <div className="space-y-4">
               <div className="flex gap-2">
                 <Button
@@ -1428,7 +1531,7 @@ const Garantias = () => {
                 <div className="space-y-3">
                   <SerialScanInput
                     onScan={buscarUnidadParaGarantia}
-                    hint={t("warranty.scanHint.imei")}
+                    hint={t(`warranty.scanHint.${modo}`)}
                   />
                   {renderAviso()}
                   {unidadEncontrada ? (
