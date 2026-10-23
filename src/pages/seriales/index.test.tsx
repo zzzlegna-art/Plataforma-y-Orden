@@ -63,7 +63,7 @@ describe("Historial de seriales", () => {
       receivedAt: "2026-10-20T10:00:00.000Z",
       createdBy: "u1",
     };
-    const db = { ...emptyDb, warranties: [warranty], warrantyEvents: [], units: [], serialesPrevios: [] } as Db;
+    const db = { ...emptyDb(), warranties: [warranty], warrantyEvents: [], units: [], serialesPrevios: [] } as Db;
 
     render(<I18nextProvider i18n={i18n}><Almacen db={db} serial="359111222333444" /></I18nextProvider>);
 
@@ -74,7 +74,7 @@ describe("Historial de seriales", () => {
 
   it("identifica un serial importado de una venta previa cuando no existe una unidad en Nexora", async () => {
     const db = {
-      ...emptyDb,
+      ...emptyDb(),
       units: [],
       warranties: [],
       warrantyEvents: [],
