@@ -4,6 +4,7 @@ import { X } from "lucide-react";
 import { SerialScanInput } from "@/components/shared/serial-scan-input";
 import { Button } from "@/components/ui/button";
 import { useStore } from "@/hooks/use-store";
+import { isOpenWarranty } from "@/lib/actions/warranties";
 import { isSameText } from "@/lib/actions/guards";
 import { getReplacementUnits } from "@/lib/selectors";
 import type { Warranty } from "@/lib/types";
@@ -11,14 +12,14 @@ import type { Warranty } from "@/lib/types";
 /**
  * Captura del serial de la unidad de reemplazo en un cambio de equipo: se escribe, se escanea
  * con lector o con la cámara, y solo se acepta un serial que realmente pueda entregarse
- * (en bodega o local, sin venta, y del mismo producto si el caso lo tiene).
+ * (en bodega o local, sin venta y de la misma referencia, incluso en garantías previas).
  */
 export const ReplacementSerialField = ({
   warranty,
   value,
   onChange,
 }: {
-  warranty: Pick<Warranty, "productId">;
+  warranty: Pick<Warranty, "id" | "productId" | "referenciaManual">;
   /** Id de la unidad elegida ("" si aún no hay). */
   value: string;
   onChange: (unitId: string) => void;
@@ -30,19 +31,36 @@ export const ReplacementSerialField = ({
   const selectedProduct = selected
     ? db.products.find((product) => product.id === selected.productId)?.name
     : undefined;
+  const productoEsperado = warranty.productId ?? db.products.find(
+    (product) => warranty.referenciaManual && isSameText(product.name, warranty.referenciaManual),
+  )?.id;
+  const requiereReferencia = Boolean(warranty.productId || warranty.referenciaManual?.trim());
 
   // Un serial liberado puede reutilizarse en otra unidad: puede haber varias con el mismo texto.
   const coincidencias = (serial: string) => db.units.filter((unit) => isSameText(unit.serial, serial));
   const disponible = (serial: string) => {
-    const ids = new Set(getReplacementUnits(db, warranty.productId).map((unit) => unit.id));
+    if (requiereReferencia && !productoEsperado) return undefined;
+    const ids = new Set(
+      getReplacementUnits(db, productoEsperado)
+        .filter((unit) =>
+          !db.warranties.some(
+            (other) =>
+              other.id !== warranty.id &&
+              other.replacementUnitId === unit.id &&
+              isOpenWarranty(other.status),
+          ),
+        )
+        .map((unit) => unit.id),
+    );
     return coincidencias(serial).find((unit) => ids.has(unit.id));
   };
 
   const validate = (serial: string): string | null => {
+    if (requiereReferencia && !productoEsperado) return t("errors.unitProductMismatch");
     if (disponible(serial)) return null;
     const existentes = coincidencias(serial);
     if (existentes.length === 0) return t("warranty.replacementSerialUnknown", { serial });
-    if (warranty.productId && existentes.every((unit) => unit.productId !== warranty.productId)) {
+    if (productoEsperado && existentes.every((unit) => unit.productId !== productoEsperado)) {
       return t("errors.unitProductMismatch");
     }
     return t("warranty.replacementSerialUnavailable", { serial });

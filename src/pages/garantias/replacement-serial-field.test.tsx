@@ -32,10 +32,14 @@ const dbBase = (): Db => {
     unidad("a2", "p2", "S-200", "en_bodega"),
     unidad("a3", "p1", "S-300", "en_reparacion"), // no se puede entregar: está en taller
   ];
+  db.products = [
+    { id: "p1", sku: "IPH13", name: "iPhone 13", price: 0, cost: 0, minStock: 0, isActive: true, createdAt: now, updatedAt: now },
+    { id: "p2", sku: "IPH14", name: "iPhone 14", price: 0, cost: 0, minStock: 0, isActive: true, createdAt: now, updatedAt: now },
+  ];
   return db;
 };
 
-const Campo = ({ productId, onPick }: { productId?: string; onPick: (id: string) => void }) => {
+const Campo = ({ productId, referenciaManual, onPick }: { productId?: string; referenciaManual?: string; onPick: (id: string) => void }) => {
   const db = useMemo(dbBase, []);
   const [value, setValue] = useState("");
   const app = useMemo<AppValue>(
@@ -48,7 +52,7 @@ const Campo = ({ productId, onPick }: { productId?: string; onPick: (id: string)
   return (
     <AppContext.Provider value={app}>
       <ReplacementSerialField
-        warranty={{ productId }}
+        warranty={{ id: "w-test", productId, referenciaManual }}
         value={value}
         onChange={(id) => {
           setValue(id);
@@ -107,6 +111,14 @@ describe("ReplacementSerialField · el serial de reemplazo se escribe, no se eli
     const onPick = vi.fn();
     render(<Campo productId="p1" onPick={onPick} />);
     await escribir("NO-EXISTE");
+    expect(onPick).not.toHaveBeenCalled();
+    expect(mocks.toastError).toHaveBeenCalled();
+  });
+
+  it("en una garantía previa con referencia conocida rechaza otro modelo", async () => {
+    const onPick = vi.fn();
+    render(<Campo referenciaManual="iPhone 13" onPick={onPick} />);
+    await escribir("S-200");
     expect(onPick).not.toHaveBeenCalled();
     expect(mocks.toastError).toHaveBeenCalled();
   });

@@ -3,7 +3,6 @@ import { useTranslation } from "react-i18next";
 import {
   ChevronDown,
   TriangleAlert,
-  ClipboardList,
   FileSpreadsheet,
   FileText,
   BarChart3,
@@ -45,9 +44,8 @@ import { imprimirEtiquetas } from "@/lib/print-labels";
 import {
   contarGarantiasPorEstado,
   createWarrantyByImei,
-  createWarrantyByOrder,
-  createWarrantiesByImeis,
   createWarrantyFallaInventario,
+  createWarrantiesByImeis,
   createWarrantyPrevia,
   createWarrantiesPrevias,
   enviarATecnico,
@@ -121,8 +119,6 @@ interface Aviso {
   text: string;
   /** Si el serial es de una venta previa, permite saltar al modo "garantía previa". */
   previaSerial?: string;
-  /** Serial no encontrado: sugiere buscar por pedido/cliente en vez de adivinar un IMEI. */
-  sugerirPedido?: boolean;
 }
 
 type EvaluacionSerial = { tipo: "ok"; unit: Unit } | { tipo: "aviso"; aviso: Aviso };
@@ -258,7 +254,7 @@ const Garantias = () => {
       },
       { replace: true },
     );
-  const [modo, setModo] = useState<"imei" | "pedido" | "previa" | "falla">("imei");
+  const [modo, setModo] = useState<"imei" | "previa" | "falla">("imei");
   const [imeiMode, setImeiMode] = useState<"uno" | "lote">("uno");
 
   // Recepción por IMEI
@@ -271,10 +267,6 @@ const Garantias = () => {
   const [archivoLote, setArchivoLote] = useState<File | null>(null);
   const [loteObs, setLoteObs] = useState<Record<string, string>>({});
   const [aviso, setAviso] = useState<Aviso | null>(null);
-
-  // Por pedido
-  const [busquedaPedido, setBusquedaPedido] = useState("");
-  const [pedidoSeleccionado, setPedidoSeleccionado] = useState<string | null>(null);
 
   // Previa
   const [previa, setPrevia] = useState({
@@ -514,23 +506,28 @@ const Garantias = () => {
     );
 
   /**
-   * Revisa un serial escaneado y explica por qué no se puede recibir. Antes las
-   * pantallas descartaban en silencio cualquier serial no válido y parecía que
-   * "no pasaba nada".
+   * Valida el serial según el flujo elegido:
+   * - Venta registrada: debe estar vendido/entregado por garantía.
+   * - Falla de inventario: debe estar disponible en bodega/local.
+   * Si no existe en el sistema, solo el flujo de venta registrada puede continuar
+   * como garantía previa.
    */
   const evaluarSerial = (serial: string, modoActual: "imei" | "falla"): EvaluacionSerial => {
     const valor = serial.trim();
     const unit = findUnitBySerial(db, valor);
 
     if (!unit) {
-      const previo = modoActual === "imei" ? buscarSerialPrevio(db, valor) : undefined;
-      if (previo) {
+      if (modoActual === "imei") {
+        const previo = buscarSerialPrevio(db, valor);
         return {
           tipo: "aviso",
           aviso: {
             tone: "warning",
-            text: t("warranty.notice.notFoundPrevio", { serial: valor }),
-            previaSerial: previo.serial,
+            text: previo
+              ? t("warranty.notice.notFoundPrevio", { serial: valor })
+              : t("warranty.notice.notFound", { serial: valor }),
+            // También se permite garantía previa cuando la venta anterior no se importó.
+            previaSerial: previo?.serial ?? valor,
           },
         };
       }
@@ -539,9 +536,6 @@ const Garantias = () => {
         aviso: {
           tone: "error",
           text: t("warranty.notice.notFound", { serial: valor }),
-          // Si es un equipo vendido y apagado, seguramente el IMEI que se escribió no es el
-          // real (se lo inventaron). "falla" es de nuestro propio stock, sin cliente/pedido.
-          sugerirPedido: modoActual === "imei",
         },
       };
     }
@@ -569,9 +563,7 @@ const Garantias = () => {
         aviso: {
           tone: "warning",
           text: t(
-            modoActual === "falla"
-              ? "warranty.notice.notInInventory"
-              : "warranty.notice.notSold",
+            modoActual === "falla" ? "warranty.notice.notInInventory" : "warranty.notice.notSold",
             { serial: unit.serial, status: t(`unitStatus.${unit.status}`) },
           ),
         },
@@ -646,7 +638,6 @@ const Garantias = () => {
     if (!unidadEncontrada) return;
     const imei = unidadEncontrada.serial;
     if (modo === "falla") {
-      // La falla en inventario es un flujo distinto: el equipo no se ha vendido.
       const resultados = await runAction((db2, actor) =>
         createWarrantyFallaInventario(db2, actor, {
           items: [{ imei, observacion: motivoUno }],
@@ -659,8 +650,8 @@ const Garantias = () => {
         return;
       }
       toast.success(t("warranty.created"));
-      const idsFalla = resultados.filter((r) => r.ok && r.warrantyId).map((r) => r.warrantyId!);
-      await subirSiHayArchivo(archivoUno, idsFalla, t);
+      const ids = resultados.filter((resultado) => resultado.ok && resultado.warrantyId).map((resultado) => resultado.warrantyId!);
+      await subirSiHayArchivo(archivoUno, ids, t);
       setUnidadEncontrada(null);
       setMotivoUno("");
       setArchivoUno(null);
@@ -793,70 +784,6 @@ const Garantias = () => {
     );
     if (result) {
       setPrevia({ imei: "", referencia: "", cliente: "", fecha: "", motivo: "" });
-    }
-  };
-
-  // ---------- Por pedido ----------
-  const pedidosCoincidentes = useMemo(() => {
-    const q = busquedaPedido.trim().toLowerCase();
-    if (!q) return [];
-    return db.orders
-      .filter((order) => order.status === "despachado")
-      .filter(
-        (order) =>
-          order.code.toLowerCase().includes(q) ||
-          (db.customers.find((c) => c.id === order.customerId)?.name ?? "")
-            .toLowerCase()
-            .includes(q),
-      )
-      .slice(0, 8);
-  }, [db, busquedaPedido]);
-
-  const unidadesDelPedido = useMemo(() => {
-    if (!pedidoSeleccionado) return [];
-    const orderUnitIds = new Set(
-      db.orderItemUnits
-        .filter((row) =>
-          db.orderItems.some(
-            (item) => item.id === row.orderItemId && item.orderId === pedidoSeleccionado,
-          ),
-        )
-        .map((row) => row.unitId),
-    );
-    return db.units.filter(
-      (unit) =>
-        orderUnitIds.has(unit.id) &&
-        (unit.status === "vendido" || unit.status === "entregado_garantia"),
-    );
-  }, [db, pedidoSeleccionado]);
-
-  // Unidades marcadas del pedido y el motivo de cada una.
-  const [pedidoMarcadas, setPedidoMarcadas] = useState<Set<string>>(new Set());
-  const [pedidoMotivos, setPedidoMotivos] = useState<Record<string, string>>({});
-
-  const marcadasSinMotivo = unidadesDelPedido.some(
-    (unit) => pedidoMarcadas.has(unit.id) && !(pedidoMotivos[unit.id] ?? "").trim(),
-  );
-
-  const limpiarPedido = () => {
-    setPedidoSeleccionado(null);
-    setPedidoMarcadas(new Set());
-    setPedidoMotivos({});
-  };
-
-  const recibirPorPedido = async () => {
-    if (!pedidoSeleccionado) return;
-    const items = unidadesDelPedido
-      .filter((unit) => pedidoMarcadas.has(unit.id))
-      .map((unit) => ({ imei: unit.serial, observacion: pedidoMotivos[unit.id] ?? "" }));
-    if (items.length === 0) return;
-    const count = await runAction(
-      (db2, actor) => createWarrantyByOrder(db2, actor, { orderId: pedidoSeleccionado, items }),
-      { success: "warranty.batchReceived" },
-    );
-    if (count) {
-      limpiarPedido();
-      setBusquedaPedido("");
     }
   };
 
@@ -1280,12 +1207,6 @@ const Garantias = () => {
     setBuscarResultado(valor);
   };
 
-  /** Salta al modo "pedido": busca por cliente/orden en vez de por IMEI. */
-  const irAModoPedido = () => {
-    setModo("pedido");
-    setAviso(null);
-  };
-
   const renderAviso = () =>
     aviso ? (
       <div
@@ -1308,17 +1229,15 @@ const Garantias = () => {
             {t("warranty.usePrevia")}
           </Button>
         ) : null}
-        {aviso.sugerirPedido ? (
-          <Button type="button" size="sm" variant="outline" onClick={irAModoPedido}>
-            {t("warranty.searchByOrder")}
-          </Button>
-        ) : null}
       </div>
     ) : null;
 
   const renderCard = (view: WarrantyView) => {
     const info = warrantyInfo(view);
     const isOpen = view.open;
+    const notaFinal = view.events.length > 0 ? view.events[view.events.length - 1].notes ?? "" : "";
+    const finalDisponible = notaFinal.toLowerCase().includes("disponible en bodega");
+    const finalEntregado = notaFinal.toLowerCase().includes("entregado al cliente");
     const estancadaDias = isOpen ? (diasPorCaso.get(view.warranty.id) ?? 0) : 0;
     return (
       <div id={`garantia-operativa-${view.warranty.id}`} key={view.warranty.id} className={cn("surface-hover scroll-mt-24 rounded-lg border bg-card p-4 shadow-sm", focusId === view.warranty.id && "border-primary ring-2 ring-primary/35 shadow-lg shadow-primary/10")}>
@@ -1334,6 +1253,8 @@ const Garantias = () => {
           </div>
           <div className="flex shrink-0 flex-col items-end gap-1">
             <WarrantyStatusBadge status={view.warranty.status} />
+            {!isOpen && finalDisponible ? <Badge label={t("warranty.finalDestination.stock")} withDot={false} /> : null}
+            {!isOpen && finalEntregado ? <Badge label={t("warranty.finalDestination.customer")} withDot={false} /> : null}
             <WarrantyOriginBadge origin={getWarrantyOrigin(view.warranty, view.order)} />
             {estancadaDias >= DIAS_GARANTIA_ESTANCADA ? (
               <Badge
@@ -1349,6 +1270,16 @@ const Garantias = () => {
           <p className="truncate text-sm">{info.producto}</p>
         </div>
         <p className="truncate text-xs text-muted-foreground">{info.cliente}</p>
+        {view.warranty.replacementUnitId ? (
+          <p className="mt-1 break-all text-xs font-medium text-primary">
+            Serial de reemplazo para el cliente: {db.units.find((unit) => unit.id === view.warranty.replacementUnitId)?.serial ?? "—"}
+          </p>
+        ) : null}
+        {!isOpen && view.events.length > 0 && view.events[view.events.length - 1].notes ? (
+          <p className="mt-2 rounded-md bg-muted/40 px-2 py-1.5 text-xs text-muted-foreground">
+            {view.events[view.events.length - 1].notes}
+          </p>
+        ) : null}
         <p className="mt-1 text-xs text-muted-foreground">{formatDateTime(view.warranty.receivedAt)}</p>
         {view.tecnico ? (
           <p className="mt-1 text-xs text-muted-foreground">
@@ -1556,7 +1487,7 @@ const Garantias = () => {
       {tab === "recibir" ? (
         <section className="animate-fade-in space-y-4 rounded-lg border bg-card p-4 shadow-sm">
           <div className="flex flex-wrap gap-2">
-            {(["imei", "pedido", "previa", "falla"] as const).map((option) => (
+            {(["imei", "previa", "falla"] as const).map((option) => (
               <Button
                 key={option}
                 variant={modo === option ? "secondary" : "ghost"}
@@ -1565,7 +1496,6 @@ const Garantias = () => {
                   setModo(option);
                   setUnidadEncontrada(null);
                   setLote([]);
-                  limpiarPedido();
                   setAviso(null);
                   setArchivoUno(null);
                   setArchivoLote(null);
@@ -1575,6 +1505,9 @@ const Garantias = () => {
               </Button>
             ))}
           </div>
+          <p className="text-sm text-muted-foreground">
+            {t(modo === "falla" ? "warranty.inventoryFaultHint" : "warranty.intakeHint")}
+          </p>
 
           {modo === "imei" || modo === "falla" ? (
             <div className="space-y-4">
@@ -1711,108 +1644,6 @@ const Garantias = () => {
                       </Button>
                     </>
                   ) : null}
-                </div>
-              )}
-            </div>
-          ) : null}
-
-          {modo === "pedido" ? (
-            <div className="space-y-3">
-              <div className="space-y-2">
-                <Label>{t("warranty.orderSearch")}</Label>
-                <Input
-                  {...SEARCH_INPUT_PROPS}
-                  value={busquedaPedido}
-                  placeholder={t("warranty.orderSearchPlaceholder")}
-                  onChange={(event) => setBusquedaPedido(event.target.value)}
-                  onKeyDown={onEnter(() => {
-                    const primero = pedidosCoincidentes[0];
-                    if (primero && !pedidoSeleccionado) setPedidoSeleccionado(primero.id);
-                  })}
-                />
-              </div>
-              {!pedidoSeleccionado && busquedaPedido.trim() && pedidosCoincidentes.length === 0 ? (
-                <p className="text-sm text-muted-foreground">{t("warranty.noOrdersFound")}</p>
-              ) : null}
-              {!pedidoSeleccionado ? (
-                <ul className="divide-y rounded-md border">
-                  {pedidosCoincidentes.map((order) => {
-                    const customer = db.customers.find((c) => c.id === order.customerId);
-                    return (
-                      <li key={order.id}>
-                        <button
-                          type="button"
-                          className="flex w-full items-center justify-between gap-2 px-3 py-2 text-left hover:bg-muted/50"
-                          onClick={() => setPedidoSeleccionado(order.id)}
-                        >
-                          <div className="min-w-0">
-                            <p className="font-tabular text-sm font-medium">{order.code}</p>
-                            <p className="truncate text-xs text-muted-foreground">
-                              {customer?.name} · {formatDateTime(order.orderDate)}
-                            </p>
-                          </div>
-                          <ClipboardList className="h-4 w-4 shrink-0 text-muted-foreground" />
-                        </button>
-                      </li>
-                    );
-                  })}
-                </ul>
-              ) : (
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <p className="text-sm font-medium">{t("warranty.orderUnits")}</p>
-                    <Button variant="ghost" size="sm" onClick={limpiarPedido}>
-                      {t("common.back")}
-                    </Button>
-                  </div>
-                  <ul className="divide-y rounded-md border">
-                    {unidadesDelPedido.map((unit) => (
-                      <li key={unit.id} className="flex flex-col gap-2 p-3">
-                        <div className="flex items-center justify-between gap-2">
-                          <div className="min-w-0">
-                            <p className="font-tabular truncate text-sm">{unit.serial}</p>
-                            <p className="truncate text-xs text-muted-foreground">
-                              {productoDeUnidad(unit)}
-                            </p>
-                          </div>
-                          <input
-                            type="checkbox"
-                            checked={pedidoMarcadas.has(unit.id)}
-                            onChange={() =>
-                              setPedidoMarcadas((previous) => {
-                                const next = new Set(previous);
-                                if (next.has(unit.id)) next.delete(unit.id);
-                                else next.add(unit.id);
-                                return next;
-                              })
-                            }
-                          />
-                        </div>
-                        {pedidoMarcadas.has(unit.id) ? (
-                          <Textarea
-                            rows={1}
-                            className="h-9"
-                            placeholder={t("warranty.reason")}
-                            value={pedidoMotivos[unit.id] ?? ""}
-                            onChange={(event) =>
-                              setPedidoMotivos((previous) => ({
-                                ...previous,
-                                [unit.id]: event.target.value,
-                              }))
-                            }
-                          />
-                        ) : null}
-                      </li>
-                    ))}
-                  </ul>
-                  <Button
-                    type="button"
-                    loading={runAction.pending}
-                    disabled={pedidoMarcadas.size === 0 || marcadasSinMotivo}
-                    onClick={() => void recibirPorPedido()}
-                  >
-                    {t("warranty.receiveAll")}
-                  </Button>
                 </div>
               )}
             </div>
