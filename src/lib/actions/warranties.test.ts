@@ -169,6 +169,25 @@ describe("registrarDiagnostico · resolución cambio pide el serial de reemplazo
     expect(db.units[0].status).toBe("entregado_garantia");
   });
 
+  it("garantía previa con referencia conocida exige el mismo producto como reemplazo", () => {
+    const db = dbCon({
+      unitId: undefined,
+      productId: undefined,
+      imeiManual: "123",
+      referenciaManual: "iPhone 13",
+      status: "en_servicio_tecnico",
+    });
+    db.products = [{
+      id: "p1", sku: "IPH13", name: "iPhone 13", price: 0, cost: 0, minStock: 0,
+      isActive: true, createdAt: now, updatedAt: now,
+    }];
+    db.units = [reemplazo({ productId: "p2" })];
+    expect(() => registrarDiagnostico(db, admin, {
+      warrantyId: "w1", diagnostico: "no enciende", resolucion: "cambio", replacementUnitId: "un2",
+    })).toThrow();
+    expect(db.warranties[0]?.status).toBe("en_servicio_tecnico");
+  });
+
   it("caso previo que ya quedó en reenvío sin serial: se puede entregar eligiéndolo al entregar", () => {
     const db = dbCon({ unitId: undefined, productId: undefined, imeiManual: "123", resolucion: "cambio" });
     db.units = [reemplazo()];
