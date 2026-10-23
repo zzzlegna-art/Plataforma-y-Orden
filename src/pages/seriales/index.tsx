@@ -154,10 +154,9 @@ const HistorialSerial = ({ embedded = false }: { embedded?: boolean }) => {
           </div>
           <div className="grid gap-2">
             {garantiasPorSerialManual.map((warranty) => {
-              const referencia = db.products.find((item) => item.id === warranty.productId)?.name
-                ?? db.products.find((item) => item.name.trim().toLocaleLowerCase() === warranty.referenciaManual?.trim().toLocaleLowerCase())?.name
-                ?? warranty.referenciaManual
-                ?? "—";
+              const productoCatalogo = db.products.find((item) => item.id === warranty.productId)
+                ?? db.products.find((item) => item.name.trim().toLocaleLowerCase() === warranty.referenciaManual?.trim().toLocaleLowerCase());
+              const referencia = productoCatalogo?.name ?? warranty.referenciaManual ?? "—";
               const ultimoEvento = db.warrantyEvents
                 .filter((event) => event.warrantyId === warranty.id)
                 .sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0];
@@ -174,11 +173,24 @@ const HistorialSerial = ({ embedded = false }: { embedded?: boolean }) => {
                       <WarrantyStatusBadge status={warranty.status} />
                     </div>
                   </div>
-                  <p className="mt-2 text-sm font-medium">{referencia}</p>
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    {t("warranty.previaCliente")}: {warranty.clienteManual ?? "—"} · {warranty.imeiManual}
-                  </p>
-                  <p className="mt-2 text-xs text-muted-foreground">{ultimoEvento?.notes ?? warranty.reason}</p>
+                  <div className="mt-3 flex min-w-0 items-start gap-3">
+                    <ProductThumbnail
+                      src={productoCatalogo?.imageUrl}
+                      alt={referencia}
+                      size="lg"
+                      className="h-20 w-16 sm:h-24 sm:w-20"
+                    />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-semibold">{referencia}</p>
+                      <p className="mt-1 break-all text-xs text-muted-foreground">
+                        {t("warranty.previaCliente")}: {warranty.clienteManual ?? "—"}
+                      </p>
+                      <p className="mt-1 break-all text-xs text-muted-foreground">
+                        Serial: {warranty.imeiManual}
+                      </p>
+                      <p className="mt-2 text-xs text-muted-foreground">{ultimoEvento?.notes ?? warranty.reason}</p>
+                    </div>
+                  </div>
                 </Link>
               );
             })}
