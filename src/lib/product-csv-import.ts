@@ -135,7 +135,7 @@ const parseNumber = (value: string, field: string): { value: number; error?: str
   return { value: number };
 };
 
-const findColumn = (headers: string[], field: string) =>
+const findColumn = (headers: string[], field: keyof typeof HEADER_ALIASES) =>
   headers.findIndex((header) => HEADER_ALIASES[field].includes(normalizeHeader(header)));
 
 const validarUrlImagen = (value: string): string | undefined => {
@@ -158,8 +158,9 @@ export const parseProductCsv = (text: string): ProductCsvRow[] => {
   if (records.length < 2) throw new ProductCsvImportError("empty", "El archivo no contiene productos para importar.");
 
   const headers = records[0].map((header) => header.trim());
+  const fields = Object.keys(HEADER_ALIASES) as (keyof typeof HEADER_ALIASES)[];
   const columns = Object.fromEntries(
-    Object.keys(HEADER_ALIASES).map((field) => [field, findColumn(headers, field)]),
+    fields.map((field) => [field, findColumn(headers, field)]),
   ) as Record<keyof typeof HEADER_ALIASES, number>;
 
   if (columns.name < 0) {
