@@ -14,11 +14,11 @@ type ProductThumbnailProps = {
 const REFERENCE_IMAGE_FALLBACKS = [
   {
     pattern: /\biphone\s*16\s*pro\s*max\b/i,
-    src: "https://theapplewiki.com/images/applewiki/thumb/0/06/IPhone_16_Pro_Max.png/815px-IPhone_16_Pro_Max.png.webp",
+    src: "https://store.storeimages.cdn-apple.com/4982/as-images.apple.com/is/iphone-16-pro-max-naturaltitanium-select?wid=5120&hei=2880&fmt=png-alpha",
   },
   {
     pattern: /\biphone\s*16\s*pro\b/i,
-    src: "https://theapplewiki.com/images/applewiki/thumb/9/98/IPhone_16_Pro.png/826px-IPhone_16_Pro.png.webp",
+    src: "https://store.storeimages.cdn-apple.com/4982/as-images.apple.com/is/iphone-16-pro-deserttitanium-select?wid=5120&hei=2880&fmt=png-alpha",
   },
 ] as const;
 
