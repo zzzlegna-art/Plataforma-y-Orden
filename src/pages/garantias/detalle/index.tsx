@@ -70,6 +70,9 @@ const GarantiaDetalle = () => {
   const serialReemplazo = warranty.replacementUnitId
     ? db.units.find((item) => item.id === warranty.replacementUnitId)?.serial
     : undefined;
+  const notaFinal = events.length > 0 ? events[events.length - 1].notes ?? "" : "";
+  const finalDisponible = notaFinal.toLowerCase().includes("disponible en bodega");
+  const finalEntregado = notaFinal.toLowerCase().includes("entregado al cliente");
 
   return (
     <div className="space-y-5 stagger">
@@ -98,6 +101,8 @@ const GarantiaDetalle = () => {
             {unit ? <ConditionBadge condition={unit.condition} /> : null}
             {serial && esCodigoInterno(serial) ? <PendingImeiBadge /> : null}
             <WarrantyStatusBadge status={warranty.status} />
+            {!open && finalDisponible ? <Badge label={t("warranty.finalDestination.stock")} withDot={false} /> : null}
+            {!open && finalEntregado ? <Badge label={t("warranty.finalDestination.customer")} withDot={false} /> : null}
             <WarrantyOriginBadge origin={getWarrantyOrigin(warranty, order)} />
           </span>
         }
