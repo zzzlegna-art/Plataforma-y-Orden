@@ -599,7 +599,9 @@ export const entregarGarantia = (
             type: "devolucion",
             referenceType: "garantia",
             referenceId: warranty.id,
-            notes: `${warranty.resolucion === "sin_falla" ? "Equipo sin falla" : "Equipo reparado"} ${unit.serial} queda disponible en bodega${sinCliente ? ", sin cliente" : ""} (${warranty.code})${reembolso ? "; reembolso acordado, dinero por registrar por separado" : ""}`,
+            notes: sinCliente
+              ? `${warranty.resolucion === "sin_falla" ? "Equipo sin falla" : "Equipo reparado"} ${unit.serial} queda disponible en bodega, sin cliente (${warranty.code})`
+              : `Se decide no devolverlo al cliente: ${warranty.resolucion === "sin_falla" ? "equipo sin falla" : "equipo reparado"} ${unit.serial} queda disponible en bodega (${warranty.code})${reembolso ? "; reembolso acordado, dinero por registrar por separado" : ""}`,
           });
         }
       } else if (warranty.imeiManual) {
