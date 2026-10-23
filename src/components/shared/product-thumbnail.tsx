@@ -22,7 +22,7 @@ const REFERENCE_IMAGE_FALLBACKS = [
   },
 ] as const;
 
-const getReferenceImageFallback = (reference: string): string | undefined => {
+export const getProductReferenceImageFallback = (reference: string): string | undefined => {
   const normalized = reference
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
@@ -43,7 +43,7 @@ export const ProductThumbnail = ({
   className,
 }: ProductThumbnailProps) => {
   const [failedSrc, setFailedSrc] = useState<string | null>(null);
-  const fallbackSrc = getReferenceImageFallback(alt);
+  const fallbackSrc = getProductReferenceImageFallback(alt);
   const primaryAvailable = Boolean(src && failedSrc !== src && failedSrc !== fallbackSrc);
   const imageSrc = primaryAvailable ? src : fallbackSrc;
 
