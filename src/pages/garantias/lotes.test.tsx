@@ -169,6 +169,25 @@ describe("Garantías · pestaña y lotes al ir al detalle y volver", () => {
     expect(lote("260901-001").getAttribute("aria-expanded")).toBe("true");
   });
 
+  it("el Historial agrupa todas las garantías de un cliente en una sola línea desplegable", async () => {
+    const user = userEvent.setup();
+    render(<I18nextProvider i18n={i18n}><Almacen /></I18nextProvider>);
+    act(() => {
+      agregar({ ...garantia("hist1", "o1"), status: "entregado", imeiManual: undefined, reason: "Cambio de pantalla" });
+      agregar({ ...garantia("hist2", "o2"), status: "devuelto", imeiManual: undefined, reason: "Reembolso" });
+    });
+    await user.click(screen.getByRole("button", { name: /^Historial/ }));
+    const grupo = screen.getByRole("button", { name: /Camilo - Cartagena/ });
+    expect(grupo.getAttribute("aria-expanded")).toBe("false");
+    expect(screen.queryByText("GAR-hist1")).toBeNull();
+    expect(screen.queryByText("GAR-hist2")).toBeNull();
+
+    await user.click(grupo);
+    expect(screen.getByText("GAR-hist1")).toBeTruthy();
+    expect(screen.getByText("GAR-hist2")).toBeTruthy();
+    expect(grupo.getAttribute("aria-expanded")).toBe("true");
+  });
+
   it("entrar desde el menú (sin pestaña) siempre empieza en «Recibir» y con lotes cerrados", async () => {
     sessionStorage.setItem("garantias:lotes-abiertos", JSON.stringify(["pedido:o1"]));
     render(<I18nextProvider i18n={i18n}><Almacen /></I18nextProvider>);
