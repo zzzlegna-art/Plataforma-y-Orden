@@ -41,7 +41,6 @@ import { toast } from "sonner";
 
 import { DataTable } from "@/components/shared/data-table";
 import { getProductReferenceImageFallback } from "@/components/shared/product-thumbnail";
-import { descargarCsv } from "@/lib/csv";
 import { ExportDialog } from "@/components/shared/export-dialog";
 import { PageHeader } from "@/components/shared/page-header";
 import { SearchField } from "@/components/shared/search-field";
@@ -70,6 +69,7 @@ import {
   exportSubtitle,
   type CatalogExportProgress,
 } from "@/lib/export";
+import { descargarCsv } from "@/lib/csv";
 import { getProductTechnicalSpecFieldsForCategory } from "@/lib/product-specs";
 import { clearInventoryFilters, getInventoryFilters, updateInventoryFilter } from "@/lib/inventory-filters";
 import { formatCurrency, todayIso } from "@/lib/format";
