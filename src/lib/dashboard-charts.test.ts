@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   firmaRankClientes,
   firmaRankProductos,
+  getRankSharePercent,
   rankDatumsDeClientes,
   rankDatumsDeProductos,
   shortenRankLabel,
@@ -38,6 +39,25 @@ const rankingCliente = (id: string, name: string, total: number, units: number):
   total,
   units,
   ordersCount: 1,
+});
+
+
+describe("getRankSharePercent", () => {
+  it("returns the actual share of the ranking total, not a ratio to the leader", () => {
+    expect(getRankSharePercent(2, 3)).toBeCloseTo(66.6667, 3);
+    expect(getRankSharePercent(1, 3)).toBeCloseTo(33.3333, 3);
+  });
+
+  it("returns zero for empty totals, zero values, negative values, and invalid numbers", () => {
+    expect(getRankSharePercent(5, 0)).toBe(0);
+    expect(getRankSharePercent(0, 10)).toBe(0);
+    expect(getRankSharePercent(-1, 10)).toBe(0);
+    expect(getRankSharePercent(Number.NaN, 10)).toBe(0);
+  });
+
+  it("never returns a width above 100 percent", () => {
+    expect(getRankSharePercent(12, 10)).toBe(100);
+  });
 });
 
 describe("shortenRankLabel", () => {
