@@ -206,7 +206,7 @@ describe("entregarGarantia · garantía previa (cliente escrito a mano) no es fa
     expect(db.warranties[0].status).toBe("entregado");
     const evento = db.warrantyEvents[db.warrantyEvents.length - 1];
     expect(evento?.notes).toContain("Garantía entregada al cliente");
-    expect(evento?.notes).toContain("354198263141008");
+    expect(evento?.notes).toContain("352130211328637");
   });
 
   it("una falla de inventario (con unidad, sin cliente de ningún tipo) sí vuelve a bodega", () => {
