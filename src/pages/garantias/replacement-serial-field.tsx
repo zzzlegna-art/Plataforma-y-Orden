@@ -34,12 +34,11 @@ export const ReplacementSerialField = ({
   const productoEsperado = warranty.productId ?? db.products.find(
     (product) => warranty.referenciaManual && isSameText(product.name, warranty.referenciaManual),
   )?.id;
-  const requiereReferencia = Boolean(warranty.productId || warranty.referenciaManual?.trim());
-
+  // Sin una referencia válida no se permite elegir un reemplazo a ciegas.
   // Un serial liberado puede reutilizarse en otra unidad: puede haber varias con el mismo texto.
   const coincidencias = (serial: string) => db.units.filter((unit) => isSameText(unit.serial, serial));
   const disponible = (serial: string) => {
-    if (requiereReferencia && !productoEsperado) return undefined;
+    if (!productoEsperado) return undefined;
     const ids = new Set(
       getReplacementUnits(db, productoEsperado)
         .filter((unit) =>
@@ -56,7 +55,9 @@ export const ReplacementSerialField = ({
   };
 
   const validate = (serial: string): string | null => {
-    if (requiereReferencia && !productoEsperado) return t("errors.unitProductMismatch");
+    if (!productoEsperado) {
+      return t("errors.warrantyReferenceNotInCatalog", { reference: warranty.referenciaManual ?? "" });
+    }
     if (disponible(serial)) return null;
     const existentes = coincidencias(serial);
     if (existentes.length === 0) return t("warranty.replacementSerialUnknown", { serial });
