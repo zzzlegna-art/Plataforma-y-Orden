@@ -68,7 +68,7 @@ export type WarrantyStatus =
   | "entregado"
   | "devuelto";
 
-/** Resolución registrada en el diagnóstico de garantía. */
+/** Resolución del técnico. "Defectuoso" solo aplica a fallas del inventario, no a garantías de clientes. */
 export type WarrantyResolution = "reparado" | "cambio" | "sin_falla" | "defectuoso";
 
 export type AuditAction =
