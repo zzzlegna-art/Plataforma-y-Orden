@@ -184,15 +184,6 @@ export const parseProductCsv = (text: string): ProductCsvRow[] => {
   if (columns.name < 0) {
     throw new ProductCsvImportError("missing_name_column", "No se encontró una columna Producto o Nombre.");
   }
-  const missingRequiredColumns = (["price", "cost"] as const)
-    .filter((field) => columns[field] < 0)
-    .map((field) => field === "price" ? "Precio" : "Costo");
-  if (missingRequiredColumns.length) {
-    throw new ProductCsvImportError(
-      "malformed",
-      `Faltan columnas obligatorias para importar sin alterar valores: ${missingRequiredColumns.join(", ")}. Descarga la plantilla de Nexora y completa esos campos.`,
-    );
-  }
 
   const dataRows = records.slice(1);
   if (dataRows.length > MAX_PRODUCT_CSV_IMPORT_ROWS) {
