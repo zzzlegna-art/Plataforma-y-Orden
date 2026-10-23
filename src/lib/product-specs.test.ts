@@ -182,6 +182,25 @@ describe("getProductTechnicalSpecsForCategory", () => {
     }
   });
 
+  it("preserva textos históricos largos para evitar falsos conflictos de concurrencia", () => {
+    const sensors = `Sensores: ${"x".repeat(140)}`;
+    const battery = `Batería: ${"y".repeat(130)}`;
+    const customName = "N".repeat(90);
+    const customValue = "V".repeat(140);
+
+    expect(
+      getProductTechnicalSpecsForCategory("reloj", {
+        sensors,
+        battery,
+        customFields: [{ id: "legacy", name: customName, value: customValue }],
+      }),
+    ).toEqual({
+      sensors,
+      battery,
+      customFields: [{ id: "legacy", name: customName, value: customValue }],
+    });
+  });
+
   it("omite características cuando la categoría no debe mostrar ficha técnica", () => {
     expect(
       getProductTechnicalSpecsForCategory("repuesto", {
