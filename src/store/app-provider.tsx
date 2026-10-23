@@ -290,7 +290,11 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
     const { data: suscripcion } = supabase.auth.onAuthStateChange((_evento, sesion) => {
       // Nunca llamar al cliente dentro del callback: se difiere al siguiente tick.
       setTimeout(() => {
-        if (!cancelado) void abrirSesion(sesion);
+        if (cancelado) return;
+        void abrirSesion(sesion).catch((error) => {
+          // Evita promesas rechazadas sin manejar durante transiciones de Auth.
+          console.error("No se pudo procesar el cambio de sesión", error);
+        });
       }, 0);
     });
 
