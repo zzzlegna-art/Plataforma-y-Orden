@@ -117,7 +117,7 @@ describe("entregarGarantia · con cliente, pero se decide no devolverlo (devolve
     const db = dbCon({ customerId: "c1" });
     entregarGarantia(db, admin, { warrantyId: "w1", devolverABodega: true });
     const movimiento = db.movements.find((m) => m.unitId === "un1");
-    expect(movimiento?.notes).toContain("se decide no devolverlo");
+    expect(movimiento?.notes).toContain("Se decide no devolverlo");
   });
 
   it("devolverABodega no afecta la resolución \"cambio\": el original se libera igual que siempre", () => {
