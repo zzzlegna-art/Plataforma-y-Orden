@@ -52,7 +52,7 @@ const Campo = ({ productId, referenciaManual, onPick }: { productId?: string; re
   return (
     <AppContext.Provider value={app}>
       <ReplacementSerialField
-        warranty={{ productId, referenciaManual }}
+        warranty={{ id: "w-test", productId, referenciaManual }}
         value={value}
         onChange={(id) => {
           setValue(id);
