@@ -2,7 +2,7 @@
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 
-import { ProductThumbnail } from "./product-thumbnail";
+import { getProductReferenceImageFallback, ProductThumbnail } from "./product-thumbnail";
 
 afterEach(cleanup);
 
@@ -10,6 +10,23 @@ describe("ProductThumbnail", () => {
   it("no muestra nada cuando la referencia no tiene fotografía", () => {
     const { container } = render(<ProductThumbnail alt="iPhone" />);
     expect(container.firstChild).toBeNull();
+  });
+
+  it("encuentra fotos de referencia para modelos conocidos sin imagen propia", () => {
+    expect(getProductReferenceImageFallback("Apple iPhone 16 Pro Max 256 GB")).toContain(
+      "iphone-16-pro-max-naturaltitanium-select",
+    );
+    expect(getProductReferenceImageFallback("iPhone 16 Pro 128 GB")).toContain(
+      "iphone-16-pro-deserttitanium-select",
+    );
+    expect(getProductReferenceImageFallback("Samsung Galaxy A55")).toBeUndefined();
+  });
+
+  it("muestra la foto de referencia cuando no hay una imagen guardada", () => {
+    render(<ProductThumbnail alt="iPhone 16 Pro Max 256 GB" />);
+    expect(screen.getByRole("img", { name: "iPhone 16 Pro Max 256 GB" }).getAttribute("src")).toContain(
+      "iphone-16-pro-max-naturaltitanium-select",
+    );
   });
 
   it("muestra la fotografía con texto alternativo", () => {
