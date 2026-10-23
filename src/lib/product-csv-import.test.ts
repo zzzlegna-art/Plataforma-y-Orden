@@ -47,7 +47,7 @@ describe("parseProductCsv", () => {
     );
     expect(rows[0].error).toContain("obligatorio");
     expect(rows[0].error).toContain("precio");
-    expect(rows[0].error).toContain("URL");
+    expect(rows[0].error).toContain("enlace de imagen");
   });
 
   it("rechaza archivos sin columna de nombre o sin filas de datos", () => {
