@@ -717,6 +717,9 @@ const traducirErrorServidor = (error: { message: string; code?: string }): Domai
     if (mensaje.includes("reception_items")) {
       return new DomainError("errors.serialDuplicateInReception");
     }
+    if (mensaje.includes("bodega_products_sku_normalized_uniq")) {
+      return new DomainError("errors.skuDuplicated");
+    }
     return new DomainError("errors.saveConflict");
   }
   return new DomainError("errors.saveFailed", { detalle: detalleTecnico(mensaje) });
