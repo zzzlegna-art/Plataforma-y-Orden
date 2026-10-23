@@ -1235,6 +1235,9 @@ const Garantias = () => {
   const renderCard = (view: WarrantyView) => {
     const info = warrantyInfo(view);
     const isOpen = view.open;
+    const notaFinal = view.events.length > 0 ? view.events[view.events.length - 1].notes ?? "" : "";
+    const finalDisponible = notaFinal.toLowerCase().includes("disponible en bodega");
+    const finalEntregado = notaFinal.toLowerCase().includes("entregado al cliente");
     const estancadaDias = isOpen ? (diasPorCaso.get(view.warranty.id) ?? 0) : 0;
     return (
       <div id={`garantia-operativa-${view.warranty.id}`} key={view.warranty.id} className={cn("surface-hover scroll-mt-24 rounded-lg border bg-card p-4 shadow-sm", focusId === view.warranty.id && "border-primary ring-2 ring-primary/35 shadow-lg shadow-primary/10")}>
@@ -1250,6 +1253,8 @@ const Garantias = () => {
           </div>
           <div className="flex shrink-0 flex-col items-end gap-1">
             <WarrantyStatusBadge status={view.warranty.status} />
+            {!isOpen && finalDisponible ? <Badge label={t("warranty.finalDestination.stock")} withDot={false} /> : null}
+            {!isOpen && finalEntregado ? <Badge label={t("warranty.finalDestination.customer")} withDot={false} /> : null}
             <WarrantyOriginBadge origin={getWarrantyOrigin(view.warranty, view.order)} />
             {estancadaDias >= DIAS_GARANTIA_ESTANCADA ? (
               <Badge
