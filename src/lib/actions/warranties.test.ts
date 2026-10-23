@@ -389,6 +389,7 @@ describe("createWarrantyPrevia · referencia del catálogo", () => {
     const db = conProducto();
     const warranty = createWarrantyPrevia(db, admin, { ...input, referenciaManual: "iphone 13" });
     expect(warranty.referenciaManual).toBe("iPhone 13");
+    expect(warranty.productId).toBe("p1");
   });
 });
 
