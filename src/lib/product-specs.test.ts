@@ -201,6 +201,30 @@ describe("getProductTechnicalSpecsForCategory", () => {
     });
   });
 
+  it("preserva la ficha técnica cruda al leerla para comparar concurrencia", () => {
+    const sensors = "S e n s o r e s: 64 G B";
+    const emptyStorage = "";
+    const customName = "  C o n e c t i v i d a d ";
+    const customValue = "  W i - F i 6 ";
+
+    expect(
+      getProductTechnicalSpecsForCategory(
+        "reloj",
+        {
+          storage: emptyStorage,
+          sensors,
+          customFields: [{ id: "legacy", name: customName, value: customValue }],
+        },
+        true,
+        false,
+      ),
+    ).toEqual({
+      storage: emptyStorage,
+      sensors,
+      customFields: [{ id: "legacy", name: customName, value: customValue }],
+    });
+  });
+
   it("omite características cuando la categoría no debe mostrar ficha técnica", () => {
     expect(
       getProductTechnicalSpecsForCategory("repuesto", {

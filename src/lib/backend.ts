@@ -191,9 +191,13 @@ const ESPECIFICACIONES: Spec<unknown>[] = [
       name: texto(f.name) ?? "Sin nombre",
       description: texto(f.description) ?? undefined,
       imageUrl: texto(f.image_url) ?? undefined,
+      // Mantener los valores originales de la base para que el guardado optimista
+      // compare contra la misma ficha y no contra texto ya normalizado en el cliente.
       technicalSpecs: getProductTechnicalSpecsForCategory(
         texto(f.categoria) ?? undefined,
         f.technical_specs as Product["technicalSpecs"],
+        true,
+        false,
       ),
       categoryId: texto(f.category_id) ?? undefined,
       brandId: texto(f.brand_id) ?? undefined,
