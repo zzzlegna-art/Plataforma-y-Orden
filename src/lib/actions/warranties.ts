@@ -324,6 +324,7 @@ export const createWarrantyPrevia = (
     status: "recibido",
     receivedAt: nowIso(),
     imeiManual,
+    productId: productoId,
     referenciaManual,
     clienteManual: requireText(input.clienteManual, "errors.clienteManualRequired"),
     fechaVentaManual: input.fechaVentaManual || undefined,
