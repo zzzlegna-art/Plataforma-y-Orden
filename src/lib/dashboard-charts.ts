@@ -9,6 +9,15 @@ export interface RankDatum {
   units: number;
 }
 
+/**
+ * Porcentaje real que representa un valor dentro del total del ranking.
+ * Se usa tanto para el ancho de la barra como para que las etiquetas coincidan.
+ */
+export const getRankSharePercent = (value: number, total: number): number => {
+  if (!Number.isFinite(value) || !Number.isFinite(total) || value <= 0 || total <= 0) return 0;
+  return Math.min(100, (value / total) * 100);
+};
+
 /** Etiqueta corta para el eje de las barras. */
 export const shortenRankLabel = (name: string, max = 12): string =>
   name.length > max ? `${name.slice(0, max - 1)}…` : name;
