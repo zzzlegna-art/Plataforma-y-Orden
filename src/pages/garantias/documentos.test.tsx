@@ -158,7 +158,7 @@ describe("Recibir garantía · adjuntar el PDF de la relación del proveedor", (
     await seleccionarArchivo(user, archivoPdf());
     expect(screen.getByText("relacion.pdf")).toBeTruthy();
 
-    await user.click(screen.getByRole("button", { name: "Por N.º de pedido" }));
+    await user.click(screen.getByRole("button", { name: "Falla de inventario" }));
     await user.click(screen.getByRole("button", { name: "Por IMEI" }));
 
     expect(screen.queryByText("relacion.pdf")).toBeNull();
