@@ -293,6 +293,58 @@ describe("pushDb · guardado atómico", () => {
     expect(mocks.registro).toEqual([]);
   });
 
+  it("conserva foto y ficha técnica en la instantánea esperada al editar otro campo", async () => {
+    mocks.rpc.mockResolvedValue({ data: { ok: true }, error: null });
+
+    const previo = emptyDb();
+    previo.products.push({
+      id: "p1",
+      sku: "IPHONE-13-128",
+      name: "iPhone 13",
+      description: "Equipo usado",
+      imageUrl: "https://example.test/iphone.png",
+      technicalSpecs: {
+        storage: "128 GB",
+        ram: "4 GB",
+        customFields: [{ id: "color-1", name: "Color", value: "Azul" }],
+      },
+      price: 500,
+      cost: 300,
+      minStock: 1,
+      isActive: true,
+      createdAt: ahora,
+      updatedAt: ahora,
+    });
+    const siguiente = cloneDb(previo);
+    siguiente.products[0].name = "iPhone 13 reacondicionado";
+    siguiente.products[0].updatedAt = "2026-09-22T12:00:00.000Z";
+
+    await pushDb(previo, siguiente);
+
+    const [nombre, args] = mocks.rpc.mock.calls[0];
+    expect(nombre).toBe("nexora_guardar_con_version");
+    const paso = args.p_cambios.pasos.find((item: { tabla: string }) => item.tabla === "bodega_products");
+    expect(paso.esperados[0]).toMatchObject({
+      id: "p1",
+      image_url: "https://example.test/iphone.png",
+      technical_specs: {
+        storage: "128 GB",
+        ram: "4 GB",
+        customFields: [{ id: "color-1", name: "Color", value: "Azul" }],
+      },
+    });
+    expect(paso.filas[0]).toMatchObject({
+      id: "p1",
+      name: "iPhone 13 reacondicionado",
+      image_url: "https://example.test/iphone.png",
+      technical_specs: {
+        storage: "128 GB",
+        ram: "4 GB",
+        customFields: [{ id: "color-1", name: "Color", value: "Azul" }],
+      },
+    });
+  });
+
   it("no llama a nada si no hay cambios", async () => {
     const db = antesDeDespachar();
     await pushDb(db, cloneDb(db));
