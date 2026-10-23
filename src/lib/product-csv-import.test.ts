@@ -54,6 +54,12 @@ describe("parseProductCsv", () => {
     const rows = parseProductCsv("Producto;Referencia\nTablet;" + "X".repeat(41));
     expect(rows[0].error).toContain("40 caracteres");
   });
+  it("marca filas con columnas extra en vez de ignorar silenciosamente datos CSV", () => {
+    const rows = parseProductCsv("Producto;Precio\nTablet;100;DATO_EXTRA");
+    expect(rows[0].error).toContain("más columnas");
+    expect(rows[0].error).toContain("revisa los separadores y las comillas");
+  });
+
   it("rechaza stock mínimo fraccionario porque la existencia mínima debe ser entera", () => {
     const rows = parseProductCsv("Producto;Stock mínimo\nTablet;1.5");
     expect(rows[0].error).toContain("stock mínimo debe ser un número entero");

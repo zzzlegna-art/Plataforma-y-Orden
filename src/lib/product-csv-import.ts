@@ -184,6 +184,9 @@ export const parseProductCsv = (text: string): ProductCsvRow[] => {
     const minStock = parseNumber(get("minStock"), "stock mínimo");
     const imageUrl = get("imageUrl");
     const errors = [
+      values.length > headers.length
+        ? `La fila contiene más columnas (${values.length}) que la cabecera (${headers.length}); revisa los separadores y las comillas.`
+        : undefined,
       !name ? "El nombre del producto es obligatorio." : undefined,
       get("sku").length > 40 ? "La referencia no puede superar los 40 caracteres." : undefined,
       price.error,
