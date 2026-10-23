@@ -139,7 +139,7 @@ describe("registrarDiagnostico · resolución cambio pide el serial de reemplazo
   });
 
   it("sin serial de reemplazo, el diagnóstico de cambio se rechaza y el caso no cambia", () => {
-    const db = dbCon({ productId: "p1", status: "en_servicio_tecnico" });
+    const db = dbCon({ productId: "p1", customerId: "c1", status: "en_servicio_tecnico" });
     expect(() =>
       registrarDiagnostico(db, admin, { warrantyId: "w1", diagnostico: "placa dañada", resolucion: "cambio" }),
     ).toThrow();
@@ -147,7 +147,7 @@ describe("registrarDiagnostico · resolución cambio pide el serial de reemplazo
   });
 
   it("guarda el serial elegido y la entrega lo usa sin volver a pedirlo", () => {
-    const db = dbCon({ productId: "p1", status: "en_servicio_tecnico" });
+    const db = dbCon({ productId: "p1", customerId: "c1", status: "en_servicio_tecnico" });
     db.units.push(reemplazo());
     registrarDiagnostico(db, admin, {
       warrantyId: "w1", diagnostico: "placa dañada", resolucion: "cambio", replacementUnitId: "un2",
@@ -159,7 +159,7 @@ describe("registrarDiagnostico · resolución cambio pide el serial de reemplazo
   });
 
   it("garantía previa (sin producto ni unidad): acepta cualquier unidad disponible", () => {
-    const db = dbCon({ unitId: undefined, productId: undefined, imeiManual: "123", status: "en_servicio_tecnico" });
+    const db = dbCon({ unitId: undefined, productId: undefined, imeiManual: "123", clienteManual: "Cliente previo", status: "en_servicio_tecnico" });
     db.units = [reemplazo()];
     registrarDiagnostico(db, admin, {
       warrantyId: "w1", diagnostico: "no enciende", resolucion: "cambio", replacementUnitId: "un2",
@@ -175,6 +175,7 @@ describe("registrarDiagnostico · resolución cambio pide el serial de reemplazo
       productId: undefined,
       imeiManual: "123",
       referenciaManual: "iPhone 13",
+      clienteManual: "Cliente previo",
       status: "en_servicio_tecnico",
     });
     db.products = [{
@@ -189,14 +190,14 @@ describe("registrarDiagnostico · resolución cambio pide el serial de reemplazo
   });
 
   it("caso previo que ya quedó en reenvío sin serial: se puede entregar eligiéndolo al entregar", () => {
-    const db = dbCon({ unitId: undefined, productId: undefined, imeiManual: "123", resolucion: "cambio" });
+    const db = dbCon({ unitId: undefined, productId: undefined, imeiManual: "123", clienteManual: "Cliente previo", resolucion: "cambio" });
     db.units = [reemplazo()];
     entregarGarantia(db, admin, { warrantyId: "w1", replacementUnitId: "un2" });
     expect(db.warranties[0].status).toBe("entregado");
   });
 
   it("con producto conocido, rechaza un reemplazo de otro producto", () => {
-    const db = dbCon({ productId: "p1", status: "en_servicio_tecnico" });
+    const db = dbCon({ productId: "p1", customerId: "c1", status: "en_servicio_tecnico" });
     db.units.push(reemplazo({ productId: "p2" }));
     expect(() =>
       registrarDiagnostico(db, admin, {
@@ -397,7 +398,7 @@ describe("deshacerEstadoGarantia · devolver un caso al estado anterior", () => 
   });
 
   it("de reenvío (cambio) sin técnico vuelve a recibido y suelta el serial de reemplazo", () => {
-    const db = dbCon({ productId: "p1", status: "recibido" });
+    const db = dbCon({ productId: "p1", customerId: "c1", status: "recibido" });
     db.units.push({ id: "un2", productId: "p1", serial: "999", condition: "nuevo", status: "en_bodega", receivedAt: now, createdBy: "u1" });
     registrarDiagnostico(db, admin, { warrantyId: "w1", diagnostico: "x", resolucion: "cambio", replacementUnitId: "un2" });
     deshacerEstadoGarantia(db, admin, { warrantyId: "w1" });
@@ -416,8 +417,26 @@ describe("deshacerEstadoGarantia · devolver un caso al estado anterior", () => 
     expect(() => deshacerEstadoGarantia(db, admin, { warrantyId: "w1" })).toThrow();
   });
 
+  it("permite marcar como defectuosa una unidad de inventario que el técnico no pudo recuperar", () => {
+    const db = dbCon({
+      productId: "p1",
+      customerId: undefined,
+      orderId: undefined,
+      clienteManual: undefined,
+      status: "en_servicio_tecnico",
+    }, { status: "en_reparacion" });
+    registrarDiagnostico(db, admin, {
+      warrantyId: "w1", diagnostico: "Placa irrecuperable", resolucion: "defectuoso",
+    });
+    expect(db.warranties[0]?.status).toBe("reenvio_pendiente");
+    entregarGarantia(db, admin, { warrantyId: "w1" });
+    expect(db.units[0]?.status).toBe("defectuoso");
+    expect(db.warranties[0]?.status).toBe("devuelto");
+    expect(db.warrantyEvents[db.warrantyEvents.length - 1]?.notes).toContain("defectuoso en bodega");
+  });
+
   it("no permite registrar un equipo irreparable como garantía nueva", () => {
-    const db = dbCon({ productId: "p1", status: "en_servicio_tecnico" }, { status: "en_reparacion" });
+    const db = dbCon({ productId: "p1", customerId: "c1", status: "en_servicio_tecnico" }, { status: "en_reparacion" });
     expect(() => registrarDiagnostico(db, admin, {
       warrantyId: "w1", diagnostico: "Irreparable", resolucion: "defectuoso",
     })).toThrow();
