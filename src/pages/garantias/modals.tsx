@@ -272,18 +272,12 @@ export const EntregarDialog = ({
           {needsReplacement ? (
             <div className="space-y-2">
               <Label>{t("warranty.replacementUnit")}</Label>
-              {reemplazoGuardado ? (
-                <p className="rounded-md border bg-muted/40 px-3 py-2 text-sm font-medium">
-                  {reemplazoGuardado.serial}
-                  {warranty.productId ? "" : ` · ${nombreProducto(reemplazoGuardado.productId)}`}
-                </p>
-              ) : (
-                <ReplacementSerialField
-                  warranty={warranty}
-                  value={replacementUnitId}
-                  onChange={setReplacementUnitId}
-                />
-              )}
+              <p className="text-xs text-muted-foreground">El serial se seleccionó en Servicio. Si ya no está disponible, puedes cambiarlo por otro de la misma referencia.</p>
+              <ReplacementSerialField
+                warranty={warranty}
+                value={replacementUnitId}
+                onChange={setReplacementUnitId}
+              />
             </div>
           ) : null}
           {puedeElegirBodega && !reembolso ? (
