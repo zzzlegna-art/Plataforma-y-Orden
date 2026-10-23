@@ -8,6 +8,7 @@ import {
   BarChart3,
   History,
   PackageSearch,
+  PackageCheck,
   Plus,
   Printer,
   Send,
@@ -18,12 +19,14 @@ import { Link, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 
 import { PageHeader } from "@/components/shared/page-header";
+import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { SerialScanInput } from "@/components/shared/serial-scan-input";
 import { EmptyState } from "@/components/shared/empty-state";
 import { ProductThumbnail } from "@/components/shared/product-thumbnail";
 import { Badge, PendingImeiBadge, WarrantyStatusBadge } from "@/components/shared/status-badge";
 import { WarrantyOriginBadge } from "@/components/shared/warranty-origin-badge";
 import { Button } from "@/components/ui/button";
+import { OptionSelect } from "@/components/shared/option-select";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -48,6 +51,7 @@ import {
   createWarrantiesByImeis,
   createWarrantyPrevia,
   createWarrantiesPrevias,
+  devolverGarantiasABodega,
   enviarATecnico,
   isOpenWarranty,
   type WarrantyItemResult,
@@ -176,6 +180,7 @@ const LoteGarantias = ({
   acciones,
   renderCard,
   t,
+  mostrarOrigen = true,
 }: {
   lote: LoteRecibido;
   cerrado: boolean;
@@ -183,6 +188,7 @@ const LoteGarantias = ({
   acciones?: React.ReactNode;
   renderCard: (view: WarrantyView) => React.ReactNode;
   t: (key: string, params?: Record<string, unknown>) => string;
+  mostrarOrigen?: boolean;
 }) => (
   <section className="overflow-hidden rounded-lg border">
     <div className="flex flex-wrap items-center gap-2 border-b bg-muted/40 px-3 py-2">
@@ -202,7 +208,7 @@ const LoteGarantias = ({
           ) : null}
         </span>
       </button>
-      <WarrantyOriginBadge origin={lote.origin} />
+      {mostrarOrigen ? <WarrantyOriginBadge origin={lote.origin} /> : null}
       <Badge label={t("export.unitsCount", { count: lote.views.length })} withDot={false} />
       {acciones}
     </div>
@@ -346,12 +352,35 @@ const Garantias = () => {
     return { key, title, subtitle, origin };
   };
 
+  /** En Historial agrupamos por cliente (todas sus garantías juntas) y separamos inventario propio. */
+  const infoHistorial = (view: WarrantyView): Pick<LoteRecibido, "key" | "title" | "subtitle" | "origin"> => {
+    const origin = getWarrantyOrigin(view.warranty, view.order);
+    if (origin === "falla_inventario") {
+      return {
+        key: "historial:falla-inventario",
+        title: t("warranty.history.inventoryGroup"),
+        subtitle: t("warranty.history.inventorySubtitle"),
+        origin,
+      };
+    }
+    const cliente = (view.customer?.name ?? view.warranty.clienteManual ?? t("warranty.history.unknownCustomer")).trim();
+    const claveCliente = cliente.toLocaleLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    return {
+      key: `historial:cliente:${claveCliente}`,
+      title: cliente,
+      subtitle: t("warranty.history.customerSubtitle"),
+      origin: "normal",
+    };
+  };
+
   // Navegación desde Historial de Serial: abrir la bandeja, desplegar el lote
   // correspondiente y localizar visualmente la garantía (sin abrir su ficha).
   const focusId = params.get("focus");
   const focusView = focusId ? vistas.find((v) => v.warranty.id === focusId) : undefined;
   const focusViewId = focusView?.warranty.id;
-  const focusLoteKey = focusView ? infoLote(focusView).key : undefined;
+  const focusLoteKey = focusView
+    ? (tab === "historial" ? infoHistorial(focusView).key : infoLote(focusView).key)
+    : undefined;
   useEffect(() => {
     if (!focusLoteKey) return;
     setSoloEstancadas(false);
@@ -823,6 +852,18 @@ const Garantias = () => {
       return next;
     });
 
+  const devolverSeleccionadosABodega = async () => {
+    const ids = [...seleccionados].filter((id) =>
+      vistas.some((view) => view.warranty.id === id && view.warranty.status === "recibido"),
+    );
+    if (ids.length === 0) return;
+    const result = await runAction(
+      (db2, actor) => devolverGarantiasABodega(db2, actor, { warrantyIds: ids }),
+      { success: "warranty.batchReturnedToStock" },
+    );
+    if (result !== null) setSeleccionados(new Set());
+  };
+
   const agruparEnLotes = (lista: WarrantyView[]): LoteRecibido[] => {
     const lotes = new Map<string, LoteRecibido>();
     for (const view of lista) {
@@ -833,6 +874,22 @@ const Garantias = () => {
     }
     // Array.sort es estable: dentro de un mismo origen se conserva el orden que ya traía la lista.
     return [...lotes.values()].sort((a, b) => ORDEN_ORIGEN[a.origin] - ORDEN_ORIGEN[b.origin]);
+  };
+
+  const agruparHistorial = (lista: WarrantyView[]): LoteRecibido[] => {
+    const lotes = new Map<string, LoteRecibido>();
+    for (const view of lista) {
+      const { key, title, subtitle, origin } = infoHistorial(view);
+      const actual = lotes.get(key) ?? { key, title, subtitle, origin, views: [] };
+      actual.views.push(view);
+      lotes.set(key, actual);
+    }
+    return [...lotes.values()].sort((a, b) => {
+      if (a.origin !== b.origin) return ORDEN_ORIGEN[a.origin] - ORDEN_ORIGEN[b.origin];
+      const fechaA = Math.max(...a.views.map((view) => Date.parse(view.warranty.receivedAt) || 0));
+      const fechaB = Math.max(...b.views.map((view) => Date.parse(view.warranty.receivedAt) || 0));
+      return fechaB - fechaA || a.title.localeCompare(b.title, "es");
+    });
   };
 
   // ---------- Exportar garantías recibidas ----------
@@ -1236,8 +1293,10 @@ const Garantias = () => {
     const info = warrantyInfo(view);
     const isOpen = view.open;
     const notaFinal = view.events.length > 0 ? view.events[view.events.length - 1].notes ?? "" : "";
-    const finalDisponible = notaFinal.toLowerCase().includes("disponible en bodega");
-    const finalEntregado = notaFinal.toLowerCase().includes("entregado al cliente");
+    const notaFinalNormalizada = notaFinal.toLocaleLowerCase();
+    const finalDisponible = notaFinalNormalizada.includes("disponible en bodega");
+    const finalEntregado = notaFinalNormalizada.includes("entregado al cliente");
+    const finalRetirado = notaFinalNormalizada.includes("retirado del inventario");
     const estancadaDias = isOpen ? (diasPorCaso.get(view.warranty.id) ?? 0) : 0;
     return (
       <div id={`garantia-operativa-${view.warranty.id}`} key={view.warranty.id} className={cn("surface-hover scroll-mt-24 rounded-lg border bg-card p-4 shadow-sm", focusId === view.warranty.id && "border-primary ring-2 ring-primary/35 shadow-lg shadow-primary/10")}>
@@ -1255,6 +1314,7 @@ const Garantias = () => {
             <WarrantyStatusBadge status={view.warranty.status} />
             {!isOpen && finalDisponible ? <Badge label={t("warranty.finalDestination.stock")} withDot={false} /> : null}
             {!isOpen && finalEntregado ? <Badge label={t("warranty.finalDestination.customer")} withDot={false} /> : null}
+            {!isOpen && finalRetirado ? <Badge label={t("warranty.finalDestination.retired")} withDot={false} /> : null}
             <WarrantyOriginBadge origin={getWarrantyOrigin(view.warranty, view.order)} />
             {estancadaDias >= DIAS_GARANTIA_ESTANCADA ? (
               <Badge
@@ -1333,7 +1393,15 @@ const Garantias = () => {
                 <>
                   <EntregarDialog
                     warranty={view.warranty}
-                    trigger={<Button size="sm">{t("warranty.deliver")}</Button>}
+                    trigger={
+                      <Button size="sm">
+                        {getWarrantyOrigin(view.warranty, view.order) === "falla_inventario"
+                          ? (view.warranty.resolucion === "cambio"
+                              ? t("warranty.inventoryChangeConfirm")
+                              : t("warranty.resolveToStock"))
+                          : t("warranty.deliver")}
+                      </Button>
+                    }
                   />
                   <DevolverDialog
                     warranty={view.warranty}
@@ -1712,11 +1780,13 @@ const Garantias = () => {
               </div>
               <div className="space-y-2">
                 <Label>{t("warranty.previaReferencia")}</Label>
-                <Input
-                  list="referencias-inventario-garantias"
-                  value={previa.referencia}
-                  placeholder="Buscar o elegir referencia del inventario"
-                  onChange={(event) => setPrevia({ ...previa, referencia: event.target.value })}
+                <OptionSelect
+                  value={previa.referencia || undefined}
+                  onChange={(referencia) => setPrevia({ ...previa, referencia })}
+                  options={referenciasInventario.map((referencia) => ({ value: referencia, label: referencia }))}
+                  placeholder={t("warranty.previaReferenciaPlaceholder")}
+                  emptyLabel={t("common.select")}
+                  disabled={referenciasInventario.length === 0}
                 />
               </div>
               <div className="space-y-2">
@@ -1801,12 +1871,14 @@ const Garantias = () => {
                     </div>
                     <div className="space-y-2">
                       <Label>{t("warranty.previaReferencia")}</Label>
-                      <Input
-                  list="referencias-inventario-garantias"
-                  value={previaLoteDraft.referencia}
-                  placeholder="Buscar o elegir referencia del inventario"
-                  onChange={(event) => setPreviaLoteDraft({ ...previaLoteDraft, referencia: event.target.value })}
-                />
+                      <OptionSelect
+                        value={previaLoteDraft.referencia || undefined}
+                        onChange={(referencia) => setPreviaLoteDraft({ ...previaLoteDraft, referencia })}
+                        options={referenciasInventario.map((referencia) => ({ value: referencia, label: referencia }))}
+                        placeholder={t("warranty.previaReferenciaPlaceholder")}
+                        emptyLabel={t("common.select")}
+                        disabled={referenciasInventario.length === 0}
+                      />
                     </div>
                     <div className="space-y-2">
                       <Label>{t("warranty.previaCliente")}</Label>
@@ -1915,6 +1987,20 @@ const Garantias = () => {
                       </Button>
                     }
                   />
+                  {seleccionados.size > 0 ? (
+                    <ConfirmDialog
+                      trigger={
+                        <Button variant="outline" size="sm">
+                          <PackageCheck />
+                          {t("warranty.returnSelectedToStock", { count: seleccionados.size })}
+                        </Button>
+                      }
+                      title={t("warranty.returnSelectedToStockTitle", { count: seleccionados.size })}
+                      description={t("warranty.returnSelectedToStockHint")}
+                      confirmLabel={t("warranty.returnSelectedToStockConfirm")}
+                      onConfirm={() => void devolverSeleccionadosABodega()}
+                    />
+                  ) : null}
                   <Button variant="outline" size="sm" onClick={exportarRecibidosPdf}>
                     <FileText />
                     {t("export.pdf")}
@@ -2060,12 +2146,6 @@ const Garantias = () => {
         </div>
       ) : null}
 
-      <datalist id="referencias-inventario-garantias">
-        {referenciasInventario.map((referencia) => (
-          <option key={referencia} value={referencia} />
-        ))}
-      </datalist>
-
       {/* ============ HISTORIAL ============ */}
       {tab === "historial" ? (
         <div className="animate-fade-in space-y-3">
@@ -2112,9 +2192,21 @@ const Garantias = () => {
               <>
                 <p className="text-sm text-muted-foreground">{rows.length} {rows.length === 1 ? "garantía encontrada" : "garantías encontradas"}</p>
                 {rows.length === 0 ? (
-              <EmptyState icon={History} title={t("warranty.emptyTitle")} description={t("warranty.emptyDescription")} />
-            ) : (
-              <div className="grid gap-3 lg:grid-cols-2">{rows.map(renderCard)}</div>
+                  <EmptyState icon={History} title={t("warranty.emptyTitle")} description={t("warranty.emptyDescription")} />
+                ) : (
+                  <div className="space-y-3">
+                    {agruparHistorial(rows).map((lote) => (
+                      <LoteGarantias
+                        key={lote.key}
+                        lote={lote}
+                        cerrado={!lotesAbiertos.has(lote.key)}
+                        onToggle={() => toggleLoteAbierto(lote.key)}
+                        renderCard={renderCard}
+                        t={t}
+                        mostrarOrigen={false}
+                      />
+                    ))}
+                  </div>
                 )}
               </>
             );

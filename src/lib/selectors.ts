@@ -596,7 +596,12 @@ export const getUnitOrigen = (db: Db, unit: Unit) => {
   const orderItem = row ? db.orderItems.find((item) => item.id === row.orderItemId) : undefined;
   const order = orderItem ? db.orders.find((item) => item.id === orderItem.orderId) : undefined;
   const customer = order ? db.customers.find((item) => item.id === order.customerId) : undefined;
-  const warranties = db.warranties.filter((item) => item.unitId === unit.id);
+  const serialNormalizado = unit.serial.trim().toLocaleLowerCase();
+  const warranties = db.warranties.filter(
+    (item) =>
+      item.unitId === unit.id ||
+      (item.imeiManual?.trim().toLocaleLowerCase() === serialNormalizado),
+  );
   return { reception, order, customer, warranties };
 };
 
@@ -621,8 +626,16 @@ export const getUnitTimeline = (db: Db, unitId: string): UnitTimelineItem[] => {
     });
 
   db.warranties
-    .filter((warranty) => warranty.unitId === unitId || warranty.replacementUnitId === unitId)
+    .filter(
+      (warranty) =>
+        warranty.unitId === unitId ||
+        warranty.replacementUnitId === unitId ||
+        (Boolean(serial) && warranty.imeiManual?.trim().toLocaleLowerCase() === serial?.trim().toLocaleLowerCase()),
+    )
     .forEach((warranty) => {
+      const serialManualCoincide = Boolean(serial) &&
+        warranty.imeiManual?.trim().toLocaleLowerCase() === serial?.trim().toLocaleLowerCase();
+      const esUnidadOriginal = warranty.unitId === unitId || serialManualCoincide;
       const eventos = db.warrantyEvents.filter((event) => event.warrantyId === warranty.id);
       // Una garantía migrada del sistema anterior no trae eventos: sin esto no se vería en el
       // historial aunque exista. Se muestra una entrada con los datos de la propia garantía.
@@ -638,21 +651,24 @@ export const getUnitTimeline = (db: Db, unitId: string): UnitTimelineItem[] => {
       }
       // La unidad entregada como reemplazo también debe tener la garantía en
       // su historial, aunque la garantía se abrió con otro serial.
-      if (warranty.replacementUnitId === unitId && warranty.unitId !== unitId) {
+      if (warranty.replacementUnitId === unitId && !esUnidadOriginal) {
         const original = db.units.find((unit) => unit.id === warranty.unitId)?.serial
           ?? warranty.imeiManual ?? "equipo original";
+        const tieneCliente = Boolean(warranty.customerId || warranty.orderId || warranty.clienteManual?.trim());
         items.push({
           id: `w-reemplazo-${warranty.id}-${unitId}`,
           fecha: eventos.find((event) => event.status === "entregado")?.createdAt ?? warranty.resolvedAt ?? warranty.receivedAt,
           tipo: "garantia",
-          descripcion: `Entregado como reemplazo de ${original} en garantía ${warranty.code}`,
+          descripcion: tieneCliente
+            ? `Entregado como reemplazo de ${original} en garantía ${warranty.code}`
+            : `Seleccionado como reemplazo de inventario para ${original} en garantía ${warranty.code}`,
           usuario: nameOf(warranty.createdBy),
           enlace: { to: enlaceOperativoGarantia(warranty), codigo: warranty.code },
         });
       }
       // Los eventos del taller pertenecen al equipo original; en el serial
       // de reemplazo mostramos solo su propia entrega, sin atribuirle reparaciones ajenas.
-      if (warranty.unitId === unitId) eventos.forEach((event) => {
+      if (esUnidadOriginal) eventos.forEach((event) => {
         items.push({
           id: `w-${event.id}`,
           fecha: event.createdAt,
