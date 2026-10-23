@@ -1211,5 +1211,6 @@
   "warranty.scanHint.falla": "Escanea un serial disponible en bodega o local que presente una falla de inventario.",
   "warranty.notice.notInInventory": "El equipo {{serial}} figura como «{{status}}». La falla de inventario aplica solo a equipos disponibles en bodega o local.",
   "warranty.finalDestination.stock": "Disponible en bodega",
-  "warranty.finalDestination.customer": "Garantía entregada al cliente"
+  "warranty.finalDestination.customer": "Garantía entregada al cliente",
+  "warranty.inventoryFaultHint": "Selecciona seriales disponibles en bodega o local que presenten fallas. Se registrarán en Recibidos para enviarlos al técnico. Puedes hacerlo uno por uno o por lote."
 }
