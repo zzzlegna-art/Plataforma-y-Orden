@@ -1116,8 +1116,13 @@ export const suscribirCambios = (
     );
   }
 
-  canal.subscribe();
-  console.log("Tiempo real conectado");
+  canal.subscribe((estado, error) => {
+    if (estado === "SUBSCRIBED") {
+      console.log("Tiempo real conectado");
+    } else if (estado === "CHANNEL_ERROR" || estado === "TIMED_OUT") {
+      console.warn("No se pudo suscribir a los cambios en tiempo real.", { estado, error });
+    }
+  });
 
   return () => {
     void supabase.removeChannel(canal);
