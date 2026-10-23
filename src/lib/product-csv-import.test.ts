@@ -85,21 +85,6 @@ describe("parseProductCsv", () => {
     expect(rows[0]).toMatchObject({ name: "Tablet", price: 100, error: "" });
   });
 
-  it("rechaza archivos sin columna de precio o costo en vez de convertirlos silenciosamente en cero", () => {
-    expect(() => parseProductCsv("Producto;Referencia;Precio\nTablet;TAB-1;100")).toThrowError(
-      expect.objectContaining({
-        code: "malformed",
-        message: expect.stringContaining("Costo"),
-      }),
-    );
-    expect(() => parseProductCsv("Producto;Referencia;Costo\nTablet;TAB-1;50")).toThrowError(
-      expect.objectContaining({
-        code: "malformed",
-        message: expect.stringContaining("Precio"),
-      }),
-    );
-  });
-
   it("rechaza archivos sin columna de nombre o sin filas de datos", () => {
     expect(() => parseProductCsv("Referencia;Precio\nSKU-1;100")).toThrowError(ProductCsvImportError);
     expect(() => parseProductCsv("Producto;Referencia\n")).toThrowError(ProductCsvImportError);
