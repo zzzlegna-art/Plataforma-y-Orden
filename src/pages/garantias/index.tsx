@@ -1505,7 +1505,9 @@ const Garantias = () => {
               </Button>
             ))}
           </div>
-          <p className="text-sm text-muted-foreground">{t("warranty.intakeHint")}</p>
+          <p className="text-sm text-muted-foreground">
+            {t(modo === "falla" ? "warranty.inventoryFaultHint" : "warranty.intakeHint")}
+          </p>
 
           {modo === "imei" || modo === "falla" ? (
             <div className="space-y-4">
