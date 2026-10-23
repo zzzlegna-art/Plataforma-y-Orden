@@ -31,6 +31,7 @@ import {
   writeProductFormDraft,
   type ProductFormDraft,
 } from "@/lib/product-form-draft";
+import { normalizeCatalogText } from "@/lib/catalog-text";
 import { getProductTechnicalSpecFieldsForCategory, getProductTechnicalSpecsForCategory } from "@/lib/product-specs";
 import { etiquetaTipoProducto, tiposProductoOrdenados } from "@/lib/products";
 import type { Product, ProductCategory, ProductTechnicalSpecs } from "@/lib/types";
@@ -452,7 +453,7 @@ export const ProductFormDialog = ({
                     <Label htmlFor={`technical-${field.key}`}>{t(field.labelKey)}</Label>
                     <Input
                       id={`technical-${field.key}`}
-                      value={technicalSpecs[field.key] ?? ""}
+                      value={normalizeCatalogText(technicalSpecs[field.key] ?? "")}
                       placeholder={field.placeholder}
                       maxLength={120}
                       onChange={(event) =>
@@ -502,7 +503,7 @@ export const ProductFormDialog = ({
                       <Label htmlFor={`custom-spec-name-${customField.id}`}>{t("product.customSpecName")}</Label>
                       <Input
                         id={`custom-spec-name-${customField.id}`}
-                        value={customField.name}
+                        value={normalizeCatalogText(customField.name)}
                         maxLength={80}
                         placeholder={t("product.customSpecNamePlaceholder")}
                         onChange={(event) =>
@@ -519,7 +520,7 @@ export const ProductFormDialog = ({
                       <Label htmlFor={`custom-spec-value-${customField.id}`}>{t("product.customSpecValue")}</Label>
                       <Input
                         id={`custom-spec-value-${customField.id}`}
-                        value={customField.value}
+                        value={normalizeCatalogText(customField.value)}
                         maxLength={120}
                         placeholder={t("product.customSpecValuePlaceholder")}
                         onChange={(event) =>
