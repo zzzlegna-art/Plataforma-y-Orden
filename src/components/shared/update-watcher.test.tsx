@@ -104,8 +104,10 @@ describe("UpdateWatcher · versiones publicadas", () => {
     render(<UpdateWatcher />);
 
     await waitFor(() => expect(toastMock).toHaveBeenCalledOnce());
+    Object.defineProperty(document, "visibilityState", { configurable: true, value: "visible" });
     document.dispatchEvent(new Event("visibilitychange"));
-    await waitFor(() => expect(fetch).toHaveBeenCalledTimes(2));
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(fetch).toHaveBeenCalledOnce();
     expect(toastMock).toHaveBeenCalledOnce();
   });
 
