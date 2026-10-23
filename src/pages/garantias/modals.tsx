@@ -51,14 +51,10 @@ export const DiagnosticoDialog = ({
   const [costo, setCosto] = useState("");
   const [replacementUnitId, setReplacementUnitId] = useState("");
 
-  const tieneCliente = garantiaTieneCliente(warranty);
   const esCambio = resolucion === "cambio";
-  const opcionesResolucion: WarrantyResolution[] = [
-    "reparado",
-    ...(tieneCliente ? ["cambio" as const] : []),
-    "sin_falla",
-    ...(!tieneCliente ? ["defectuoso" as const] : []),
-  ];
+  // La resolución es la misma para garantías de cliente y fallas de inventario.
+  // "Defectuoso" queda reservado a registros antiguos, no se ofrece en diagnósticos nuevos.
+  const opcionesResolucion: WarrantyResolution[] = ["reparado", "cambio", "sin_falla"];
 
   const save = async () => {
     if (!resolucion) return;
@@ -176,6 +172,7 @@ export const EntregarDialog = ({
 
   const defectuoso = warranty.resolucion === "defectuoso";
   const conCliente = garantiaTieneCliente(warranty);
+  const cambioInventario = warranty.resolucion === "cambio" && !conCliente;
   const needsReplacement = warranty.resolucion === "cambio" || (defectuoso && conCliente && destinoDefectuoso === "cambio");
   // Al reparar o no encontrar falla, el equipo puede volver al cliente o quedar disponible en
   // bodega. También se permite hacerlo con una garantía previa, registrando el serial manual.
@@ -193,7 +190,7 @@ export const EntregarDialog = ({
     (warranty.resolucion === "reparado" || warranty.resolucion === "sin_falla") &&
     !garantiaTieneCliente(warranty);
   const reembolsoElegido = conCliente && (defectuoso ? destinoDefectuoso === "reembolso" : reembolso);
-  const aBodega = reembolsoElegido || devolverABodega || sinClienteReparado || (defectuoso && (!conCliente || destinoDefectuoso !== "cambio"));
+  const aBodega = cambioInventario || reembolsoElegido || devolverABodega || sinClienteReparado || (defectuoso && (!conCliente || destinoDefectuoso !== "cambio"));
 
   const save = async () => {
     const result = await runAction(
@@ -222,16 +219,22 @@ export const EntregarDialog = ({
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>
-            {sinClienteReparado ? t("warranty.resolveTitle") : t("warranty.deliverTitle")}
+            {cambioInventario
+              ? t("warranty.inventoryChangeTitle")
+              : sinClienteReparado
+                ? t("warranty.resolveTitle")
+                : t("warranty.deliverTitle")}
           </DialogTitle>
           <DialogDescription>
-            {defectuoso
-              ? "Diagnóstico sin solución: elige si entregas un reemplazo al cliente o conservas el equipo en bodega con reembolso."
-              : needsReplacement
-              ? t("warranty.deliverReplacementHint")
-              : sinClienteReparado
-                ? t("warranty.resolveHint")
-                : t("warranty.deliverHint")}
+            {cambioInventario
+              ? t("warranty.inventoryChangeHint")
+              : defectuoso
+                ? "Este caso proviene de un registro histórico: revisa el destino antes de cerrarlo."
+                : needsReplacement
+                  ? t("warranty.deliverReplacementHint")
+                  : sinClienteReparado
+                    ? t("warranty.resolveHint")
+                    : t("warranty.deliverHint")}
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4 py-2">
@@ -301,15 +304,17 @@ export const EntregarDialog = ({
             </div>
           ) : null}
           <div className="rounded-md bg-muted/50 px-3 py-2 text-sm">
-            {warranty.resolucion === "cambio" && !defectuoso
-              ? `Serial original ${serialOriginal ?? "—"}: disponible en bodega. Serial de reemplazo ${serialReemplazo ?? "—"}: entregado al cliente.`
-              : reembolsoElegido && !defectuoso
-                ? `Reembolso acordado. Serial original ${serialOriginal ?? "—"}: disponible en bodega. El movimiento de dinero se registra por separado.`
-                : defectuoso
-                  ? (destinoDefectuoso === "cambio" && conCliente ? "Registro histórico: el reemplazo sale del inventario y el original queda marcado como defectuoso." : "El equipo de inventario queda marcado como defectuoso en bodega; cualquier ajuste de dinero se registra por separado.")
-                  : aBodega
-                    ? t("warranty.deliverEffect.bodega")
-                    : t(`warranty.deliverEffect.${warranty.resolucion ?? "reparado"}`)}
+            {cambioInventario
+              ? t("warranty.inventoryChangeEffect", { original: serialOriginal ?? "—", replacement: serialReemplazo ?? "—" })
+              : warranty.resolucion === "cambio" && !defectuoso
+                ? `Serial original ${serialOriginal ?? "—"}: disponible en bodega. Serial de reemplazo ${serialReemplazo ?? "—"}: entregado al cliente.`
+                : reembolsoElegido && !defectuoso
+                  ? `Reembolso acordado. Serial original ${serialOriginal ?? "—"}: disponible en bodega. El movimiento de dinero se registra por separado.`
+                  : defectuoso
+                    ? (destinoDefectuoso === "cambio" && conCliente ? "Registro histórico: el reemplazo sale del inventario y el original queda marcado como defectuoso." : "Registro histórico: el equipo requiere revisar el destino guardado antes de cerrar.")
+                    : aBodega
+                      ? t("warranty.deliverEffect.bodega")
+                      : t(`warranty.deliverEffect.${warranty.resolucion ?? "reparado"}`)}
           </div>
         </div>
         <DialogFooter>
@@ -322,11 +327,17 @@ export const EntregarDialog = ({
             disabled={needsReplacement && !replacementUnitId}
             onClick={() => void save()}
           >
-            {reembolsoElegido && !defectuoso ? "Confirmar reembolso" : defectuoso ? (conCliente && destinoDefectuoso === "cambio" ? "Confirmar cambio" : conCliente ? "Confirmar reembolso" : "Confirmar defectuoso en bodega") : devolverABodega
-              ? t("warranty.returnToStock")
-              : sinClienteReparado
-                ? t("warranty.resolveToStock")
-                : t("warranty.deliver")}
+            {cambioInventario
+              ? t("warranty.inventoryChangeConfirm")
+              : reembolsoElegido && !defectuoso
+                ? "Confirmar reembolso"
+                : defectuoso
+                  ? (conCliente && destinoDefectuoso === "cambio" ? "Confirmar cambio" : conCliente ? "Confirmar reembolso" : "Cerrar registro histórico")
+                  : devolverABodega
+                    ? t("warranty.returnToStock")
+                    : sinClienteReparado
+                      ? t("warranty.resolveToStock")
+                      : t("warranty.deliver")}
           </Button>
         </DialogFooter>
       </DialogContent>
