@@ -116,6 +116,37 @@ describe("SKU corta automática", () => {
     expect(generarSkuProducto(db, "Samsung Galaxy A55 128GB")).toBe("A55-128");
   });
 
+  it("trata los SKU existentes con espacios externos como duplicados al crear", () => {
+    const db = emptyDb();
+    db.products.push({
+      id: "p1", sku: " IP13-128 ", name: "iPhone 13 128 GB",
+      price: 1, cost: 1, minStock: 0, isActive: true, createdAt: now, updatedAt: now,
+    });
+
+    expect(() => createProduct(db, admin, {
+      name: "Otro iPhone", sku: "ip13-128", price: 1, cost: 1, minStock: 0,
+    })).toThrow(DomainError);
+    expect(generarSkuProducto(db, "iPhone 13 128 GB")).toBe("IP13-128-2");
+  });
+
+  it("trata los SKU existentes con espacios externos como duplicados al actualizar", () => {
+    const db = emptyDb();
+    db.products.push(
+      {
+        id: "p1", sku: " IP13-128 ", name: "iPhone 13 128 GB",
+        price: 1, cost: 1, minStock: 0, isActive: true, createdAt: now, updatedAt: now,
+      },
+      {
+        id: "p2", sku: "OTHER", name: "Otro producto",
+        price: 1, cost: 1, minStock: 0, isActive: true, createdAt: now, updatedAt: now,
+      },
+    );
+
+    expect(() => updateProduct(db, admin, {
+      id: "p2", name: "Otro producto", sku: "ip13-128", price: 1, cost: 1, minStock: 0,
+    })).toThrow(DomainError);
+  });
+
   it("mantiene el código corto y agrega sufijo si ya existe", () => {
     const db = emptyDb();
     db.products.push({
