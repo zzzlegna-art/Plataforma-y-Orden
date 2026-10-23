@@ -1390,7 +1390,15 @@ const Garantias = () => {
                 <>
                   <EntregarDialog
                     warranty={view.warranty}
-                    trigger={<Button size="sm">{t("warranty.deliver")}</Button>}
+                    trigger={
+                      <Button size="sm">
+                        {getWarrantyOrigin(view.warranty, view.order) === "falla_inventario"
+                          ? (view.warranty.resolucion === "cambio"
+                              ? t("warranty.inventoryChangeConfirm")
+                              : t("warranty.resolveToStock"))
+                          : t("warranty.deliver")}
+                      </Button>
+                    }
                   />
                   <DevolverDialog
                     warranty={view.warranty}
