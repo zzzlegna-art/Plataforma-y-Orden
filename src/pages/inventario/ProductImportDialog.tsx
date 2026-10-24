@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/dialog";
 import { useRunAction } from "@/hooks/use-run-action";
 import { useStore } from "@/hooks/use-store";
-import { createProduct, type ProductInput } from "@/lib/actions/catalogs";
+import { createProduct, generarSkuProducto, type ProductInput } from "@/lib/actions/catalogs";
 import { descargarCsv } from "@/lib/csv";
 import {
   MAX_PRODUCT_CSV_IMPORT_BYTES,
@@ -124,16 +124,16 @@ export const ProductImportDialog = ({ trigger }: { trigger: React.ReactNode }) =
         brandId = brand.id;
       }
 
-      if (row.sku) {
-        const key = normalizeSku(row.sku);
-        if (existingSkus.has(key) || seenSkus.has(key)) {
-          return { row, status: "duplicate", reason: t("productImport.duplicateSku", { sku: row.sku }) };
-        }
-        seenSkus.add(key);
+      const sku = row.sku
+        ? normalizeSku(row.sku)
+        : generarSkuProducto(db, row.name, undefined, seenSkus);
+      if (existingSkus.has(sku) || seenSkus.has(sku)) {
+        return { row, status: "duplicate", reason: t("productImport.duplicateSku", { sku }) };
       }
+      seenSkus.add(sku);
 
       const input: ProductInput = {
-        sku: row.sku || undefined,
+        sku,
         name: row.name,
         description: row.description || undefined,
         imageUrl: row.imageUrl || undefined,

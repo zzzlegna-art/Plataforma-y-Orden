@@ -147,6 +147,13 @@ describe("SKU corta automática", () => {
     })).toThrow(DomainError);
   });
 
+  it("evita SKU ya reservados por filas anteriores de una importación", () => {
+    const db = emptyDb();
+    const reserved = new Set(["IP13-128", "IP13-128-2"]);
+
+    expect(generarSkuProducto(db, "iPhone 13 128 GB", undefined, reserved)).toBe("IP13-128-3");
+  });
+
   it("mantiene el código corto y agrega sufijo si ya existe", () => {
     const db = emptyDb();
     db.products.push({
