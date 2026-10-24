@@ -50,8 +50,10 @@ const perfil = { id: "user-1", email: "admin@example.com", full_name: "Admin", r
 
 const Harness = () => {
   const app = useContext(AppContext);
+  if (!app) return null;
   return (
     <div>
+      <div data-testid="user">{app.user?.id ?? ""}</div>
       <div data-testid="products">{app.db.products.map((product) => product.name).join(",")}</div>
       <button onClick={() => {
         void app.run((db) => {
@@ -93,7 +95,7 @@ describe("AppProvider · recuperación de resincronización", () => {
       .mockResolvedValueOnce(autoritativa); // retry after browser reports online
 
     render(<AppProvider><Harness /></AppProvider>);
-    await waitFor(() => expect(screen.getByTestId("products")).toBeEmptyDOMElement());
+    await waitFor(() => expect(screen.getByTestId("user")).toHaveTextContent("user-1"));
 
     fireEvent.click(screen.getByRole("button", { name: "Guardar cambio" }));
     await waitFor(() => expect(mocks.pushDb).toHaveBeenCalledTimes(1));
