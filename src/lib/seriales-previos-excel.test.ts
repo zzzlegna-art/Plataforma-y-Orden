@@ -1,7 +1,13 @@
 import * as XLSX from "xlsx-js-style";
 import { describe, expect, it } from "vitest";
 
-import { parseSerialWorkbook, SerialWorkbookError } from "./seriales-previos-excel";
+import {
+  getSerialImportQueueLimitIssue,
+  MAX_SERIAL_IMPORT_FILES,
+  MAX_SERIAL_IMPORT_TOTAL,
+  parseSerialWorkbook,
+  SerialWorkbookError,
+} from "./seriales-previos-excel";
 
 const bytes = (book: XLSX.WorkBook) =>
   XLSX.write(book, { bookType: "xlsx", type: "array" }) as ArrayBuffer;
@@ -215,4 +221,18 @@ describe("parseSerialWorkbook", () => {
       expect(error).toMatchObject({ code: "unsafe_number", detail: "Datos!A2" });
     }
   });
+  it("limita la cola a 100 archivos", () => {
+    expect(getSerialImportQueueLimitIssue(MAX_SERIAL_IMPORT_FILES, 0, 1, 0)).toBe("too_many_files");
+    expect(getSerialImportQueueLimitIssue(MAX_SERIAL_IMPORT_FILES - 1, 0, 1, 0)).toBeUndefined();
+  });
+
+  it("limita la cola a 100.000 seriales sin bloquear una cola válida", () => {
+    expect(getSerialImportQueueLimitIssue(2, MAX_SERIAL_IMPORT_TOTAL, 1, 1)).toBe("too_many_total");
+    expect(getSerialImportQueueLimitIssue(2, MAX_SERIAL_IMPORT_TOTAL - 10, 1, 10)).toBeUndefined();
+  });
+
+  it("prioriza el límite de archivos si ambos límites se superarían", () => {
+    expect(getSerialImportQueueLimitIssue(MAX_SERIAL_IMPORT_FILES, MAX_SERIAL_IMPORT_TOTAL, 1, 1)).toBe("too_many_files");
+  });
+
 });
