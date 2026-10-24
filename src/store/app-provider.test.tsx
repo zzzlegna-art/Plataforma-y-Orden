@@ -89,10 +89,15 @@ describe("AppProvider · recuperación de resincronización", () => {
     mocks.suscribirCambios.mockReturnValue(vi.fn());
     mocks.setAuth.mockResolvedValue(undefined);
     mocks.pushDb.mockRejectedValue(new Error("network unavailable"));
-    mocks.pullDb
-      .mockResolvedValueOnce(inicial) // initial session load
-      .mockRejectedValueOnce(new Error("network unavailable")) // resync after failed save
-      .mockResolvedValueOnce(autoritativa); // retry after browser reports online
+    let recoveryPulls = 0;
+    mocks.pullDb.mockImplementation(async () => {
+      // React StrictMode may run the session bootstrap more than once.
+      // Keep every pre-save session load successful and target only recovery pulls.
+      if (mocks.pushDb.mock.calls.length === 0) return inicial;
+      recoveryPulls += 1;
+      if (recoveryPulls === 1) throw new Error("network unavailable");
+      return autoritativa;
+    });
 
     render(<AppProvider><Harness /></AppProvider>);
     await waitFor(() => expect(screen.getByTestId("user").textContent).toBe("user-1"));
