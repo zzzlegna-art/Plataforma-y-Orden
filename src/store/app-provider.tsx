@@ -347,6 +347,10 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
             aplicada = true;
           }
         } catch (error) {
+          // La copia local puede estar adelantada si el guardado anterior falló.
+          // Conserva la necesidad de resincronizar para reintentar al volver la conexión
+          // o cuando el usuario regrese a la pestaña; no dejes el estado como "al día".
+          refrescoPendienteRef.current = true;
           console.error("No se pudo resincronizar el inventario", error);
           return;
         } finally {
@@ -436,8 +440,13 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
     const alVolver = () => {
       if (document.visibilityState === "visible") void refrescar();
     };
+    const alRecuperarConexion = () => void refrescar();
     document.addEventListener("visibilitychange", alVolver);
-    return () => document.removeEventListener("visibilitychange", alVolver);
+    window.addEventListener("online", alRecuperarConexion);
+    return () => {
+      document.removeEventListener("visibilitychange", alVolver);
+      window.removeEventListener("online", alRecuperarConexion);
+    };
   }, [refrescar]);
 
   const login = useCallback<AppValue["login"]>(async (email, password) => {
