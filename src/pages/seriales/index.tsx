@@ -225,14 +225,6 @@ const HistorialSerial = ({ embedded = false }: { embedded?: boolean }) => {
               <span className="font-medium">{formatDate(serialPrevio.fechaVenta)}</span>
             </p>
           ) : null}
-          <p className="text-xs text-muted-foreground">
-            {t("serialHistory.priorSaleImportedAt", { date: formatDateTime(serialPrevio.createdAt) })}
-          </p>
-          {serialPrevio.archivoOrigen ? (
-            <p className="break-all text-xs text-muted-foreground">
-              {t("serialHistory.priorSaleSourceFile")}: {serialPrevio.archivoOrigen}
-            </p>
-          ) : null}
           {serialPrevio.notas ? (
             <p className="text-sm">{t("common.notes")}: {serialPrevio.notas}</p>
           ) : null}
