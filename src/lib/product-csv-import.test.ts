@@ -50,6 +50,23 @@ describe("parseProductCsv", () => {
     expect(rows[0].error).toContain("stock mínimo debe ser un número");
   });
 
+  it("rechaza texto mezclado con importes en vez de extraer solo los dígitos", () => {
+    const rows = parseProductCsv(
+      "Producto;Precio;Costo;Stock mínimo\nTablet;12abc;100xyz;1",
+    );
+    expect(rows[0].error).toContain("precio debe ser un número");
+    expect(rows[0].error).toContain("costo debe ser un número");
+  });
+
+  it("permite códigos monetarios conocidos sin aceptar texto arbitrario", () => {
+    const rows = parseProductCsv(
+      "Producto;Precio;Costo;Stock mínimo\nTablet;COP 1.200;USD 100;1",
+    );
+    expect(rows[0].price).toBe(1200);
+    expect(rows[0].cost).toBe(100);
+    expect(rows[0].error).toBe("");
+  });
+
   it("marca nombres vacíos, importes inválidos y enlaces de imagen no seguros", () => {
     const rows = parseProductCsv(
       "Producto;Referencia;Precio;Enlace de imagen\n;SKU-1;-5;javascript:alert(1)",
