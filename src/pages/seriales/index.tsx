@@ -37,6 +37,7 @@ import {
   reportarNovedad,
 } from "@/lib/actions/units";
 import { formatCurrency, formatDateTime } from "@/lib/format";
+import { findProductForReference } from "@/lib/product-reference";
 import { imprimirEtiquetas } from "@/lib/print-labels";
 import {
   buscarSerialPrevio,
@@ -73,12 +74,6 @@ const rutaOperativaGarantia = (warranty: { id: string; status: string }) => {
   return `/garantias?tab=${tab}&focus=${encodeURIComponent(warranty.id)}`;
 };
 
-const normalizarReferenciaCatalogo = (valor: string) =>
-  valor
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLocaleLowerCase()
-    .replace(/[^a-z0-9]/g, "");
 
 /** Ficha y línea de tiempo de un serial/IMEI con acciones de mantenimiento. */
 const HistorialSerial = ({ embedded = false }: { embedded?: boolean }) => {
@@ -105,19 +100,10 @@ const HistorialSerial = ({ embedded = false }: { embedded?: boolean }) => {
     [db, search],
   );
   const product = unit ? db.products.find((item) => item.id === unit.productId) : undefined;
-  const productoVentaPrevia = useMemo(() => {
-    const referencia = serialPrevio?.referencia;
-    if (!referencia) return undefined;
-    const normalizada = normalizarReferenciaCatalogo(referencia);
-    const exacto = db.products.find((item) => normalizarReferenciaCatalogo(item.name) === normalizada);
-    if (exacto) return exacto;
-    return db.products
-      .filter((item) => {
-        const nombre = normalizarReferenciaCatalogo(item.name);
-        return nombre.length >= 8 && (normalizada.includes(nombre) || nombre.includes(normalizada));
-      })
-      .sort((a, b) => normalizarReferenciaCatalogo(b.name).length - normalizarReferenciaCatalogo(a.name).length)[0];
-  }, [db.products, serialPrevio?.referencia]);
+  const productoVentaPrevia = useMemo(
+    () => findProductForReference(db.products, serialPrevio?.referencia),
+    [db.products, serialPrevio?.referencia],
+  );
   const timeline = useMemo(() => (unit ? getUnitTimeline(db, unit.id) : []), [db, unit]);
 
   // Recepción, venta, cliente y garantías del equipo (cada una se puede abrir desde aquí).
