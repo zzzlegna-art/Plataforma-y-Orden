@@ -110,9 +110,9 @@ const SerialesPrevios = ({ embedded = false }: { embedded?: boolean }) => {
   const copiarSerial = async (serial: string) => {
     try {
       await navigator.clipboard.writeText(serial);
-      toast.success("Serial copiado al portapapeles.");
+      toast.success(t("serialesPrevios.serialCopiado"));
     } catch {
-      toast.error("No se pudo copiar el serial. Puedes seleccionarlo manualmente.");
+      toast.error(t("serialesPrevios.errorCopiarSerial"));
     }
   };
 
@@ -346,14 +346,14 @@ const SerialesPrevios = ({ embedded = false }: { embedded?: boolean }) => {
                     {t("serialesPrevios.encontrado")}
                   </p>
                   <p className="mt-1 max-w-2xl text-sm leading-6 text-muted-foreground">
-                    Este serial pertenece a una venta anterior a Nexora y está registrado en la lista de seriales previos.
+                    {t("serialesPrevios.encontradoDescripcion")}
                   </p>
                   <div className="mt-4 inline-flex max-w-full items-center gap-2 rounded-xl border border-success/25 bg-success/10 px-3 py-2 sm:px-4">
                     <span className="font-tabular break-all text-lg font-semibold tracking-wide text-foreground sm:text-xl">{encontrado.serial}</span>
                     <button
                       type="button"
-                      aria-label="Copiar serial"
-                      title="Copiar serial"
+                      aria-label={t("serialesPrevios.copiarSerial")}
+                      title={t("serialesPrevios.copiarSerial")}
                       onClick={() => void copiarSerial(encontrado.serial)}
                       className="grid h-8 w-8 shrink-0 place-items-center rounded-lg border border-border/70 bg-background/80 text-muted-foreground transition-colors hover:bg-background hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                     >
