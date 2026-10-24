@@ -220,15 +220,15 @@ const HistorialSerial = ({ embedded = false }: { embedded?: boolean }) => {
 
       {search && !unit && garantiasPorSerialManual.length === 0 && serialPrevio ? (
         <section className="overflow-hidden rounded-2xl border border-warning/40 bg-gradient-to-br from-warning/[0.08] via-card to-card p-4 shadow-sm sm:p-5">
-          <div className="grid gap-4 md:grid-cols-[minmax(0,190px)_minmax(0,1fr)]">
-            <div className="flex min-h-44 items-center justify-center rounded-xl border border-border/70 bg-background/80 p-3">
-              <div className="relative grid h-40 w-36 place-items-center">
+          <div className="grid gap-4 md:grid-cols-[minmax(0,220px)_minmax(0,1fr)]">
+            <div className="flex min-h-56 items-center justify-center rounded-xl border border-border/70 bg-background/80 p-3">
+              <div className="relative grid h-48 w-44 place-items-center">
                 <Smartphone aria-hidden="true" className="h-12 w-12 text-muted-foreground/30" />
                 <ProductThumbnail
                   src={productoVentaPrevia?.imageUrl}
                   alt={productoVentaPrevia?.name ?? serialPrevio.referencia ?? "Producto de venta previa"}
                   size="2xl"
-                  className="absolute inset-0 h-full w-full rounded-xl border-0 bg-transparent p-2 shadow-none"
+                  className="absolute inset-0 h-full w-full rounded-xl border-0 bg-transparent p-1 shadow-none"
                 />
               </div>
             </div>
