@@ -26,3 +26,18 @@ export const coincideBusquedaInventario = (
   // se encuentre en un campo diferente (marca y nombre, por ejemplo).
   return terms.every((term) => searchableFields.some((field) => field.includes(term)));
 };
+
+/** Agrupa seriales por producto para buscar unidades sin recorrerlas en cada tecla. */
+export const indexUnitSerialsByProduct = (
+  units: readonly { productId: string; serial: string }[],
+): Map<string, string[]> => {
+  const index = new Map<string, string[]>();
+  for (const unit of units) {
+    const serial = unit.serial.trim();
+    if (!serial) continue;
+    const serials = index.get(unit.productId);
+    if (serials) serials.push(serial);
+    else index.set(unit.productId, [serial]);
+  }
+  return index;
+};
