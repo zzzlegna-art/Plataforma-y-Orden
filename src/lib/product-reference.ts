@@ -5,18 +5,18 @@ type ProductReference = Pick<Product, "name" | "imageUrl">;
 const normalizeReference = (value: string) =>
   value
     .normalize("NFD")
-    .replace(/[\\u0300-\\u036f]/g, "")
+    .replace(/[\u0300-\u036f]/g, "")
     .toLocaleLowerCase()
     .replace(/[^a-z0-9]/g, "");
 
 const normalizeWords = (value: string) =>
   value
     .normalize("NFD")
-    .replace(/[\\u0300-\\u036f]/g, "")
+    .replace(/[\u0300-\u036f]/g, "")
     .toLocaleLowerCase()
     .replace(/[^a-z0-9]+/g, " ")
     .trim()
-    .split(/\\s+/)
+    .split(/\s+/)
     .filter(Boolean);
 
 const STORAGE_UNITS = new Set(["gb", "tb", "mb"]);
@@ -27,7 +27,7 @@ const NON_MODEL_VARIANTS = new Set([
   "blanco", "blanca", "white", "starlight", "plata", "plateado", "plateada",
   "silver", "gris", "gray", "grey", "natural", "titanio", "titanium",
   "desert", "deserttitanium", "azul", "blue", "rosa", "pink", "purple",
-  "morado", "morado", "verde", "green", "amarillo", "yellow", "rojo", "red",
+  "morado", "verde", "green", "amarillo", "yellow", "rojo", "red",
   "naranja", "orange", "beige", "lavender", "lila",
 ]);
 
@@ -47,8 +47,8 @@ const normalizeModelReference = (value: string) => {
   for (let index = 0; index < words.length; index += 1) {
     const word = words[index];
 
-    if (/^\\d+(?:gb|tb|mb)$/.test(word)) continue;
-    if (/^\\d+$/.test(word) && STORAGE_UNITS.has(words[index + 1] ?? "")) {
+    if (/^\d+(?:gb|tb|mb)$/.test(word)) continue;
+    if (/^\d+$/.test(word) && STORAGE_UNITS.has(words[index + 1] ?? "")) {
       index += 1;
       continue;
     }
