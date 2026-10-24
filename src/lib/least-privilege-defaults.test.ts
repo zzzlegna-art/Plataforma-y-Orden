@@ -27,18 +27,17 @@ describe("Nexora final least-privilege migration contract", () => {
     );
   });
 
-  it("hardens defaults for both Supabase object owners", () => {
-    for (const owner of ["postgres", "supabase_admin"]) {
-      expect(normalizedMigration).toContain(
-        "alter default privileges for role " + owner + " in schema public revoke all on tables from anon",
-      );
-      expect(normalizedMigration).toContain(
-        "alter default privileges for role " + owner + " in schema public revoke all on sequences from anon",
-      );
-      expect(normalizedMigration).toContain(
-        "alter default privileges for role " + owner + " in schema public revoke execute on functions from public, anon",
-      );
-    }
+  it("hardens defaults for the verified application object owner", () => {
+    expect(normalizedMigration).toContain(
+      "alter default privileges for role postgres in schema public revoke all on tables from anon",
+    );
+    expect(normalizedMigration).toContain(
+      "alter default privileges for role postgres in schema public revoke all on sequences from anon",
+    );
+    expect(normalizedMigration).toContain(
+      "alter default privileges for role postgres in schema public revoke execute on functions from public, anon",
+    );
+    expect(normalizedMigration).toContain("all 18 application functions and all 51 public relations are owned by postgres");
   });
 
   it("preserves authenticated RPC access but protects the Auth bootstrap trigger", () => {
@@ -46,6 +45,11 @@ describe("Nexora final least-privilege migration contract", () => {
     expect(normalizedMigration).toContain(
       "revoke execute on function public.bodega_handle_new_user() from authenticated",
     );
+  });
+
+  it("documents the managed-role limitation instead of claiming its defaults were changed", () => {
+    expect(normalizedMigration).toContain("managed supabase_admin role is not a member");
+    expect(normalizedMigration).toContain("provider-owned objects are outside");
   });
 
   it("includes live assertions for operational RLS, least privilege and private warranty files", () => {
