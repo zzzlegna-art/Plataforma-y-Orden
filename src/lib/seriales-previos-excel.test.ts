@@ -100,11 +100,11 @@ describe("parseSerialWorkbook", () => {
     expect(parsed.registros[0]).toMatchObject({
       serial: "352513420258440",
       referencia: "Apple iPhone 12 128 GB",
-      cliente: "Harold - Cucuta",
-      fechaVenta: "2026-02-08",
       hoja: "Ventas",
       fila: 4,
     });
+    expect(parsed.clienteDetectado).toBe("Harold - Cucuta");
+    expect(parsed.fechaVentaDetectada).toBe("2026-02-08");
     expect(parsed.registros[1].referencia).toBe("Apple iPhone 13 Pro Max 128 GB");
   });
 
