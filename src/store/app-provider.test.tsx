@@ -95,7 +95,7 @@ describe("AppProvider · recuperación de resincronización", () => {
       .mockResolvedValueOnce(autoritativa); // retry after browser reports online
 
     render(<AppProvider><Harness /></AppProvider>);
-    await waitFor(() => expect(screen.getByTestId("user")).toHaveTextContent("user-1"));
+    await waitFor(() => expect(screen.getByTestId("user").textContent).toBe("user-1"));
 
     fireEvent.click(screen.getByRole("button", { name: "Guardar cambio" }));
     await waitFor(() => expect(mocks.pushDb).toHaveBeenCalledTimes(1));
@@ -106,8 +106,8 @@ describe("AppProvider · recuperación de resincronización", () => {
 
     await waitFor(() => {
       expect(mocks.pullDb).toHaveBeenCalledTimes(3);
-      expect(screen.getByTestId("products")).toHaveTextContent("server-authoritative");
+      expect(screen.getByTestId("products").textContent).toContain("server-authoritative");
     });
-    expect(screen.getByTestId("products")).not.toHaveTextContent("optimistic");
+    expect(screen.getByTestId("products").textContent).not.toContain("optimistic");
   });
 });
