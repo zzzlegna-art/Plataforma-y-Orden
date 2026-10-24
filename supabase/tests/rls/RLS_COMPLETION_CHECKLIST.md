@@ -26,9 +26,11 @@ Actualizado: 2026-10-24. Proyecto Supabase revisado en vivo: `ivholkjldntrmagcmo
 
 ## Ajustes de configuración del proveedor
 
-- [ ] Activar y probar la protección de Supabase Auth contra contraseñas filtradas; el asesor de seguridad la reporta deshabilitada y no existe una acción de configuración de Auth disponible en esta conexión.
-- [ ] Confirmar retención y última ejecución de backups en el panel de Supabase. El estado del proyecto está activo, pero la configuración/recuperación de backups no se pudo verificar con las herramientas disponibles.
+- [ ] Protección contra contraseñas filtradas: la organización está en plan `free` y esta función requiere Pro o superior. El propietario debe autorizar cualquier cambio de plan; después se activa en [Auth settings](https://supabase.com/dashboard/project/ivholkjldntrmagcmogh/auth/providers?provider=Email) y se prueba.
+- [x] Guía y script de exportación local para el plan Free añadidos: `docs/SUPABASE_BACKUP_FREE_TIER.md` y `scripts/backup-supabase.sh`.
+- [ ] Ejecutar el script desde una estación segura con `SUPABASE_DB_URL`, cifrar la copia y almacenarla fuera del equipo. El script no se ha ejecutado desde esta sesión.
+- [ ] Exportar por separado los objetos de `warranty-documents` y `product-images`, definir cómo respaldar los datos gestionados por Auth y probar restauración en un proyecto aislado. `supabase db dump` no incluye los archivos de Storage ni los esquemas administrados de Auth/Storage.
 
 ## Criterio de cierre
 
-La auditoría de código y el hardening SQL de la aplicación están aplicados y sus aserciones pasaron. La certificación integral de seguridad sigue condicionada a las pruebas con sesiones reales, la protección de contraseñas filtradas y la confirmación de backups en el panel del proveedor.
+La auditoría de código y el hardening SQL de la aplicación están aplicados y sus aserciones pasaron. La certificación integral de seguridad sigue condicionada a la autorización del plan para la protección de contraseñas filtradas, la ejecución y restauración de backups externos, y las pruebas con sesiones reales.

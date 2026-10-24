@@ -6,7 +6,7 @@
 
 ## 1. Resumen ejecutivo
 
-- Supabase aparece como `ACTIVE_HEALTHY`, PostgreSQL 17.11.
+- Supabase aparece como `ACTIVE_HEALTHY`, PostgreSQL 17.11. La organización está en plan `free`; esto limita los controles de contraseña filtrada y los backups administrados.
 - Las 51 tablas públicas tienen RLS habilitado (51/51; 0 deshabilitadas).
 - Las 21 tablas operativas `bodega_*` cuentan con políticas RLS explícitas (37 políticas).
 - Las 30 tablas heredadas que no tienen políticas conservan RLS activo: PostgreSQL deniega el acceso por defecto. No se añadieron políticas genéricas ni se borraron tablas históricas.
@@ -70,21 +70,28 @@ El primer análisis de `pnpm audit --prod` encontró 53 avisos (2 críticos, 20 
 
 **Resultado final: 0 vulnerabilidades** (críticas, altas, moderadas y bajas) en el árbol de dependencias de producción. La misma comprobación se añadió a los dos workflows de GitHub Actions para que una futura vulnerabilidad haga fallar la validación antes de desplegar.
 
-## 7. Hallazgos del asesor de Supabase
+## 7. Continuidad y límites del plan Free
+
+- El plan de la organización se verificó como `free`. La protección de contraseñas filtradas de Supabase Auth está disponible en Pro y superiores; por eso el aviso actual no se puede resolver con un ajuste de base de datos. Requiere autorización del propietario para cambiar a un plan de pago y luego activar la protección en [Auth settings](https://supabase.com/dashboard/project/ivholkjldntrmagcmogh/auth/providers?provider=Email).
+- En Free no están disponibles los backups diarios descargables de los planes Pro/Team/Enterprise. Se añadió `scripts/backup-supabase.sh` y la guía `docs/SUPABASE_BACKUP_FREE_TIER.md` para exportar roles, esquema y datos con la CLI.
+- **La copia no se ha ejecutado desde esta sesión:** hace falta que una persona autorizada ejecute el script desde una estación segura con Docker y la cadena de conexión de la base de datos.
+- `supabase db dump` excluye los esquemas administrados de Auth/Storage y no incluye archivos de Storage. Para una recuperación completa se deben exportar los objetos de los buckets por separado, definir la exportación de datos gestionados por Auth y probar una restauración aislada. Cifrar antes de transferir a almacenamiento externo.
+
+## 8. Hallazgos del asesor de Supabase
 
 - **30 avisos informativos `rls_enabled_no_policy`:** corresponden a tablas heredadas con RLS activo y sin políticas; se dejan cerradas por defecto.
 - **3 avisos `authenticated_security_definer_function_executable`:** `bodega_is_admin()`, `bodega_is_staff()` y `bodega_uso_almacenamiento()` necesitan ejecución autenticada para las políticas y el módulo de almacenamiento. Sus definiciones fijan `search_path` y verifican el perfil activo. No se revocaron a ciegas porque rompería autorización/funcionalidad.
-- **Protección contra contraseñas filtradas deshabilitada:** permanece pendiente en la configuración de Supabase Auth. Esta conexión no expone una acción para cambiar ese ajuste.
+- **Protección contra contraseñas filtradas deshabilitada:** requiere Pro o superior; el plan Free actual no permite activarla. No se cambió el plan ni se incurrió en costos.
 - Rendimiento: 26 claves foráneas sin índice de cobertura, 32 índices no usados, 5 conjuntos de políticas permisivas duplicadas y 1 par de índices duplicados. No se eliminaron índices ni se cambiaron políticas automáticamente sin revisar planes de consulta y dependencias.
 
-## 8. Pendientes para certificar el cierre al 100 %
+## 9. Pendientes para certificar el cierre al 100 %
 
-1. Activar la protección de contraseñas filtradas en Supabase Auth y verificarla con una prueba controlada.
-2. Confirmar en el panel de Supabase la retención, última ejecución y posibilidad de restauración de backups. La conexión usada aquí no permite verificar esa configuración.
+1. Autorizar un cambio de plan a Pro o superior si se desea activar la protección de contraseñas filtradas; después habilitarla en Auth settings y hacer una prueba controlada.
+2. Ejecutar `scripts/backup-supabase.sh` desde una estación segura y almacenar la copia cifrada fuera del equipo. Exportar los objetos de Storage y definir la exportación de Auth por separado; probar restauración en un proyecto aislado.
 3. Probar aislamiento con dos sesiones reales distintas (administrador y bodeguero), sin reutilizar credenciales personales. El SQL de preflight pasó, pero no se declara una prueba de usuario A/B sin sesiones de prueba.
-4. Ejecutar esas pruebas de roles y el SQL de RLS en un entorno de prueba dedicado dentro del CI.
+4. Automatizar el SQL de RLS y las pruebas de roles en un entorno de prueba dedicado dentro del CI.
 5. Mantener presente el límite de permisos del rol administrado `supabase_admin`; los defaults de los objetos de aplicación `postgres` sí quedaron endurecidos.
 
 ## Veredicto
 
-**El punto técnico de auditoría, el hardening SQL de la aplicación y la suite automatizada están ejecutados.** No se afirma una certificación de seguridad absoluta mientras sigan pendientes los ajustes de Auth, la verificación de backups y las pruebas de aislamiento con sesiones reales.
+**El hardening SQL, la suite automatizada y el despliegue están ejecutados.** No se afirma una certificación de seguridad absoluta mientras sigan pendientes la autorización del plan de Auth, la ejecución de un backup externo con prueba de restauración y las pruebas de aislamiento con sesiones reales.

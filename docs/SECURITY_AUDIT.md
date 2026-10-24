@@ -128,3 +128,10 @@ El informe vigente está en `docs/NEXORA_AUDITORIA_FINAL.md`. Resumen de esta ej
 ## Auditoría de dependencias — 2026-10-24
 
 El análisis inicial de producción encontró 53 avisos, incluidos 2 críticos y 20 altos. Se actualizaron jsPDF a 4.2.1, jsPDF-AutoTable a 5.0.9, React Router DOM a 7.18.4, i18next-http-backend a 4.0.5, Zod a 4.6.7 y PostCSS a 8.5.31; además se fijaron DOMPurify 3.4.17 y postcss-selector-parser 7.1.7 mediante overrides. La suite (547 pruebas) y TypeScript/ESLint pasan. La auditoría final `pnpm audit --prod` terminó con **0 vulnerabilidades** y se incorporó como paso obligatorio a los dos workflows de CI.
+
+
+## Cierre de auditoría — límites del plan Free (2026-10-24)
+
+La organización Supabase se verificó como `free`. La protección contra contraseñas filtradas solo está disponible en Pro o superior ([documentación oficial](https://supabase.com/docs/guides/auth/password-security)); no se cambió el plan porque requiere autorización de costo del propietario.
+
+Supabase no ofrece backups diarios descargables en el plan Free ([política de backups](https://supabase.com/docs/guides/platform/backups)). Se añadieron el script `scripts/backup-supabase.sh` y la guía `docs/SUPABASE_BACKUP_FREE_TIER.md` para exportar roles, esquema y datos. La exportación no se ejecutó desde esta sesión, no se debe considerar un backup existente, y requiere una cadena de conexión segura. Los objetos de Storage y los datos administrados por Auth requieren un procedimiento separado y una restauración de prueba.

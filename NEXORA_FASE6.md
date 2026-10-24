@@ -13,8 +13,8 @@
 
 ## Pendientes explícitos
 
-- Activar la protección de Supabase Auth contra contraseñas filtradas.
-- Verificar retención y restauración de backups en el panel del proveedor.
+- La protección de contraseñas filtradas requiere cambiar la organización de Free a Pro o superior; se necesita autorización del propietario para incurrir en el costo.
+- Ejecutar `scripts/backup-supabase.sh` desde una estación segura, cifrar la copia y probar restauración; Storage y Auth necesitan un plan de respaldo separado.
 - Ejecutar pruebas de aislamiento con sesiones reales de administrador y bodeguero.
 - La conexión actual no puede modificar defaults del rol administrado `supabase_admin`; los 51 objetos públicos y las 18 funciones de la aplicación están bajo el propietario `postgres`, cuyos defaults sí se endurecieron.
 - La compilación mantiene una advertencia de Vite por el tamaño del chunk principal; no bloquea la compilación.

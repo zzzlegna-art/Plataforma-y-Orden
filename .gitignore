@@ -1,0 +1,20 @@
+# Dependencies and build output
+node_modules/
+dist/
+coverage/
+
+# Local environment files (keep the example template)
+.env
+.env.*
+!.env.example
+
+# Local exports and sensitive backups
+backups/
+*.dump
+*.backup
+*.sql.gz
+*.sql.age
+*.sql.gpg
+
+# Local operating-system/editor files
+.DS_Store
