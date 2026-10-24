@@ -14,10 +14,11 @@ const normalizeReference = (value: string) =>
  * Las ventas antiguas suelen indicar, por ejemplo, 256 GB mientras el catálogo solo
  * tiene la misma referencia fotografiada en 128 GB. La capacidad no cambia la foto.
  */
+const normalizeReferenceWithoutBrand = (value: string) =>
+  normalizeReference(value).replace(/^apple/, "");
+
 const normalizeModelReference = (value: string) =>
-  normalizeReference(value)
-    .replace(/^apple/, "")
-    .replace(/\d+(?:gb|tb|mb)/g, "");
+  normalizeReferenceWithoutBrand(value).replace(/\d+(?:gb|tb|mb)/g, "");
 
 export const findProductForReference = (
   products: readonly ProductReference[],
@@ -25,8 +26,10 @@ export const findProductForReference = (
 ): ProductReference | undefined => {
   if (!reference?.trim()) return undefined;
 
-  const normalized = normalizeReference(reference);
-  const exactMatches = products.filter((product) => normalizeReference(product.name) === normalized);
+  // Quita "Apple" para comparar marcas escritas o no en la referencia, pero conserva
+  // la capacidad en esta primera búsqueda para elegir el modelo exacto cuando exista.
+  const normalized = normalizeReferenceWithoutBrand(reference);
+  const exactMatches = products.filter((product) => normalizeReferenceWithoutBrand(product.name) === normalized);
   const exactWithImage = exactMatches.find((product) => Boolean(product.imageUrl?.trim()));
   if (exactWithImage) return exactWithImage;
 
