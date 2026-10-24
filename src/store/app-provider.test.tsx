@@ -59,13 +59,16 @@ const Harness = () => {
       <div data-testid="run-error">{runError}</div>
       <div data-testid="products">{app.db.products.map((product) => product.name).join(",")}</div>
       <button onClick={() => {
-        void app.run((db) => {
-          db.products.push({
-            id: "optimistic-product", sku: "OPT-1", name: "optimistic",
-            price: 10, cost: 5, minStock: 0, isActive: true,
-            createdAt: "2026-10-24T00:00:00.000Z", updatedAt: "2026-10-24T00:00:00.000Z",
-          });
-        }).catch((error: unknown) => setRunError(error instanceof Error ? error.message : String(error)));
+        // Let the final auth/session bootstrap microtasks settle before invoking a write.
+        window.setTimeout(() => {
+          void app.run((db) => {
+            db.products.push({
+              id: "optimistic-product", sku: "OPT-1", name: "optimistic",
+              price: 10, cost: 5, minStock: 0, isActive: true,
+              createdAt: "2026-10-24T00:00:00.000Z", updatedAt: "2026-10-24T00:00:00.000Z",
+            });
+          }).catch((error: unknown) => setRunError(error instanceof Error ? error.message : String(error)));
+        }, 0);
       }}>Guardar cambio</button>
     </div>
   );
