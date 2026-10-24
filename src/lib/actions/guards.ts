@@ -23,7 +23,7 @@ export const requireNumber = (
   min = 0,
 ) => {
   const parsed = Number(value);
-  if (Number.isNaN(parsed) || parsed < min) throw new DomainError(key);
+  if (!Number.isFinite(parsed) || parsed < min) throw new DomainError(key);
   return parsed;
 };
 

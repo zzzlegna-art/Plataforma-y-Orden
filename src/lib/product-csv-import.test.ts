@@ -164,6 +164,29 @@ describe("parseProductWorkbook", () => {
     expect(() => parseProductWorkbook(new ArrayBuffer(0))).toThrow(ProductCsvImportError);
   });
 
+  it("conserva el número de fila real si la cabecera está después de una portada", () => {
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(
+      workbook,
+      XLSX.utils.aoa_to_sheet([
+        ["Catálogo Nexora"],
+        ["Instrucciones para completar el archivo"],
+        ["Producto", "Referencia", "Precio"],
+        ["iPhone 16 Pro", "IP16P-256", 4200000],
+      ]),
+      "Productos",
+    );
+
+    const data = XLSX.write(workbook, { bookType: "xlsx", type: "array" }) as ArrayBuffer;
+    expect(parseProductWorkbook(data)[0]).toMatchObject({
+      rowNumber: 4,
+      name: "iPhone 16 Pro",
+      sku: "IP16P-256",
+      price: 4200000,
+      error: "",
+    });
+  });
+
   it("encuentra la hoja de productos aunque el Excel tenga una portada antes", () => {
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(

@@ -311,5 +311,10 @@ export const parseProductWorkbook = (data: ArrayBuffer): ProductCsvRow[] => {
     strip: true,
     blankrows: false,
   });
-  return parseProductCsv(csv);
+  const parsedRows = parseProductCsv(csv);
+  // La fila se refiere a la hoja original, incluso si había una portada antes de la cabecera.
+  return parsedRows.map((row) => ({
+    ...row,
+    rowNumber: row.rowNumber + productSheet.headerIndex,
+  }));
 };

@@ -217,3 +217,37 @@ describe("SKU corta automática", () => {
     expect(sparePart.technicalSpecs).toBeUndefined();
   });
 });
+
+
+describe("validación de números finitos", () => {
+  it("rechaza valores infinitos para precio, costo y stock mínimo antes de guardar", () => {
+    const fields = ["price", "cost", "minStock"] as const;
+
+    for (const field of fields) {
+      const db = emptyDb();
+      expect(() =>
+        createProduct(db, admin, {
+          name: "Producto de prueba",
+          price: 1,
+          cost: 1,
+          minStock: 0,
+          [field]: Infinity,
+        }),
+      ).toThrow(DomainError);
+      expect(db.products).toHaveLength(0);
+    }
+  });
+
+  it("rechaza Infinity aunque llegue como texto numérico", () => {
+    const db = emptyDb();
+    expect(() =>
+      createProduct(db, admin, {
+        name: "Producto de prueba",
+        price: "1e309",
+        cost: 1,
+        minStock: 0,
+      }),
+    ).toThrow(DomainError);
+    expect(db.products).toHaveLength(0);
+  });
+});
