@@ -110,9 +110,122 @@ const parseNumber = (value: string, field: string): { value: number; error?: str
   if (!text) return { value: 0 };
   // Permite símbolos/códigos monetarios conocidos, pero no convierte texto arbitrario
   // como "12abc" o "COPX 100" en un importe aparentemente válido.
+  const currencyCodes = "(?:COP|USD|EUR|MXN|ARS|CLP|PEN|BRL|CAD|AUD)";
   const withoutCurrency = text
-    .replace(/\b(?:COP|USD|EUR|MXN|ARS|CLP|PEN|BRL|CAD|AUD)\b/gi, "")
-    .replace(/[$€£¥₹]/g, "")
+    .replace(new RegExp(`^\\s*${currencyCodes}\\s*|\\s*${currencyCodes}\\s*export const MAX_PRODUCT_CSV_IMPORT_ROWS = 1_000;
+export const MAX_PRODUCT_CSV_IMPORT_BYTES = 5 * 1024 * 1024;
+
+export type ProductCsvRow = {
+  rowNumber: number;
+  name: string;
+  sku: string;
+  brand: string;
+  category: string;
+  description: string;
+  imageUrl: string;
+  features: string;
+  price: number;
+  cost: number;
+  minStock: number;
+  error?: string;
+};
+
+export type ProductCsvImportErrorCode = "empty" | "missing_name_column" | "too_many" | "malformed";
+
+export class ProductCsvImportError extends Error {
+  constructor(readonly code: ProductCsvImportErrorCode, message: string) {
+    super(message);
+    this.name = "ProductCsvImportError";
+  }
+}
+
+const normalizeHeader = (value: string) =>
+  value
+    .replace(/^\uFEFF/, "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+
+const HEADER_ALIASES: Record<string, string[]> = {
+  name: ["producto", "product", "nombre", "name", "nombre del producto", "product name"],
+  sku: ["referencia", "sku", "codigo", "code", "reference", "product code"],
+  brand: ["marca", "brand", "fabricante", "manufacturer"],
+  category: ["categoria", "category", "tipo", "type", "tipo de producto", "product type"],
+  description: ["descripcion", "description", "detalle", "details"],
+  imageUrl: ["enlace de imagen", "url de imagen", "imagen url", "image url", "image link", "url imagen", "imageurl"],
+  price: ["precio", "price", "precio de venta", "sale price"],
+  cost: ["costo", "cost", "coste"],
+  minStock: ["stock minimo", "existencia minima", "existencias minimas", "minimum stock", "min stock"],
+  features: ["caracteristicas", "caracteristicas tecnicas", "detalles tecnicos", "technical features", "technical details", "features"],
+};
+
+const detectarDelimitador = (text: string): string => {
+  let enComillas = false;
+  const conteo = new Map<string, number>([[ ";", 0 ], [",", 0], ["\t", 0]]);
+  for (let index = 0; index < text.length; index += 1) {
+    const character = text[index];
+    if (character === '"') {
+      if (enComillas && text[index + 1] === '"') {
+        index += 1;
+        continue;
+      }
+      enComillas = !enComillas;
+      continue;
+    }
+    if (!enComillas && (character === "\n" || character === "\r")) break;
+    if (!enComillas && conteo.has(character)) conteo.set(character, (conteo.get(character) ?? 0) + 1);
+  }
+  return [...conteo.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? ";";
+};
+
+const parseRecords = (text: string, delimiter: string): string[][] => {
+  const rows: string[][] = [];
+  let row: string[] = [];
+  let cell = "";
+  let quoted = false;
+
+  for (let index = 0; index < text.length; index += 1) {
+    const character = text[index];
+    if (character === '"') {
+      if (quoted && text[index + 1] === '"') {
+        cell += '"';
+        index += 1;
+      } else {
+        quoted = !quoted;
+      }
+      continue;
+    }
+    if (!quoted && character === delimiter) {
+      row.push(cell);
+      cell = "";
+      continue;
+    }
+    if (!quoted && (character === "\n" || character === "\r")) {
+      if (character === "\r" && text[index + 1] === "\n") index += 1;
+      row.push(cell);
+      if (row.some((value) => value.trim() !== "")) rows.push(row);
+      row = [];
+      cell = "";
+      continue;
+    }
+    cell += character;
+  }
+
+  if (quoted) throw new ProductCsvImportError("malformed", "El CSV contiene comillas sin cerrar.");
+  row.push(cell);
+  if (row.some((value) => value.trim() !== "")) rows.push(row);
+  return rows;
+};
+
+const parseNumber = (value: string, field: string): { value: number; error?: string } => {
+  const text = value.trim();
+  if (!text) return { value: 0 };
+  // Permite símbolos/códigos monetarios conocidos, pero no convierte texto arbitrario
+  // como "12abc" o "COPX 100" en un importe aparentemente válido.
+, "i"), "")
+    .replace(/^\s*[$€£¥₹]\s*|\s*[$€£¥₹]\s*$/g, "")
     .trim();
   if (/[a-z]/i.test(withoutCurrency)) {
     return { value: 0, error: `El campo ${field} debe ser un número mayor o igual a cero.` };
