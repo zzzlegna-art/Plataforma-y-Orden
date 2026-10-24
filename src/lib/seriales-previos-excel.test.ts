@@ -80,6 +80,127 @@ describe("parseSerialWorkbook", () => {
     expect(thrown).toMatchObject({ code: "too_many" });
   });
 
+  it("detecta referencias en los encabezados de columnas y cliente/fecha del Excel de ventas", () => {
+    const book = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(
+      book,
+      XLSX.utils.aoa_to_sheet([
+        ["", "", "", "", "", "", "", ""],
+        ["", "", "", "", "", "", "", ""],
+        ["REFERENCIA", "Harold - Cucuta", "", "", "", "", "Apple iPhone 12 128 GB", "Apple iPhone 13 Pro Max 128 GB"],
+        ["Apple iPhone 12 128 GB", 2, "", "", "", "", "352513420258440", "358800351040804"],
+        ["Apple iPhone 13 Pro Max 128 GB", 1, "", "", "", "", "352513420258441", "358800351040805"],
+      ]),
+      "Ventas",
+    );
+
+    const parsed = parseSerialWorkbook(bytes(book), "Ventas_08-02-2026.xlsx");
+
+    expect(parsed.registros).toHaveLength(4);
+    expect(parsed.registros[0]).toMatchObject({
+      serial: "352513420258440",
+      referencia: "Apple iPhone 12 128 GB",
+      hoja: "Ventas",
+      fila: 4,
+    });
+    expect(parsed.clienteDetectado).toBe("Harold - Cucuta");
+    expect(parsed.fechaVentaDetectada).toBe("2026-02-08");
+    expect(parsed.registros[1].referencia).toBe("Apple iPhone 13 Pro Max 128 GB");
+  });
+
+  it("asigna cada hoja al cliente indicado por su nombre y deja vacio el cliente por defecto si hay varios", () => {
+    const book = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(
+      book,
+      XLSX.utils.aoa_to_sheet([
+        ["Serial", "Referencia"],
+        ["351139867580418", "Apple iPhone 12 - 128"],
+      ]),
+      "1. Chavela",
+    );
+    XLSX.utils.book_append_sheet(
+      book,
+      XLSX.utils.aoa_to_sheet([
+        ["Serial", "Referencia"],
+        ["352678439208841", "Apple iPhone 13 128 GB"],
+      ]),
+      "2. Juan David",
+    );
+    XLSX.utils.book_append_sheet(
+      book,
+      XLSX.utils.aoa_to_sheet([
+        ["Serial", "Referencia"],
+        ["358339341841630", "Apple iPhone 14 128 GB"],
+      ]),
+      "3. David - Celubarranquilla",
+    );
+
+    const parsed = parseSerialWorkbook(bytes(book), "Ventas_26-03-2026.xlsx");
+
+    expect(parsed.registros.map((registro) => registro.cliente)).toEqual([
+      "Chavela",
+      "Juan David",
+      "David - Celubarranquilla",
+    ]);
+    expect(parsed.clienteDetectado).toBeUndefined();
+    expect(parsed.registros.map((registro) => registro.referencia)).toEqual([
+      "Apple iPhone 12 - 128",
+      "Apple iPhone 13 128 GB",
+      "Apple iPhone 14 128 GB",
+    ]);
+  });
+
+  it("separa el cliente y la referencia de encabezados agrupados y no confunde CANTIDADES con el cliente", () => {
+    const book = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(
+      book,
+      XLSX.utils.aoa_to_sheet([
+        ["REFERENCIA", "CANTIDADES", "", "", "", "", "1. Chavela : Apple iPhone 12 - 128", "2. Juan David: Apple iPhone 13 128 GB"],
+        ["Apple iPhone 12 - 128", 2, "", "", "", "", "351139867580418", "352678439208841"],
+        ["Apple iPhone 12 - 128", 1, "", "", "", "", "351139867580419", "352678439208842"],
+      ]),
+      "Ventas",
+    );
+
+    const parsed = parseSerialWorkbook(bytes(book), "Ventas_26-03-2026.xlsx");
+
+    expect(parsed.registros).toHaveLength(4);
+    expect(parsed.clienteDetectado).toBeUndefined();
+    expect(parsed.registros[0]).toMatchObject({
+      serial: "351139867580418",
+      referencia: "Apple iPhone 12 - 128",
+      cliente: "Chavela",
+      fechaVenta: undefined,
+    });
+    expect(parsed.registros[1]).toMatchObject({
+      serial: "352678439208841",
+      referencia: "Apple iPhone 13 128 GB",
+      cliente: "Juan David",
+    });
+    expect(parsed.fechaVentaDetectada).toBe("2026-03-26");
+  });
+
+  it("lee referencia, cliente y fecha cuando vienen en columnas con encabezado", () => {
+    const book = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(
+      book,
+      XLSX.utils.aoa_to_sheet([
+        ["Serial", "Referencia", "Cliente", "Fecha de venta"],
+        ["SP-0001", "iPhone 12", "Camilo Lider", "08/02/2026"],
+      ]),
+      "Datos",
+    );
+
+    const parsed = parseSerialWorkbook(bytes(book));
+
+    expect(parsed.registros[0]).toMatchObject({
+      serial: "SP-0001",
+      referencia: "iPhone 12",
+      cliente: "Camilo Lider",
+      fechaVenta: "2026-02-08",
+    });
+  });
+
   it("rechaza celdas numéricas que podrían haber perdido precisión", () => {
     const book = XLSX.utils.book_new();
     const sheet = XLSX.utils.aoa_to_sheet([["Serial"]]);
