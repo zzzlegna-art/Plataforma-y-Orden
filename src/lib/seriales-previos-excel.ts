@@ -74,7 +74,27 @@ const esCabeceraConocida = (valor: unknown) =>
   esCabeceraReferencia(valor) ||
   esCabeceraCliente(valor) ||
   esCabeceraFecha(valor) ||
-  /(^| )(cantidad|total|precio|valor|vendedor|observaciones|notas)( |$)/.test(normalizarCabecera(valor));
+  /(^| )(cantidad(?:es)?|qty|quantities|total(?:es)?|precio(?:s)?|valor(?:es)?|vendedor(?:es)?|observaciones|notas)( |$)/.test(normalizarCabecera(valor));
+
+/**
+ * En los Excel agrupados por vendedor/cliente y modelo, el encabezado puede verse
+ * como «1. Chavela : Apple iPhone 12 - 128». Separa ambas partes para no guardar
+ * el encabezado completo como referencia ni confundirlo con un cliente global.
+ */
+const descomponerEncabezadoVenta = (
+  valor: string,
+): { cliente?: string; referencia?: string } => {
+  const coincidencia = valor.trim().match(/^\\s*\\d+\\s*[.)]\\s*(.+?)\\s*:\\s*(.+?)\\s*$/);
+  if (!coincidencia) return {};
+
+  const cliente = coincidencia[1].trim();
+  const referencia = coincidencia[2].trim();
+  if (!cliente || !referencia || esCabeceraConocida(cliente) || esCabeceraConocida(referencia)) {
+    return {};
+  }
+
+  return { cliente, referencia };
+};
 
 const valorCelda = (
   hoja: XLSX.WorkSheet,
@@ -469,12 +489,13 @@ export const parseSerialWorkbook = (
           ? fechaDesdeCelda(detectada.hoja, fila, detectada.columnaFecha)
           : undefined;
 
-        const referenciaEncabezado =
-          !esCabeceraSerial(encabezadoSerial) &&
+        const encabezadoVenta = descomponerEncabezadoVenta(encabezadoSerial);
+        const referenciaEncabezado = encabezadoVenta.referencia ||
+          (!esCabeceraSerial(encabezadoSerial) &&
           !esCabeceraConocida(encabezadoSerial) &&
           !/^[A-Z]{1,3}$/.test(encabezadoSerial.trim())
             ? encabezadoSerial.trim()
-            : "";
+            : "");
         const referencia = detectada.porDatos
           ? (referenciaEncabezado || referenciaFila)
           : (referenciaFila || referenciaEncabezado);
@@ -482,7 +503,7 @@ export const parseSerialWorkbook = (
         registros.push({
           serial,
           referencia: referencia || undefined,
-          cliente: clienteFila || undefined,
+          cliente: clienteFila || encabezadoVenta.cliente || undefined,
           fechaVenta: fechaFila,
           hoja: detectada.nombre,
           fila: fila + 1,
