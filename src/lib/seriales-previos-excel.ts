@@ -537,15 +537,18 @@ export const parseSerialWorkbook = (
           : undefined;
 
   const clientes = [...new Set(registros.map((registro) => registro.cliente).filter(Boolean))];
-  const fechas = [...new Set(registros.map((registro) => registro.fechaVenta).filter(Boolean))];
+  const hayColumnaClientePorFila = hojasUsadas.some(
+    (hoja) => hoja.tipo === "encabezado" && detectarColumna(hoja, esCabeceraCliente) !== undefined,
+  );
 
   return {
     seriales: registros.map((registro) => registro.serial),
     registros,
     hojas: hojasUsadas.map((hoja) => hoja.nombre),
     columnas,
-    clienteDetectado: clientes.length === 1 ? clientes[0] : metadatos.cliente,
-    fechaVentaDetectada: fechas.length === 1 ? fechas[0] : metadatos.fechaVenta,
+    clienteDetectado: !hayColumnaClientePorFila && clientes.length === 1 ? clientes[0] : metadatos.cliente,
+    // Una fecha en una columna por fila no se debe convertir en fecha general del archivo.
+    fechaVentaDetectada: metadatos.fechaVenta,
     advertencia,
   };
 };
