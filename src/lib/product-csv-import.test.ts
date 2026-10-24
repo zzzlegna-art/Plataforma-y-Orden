@@ -41,6 +41,15 @@ describe("parseProductCsv", () => {
     expect(rows[0]).toMatchObject({ sku: "", price: 1200000, error: "" });
   });
 
+  it("rechaza texto no numérico en precio, costo y stock mínimo", () => {
+    const rows = parseProductCsv(
+      "Producto;Precio;Costo;Stock mínimo\nTablet;abc;sin costo;mucho",
+    );
+    expect(rows[0].error).toContain("precio debe ser un número");
+    expect(rows[0].error).toContain("costo debe ser un número");
+    expect(rows[0].error).toContain("stock mínimo debe ser un número");
+  });
+
   it("marca nombres vacíos, importes inválidos y enlaces de imagen no seguros", () => {
     const rows = parseProductCsv(
       "Producto;Referencia;Precio;Enlace de imagen\n;SKU-1;-5;javascript:alert(1)",

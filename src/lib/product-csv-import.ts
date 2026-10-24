@@ -109,7 +109,12 @@ const parseNumber = (value: string, field: string): { value: number; error?: str
   const text = value.trim();
   if (!text) return { value: 0 };
   let cleaned = text.replace(/[^\d,.-]/g, "");
-  if (!cleaned) return { value: 0 };
+  if (!cleaned) {
+    return {
+      value: 0,
+      error: `El campo ${field} debe ser un número mayor o igual a cero.`,
+    };
+  }
 
   const lastComma = cleaned.lastIndexOf(",");
   const lastDot = cleaned.lastIndexOf(".");
