@@ -109,12 +109,12 @@ const parsearTextoFecha = (valor: unknown): string | undefined => {
 
 const parsearFechaCelda = (celda: CellLike | undefined): string | undefined => {
   if (!celda || celda.t === "e") return undefined;
-  if (celda.v instanceof Date) {
-    return validarFecha(celda.v.getFullYear(), celda.v.getMonth() + 1, celda.v.getDate());
-  }
 
   const fechaTexto = parsearTextoFecha(celda.w) ?? parsearTextoFecha(celda.v);
   if (fechaTexto) return fechaTexto;
+  if (celda.v instanceof Date) {
+    return validarFecha(celda.v.getUTCFullYear(), celda.v.getUTCMonth() + 1, celda.v.getUTCDate());
+  }
 
   if (
     typeof celda.v === "number" &&
