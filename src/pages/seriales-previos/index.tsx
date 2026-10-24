@@ -251,7 +251,9 @@ const SerialesPrevios = ({ embedded = false }: { embedded?: boolean }) => {
 
   const importarArchivos = async () => {
     if (importandoExcel) return;
-    const listos = archivosExcel.filter((archivo) => archivo.estado === "listo");
+    const listos = archivosExcel.filter(
+      (archivo) => archivo.estado === "listo" || (archivo.estado === "error" && archivo.registros.length > 0),
+    );
     if (listos.length === 0) return;
 
     setImportandoExcel(true);
