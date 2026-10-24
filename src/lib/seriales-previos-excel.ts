@@ -2,6 +2,22 @@ import * as XLSX from "xlsx-js-style";
 
 export const MAX_SERIAL_IMPORT = 20_000;
 export const MAX_SERIAL_IMPORT_FILE_BYTES = 25 * 1024 * 1024;
+export const MAX_SERIAL_IMPORT_FILES = 100;
+export const MAX_SERIAL_IMPORT_TOTAL = 100_000;
+
+export type SerialImportQueueLimitIssue = "too_many_files" | "too_many_total";
+
+/** Evita que una selección accidental de cientos de archivos consuma memoria sin límite. */
+export const getSerialImportQueueLimitIssue = (
+  currentFiles: number,
+  currentSerials: number,
+  incomingFiles: number,
+  incomingSerials: number,
+): SerialImportQueueLimitIssue | undefined => {
+  if (currentFiles + incomingFiles > MAX_SERIAL_IMPORT_FILES) return "too_many_files";
+  if (currentSerials + incomingSerials > MAX_SERIAL_IMPORT_TOTAL) return "too_many_total";
+  return undefined;
+};
 
 export type SerialWorkbookErrorCode =
   | "empty"
