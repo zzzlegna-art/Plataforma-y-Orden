@@ -19,6 +19,9 @@ describe("ProductThumbnail", () => {
     expect(getProductReferenceImageFallback("iPhone 16 Pro 128 GB")).toContain(
       "iphone-16-pro-deserttitanium-select",
     );
+    expect(getProductReferenceImageFallback("Apple iPhone 13 Pro Max 256 GB")).toContain(
+      "iphone-13-pro-max-gold-select",
+    );
     expect(getProductReferenceImageFallback("Samsung Galaxy A55")).toBeUndefined();
   });
 
@@ -26,6 +29,13 @@ describe("ProductThumbnail", () => {
     render(<ProductThumbnail alt="iPhone 16 Pro Max 256 GB" />);
     expect(screen.getByRole("img", { name: "iPhone 16 Pro Max 256 GB" }).getAttribute("src")).toContain(
       "iphone-16-pro-max-naturaltitanium-select",
+    );
+  });
+
+  it("muestra la foto de iPhone 13 Pro Max cuando el catálogo no tiene imagen", () => {
+    render(<ProductThumbnail alt="Apple iPhone 13 Pro Max 256 GB" />);
+    expect(screen.getByRole("img", { name: "Apple iPhone 13 Pro Max 256 GB" }).getAttribute("src")).toContain(
+      "iphone-13-pro-max-gold-select",
     );
   });
 
