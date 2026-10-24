@@ -331,8 +331,8 @@ const SerialesPrevios = ({ embedded = false }: { embedded?: boolean }) => {
   }, [totalPaginas]);
 
   useEffect(() => {
-    if (tab === "importar") void cargarHistorialLotes();
-  }, [tab, cargarHistorialLotes]);
+    if (tab === "importar" && isAdmin) void cargarHistorialLotes();
+  }, [tab, isAdmin, cargarHistorialLotes]);
 
   const importar = async () => {
     if (importandoManual) return;
