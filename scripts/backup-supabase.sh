@@ -37,7 +37,7 @@ backup_exit() {
   local rc=$?
   trap - EXIT
   if (( rc != 0 )); then
-    printf 'ERROR: backup incompleto; revisa y no uses la carpeta: %s\\n' "$out" >&2
+    printf 'ERROR: backup incompleto; revisa y no uses la carpeta: %s\n' "$out" >&2
   fi
   exit "$rc"
 }
