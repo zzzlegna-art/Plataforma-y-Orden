@@ -84,7 +84,7 @@ const esCabeceraConocida = (valor: unknown) =>
 const descomponerEncabezadoVenta = (
   valor: string,
 ): { cliente?: string; referencia?: string } => {
-  const coincidencia = valor.trim().match(/^\\s*\\d+\\s*[.)]\\s*(.+?)\\s*:\\s*(.+?)\\s*$/);
+  const coincidencia = valor.trim().match(/^\s*\d+\s*[.)]\s*(.+?)\s*:\s*(.+?)\s*$/);
   if (!coincidencia) return {};
 
   const cliente = coincidencia[1].trim();
