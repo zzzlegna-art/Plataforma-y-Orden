@@ -55,6 +55,7 @@ const Harness = () => {
   return (
     <div>
       <div data-testid="user">{app.user?.id ?? ""}</div>
+      <div data-testid="ready">{String(app.ready)}</div>
       <div data-testid="run-error">{runError}</div>
       <div data-testid="products">{app.db.products.map((product) => product.name).join(",")}</div>
       <button onClick={() => {
@@ -103,7 +104,10 @@ describe("AppProvider · recuperación de resincronización", () => {
     });
 
     render(<AppProvider><Harness /></AppProvider>);
-    await waitFor(() => expect(screen.getByTestId("user").textContent).toBe("user-1"));
+    await waitFor(() => {
+      expect(screen.getByTestId("user").textContent).toBe("user-1");
+      expect(screen.getByTestId("ready").textContent).toBe("true");
+    });
 
     fireEvent.click(screen.getByRole("button", { name: "Guardar cambio" }));
     await waitFor(() => {
