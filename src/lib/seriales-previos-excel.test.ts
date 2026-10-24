@@ -108,6 +108,48 @@ describe("parseSerialWorkbook", () => {
     expect(parsed.registros[1].referencia).toBe("Apple iPhone 13 Pro Max 128 GB");
   });
 
+  it("asigna cada hoja al cliente indicado por su nombre y deja vacio el cliente por defecto si hay varios", () => {
+    const book = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(
+      book,
+      XLSX.utils.aoa_to_sheet([
+        ["Serial", "Referencia"],
+        ["351139867580418", "Apple iPhone 12 - 128"],
+      ]),
+      "1. Chavela",
+    );
+    XLSX.utils.book_append_sheet(
+      book,
+      XLSX.utils.aoa_to_sheet([
+        ["Serial", "Referencia"],
+        ["352678439208841", "Apple iPhone 13 128 GB"],
+      ]),
+      "2. Juan David",
+    );
+    XLSX.utils.book_append_sheet(
+      book,
+      XLSX.utils.aoa_to_sheet([
+        ["Serial", "Referencia"],
+        ["358339341841630", "Apple iPhone 14 128 GB"],
+      ]),
+      "3. David - Celubarranquilla",
+    );
+
+    const parsed = parseSerialWorkbook(bytes(book), "Ventas_26-03-2026.xlsx");
+
+    expect(parsed.registros.map((registro) => registro.cliente)).toEqual([
+      "Chavela",
+      "Juan David",
+      "David - Celubarranquilla",
+    ]);
+    expect(parsed.clienteDetectado).toBeUndefined();
+    expect(parsed.registros.map((registro) => registro.referencia)).toEqual([
+      "Apple iPhone 12 - 128",
+      "Apple iPhone 13 128 GB",
+      "Apple iPhone 14 128 GB",
+    ]);
+  });
+
   it("separa el cliente y la referencia de encabezados agrupados y no confunde CANTIDADES con el cliente", () => {
     const book = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(
