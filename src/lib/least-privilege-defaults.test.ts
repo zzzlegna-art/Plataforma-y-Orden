@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
 const migration = readFileSync(
-  new URL("../../supabase/migrations/20261024231500_nexora_least_privilege_defaults.sql", import.meta.url),
+  new URL("../../supabase/migrations/20261024231520_nexora_least_privilege_defaults.sql", import.meta.url),
   "utf8",
 ).toLowerCase();
 const normalizedMigration = migration.replace(/\s+/g, " ").trim();

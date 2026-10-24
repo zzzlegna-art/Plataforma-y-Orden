@@ -10,7 +10,7 @@
 - Las 51 tablas públicas tienen RLS habilitado (51/51; 0 deshabilitadas).
 - Las 21 tablas operativas `bodega_*` cuentan con políticas RLS explícitas (37 políticas).
 - Las 30 tablas heredadas que no tienen políticas conservan RLS activo: PostgreSQL deniega el acceso por defecto. No se añadieron políticas genéricas ni se borraron tablas históricas.
-- Se aplicó la migración `20261024231500_nexora_least_privilege_defaults.sql` (`nexora_least_privilege_defaults`) en el proyecto conectado.
+- Se aplicó la migración `20261024231520_nexora_least_privilege_defaults.sql` (`nexora_least_privilege_defaults`) en el proyecto conectado.
 - El script `supabase/tests/rls/rls_role_isolation_tests.sql` se ejecutó en el proyecto real dentro de una transacción con `ROLLBACK`; finalizó sin excepciones y no alteró datos de negocio.
 
 ## 2. Endurecimiento de permisos aplicado
