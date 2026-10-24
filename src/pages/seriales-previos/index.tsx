@@ -2,12 +2,20 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   Archive,
+  CalendarDays,
   CheckCircle2,
   ChevronLeft,
   ChevronRight,
+  Clock3,
+  Copy,
+  Database,
   FileSpreadsheet,
+  FileText,
+  Smartphone,
+  Tag,
   Trash2,
   Upload,
+  UserRound,
   X,
   XCircle,
 } from "lucide-react";
@@ -16,6 +24,7 @@ import { toast } from "sonner";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { EmptyState } from "@/components/shared/empty-state";
 import { PageHeader } from "@/components/shared/page-header";
+import { ProductThumbnail } from "@/components/shared/product-thumbnail";
 import { SerialScanInput } from "@/components/shared/serial-scan-input";
 import { SearchField } from "@/components/shared/search-field";
 import { Button } from "@/components/ui/button";
@@ -45,6 +54,13 @@ type ArchivoExcelEnCola = ParsedSerialWorkbook & {
   clientePorDefecto: string;
   fechaVentaPorDefecto: string;
 };
+
+const normalizarReferenciaCatalogo = (valor: string) =>
+  valor
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLocaleLowerCase()
+    .replace(/[^a-z0-9]/g, "");
 
 /** Registro de ventas anteriores a la plataforma (seriales previos). */
 const SerialesPrevios = ({ embedded = false }: { embedded?: boolean }) => {
@@ -77,6 +93,28 @@ const SerialesPrevios = ({ embedded = false }: { embedded?: boolean }) => {
     () => (buscado ? buscarSerialPrevio(db, buscado) : undefined),
     [db, buscado],
   );
+  const productoEncontrado = useMemo(() => {
+    const referencia = encontrado?.referencia;
+    if (!referencia) return undefined;
+    const normalizada = normalizarReferenciaCatalogo(referencia);
+    const exacto = db.products.find((item) => normalizarReferenciaCatalogo(item.name) === normalizada);
+    if (exacto) return exacto;
+    return db.products
+      .filter((item) => {
+        const nombre = normalizarReferenciaCatalogo(item.name);
+        return nombre.length >= 8 && (normalizada.includes(nombre) || nombre.includes(normalizada));
+      })
+      .sort((a, b) => normalizarReferenciaCatalogo(b.name).length - normalizarReferenciaCatalogo(a.name).length)[0];
+  }, [db.products, encontrado?.referencia]);
+
+  const copiarSerial = async (serial: string) => {
+    try {
+      await navigator.clipboard.writeText(serial);
+      toast.success(t("serialesPrevios.serialCopiado"));
+    } catch {
+      toast.error(t("serialesPrevios.errorCopiarSerial"));
+    }
+  };
 
   const lista = useMemo(() => listarSerialesPrevios(db, busquedaLista), [db, busquedaLista]);
   const listaPagina = useMemo(
@@ -299,25 +337,113 @@ const SerialesPrevios = ({ embedded = false }: { embedded?: boolean }) => {
           <SerialScanInput onScan={setBuscado} hint={t("serialesPrevios.buscarHint")} />
           {buscado ? (
             encontrado ? (
-              <div className="rounded-lg border border-success/40 bg-success/10 p-4 text-center">
-                <CheckCircle2 className="mx-auto h-8 w-8 text-success" />
-                <p className="mt-2 font-semibold text-success">
-                  {t("serialesPrevios.encontrado")}
-                </p>
-                <p className="font-tabular mt-1 text-sm">{encontrado.serial}</p>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  {t("serialesPrevios.importadoPor", {
-                    fecha: formatDate(encontrado.createdAt),
-                    usuario: db.users.find((u) => u.id === encontrado.createdBy)?.fullName ?? "",
-                  })}
-                </p>
-                {encontrado.referencia ? <p className="mt-1 text-sm"><span className="text-muted-foreground">Referencia:</span> {encontrado.referencia}</p> : null}
-                {encontrado.cliente ? <p className="mt-1 text-sm"><span className="text-muted-foreground">Cliente:</span> {encontrado.cliente}</p> : null}
-                {encontrado.fechaVenta ? <p className="mt-1 text-sm"><span className="text-muted-foreground">Fecha de venta:</span> {encontrado.fechaVenta}</p> : null}
-                {encontrado.archivoOrigen ? <p className="mt-1 break-all text-xs text-muted-foreground"><span>Archivo:</span> {encontrado.archivoOrigen}</p> : null}
-                {encontrado.notas ? (
-                  <p className="mt-1 text-xs text-muted-foreground">"{encontrado.notas}"</p>
-                ) : null}
+              <div className="overflow-hidden rounded-2xl border border-success/40 bg-gradient-to-br from-success/10 via-success/[0.04] to-card p-4 shadow-sm sm:p-6">
+                <div className="mx-auto flex max-w-4xl flex-col items-center text-center">
+                  <span className="grid h-12 w-12 place-items-center rounded-full bg-success/10 ring-1 ring-success/25">
+                    <CheckCircle2 aria-hidden="true" className="h-7 w-7 text-success" />
+                  </span>
+                  <p className="mt-3 text-lg font-semibold text-success">
+                    {t("serialesPrevios.encontrado")}
+                  </p>
+                  <p className="mt-1 max-w-2xl text-sm leading-6 text-muted-foreground">
+                    {t("serialesPrevios.encontradoDescripcion")}
+                  </p>
+                  <div className="mt-4 inline-flex max-w-full items-center gap-2 rounded-xl border border-success/25 bg-success/10 px-3 py-2 sm:px-4">
+                    <span className="font-tabular break-all text-lg font-semibold tracking-wide text-foreground sm:text-xl">{encontrado.serial}</span>
+                    <button
+                      type="button"
+                      aria-label={t("serialesPrevios.copiarSerial")}
+                      title={t("serialesPrevios.copiarSerial")}
+                      onClick={() => void copiarSerial(encontrado.serial)}
+                      className="grid h-8 w-8 shrink-0 place-items-center rounded-lg border border-border/70 bg-background/80 text-muted-foreground transition-colors hover:bg-background hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                    >
+                      <Copy aria-hidden="true" className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
+
+                <div className="mx-auto mt-5 grid max-w-4xl gap-4 rounded-2xl border border-border/70 bg-card p-3 shadow-sm sm:grid-cols-[180px_minmax(0,1fr)] sm:p-4">
+                  <div className="flex min-h-40 items-center justify-center rounded-xl border border-border/60 bg-muted/20 p-3">
+                    <div className="relative grid h-36 w-36 place-items-center">
+                      <Smartphone aria-hidden="true" className="h-12 w-12 text-muted-foreground/30" />
+                      <ProductThumbnail
+                        src={productoEncontrado?.imageUrl}
+                        alt={productoEncontrado?.name ?? encontrado.referencia ?? "Producto de venta previa"}
+                        size="2xl"
+                        className="absolute inset-0 h-full w-full rounded-xl border-0 bg-transparent p-2 shadow-none"
+                      />
+                    </div>
+                  </div>
+
+                  <dl className="grid content-center gap-x-6 sm:grid-cols-2">
+                    {encontrado.referencia ? (
+                      <div className="flex min-w-0 items-start gap-3 border-b border-border/60 py-3">
+                        <Tag aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+                        <div className="min-w-0 flex-1 sm:grid sm:grid-cols-[100px_minmax(0,1fr)] sm:gap-2">
+                          <dt className="text-xs text-muted-foreground">Referencia</dt>
+                          <dd className="break-words text-sm font-medium">{productoEncontrado?.name ?? encontrado.referencia}</dd>
+                        </div>
+                      </div>
+                    ) : null}
+                    {encontrado.cliente ? (
+                      <div className="flex min-w-0 items-start gap-3 border-b border-border/60 py-3">
+                        <UserRound aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+                        <div className="min-w-0 flex-1 sm:grid sm:grid-cols-[100px_minmax(0,1fr)] sm:gap-2">
+                          <dt className="text-xs text-muted-foreground">Cliente</dt>
+                          <dd className="break-words text-sm font-medium">{encontrado.cliente}</dd>
+                        </div>
+                      </div>
+                    ) : null}
+                    {encontrado.fechaVenta ? (
+                      <div className="flex min-w-0 items-start gap-3 border-b border-border/60 py-3">
+                        <CalendarDays aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+                        <div className="min-w-0 flex-1 sm:grid sm:grid-cols-[100px_minmax(0,1fr)] sm:gap-2">
+                          <dt className="text-xs text-muted-foreground">Fecha de venta</dt>
+                          <dd className="break-words text-sm font-medium">{encontrado.fechaVenta}</dd>
+                        </div>
+                      </div>
+                    ) : null}
+                    {encontrado.archivoOrigen ? (
+                      <div className="flex min-w-0 items-start gap-3 border-b border-border/60 py-3">
+                        <FileText aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+                        <div className="min-w-0 flex-1 sm:grid sm:grid-cols-[100px_minmax(0,1fr)] sm:gap-2">
+                          <dt className="text-xs text-muted-foreground">Archivo</dt>
+                          <dd className="break-all text-sm font-medium">{encontrado.archivoOrigen}</dd>
+                        </div>
+                      </div>
+                    ) : null}
+                    {encontrado.hojaOrigen || encontrado.filaOrigen ? (
+                      <div className="flex min-w-0 items-start gap-3 border-b border-border/60 py-3">
+                        <Database aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+                        <div className="min-w-0 flex-1 sm:grid sm:grid-cols-[100px_minmax(0,1fr)] sm:gap-2">
+                          <dt className="text-xs text-muted-foreground">Origen</dt>
+                          <dd className="break-words text-sm font-medium">
+                            {encontrado.hojaOrigen || "hoja desconocida"}{encontrado.filaOrigen ? " · fila " + encontrado.filaOrigen : ""}
+                          </dd>
+                        </div>
+                      </div>
+                    ) : null}
+                    {encontrado.notas ? (
+                      <div className="flex min-w-0 items-start gap-3 border-b border-border/60 py-3">
+                        <FileText aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+                        <div className="min-w-0 flex-1 sm:grid sm:grid-cols-[100px_minmax(0,1fr)] sm:gap-2">
+                          <dt className="text-xs text-muted-foreground">{t("common.notes")}</dt>
+                          <dd className="break-words text-sm">{encontrado.notas}</dd>
+                        </div>
+                      </div>
+                    ) : null}
+                  </dl>
+                </div>
+
+                <div className="mt-4 flex flex-wrap items-center justify-center gap-2 border-t border-success/20 pt-3 text-xs text-muted-foreground">
+                  <Clock3 aria-hidden="true" className="h-4 w-4 shrink-0" />
+                  <span>
+                    {t("serialesPrevios.importadoPor", {
+                      fecha: formatDate(encontrado.createdAt),
+                      usuario: db.users.find((u) => u.id === encontrado.createdBy)?.fullName ?? "",
+                    })}
+                  </span>
+                </div>
               </div>
             ) : (
               <div className="rounded-lg border border-destructive/40 bg-destructive/10 p-4 text-center">
