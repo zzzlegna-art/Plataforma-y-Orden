@@ -397,12 +397,35 @@ const SerialesPrevios = ({ embedded = false }: { embedded?: boolean }) => {
                   {t("serialesPrevios.encontrado")}
                 </p>
                 <p className="font-tabular mt-1 text-sm">{encontrado.serial}</p>
-                <p className="mt-1 text-xs text-muted-foreground">
+                {encontrado.referencia ? (
+                  <p className="mt-2 text-sm">
+                    <span className="text-muted-foreground">{t("serialesPrevios.referenceLabel")}: </span>
+                    <span className="font-medium">{encontrado.referencia}</span>
+                  </p>
+                ) : null}
+                {encontrado.cliente ? (
+                  <p className="mt-1 text-sm">
+                    <span className="text-muted-foreground">{t("serialesPrevios.customerLabel")}: </span>
+                    <span className="font-medium">{encontrado.cliente}</span>
+                  </p>
+                ) : null}
+                {encontrado.fechaVenta ? (
+                  <p className="mt-1 text-sm">
+                    <span className="text-muted-foreground">{t("serialesPrevios.saleDateLabel")}: </span>
+                    <span className="font-medium">{formatDate(encontrado.fechaVenta)}</span>
+                  </p>
+                ) : null}
+                <p className="mt-2 text-xs text-muted-foreground">
                   {t("serialesPrevios.importadoPor", {
                     fecha: formatDate(encontrado.createdAt),
                     usuario: db.users.find((u) => u.id === encontrado.createdBy)?.fullName ?? "",
                   })}
                 </p>
+                {encontrado.archivoOrigen ? (
+                  <p className="mt-1 break-all text-xs text-muted-foreground">
+                    {t("serialesPrevios.sourceFileLabel")}: {encontrado.archivoOrigen}
+                  </p>
+                ) : null}
                 {encontrado.notas ? (
                   <p className="mt-1 text-xs text-muted-foreground">"{encontrado.notas}"</p>
                 ) : null}
@@ -770,12 +793,30 @@ const SerialesPrevios = ({ embedded = false }: { embedded?: boolean }) => {
               <ul className="divide-y rounded-lg border bg-card">
               {listaPagina.map((item) => (
                 <li key={item.id} className="flex items-center justify-between gap-3 px-4 py-2.5">
-                  <div className="min-w-0">
-                    <p className="font-tabular truncate text-sm">{item.serial}</p>
-                    <p className="truncate text-xs text-muted-foreground">
+                  <div className="min-w-0 flex-1 space-y-0.5">
+                    <p className="font-tabular break-all text-sm font-medium">{item.serial}</p>
+                    {item.referencia ? (
+                      <p className="break-words text-xs text-muted-foreground">
+                        {t("serialesPrevios.referenceLabel")}: {item.referencia}
+                      </p>
+                    ) : null}
+                    {item.cliente ? (
+                      <p className="break-words text-xs text-muted-foreground">
+                        {t("serialesPrevios.customerLabel")}: {item.cliente}
+                      </p>
+                    ) : null}
+                    <p className="text-xs text-muted-foreground">
+                      {item.fechaVenta
+                        ? `${t("serialesPrevios.saleDateLabel")}: ${formatDate(item.fechaVenta)} · `
+                        : ""}
                       {formatDate(item.createdAt)}
-                      {item.notas ? ` · ${item.notas}` : ""}
                     </p>
+                    {item.archivoOrigen ? (
+                      <p className="break-all text-xs text-muted-foreground">
+                        {t("serialesPrevios.sourceFileLabel")}: {item.archivoOrigen}
+                      </p>
+                    ) : null}
+                    {item.notas ? <p className="break-words text-xs text-muted-foreground">{item.notas}</p> : null}
                   </div>
                   {isAdmin ? (
                     <ConfirmDialog
