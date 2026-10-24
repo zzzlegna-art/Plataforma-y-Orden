@@ -362,15 +362,15 @@ const SerialesPrevios = ({ embedded = false }: { embedded?: boolean }) => {
                   </div>
                 </div>
 
-                <div className="mx-auto mt-5 grid max-w-4xl gap-4 rounded-2xl border border-border/70 bg-card p-3 shadow-sm sm:grid-cols-[180px_minmax(0,1fr)] sm:p-4">
-                  <div className="flex min-h-40 items-center justify-center rounded-xl border border-border/60 bg-muted/20 p-3">
-                    <div className="relative grid h-36 w-36 place-items-center">
+                <div className="mx-auto mt-5 grid max-w-4xl gap-4 rounded-2xl border border-border/70 bg-card p-3 shadow-sm sm:grid-cols-[220px_minmax(0,1fr)] sm:p-4">
+                  <div className="flex min-h-48 items-center justify-center rounded-xl border border-border/60 bg-muted/20 p-3">
+                    <div className="relative grid h-44 w-44 place-items-center">
                       <Smartphone aria-hidden="true" className="h-12 w-12 text-muted-foreground/30" />
                       <ProductThumbnail
                         src={productoEncontrado?.imageUrl}
                         alt={productoEncontrado?.name ?? encontrado.referencia ?? "Producto de venta previa"}
                         size="2xl"
-                        className="absolute inset-0 h-full w-full rounded-xl border-0 bg-transparent p-2 shadow-none"
+                        className="absolute inset-0 h-full w-full rounded-xl border-0 bg-transparent p-1 shadow-none"
                       />
                     </div>
                   </div>
