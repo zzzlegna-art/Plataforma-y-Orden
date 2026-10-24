@@ -14,10 +14,13 @@ describe("buttonVariants · sidebar", () => {
     expect(clases).not.toMatch(/(^|\s)bg-background(\s|$)/);
   });
 
-  it("unifica el radio de botones normales y compactos", () => {
+  it("unifica el radio de todos los tamaños de botón", () => {
+    for (const size of ["default", "sm", "lg", "icon"] as const) {
+      const classes = buttonVariants({ size });
+      expect(classes).toContain("rounded-lg");
+      expect(classes).not.toContain("rounded-md");
+    }
     expect(buttonVariants({ variant: "default" })).toContain("rounded-lg");
-    expect(buttonVariants({ size: "sm" })).toContain("rounded-lg");
-    expect(buttonVariants({ size: "sm" })).not.toContain("rounded-md");
   });
 
   it("'outline' no cambia: sigue siendo el botón claro de siempre", () => {
