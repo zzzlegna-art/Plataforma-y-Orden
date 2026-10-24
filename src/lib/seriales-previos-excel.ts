@@ -81,6 +81,34 @@ const esCabeceraConocida = (valor: unknown) =>
  * como «1. Chavela : Apple iPhone 12 - 128». Separa ambas partes para no guardar
  * el encabezado completo como referencia ni confundirlo con un cliente global.
  */
+/**
+ * Los Excel de ventas suelen nombrar cada pestaña con el cliente, a veces
+ * con un prefijo de numeración: «1. Chavela», «2. Juan David».
+ * Los nombres genéricos como «Datos» o «Hoja1» no deben tratarse como clientes.
+ */
+const inferirClienteDesdeNombreHoja = (nombreHoja: string): string | undefined => {
+  let cliente = nombreHoja.trim().replace(/^\s*\d+\s*[.)\-:]\s*/, "").trim();
+  if (cliente.includes(":")) cliente = cliente.split(":")[0].trim();
+
+  const normalizado = normalizarCabecera(cliente);
+  const nombresGenericos = new Set([
+    "datos", "data", "ventas", "venta", "resumen", "summary", "seriales",
+    "imei", "inventario", "reporte", "report", "base", "listado",
+    "detalle", "export", "exportado", "tabla", "informacion",
+  ]);
+
+  if (
+    !cliente ||
+    /^\d+$/.test(cliente) ||
+    /^(?:hoja|sheet|pagina|page)\s*\d*$/.test(normalizado) ||
+    nombresGenericos.has(normalizado)
+  ) {
+    return undefined;
+  }
+
+  return cliente;
+};
+
 const descomponerEncabezadoVenta = (
   valor: string,
 ): { cliente?: string; referencia?: string } => {
@@ -349,6 +377,47 @@ const detectarColumnasPorDatos = (
   };
 };
 
+const detectarMetadatosDeHoja = (
+  hoja: XLSX.WorkSheet,
+): { cliente?: string; fechaVenta?: string } => {
+  let cliente: string | undefined;
+  let fechaVenta: string | undefined;
+  const referencia = hoja["!ref"];
+  if (!referencia) return {};
+
+  const rango = XLSX.utils.decode_range(referencia);
+  const finFila = Math.min(rango.e.r, rango.s.r + 14);
+  const finColumna = Math.min(rango.e.c, rango.s.c + 14);
+
+  for (let fila = rango.s.r; fila <= finFila; fila += 1) {
+    for (let columna = rango.s.c; columna <= finColumna; columna += 1) {
+      const valor = (hoja[XLSX.utils.encode_cell({ r: fila, c: columna })] as CellLike | undefined)?.v;
+      const normalizado = normalizarCabecera(valor);
+      const siguiente = columna < rango.e.c ? textoCelda(hoja, fila, columna + 1) : "";
+
+      if (!cliente && esCabeceraCliente(valor) && siguiente && !esCabeceraConocida(siguiente)) {
+        cliente = siguiente;
+      }
+      // Formato frecuente de los Excel de ventas: «REFERENCIA | Nombre del cliente».
+      if (
+        !cliente &&
+        normalizado === "referencia" &&
+        siguiente &&
+        /[a-záéíóúñ]/i.test(siguiente) &&
+        !/^\d+(?:[.,]\d+)?$/.test(siguiente) &&
+        !esCabeceraConocida(siguiente)
+      ) {
+        cliente = siguiente;
+      }
+      if (!fechaVenta && esCabeceraFecha(valor) && siguiente) {
+        fechaVenta = fechaDesdeCelda(hoja, fila, columna + 1) ?? normalizarFecha(siguiente);
+      }
+    }
+  }
+
+  return { cliente, fechaVenta };
+};
+
 const detectarMetadatosGenerales = (
   libro: XLSX.WorkBook,
 ): { cliente?: string; fechaVenta?: string } => {
@@ -357,37 +426,10 @@ const detectarMetadatosGenerales = (
 
   for (const nombre of libro.SheetNames) {
     const hoja = libro.Sheets[nombre];
-    const referencia = hoja?.["!ref"];
-    if (!hoja || !referencia) continue;
-    const rango = XLSX.utils.decode_range(referencia);
-    const finFila = Math.min(rango.e.r, rango.s.r + 14);
-    const finColumna = Math.min(rango.e.c, rango.s.c + 14);
-
-    for (let fila = rango.s.r; fila <= finFila; fila += 1) {
-      for (let columna = rango.s.c; columna <= finColumna; columna += 1) {
-        const valor = (hoja[XLSX.utils.encode_cell({ r: fila, c: columna })] as CellLike | undefined)?.v;
-        const normalizado = normalizarCabecera(valor);
-        const siguiente = columna < rango.e.c ? textoCelda(hoja, fila, columna + 1) : "";
-
-        if (!cliente && esCabeceraCliente(valor) && siguiente && !esCabeceraConocida(siguiente)) {
-          cliente = siguiente;
-        }
-        // Formato frecuente de los Excel de ventas: «REFERENCIA | Nombre del cliente».
-        if (
-          !cliente &&
-          normalizado === "referencia" &&
-          siguiente &&
-          /[a-záéíóúñ]/i.test(siguiente) &&
-          !/^\d+(?:[.,]\d+)?$/.test(siguiente) &&
-          !esCabeceraConocida(siguiente)
-        ) {
-          cliente = siguiente;
-        }
-        if (!fechaVenta && esCabeceraFecha(valor) && siguiente) {
-          fechaVenta = fechaDesdeCelda(hoja, fila, columna + 1) ?? normalizarFecha(siguiente);
-        }
-      }
-    }
+    if (!hoja) continue;
+    const metadatos = detectarMetadatosDeHoja(hoja);
+    cliente ??= metadatos.cliente;
+    fechaVenta ??= metadatos.fechaVenta;
     if (cliente && fechaVenta) break;
   }
 
@@ -466,6 +508,8 @@ export const parseSerialWorkbook = (
   const columnas: string[] = [];
 
   for (const detectada of hojasUsadas) {
+    const metadatosHoja = detectarMetadatosDeHoja(detectada.hoja);
+    const clienteDeHoja = inferirClienteDesdeNombreHoja(detectada.nombre);
     detectada.columnasSerial.forEach((columna, indice) => {
       columnas.push(
         `${detectada.nombre}: ${detectada.encabezados[indice] || XLSX.utils.encode_col(columna)}`,
@@ -503,8 +547,8 @@ export const parseSerialWorkbook = (
         registros.push({
           serial,
           referencia: referencia || undefined,
-          cliente: clienteFila || encabezadoVenta.cliente || undefined,
-          fechaVenta: fechaFila,
+          cliente: clienteFila || encabezadoVenta.cliente || metadatosHoja.cliente || clienteDeHoja,
+          fechaVenta: fechaFila || metadatosHoja.fechaVenta,
           hoja: detectada.nombre,
           fila: fila + 1,
         });
@@ -523,12 +567,21 @@ export const parseSerialWorkbook = (
     throw new SerialWorkbookError("empty", "No se encontraron seriales en las columnas detectadas.");
   }
 
+  const clientesDetectados = [...new Set(
+    registros.map((registro) => registro.cliente).filter((cliente): cliente is string => Boolean(cliente)),
+  )];
+  const clienteDetectadoFinal = clientesDetectados.length === 1
+    ? clientesDetectados[0]
+    : clientesDetectados.length > 1
+      ? undefined
+      : clienteDetectado;
+
   return {
     seriales: registros.map((registro) => registro.serial),
     registros,
     hojas: [...new Set(hojasUsadas.map((hoja) => hoja.nombre))],
     columnas,
-    clienteDetectado,
+    clienteDetectado: clienteDetectadoFinal,
     fechaVentaDetectada,
     advertencia,
   };
