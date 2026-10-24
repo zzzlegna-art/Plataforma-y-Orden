@@ -108,7 +108,16 @@ const parseRecords = (text: string, delimiter: string): string[][] => {
 const parseNumber = (value: string, field: string): { value: number; error?: string } => {
   const text = value.trim();
   if (!text) return { value: 0 };
-  let cleaned = text.replace(/[^\d,.-]/g, "");
+  // Permite símbolos/códigos monetarios conocidos, pero no convierte texto arbitrario
+  // como "12abc" o "COPX 100" en un importe aparentemente válido.
+  const withoutCurrency = text
+    .replace(/\b(?:COP|USD|EUR|MXN|ARS|CLP|PEN|BRL|CAD|AUD)\b/gi, "")
+    .replace(/[$€£¥₹]/g, "")
+    .trim();
+  if (/[a-z]/i.test(withoutCurrency)) {
+    return { value: 0, error: `El campo ${field} debe ser un número mayor o igual a cero.` };
+  }
+  let cleaned = withoutCurrency.replace(/[^\d,.-]/g, "");
   if (!cleaned) {
     return {
       value: 0,
