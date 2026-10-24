@@ -17,9 +17,9 @@ describe("parseSerialWorkbook", () => {
     XLSX.utils.book_append_sheet(
       book,
       XLSX.utils.aoa_to_sheet([
-        ["IMEI 1", "IMEI 2", "Modelo"],
-        ["000000000000001", "000000000000002", "iPhone"],
-        ["000000000000003", "", "Samsung"],
+        ["IMEI 1", "IMEI 2", "Modelo", "Cliente", "Fecha de venta"],
+        ["000000000000001", "000000000000002", "iPhone", "Ana", "2026-10-20"],
+        ["000000000000003", "", "Samsung", "Luis", "2026-10-21"],
       ]),
       "Seriales",
     );
@@ -31,12 +31,72 @@ describe("parseSerialWorkbook", () => {
       "000000000000002",
       "000000000000003",
     ]);
+    expect(parsed.registros[0]).toMatchObject({
+      referencia: "iPhone",
+      cliente: "Ana",
+      fechaVenta: "2026-10-20",
+    });
     expect(parsed.hojas).toEqual(["Seriales"]);
     expect(parsed.columnas).toEqual(["Seriales: IMEI 1", "Seriales: IMEI 2"]);
     expect(parsed.advertencia).toBe("ignored_sheets");
   });
 
-  it("usa la primera columna cuando no hay encabezados serial/IMEI reconocibles", () => {
+  it("interpreta el Excel histórico con referencias en columnas y el cliente del resumen", () => {
+    const book = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(
+      book,
+      XLSX.utils.aoa_to_sheet([
+        [
+          "REFERENCIA",
+          "Camilo Lider",
+          "",
+          "",
+          "Apple iPhone 13 128 GB",
+          "Apple iPhone 13 Pro Max 128 GB",
+          "Apple iPhone 14 Pro Max 256 GB",
+        ],
+        [
+          "Apple iPhone 13 128 GB",
+          10,
+          "",
+          "",
+          "356274465830405",
+          "350019046569709",
+          "350321536934272",
+        ],
+        [
+          "Apple iPhone 13 Pro Max 128 GB",
+          5,
+          "",
+          "",
+          "354551507768962",
+          "359508626383037",
+          "356163571019252",
+        ],
+        ["Apple iPhone 14 Pro Max 256 GB", 5, "", "", "351138102301127", "352865677708869", "357938433121589"],
+      ]),
+      "Ventas",
+    );
+
+    const parsed = parseSerialWorkbook(bytes(book), "Ventas_2025-08-15.xlsx");
+
+    expect(parsed.registros).toContainEqual({
+      serial: "356274465830405",
+      referencia: "Apple iPhone 13 128 GB",
+      cliente: "Camilo Lider",
+      fechaVenta: "2025-08-15",
+    });
+    expect(parsed.registros).toContainEqual({
+      serial: "359508626383037",
+      referencia: "Apple iPhone 13 Pro Max 128 GB",
+      cliente: "Camilo Lider",
+      fechaVenta: "2025-08-15",
+    });
+    expect(parsed.registros).toHaveLength(9);
+    expect(parsed.advertencia).toBe("legacy_matrix");
+  });
+
+  it("usa la primera columna cuando no hay encabezados serial/IMEI ni una matriz reconocible", () => {
     const book = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(
       book,
