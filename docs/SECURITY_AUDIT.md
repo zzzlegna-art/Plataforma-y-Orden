@@ -123,3 +123,8 @@ El informe vigente está en `docs/NEXORA_AUDITORIA_FINAL.md`. Resumen de esta ej
 - Se añadieron pruebas para `RequireAuth` y `RequirePermission`; suite total: 547 aprobadas.
 - `pnpm check` y `pnpm check:deploy` pasan; la compilación también. Permanecen dos advertencias ESLint preexistentes y una advertencia de tamaño de chunk de Vite.
 - Siguen pendientes la protección contra contraseñas filtradas, confirmar backups y probar aislamiento con sesiones reales. La conexión no permite modificar defaults de `supabase_admin`; los objetos de la aplicación están bajo `postgres`.
+
+
+## Auditoría de dependencias — 2026-10-24
+
+El análisis inicial de producción encontró 53 avisos, incluidos 2 críticos y 20 altos. Se actualizaron jsPDF a 4.2.1, jsPDF-AutoTable a 5.0.9, React Router DOM a 7.18.4, i18next-http-backend a 4.0.5, Zod a 4.6.7 y PostCSS a 8.5.31; además se fijaron DOMPurify 3.4.17 y postcss-selector-parser 7.1.7 mediante overrides. La suite (547 pruebas) y TypeScript/ESLint pasan. La auditoría final `pnpm audit --prod` terminó con **0 vulnerabilidades** y se incorporó como paso obligatorio a los dos workflows de CI.

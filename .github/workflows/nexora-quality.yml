@@ -25,6 +25,9 @@ jobs:
           cache: pnpm
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+
+      - name: Audit production dependencies
+        run: pnpm audit --prod
       - name: Deployment configuration
         run: pnpm check:deploy
       - name: ESLint and TypeScript

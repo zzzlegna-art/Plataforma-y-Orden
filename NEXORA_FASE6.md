@@ -8,6 +8,7 @@
 - RLS: 51/51 tablas públicas habilitadas; las 21 tablas operativas `bodega_*` tienen políticas. Las 30 tablas heredadas sin políticas permanecen cerradas por denegación predeterminada.
 - La migración `nexora_least_privilege_defaults` fue aplicada y los privilegios se verificaron con el script SQL de auditoría.
 - La suite automatizada tiene 547 pruebas aprobadas; TypeScript/ESLint y el verificador de estructura de despliegue pasan. La compilación de producción también pasó.
+- `pnpm audit --prod` reporta 0 vulnerabilidades después de actualizar jsPDF, React Router y las dependencias transitorias; ambos workflows de CI ejecutan esta auditoría.
 - La aplicación conserva los controles de autenticación, roles, integridad de seriales, historial de pedidos/garantías y Storage privado para documentos de garantía.
 
 ## Pendientes explícitos

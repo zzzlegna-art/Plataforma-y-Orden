@@ -52,17 +52,32 @@ Después de la migración:
 | Verificador de despliegue (`pnpm check:deploy`) | Aprobado |
 | Compilación (`pnpm build`) | Aprobada |
 | SQL de auditoría RLS/permisos | Aprobado; `ROLLBACK` al finalizar |
+| Auditoría de dependencias de producción (`pnpm audit --prod`) | **0 vulnerabilidades** |
 
 Las dos advertencias preexistentes son: exportaciones de componentes en `src/components/shared/product-thumbnail.tsx` y una dependencia de `useEffect` en `src/store/app-provider.tsx`. La compilación mantiene una advertencia de Vite por un chunk JavaScript principal de aproximadamente 3.56 MB (1.10 MB gzip); no bloquea el despliegue, pero queda como mejora de rendimiento.
 
-## 6. Hallazgos del asesor de Supabase
+## 6. Auditoría de dependencias de producción
+
+El primer análisis de `pnpm audit --prod` encontró 53 avisos (2 críticos, 20 altos, 25 moderados y 6 bajos). Se actualizaron los paquetes vulnerables y se regeneró `pnpm-lock.yaml`:
+
+- `jspdf` 2.5.2 → 4.2.1.
+- `jspdf-autotable` 3.8.4 → 5.0.9.
+- `react-router-dom` 7.8.2 → 7.18.4.
+- `i18next-http-backend` 3.0.2 → 4.0.5.
+- `zod` 4.1.5 → 4.6.7.
+- `postcss` 8.5.6 → 8.5.31.
+- Overrides transitorios: `dompurify` 3.4.17 y `postcss-selector-parser` 7.1.7.
+
+**Resultado final: 0 vulnerabilidades** (críticas, altas, moderadas y bajas) en el árbol de dependencias de producción. La misma comprobación se añadió a los dos workflows de GitHub Actions para que una futura vulnerabilidad haga fallar la validación antes de desplegar.
+
+## 7. Hallazgos del asesor de Supabase
 
 - **30 avisos informativos `rls_enabled_no_policy`:** corresponden a tablas heredadas con RLS activo y sin políticas; se dejan cerradas por defecto.
 - **3 avisos `authenticated_security_definer_function_executable`:** `bodega_is_admin()`, `bodega_is_staff()` y `bodega_uso_almacenamiento()` necesitan ejecución autenticada para las políticas y el módulo de almacenamiento. Sus definiciones fijan `search_path` y verifican el perfil activo. No se revocaron a ciegas porque rompería autorización/funcionalidad.
 - **Protección contra contraseñas filtradas deshabilitada:** permanece pendiente en la configuración de Supabase Auth. Esta conexión no expone una acción para cambiar ese ajuste.
 - Rendimiento: 26 claves foráneas sin índice de cobertura, 32 índices no usados, 5 conjuntos de políticas permisivas duplicadas y 1 par de índices duplicados. No se eliminaron índices ni se cambiaron políticas automáticamente sin revisar planes de consulta y dependencias.
 
-## 7. Pendientes para certificar el cierre al 100 %
+## 8. Pendientes para certificar el cierre al 100 %
 
 1. Activar la protección de contraseñas filtradas en Supabase Auth y verificarla con una prueba controlada.
 2. Confirmar en el panel de Supabase la retención, última ejecución y posibilidad de restauración de backups. La conexión usada aquí no permite verificar esa configuración.
