@@ -21,6 +21,7 @@ import type {
 import { isOpenWarranty } from "./actions/warranties";
 import { esProductoRepuesto } from "./products";
 import { getMonthToDateEntryComparison } from "./dashboard-kpi-trends";
+import { coincideBusquedaInventario } from "./inventory-search";
 
 /**
  * Índices reutilizables.
@@ -260,14 +261,18 @@ export const buscarSerialPrevio = (db: Db, serial: string) => {
 };
 
 export const listarSerialesPrevios = (db: Db, busqueda?: string) => {
-  const needle = busqueda?.trim().toLowerCase();
   return db.serialesPrevios
     .filter((item) =>
-      !needle ||
-      item.serial.toLowerCase().includes(needle) ||
-      item.referencia?.toLowerCase().includes(needle) ||
-      item.cliente?.toLowerCase().includes(needle) ||
-      item.archivoOrigen?.toLowerCase().includes(needle),
+      coincideBusquedaInventario(busqueda ?? "", [
+        item.serial,
+        item.referencia,
+        item.cliente,
+        item.fechaVenta,
+        item.archivoOrigen,
+        item.hojaOrigen,
+        item.filaOrigen === undefined ? undefined : String(item.filaOrigen),
+        item.notas,
+      ]),
     )
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 };
