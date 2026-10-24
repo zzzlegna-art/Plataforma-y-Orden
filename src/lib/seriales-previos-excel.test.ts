@@ -80,6 +80,55 @@ describe("parseSerialWorkbook", () => {
     expect(thrown).toMatchObject({ code: "too_many" });
   });
 
+  it("detecta referencias en los encabezados de columnas y cliente/fecha del Excel de ventas", () => {
+    const book = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(
+      book,
+      XLSX.utils.aoa_to_sheet([
+        ["", "", "", "", "", "", "", ""],
+        ["", "", "", "", "", "", "", ""],
+        ["REFERENCIA", "Harold - Cucuta", "", "", "", "", "Apple iPhone 12 128 GB", "Apple iPhone 13 Pro Max 128 GB"],
+        ["Apple iPhone 12 128 GB", 2, "", "", "", "", "352513420258440", "358800351040804"],
+        ["Apple iPhone 13 Pro Max 128 GB", 1, "", "", "", "", "352513420258441", "358800351040805"],
+      ]),
+      "Ventas",
+    );
+
+    const parsed = parseSerialWorkbook(bytes(book), "Ventas_08-02-2026.xlsx");
+
+    expect(parsed.registros).toHaveLength(4);
+    expect(parsed.registros[0]).toMatchObject({
+      serial: "352513420258440",
+      referencia: "Apple iPhone 12 128 GB",
+      cliente: "Harold - Cucuta",
+      fechaVenta: "2026-02-08",
+      hoja: "Ventas",
+      fila: 4,
+    });
+    expect(parsed.registros[1].referencia).toBe("Apple iPhone 13 Pro Max 128 GB");
+  });
+
+  it("lee referencia, cliente y fecha cuando vienen en columnas con encabezado", () => {
+    const book = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(
+      book,
+      XLSX.utils.aoa_to_sheet([
+        ["Serial", "Referencia", "Cliente", "Fecha de venta"],
+        ["SP-0001", "iPhone 12", "Camilo Lider", "08/02/2026"],
+      ]),
+      "Datos",
+    );
+
+    const parsed = parseSerialWorkbook(bytes(book));
+
+    expect(parsed.registros[0]).toMatchObject({
+      serial: "SP-0001",
+      referencia: "iPhone 12",
+      cliente: "Camilo Lider",
+      fechaVenta: "2026-02-08",
+    });
+  });
+
   it("rechaza celdas numéricas que podrían haber perdido precisión", () => {
     const book = XLSX.utils.book_new();
     const sheet = XLSX.utils.aoa_to_sheet([["Serial"]]);
