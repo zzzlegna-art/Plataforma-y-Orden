@@ -72,6 +72,7 @@ import {
 } from "@/lib/export";
 import { descargarCsv } from "@/lib/csv";
 import { getProductTechnicalSpecFieldsForCategory } from "@/lib/product-specs";
+import { coincideBusquedaInventario } from "@/lib/inventory-search";
 import { clearInventoryFilters, getInventoryFilters, updateInventoryFilter } from "@/lib/inventory-filters";
 import { formatCurrency, todayIso } from "@/lib/format";
 import { getProductRows, type ProductRow, type ProductStock } from "@/lib/selectors";
@@ -512,8 +513,12 @@ const Inventario = () => {
   const [catalogIncludeStock, setCatalogIncludeStock] = useState(false);
   const [catalogExportProgress, setCatalogExportProgress] = useState<CatalogExportProgress | null>(null);
 
+  const productTypesByKey = useMemo(
+    () => new Map(db.productTypes.map((productType) => [productType.key, productType] as const)),
+    [db.productTypes],
+  );
+
   const rows = useMemo(() => {
-    const needle = search.trim().toLowerCase();
     const cond = condicion === "" ? undefined : condicion;
     // El stock se calcula con la condición elegida: al filtrar "nuevos" no se
     // muestran ni las unidades ni las pastillas de seminuevos, y al revés.
@@ -523,14 +528,30 @@ const Inventario = () => {
       .filter((row) => (brandId ? row.product.brandId === brandId : true))
       .filter((row) => (lowOnly ? row.stock.lowStock : true))
       .filter((row) => (cond ? row.stock.enInventario > 0 : true))
-      .filter(
-        (row) =>
-          !needle ||
-          row.product.name.toLowerCase().includes(needle) ||
-          row.product.sku.toLowerCase().includes(needle),
-      )
+      .filter((row) => {
+        const productType = productTypesByKey.get(row.product.categoria);
+        const standardSpecValues = getProductTechnicalSpecFieldsForCategory(row.product.categoria)
+          .flatMap((field) => {
+            const value = row.product.technicalSpecs?.[field.key]?.trim();
+            return value ? [t(field.labelKey), value] : [];
+          });
+        const customSpecValues = (row.product.technicalSpecs?.customFields ?? [])
+          .flatMap((field) => [field.name, field.value]);
+
+        return coincideBusquedaInventario(search, [
+          row.product.name,
+          row.product.sku,
+          row.product.description,
+          row.brand?.name,
+          row.category?.name,
+          row.product.categoria,
+          productType ? etiquetaTipoProducto(t, productType) : undefined,
+          ...standardSpecValues,
+          ...customSpecValues,
+        ]);
+      })
       .sort((a, b) => a.product.name.localeCompare(b.product.name));
-  }, [db, search, tipo, brandId, lowOnly, includeInactive, condicion]);
+  }, [db, search, tipo, brandId, lowOnly, includeInactive, condicion, productTypesByKey, t]);
 
   // Resumen de lo que se ve en la lista (respeta los filtros y la condición elegida).
   const totalDisponibles = rows.reduce((suma, row) => suma + row.stock.disponible, 0);
