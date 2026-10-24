@@ -415,17 +415,6 @@ const SerialesPrevios = ({ embedded = false }: { embedded?: boolean }) => {
                     <span className="font-medium">{formatDate(encontrado.fechaVenta)}</span>
                   </p>
                 ) : null}
-                <p className="mt-2 text-xs text-muted-foreground">
-                  {t("serialesPrevios.importadoPor", {
-                    fecha: formatDate(encontrado.createdAt),
-                    usuario: db.users.find((u) => u.id === encontrado.createdBy)?.fullName ?? "",
-                  })}
-                </p>
-                {encontrado.archivoOrigen ? (
-                  <p className="mt-1 break-all text-xs text-muted-foreground">
-                    {t("serialesPrevios.sourceFileLabel")}: {encontrado.archivoOrigen}
-                  </p>
-                ) : null}
                 {encontrado.notas ? (
                   <p className="mt-1 text-xs text-muted-foreground">"{encontrado.notas}"</p>
                 ) : null}
