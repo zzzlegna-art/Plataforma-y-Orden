@@ -902,7 +902,7 @@ export const importarVentasPreviasEnLote = async (
       serial: registro.serial.trim(),
       referencia: registro.referencia?.trim() || undefined,
       cliente: registro.cliente?.trim() || undefined,
-      fechaVenta: /^\\d{4}-\\d{2}-\\d{2}$/.test(registro.fechaVenta ?? "")
+      fechaVenta: /^\d{4}-\d{2}-\d{2}$/.test(registro.fechaVenta ?? "")
         ? registro.fechaVenta
         : undefined,
       archivoOrigen: registro.archivoOrigen?.trim() || undefined,
