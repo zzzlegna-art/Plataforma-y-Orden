@@ -8,6 +8,7 @@ import {
   FileSpreadsheet,
   Trash2,
   Upload,
+  X,
   XCircle,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -24,7 +25,7 @@ import { usePermissions } from "@/hooks/use-permissions";
 import { useRunAction } from "@/hooks/use-run-action";
 import { useStore } from "@/hooks/use-store";
 import { eliminarSerialPrevio } from "@/lib/actions/seriales-previos";
-import { importarSerialesPreviosEnLote } from "@/lib/backend";
+import { importarSerialesPreviosEnLote, importarVentasPreviasEnLote } from "@/lib/backend";
 import { DomainError } from "@/lib/db";
 import { formatDate } from "@/lib/format";
 import {
@@ -38,6 +39,13 @@ import { buscarSerialPrevio, listarSerialesPrevios } from "@/lib/selectors";
 
 type Tab = "buscar" | "importar" | "lista";
 
+type ArchivoExcelEnCola = ParsedSerialWorkbook & {
+  id: string;
+  nombre: string;
+  clientePorDefecto: string;
+  fechaVentaPorDefecto: string;
+};
+
 /** Registro de ventas anteriores a la plataforma (seriales previos). */
 const SerialesPrevios = ({ embedded = false }: { embedded?: boolean }) => {
   const { t } = useTranslation();
@@ -50,12 +58,17 @@ const SerialesPrevios = ({ embedded = false }: { embedded?: boolean }) => {
   const [textoImportar, setTextoImportar] = useState("");
   const [resultadoImport, setResultadoImport] = useState<{ importados: number; duplicados: number } | null>(null);
   const [busquedaLista, setBusquedaLista] = useState("");
-  const [archivoExcel, setArchivoExcel] = useState<(ParsedSerialWorkbook & { nombre: string }) | null>(null);
+  const [archivosExcel, setArchivosExcel] = useState<ArchivoExcelEnCola[]>([]);
   const [errorExcel, setErrorExcel] = useState<string | null>(null);
   const [leyendoExcel, setLeyendoExcel] = useState(false);
   const [importandoExcel, setImportandoExcel] = useState(false);
   const [importandoManual, setImportandoManual] = useState(false);
-  const [resultadoExcel, setResultadoExcel] = useState<{ leidos: number; importados: number; duplicados: number } | null>(null);
+  const [resultadoExcel, setResultadoExcel] = useState<{
+    leidos: number;
+    importados: number;
+    duplicados: number;
+    archivos: number;
+  } | null>(null);
   const [paginaLista, setPaginaLista] = useState(0);
   const excelInputRef = useRef<HTMLInputElement>(null);
   const tamanoPagina = 100;
@@ -72,21 +85,43 @@ const SerialesPrevios = ({ embedded = false }: { embedded?: boolean }) => {
   );
   const totalPaginas = Math.max(1, Math.ceil(lista.length / tamanoPagina));
   const serialesExistentes = useMemo(
-    () => new Set(db.serialesPrevios.map((item) => item.serial.trim().toLowerCase())),
-    [db.serialesPrevios],
+    () => new Set([
+      ...db.serialesPrevios.map((item) => item.serial.trim().toLowerCase()),
+      ...db.units.map((item) => item.serial.trim().toLowerCase()),
+      ...db.receptionItems.map((item) => item.serial.trim().toLowerCase()),
+    ]),
+    [db.serialesPrevios, db.units, db.receptionItems],
+  );
+  const registrosEnCola = useMemo(
+    () => archivosExcel.flatMap((archivo) =>
+      archivo.registros.map((registro) => ({
+        serial: registro.serial,
+        referencia: registro.referencia,
+        cliente: registro.cliente || archivo.clientePorDefecto || undefined,
+        fechaVenta: registro.fechaVenta || archivo.fechaVentaPorDefecto || undefined,
+        archivoOrigen: archivo.nombre,
+        hojaOrigen: registro.hoja,
+        filaOrigen: registro.fila,
+      })),
+    ),
+    [archivosExcel],
   );
   const estadisticasExcel = useMemo(() => {
-    if (!archivoExcel) return null;
+    if (archivosExcel.length === 0) return null;
     const vistos = new Set<string>();
     let nuevos = 0;
-    for (const serial of archivoExcel.seriales) {
-      const clave = serial.trim().toLowerCase();
-      if (vistos.has(clave)) continue;
+    let duplicados = 0;
+    for (const registro of registrosEnCola) {
+      const clave = registro.serial.trim().toLowerCase();
+      if (!clave || vistos.has(clave) || serialesExistentes.has(clave)) {
+        duplicados += 1;
+        continue;
+      }
       vistos.add(clave);
-      if (!serialesExistentes.has(clave)) nuevos += 1;
+      nuevos += 1;
     }
-    return { nuevos, duplicados: archivoExcel.seriales.length - nuevos };
-  }, [archivoExcel, serialesExistentes]);
+    return { leidos: registrosEnCola.length, nuevos, duplicados };
+  }, [archivosExcel.length, registrosEnCola, serialesExistentes]);
 
   useEffect(() => {
     setPaginaLista(0);
@@ -96,65 +131,113 @@ const SerialesPrevios = ({ embedded = false }: { embedded?: boolean }) => {
     setPaginaLista((pagina) => Math.min(pagina, totalPaginas - 1));
   }, [totalPaginas]);
 
-  const cargarExcel = async (file: File) => {
+  const cargarExcels = async (files: File[]) => {
+    if (files.length === 0) return;
     setErrorExcel(null);
-    setArchivoExcel(null);
     setResultadoExcel(null);
-    const extension = file.name.toLowerCase().split(".").pop();
-    if (!extension || !["xlsx", "xls", "xlsm", "xlsb", "csv"].includes(extension)) {
-      setErrorExcel(t("serialesPrevios.excelUnsupported"));
-      return;
-    }
-    if (file.size > MAX_SERIAL_IMPORT_FILE_BYTES) {
-      setErrorExcel(t("serialesPrevios.excelFileTooLarge"));
-      return;
-    }
-
     setLeyendoExcel(true);
+
+    const nuevos: ArchivoExcelEnCola[] = [];
+    const errores: string[] = [];
+    const huellas = new Set(archivosExcel.map((archivo) => archivo.id));
+
     try {
-      const parsed = parseSerialWorkbook(await file.arrayBuffer());
-      setArchivoExcel({ ...parsed, nombre: file.name });
-    } catch (error) {
-      if (error instanceof SerialWorkbookError) {
-        const claves: Record<SerialWorkbookError["code"], string> = {
-          empty: "serialesPrevios.excelErrorEmpty",
-          too_many: "serialesPrevios.excelErrorTooMany",
-          unsafe_number: "serialesPrevios.excelErrorUnsafeNumber",
-          invalid_file: "serialesPrevios.excelErrorInvalidFile",
-        };
-        setErrorExcel(t(claves[error.code], { cell: error.detail ?? "" }));
-      } else {
-        setErrorExcel(t("serialesPrevios.excelErrorInvalidFile"));
+      for (const file of files) {
+        const extension = file.name.toLowerCase().split(".").pop();
+        if (!extension || !["xlsx", "xls", "xlsm", "xlsb", "csv"].includes(extension)) {
+          errores.push(`${file.name}: formato no compatible`);
+          continue;
+        }
+        if (file.size > MAX_SERIAL_IMPORT_FILE_BYTES) {
+          errores.push(`${file.name}: supera el límite de 25 MB`);
+          continue;
+        }
+
+        const id = `${file.name}:${file.size}:${file.lastModified}`;
+        if (huellas.has(id)) {
+          errores.push(`${file.name}: ya está en la lista; quítalo con la X si necesitas volver a seleccionarlo`);
+          continue;
+        }
+
+        try {
+          const parsed = parseSerialWorkbook(await file.arrayBuffer(), file.name);
+          nuevos.push({
+            ...parsed,
+            id,
+            nombre: file.name,
+            clientePorDefecto: parsed.clienteDetectado ?? "",
+            fechaVentaPorDefecto: parsed.fechaVentaDetectada ?? "",
+          });
+          huellas.add(id);
+        } catch (error) {
+          if (error instanceof SerialWorkbookError) {
+            const claves: Record<SerialWorkbookError["code"], string> = {
+              empty: "serialesPrevios.excelErrorEmpty",
+              too_many: "serialesPrevios.excelErrorTooMany",
+              unsafe_number: "serialesPrevios.excelErrorUnsafeNumber",
+              invalid_file: "serialesPrevios.excelErrorInvalidFile",
+            };
+            errores.push(`${file.name}: ${t(claves[error.code], { cell: error.detail ?? "" })}`);
+          } else {
+            errores.push(`${file.name}: ${t("serialesPrevios.excelErrorInvalidFile")}`);
+          }
+        }
       }
+
+      if (nuevos.length > 0) {
+        setArchivosExcel((anteriores) => [...anteriores, ...nuevos]);
+      }
+      if (errores.length > 0) setErrorExcel(errores.join(" · "));
     } finally {
       setLeyendoExcel(false);
     }
   };
 
   const importarExcel = async () => {
-    if (!archivoExcel || importandoExcel) return;
+    if (registrosEnCola.length === 0 || importandoExcel) return;
     setImportandoExcel(true);
+
+    const totalLeidos = registrosEnCola.length;
+    const cantidadArchivos = archivosExcel.length;
+    let importados = 0;
+    let duplicados = 0;
+    let procesados = 0;
+
     try {
-      const resultado = await importarSerialesPreviosEnLote(archivoExcel.seriales);
-      // Una recarga completa evita aplicar 20.000 cambios con búsquedas repetidas en memoria.
+      // La RPC acepta 20.000 filas por transacción; los Excel se agrupan en lotes
+      // para poder cargar muchos archivos sin enviar un paquete gigante.
+      for (let inicio = 0; inicio < registrosEnCola.length; inicio += MAX_SERIAL_IMPORT) {
+        const lote = registrosEnCola.slice(inicio, inicio + MAX_SERIAL_IMPORT);
+        const resultado = await importarVentasPreviasEnLote(lote);
+        importados += resultado.importados;
+        duplicados += resultado.duplicados;
+        procesados += lote.length;
+      }
+
       await refrescar();
       setResultadoExcel({
-        leidos: archivoExcel.seriales.length,
-        importados: resultado.importados,
-        duplicados: resultado.duplicados,
+        leidos: totalLeidos,
+        importados,
+        duplicados,
+        archivos: cantidadArchivos,
       });
-      setArchivoExcel(null);
+      setArchivosExcel([]);
       setErrorExcel(null);
       if (excelInputRef.current) excelInputRef.current.value = "";
       toast.success(
-        t("serialesPrevios.excelSuccess", {
-          importados: resultado.importados,
-          duplicados: resultado.duplicados,
-        }),
+        `Importación completada: ${importados.toLocaleString("es-CO")} seriales nuevos, ${duplicados.toLocaleString("es-CO")} duplicados omitidos · ${cantidadArchivos} archivo(s)`,
       );
     } catch (error) {
-      if (error instanceof DomainError) toast.error(t(error.key, error.params));
-      else toast.error(t("serialesPrevios.excelImportError"));
+      if (error instanceof DomainError) {
+        toast.error(t(error.key, error.params));
+      } else {
+        toast.error(t("serialesPrevios.excelImportError"));
+      }
+      if (procesados > 0) {
+        toast.warning(
+          `Se alcanzaron a procesar ${procesados.toLocaleString("es-CO")} filas. La lista se conserva; al reintentar, Nexora omitirá las que ya quedaron guardadas.`,
+        );
+      }
     } finally {
       setImportandoExcel(false);
     }
