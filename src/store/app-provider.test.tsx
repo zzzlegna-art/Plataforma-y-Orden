@@ -79,6 +79,11 @@ afterEach(() => {
 describe("AppProvider · recuperación de resincronización", () => {
   it("reintenta al recuperar la conexión si falló la descarga posterior a un guardado fallido", async () => {
     const inicial = emptyDb();
+    inicial.products.push({
+      id: "initial-server-product", sku: "INITIAL-1", name: "initial-server",
+      price: 5, cost: 2, minStock: 0, isActive: true,
+      createdAt: "2026-10-24T00:00:00.000Z", updatedAt: "2026-10-24T00:00:00.000Z",
+    });
     const autoritativa = emptyDb();
     autoritativa.products.push({
       id: "server-product", sku: "SERVER-1", name: "server-authoritative",
@@ -107,6 +112,9 @@ describe("AppProvider · recuperación de resincronización", () => {
     await waitFor(() => {
       expect(screen.getByTestId("user").textContent).toBe("user-1");
       expect(screen.getByTestId("ready").textContent).toBe("true");
+      // "ready" only closes the auth bootstrap screen; wait for the loaded inventory itself.
+      expect(screen.getByTestId("products").textContent).toContain("initial-server");
+      expect(mocks.pullDb).toHaveBeenCalled();
     });
 
     fireEvent.click(screen.getByRole("button", { name: "Guardar cambio" }));
@@ -115,7 +123,9 @@ describe("AppProvider · recuperación de resincronización", () => {
         mocks.pushDb.mock.calls.length === 1 || screen.getByTestId("run-error").textContent !== "",
       ).toBe(true);
     });
-    expect(screen.getByTestId("run-error").textContent).toBe("");
+    await waitFor(() => {
+      expect(screen.getByTestId("run-error").textContent).toBe("errors.saveFailed");
+    });
     await waitFor(() => expect(mocks.pullDb).toHaveBeenCalledTimes(2));
 
     // The optimistic row must not be treated as confirmed after the save failed.
