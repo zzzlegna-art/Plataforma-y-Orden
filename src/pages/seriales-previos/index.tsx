@@ -311,6 +311,10 @@ const SerialesPrevios = ({ embedded = false }: { embedded?: boolean }) => {
                     usuario: db.users.find((u) => u.id === encontrado.createdBy)?.fullName ?? "",
                   })}
                 </p>
+                {encontrado.referencia ? <p className="mt-1 text-sm"><span className="text-muted-foreground">Referencia:</span> {encontrado.referencia}</p> : null}
+                {encontrado.cliente ? <p className="mt-1 text-sm"><span className="text-muted-foreground">Cliente:</span> {encontrado.cliente}</p> : null}
+                {encontrado.fechaVenta ? <p className="mt-1 text-sm"><span className="text-muted-foreground">Fecha de venta:</span> {encontrado.fechaVenta}</p> : null}
+                {encontrado.archivoOrigen ? <p className="mt-1 break-all text-xs text-muted-foreground"><span>Archivo:</span> {encontrado.archivoOrigen}</p> : null}
                 {encontrado.notas ? (
                   <p className="mt-1 text-xs text-muted-foreground">"{encontrado.notas}"</p>
                 ) : null}
@@ -565,7 +569,13 @@ const SerialesPrevios = ({ embedded = false }: { embedded?: boolean }) => {
                   <div className="min-w-0">
                     <p className="font-tabular truncate text-sm">{item.serial}</p>
                     <p className="truncate text-xs text-muted-foreground">
-                      {formatDate(item.createdAt)}
+                      {item.referencia ? `Ref: ${item.referencia}` : "Sin referencia"}
+                      {item.cliente ? ` · Cliente: ${item.cliente}` : ""}
+                      {item.fechaVenta ? ` · Venta: ${item.fechaVenta}` : ""}
+                    </p>
+                    <p className="truncate text-xs text-muted-foreground">
+                      Importado: {formatDate(item.createdAt)}
+                      {item.archivoOrigen ? ` · ${item.archivoOrigen}` : ""}
                       {item.notas ? ` · ${item.notas}` : ""}
                     </p>
                   </div>
