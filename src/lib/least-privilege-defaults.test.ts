@@ -1,0 +1,62 @@
+import { readFileSync } from "node:fs";
+import { describe, expect, it } from "vitest";
+
+const migration = readFileSync(
+  new URL("../../supabase/migrations/20261024231500_nexora_least_privilege_defaults.sql", import.meta.url),
+  "utf8",
+).toLowerCase();
+const liveAudit = readFileSync(
+  new URL("../../supabase/tests/rls/rls_role_isolation_tests.sql", import.meta.url),
+  "utf8",
+).toLowerCase();
+
+describe("Nexora final least-privilege migration contract", () => {
+  it("removes anonymous access to current public tables, sequences and RPC functions", () => {
+    expect(migration).toContain("revoke all privileges on all tables in schema public from anon");
+    expect(migration).toContain("revoke all privileges on all sequences in schema public from anon");
+    expect(migration).toContain("revoke execute on all functions in schema public from public, anon");
+  });
+
+  it("removes table privileges that RLS cannot constrain without removing normal CRUD", () => {
+    expect(migration).toContain(
+      "revoke truncate, references, trigger, maintain on all tables in schema public from anon, authenticated",
+    );
+    expect(migration).not.toMatch(
+      /revoke\s+(?:all|select|insert|update|delete)\s+on\s+all\s+tables\s+in\s+schema\s+public\s+from\s+authenticated/,
+    );
+  });
+
+  it("hardens defaults for both Supabase object owners", () => {
+    for (const owner of ["postgres", "supabase_admin"]) {
+      expect(migration).toContain(
+        "alter default privileges for role " + owner + " in schema public revoke all on tables from anon",
+      );
+      expect(migration).toContain(
+        "alter default privileges for role " + owner + " in schema public revoke all on sequences from anon",
+      );
+      expect(migration).toContain(
+        "alter default privileges for role " + owner + " in schema public revoke execute on functions from public, anon",
+      );
+    }
+  });
+
+  it("preserves authenticated RPC access but protects the Auth bootstrap trigger", () => {
+    expect(migration).toContain("grant execute on all functions in schema public to authenticated, service_role");
+    expect(migration).toContain(
+      "revoke execute on function public.bodega_handle_new_user() from authenticated",
+    );
+  });
+
+  it("includes live assertions for operational RLS, least privilege and private warranty files", () => {
+    expect(liveAudit).toContain("operational tables missing rls/policies");
+    expect(liveAudit).toContain("api roles retain unnecessary table-level privileges");
+    expect(liveAudit).toContain("anon can execute a public-schema function");
+    expect(liveAudit).toContain("warranty-documents bucket must remain private");
+    expect(liveAudit).toContain("append-only audit, warranty, or stock history is mutable");
+  });
+
+  it("keeps the migration transactional", () => {
+    expect(migration.trim()).toMatch(/^--[\s\S]*?begin;/);
+    expect(migration.trim()).toMatch(/commit;$/);
+  });
+});
