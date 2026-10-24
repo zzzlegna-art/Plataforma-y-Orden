@@ -893,11 +893,16 @@ const Inventario = () => {
 
       <div className="space-y-4 rounded-2xl border border-border/70 bg-card p-4 shadow-sm">
         <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)]">
-          <SearchField
-            value={search}
-            onChange={setSearch}
-            placeholder={t("product.searchPlaceholder")}
-          />
+          <div className="space-y-1.5">
+            <SearchField
+              value={search}
+              onChange={setSearch}
+              placeholder={t("product.searchPlaceholder")}
+            />
+            <p className="px-1 text-xs leading-relaxed text-muted-foreground">
+              {t("product.searchHint")}
+            </p>
+          </div>
           <OptionSelect
             value={tipo}
             onChange={(value) => setTipo(value as "" | ProductCategory)}
