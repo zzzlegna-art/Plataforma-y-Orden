@@ -19,4 +19,10 @@ describe("getProductCsvFeatureCategoryIssue", () => {
   it("allows technical features for supported product types", () => {
     expect(getProductCsvFeatureCategoryIssue("RAM: 8 GB", "celular", true)).toBeUndefined();
   });
+
+  it("blocks malformed feature values that the parser would otherwise ignore", () => {
+    expect(getProductCsvFeatureCategoryIssue("RAM 8 GB", "celular", true)).toBe("malformed_features");
+    expect(getProductCsvFeatureCategoryIssue("RAM:", "celular", true)).toBe("malformed_features");
+    expect(getProductCsvFeatureCategoryIssue("RAM: 8 GB | Processor", "celular", true)).toBe("malformed_features");
+  });
 });
