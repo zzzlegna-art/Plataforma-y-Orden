@@ -59,16 +59,13 @@ const Harness = () => {
       <div data-testid="run-error">{runError}</div>
       <div data-testid="products">{app.db.products.map((product) => product.name).join(",")}</div>
       <button onClick={() => {
-        // Let the final auth/session bootstrap microtasks settle before invoking a write.
-        window.setTimeout(() => {
-          void app.run((db) => {
-            db.products.push({
-              id: "optimistic-product", sku: "OPT-1", name: "optimistic",
-              price: 10, cost: 5, minStock: 0, isActive: true,
-              createdAt: "2026-10-24T00:00:00.000Z", updatedAt: "2026-10-24T00:00:00.000Z",
-            });
-          }).catch((error: unknown) => setRunError(error instanceof Error ? error.message : String(error)));
-        }, 0);
+        void app.run((db) => {
+          db.products.push({
+            id: "optimistic-product", sku: "OPT-1", name: "optimistic",
+            price: 10, cost: 5, minStock: 0, isActive: true,
+            createdAt: "2026-10-24T00:00:00.000Z", updatedAt: "2026-10-24T00:00:00.000Z",
+          });
+        }).catch((error: unknown) => setRunError(error instanceof Error ? error.message : String(error)));
       }}>Guardar cambio</button>
     </div>
   );
@@ -97,6 +94,9 @@ describe("AppProvider · recuperación de resincronización", () => {
     mocks.onAuthStateChange.mockReturnValue({ data: { subscription: { unsubscribe: vi.fn() } } });
     mocks.getSession.mockResolvedValue({ data: { session } });
     mocks.leerPerfil.mockResolvedValue(perfil);
+    // The provider revalidates the active profile after login; an unconfigured mock
+    // returns undefined and logs the test out, clearing dbRef before run() executes.
+    mocks.consultarPerfilSesion.mockResolvedValue(perfil);
     mocks.suscribirCambios.mockReturnValue(vi.fn());
     mocks.setAuth.mockResolvedValue(undefined);
     mocks.signOut.mockResolvedValue({ error: null });
