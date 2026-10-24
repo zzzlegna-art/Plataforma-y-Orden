@@ -130,7 +130,7 @@ describe("parseSerialWorkbook", () => {
       cliente: "Chavela",
       fechaVenta: undefined,
     });
-    expect(parsed.registros[2]).toMatchObject({
+    expect(parsed.registros[1]).toMatchObject({
       serial: "352678439208841",
       referencia: "Apple iPhone 13 128 GB",
       cliente: "Juan David",
