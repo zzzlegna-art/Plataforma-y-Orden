@@ -72,7 +72,7 @@ import {
 } from "@/lib/export";
 import { descargarCsv } from "@/lib/csv";
 import { getProductTechnicalSpecFieldsForCategory } from "@/lib/product-specs";
-import { coincideBusquedaInventario } from "@/lib/inventory-search";
+import { coincideBusquedaInventario, indexUnitSerialsByProduct } from "@/lib/inventory-search";
 import { clearInventoryFilters, getInventoryFilters, updateInventoryFilter } from "@/lib/inventory-filters";
 import { formatCurrency, todayIso } from "@/lib/format";
 import { getProductRows, type ProductRow, type ProductStock } from "@/lib/selectors";
@@ -520,17 +520,7 @@ const Inventario = () => {
 
   // Índice de seriales por producto: se construye una vez por actualización de unidades,
   // no en cada tecla de búsqueda.
-  const serialsByProduct = useMemo(() => {
-    const index = new Map<string, string[]>();
-    for (const unit of db.units) {
-      const serial = unit.serial?.trim();
-      if (!serial) continue;
-      const serials = index.get(unit.productId);
-      if (serials) serials.push(serial);
-      else index.set(unit.productId, [serial]);
-    }
-    return index;
-  }, [db.units]);
+  const serialsByProduct = useMemo(() => indexUnitSerialsByProduct(db.units), [db.units]);
 
   const rows = useMemo(() => {
     const cond = condicion === "" ? undefined : condicion;
