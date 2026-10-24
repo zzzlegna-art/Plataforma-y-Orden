@@ -140,4 +140,42 @@ describe("AppProvider · recuperación de resincronización", () => {
     });
     expect(screen.getByTestId("products").textContent).not.toContain("optimistic");
   });
+
+  it("mantiene la sesión recuperable si falla temporalmente la consulta del perfil", async () => {
+    const inicial = emptyDb();
+    let consultasPerfil = 0;
+
+    mocks.onAuthStateChange.mockReturnValue({ data: { subscription: { unsubscribe: vi.fn() } } });
+    mocks.getSession.mockResolvedValue({ data: { session } });
+    mocks.leerPerfil.mockResolvedValue(perfil);
+    mocks.consultarPerfilSesion.mockImplementation(async () => {
+      consultasPerfil += 1;
+      if (consultasPerfil <= 4) throw new Error("network unavailable");
+      return perfil;
+    });
+    mocks.suscribirCambios.mockReturnValue(vi.fn());
+    mocks.setAuth.mockResolvedValue(undefined);
+    mocks.signOut.mockResolvedValue({ error: null });
+    mocks.pullDb.mockResolvedValue(inicial);
+
+    render(<AppProvider><Harness /></AppProvider>);
+
+    await waitFor(() => {
+      expect(mocks.consultarPerfilSesion).toHaveBeenCalledTimes(4);
+      expect(screen.getByTestId("ready").textContent).toBe("true");
+      expect(screen.getByTestId("user").textContent).toBe("");
+    }, { timeout: 4000 });
+
+    // The first bootstrap failed only because the profile endpoint was unreachable.
+    // Returning online must retry the same persisted session rather than leaving it stuck.
+    fireEvent(window, new Event("online"));
+
+    await waitFor(() => {
+      expect(screen.getByTestId("user").textContent).toBe("user-1");
+      expect(mocks.pullDb).toHaveBeenCalled();
+    }, { timeout: 4000 });
+
+    expect(mocks.signOut).not.toHaveBeenCalled();
+    expect(mocks.getSession).toHaveBeenCalledTimes(2);
+  });
 });
