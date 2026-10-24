@@ -150,6 +150,7 @@
   "productImport.unknownType": "No se reconoce el tipo o categoría «{{category}}».",
   "productImport.featuresRequireType": "Esta fila contiene características técnicas, pero no tiene un tipo de producto. Selecciona un tipo que admita ficha técnica para no perder esos datos.",
   "productImport.featuresUnsupportedType": "Este tipo de producto no admite ficha técnica. Quita las características de la fila o selecciona un tipo compatible.",
+  "productImport.featuresMalformed": "No se pudieron interpretar todas las características técnicas. Usa el formato «Campo: valor» y separa cada característica con |.",
   "productImport.unknownBrand": "No existe la marca «{{brand}}» en Nexora.",
   "productImport.duplicateSku": "La referencia «{{sku}}» ya existe o aparece repetida en el archivo.",
   "productImport.stockNotice": "Importante: las existencias del CSV no se cargan. Nexora controla cada unidad mediante serial/IMEI; registra el stock desde Recepción para conservar la trazabilidad. Si el archivo no incluye precio, costo o stock mínimo, esos campos se guardan en 0.",
