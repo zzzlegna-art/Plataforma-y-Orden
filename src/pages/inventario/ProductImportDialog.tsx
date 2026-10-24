@@ -49,7 +49,7 @@ const parseFeatures = (
   const specs: ProductTechnicalSpecs = {};
   const customFields: NonNullable<ProductTechnicalSpecs["customFields"]> = [];
 
-  text.split(/\s+\|\s+/).forEach((entry, index) => {
+  text.split(/\s*\|\s*/).forEach((entry, index) => {
     const separator = entry.indexOf(":");
     if (separator < 1) return;
     const label = entry.slice(0, separator).trim();
