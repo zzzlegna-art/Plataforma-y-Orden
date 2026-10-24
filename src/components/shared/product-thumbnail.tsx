@@ -20,6 +20,10 @@ const REFERENCE_IMAGE_FALLBACKS = [
     pattern: /\biphone\s*16\s*pro\b/i,
     src: "https://store.storeimages.cdn-apple.com/4982/as-images.apple.com/is/iphone-16-pro-deserttitanium-select?wid=5120&hei=2880&fmt=png-alpha",
   },
+  {
+    pattern: /\biphone\s*13\s*pro\s*max\b/i,
+    src: "https://store.storeimages.cdn-apple.com/4982/as-images.apple.com/is/iphone-13-pro-max-gold-select?wid=940&hei=1112&fmt=png-alpha",
+  },
 ] as const;
 
 export const getProductReferenceImageFallback = (reference: string): string | undefined => {
