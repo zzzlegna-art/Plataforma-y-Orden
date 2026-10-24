@@ -23,6 +23,7 @@ import {
   type ProductCsvRow,
 } from "@/lib/product-csv-import";
 import { getProductTechnicalSpecFieldsForCategory } from "@/lib/product-specs";
+import { getProductCsvFeatureCategoryIssue } from "@/lib/product-csv-features";
 import { etiquetaTipoProducto } from "@/lib/products";
 import type { ProductTechnicalSpecs, ProductType } from "@/lib/types";
 
@@ -116,6 +117,18 @@ export const ProductImportDialog = ({ trigger }: { trigger: React.ReactNode }) =
         } else {
           return { row, status: "invalid", reason: t("productImport.unknownType", { category: first }) };
         }
+      }
+
+      const featureCategoryIssue = getProductCsvFeatureCategoryIssue(
+        row.features,
+        categoria,
+        getProductTechnicalSpecFieldsForCategory(categoria).length > 0,
+      );
+      if (featureCategoryIssue === "missing_type") {
+        return { row, status: "invalid", reason: t("productImport.featuresRequireType") };
+      }
+      if (featureCategoryIssue === "unsupported_type") {
+        return { row, status: "invalid", reason: t("productImport.featuresUnsupportedType") };
       }
 
       if (row.brand) {
