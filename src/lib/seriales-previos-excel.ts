@@ -101,7 +101,7 @@ const parsearTextoFecha = (valor: unknown): string | undefined => {
   const iso = texto.match(/^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})$/);
   if (iso) return validarFecha(Number(iso[1]), Number(iso[2]), Number(iso[3]));
 
-  const local = texto.match(/^(\d{1,2})[/.\-](\d{1,2})[/.\-](\d{4})$/);
+  const local = texto.match(/^(\d{1,2})[/.-](\d{1,2})[/.-](\d{4})$/);
   if (local) return validarFecha(Number(local[3]), Number(local[2]), Number(local[1]));
 
   return undefined;
