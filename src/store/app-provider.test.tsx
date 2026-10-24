@@ -144,15 +144,16 @@ describe("AppProvider · recuperación de resincronización", () => {
   it("mantiene la sesión recuperable si falla temporalmente la consulta del perfil", async () => {
     const inicial = emptyDb();
     let consultasPerfil = 0;
+    let perfilDisponible = false;
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
 
     mocks.onAuthStateChange.mockReturnValue({ data: { subscription: { unsubscribe: vi.fn() } } });
-    // Start offline from the auth bootstrap's point of view. This keeps the
-    // scenario deterministic even when React replays effects in development/tests.
+    // Start without a readable persisted session so the reconnect path is explicit.
     mocks.getSession.mockResolvedValue({ data: { session: null } });
     mocks.leerPerfil.mockResolvedValue(perfil);
     mocks.consultarPerfilSesion.mockImplementation(async () => {
       consultasPerfil += 1;
-      if (consultasPerfil <= 4) throw new Error("network unavailable");
+      if (!perfilDisponible) throw new Error("network unavailable");
       return perfil;
     });
     mocks.suscribirCambios.mockReturnValue(vi.fn());
@@ -168,19 +169,21 @@ describe("AppProvider · recuperación de resincronización", () => {
     }, { timeout: 4000 });
     expect(mocks.consultarPerfilSesion).not.toHaveBeenCalled();
 
-    // Simulate a persisted session becoming readable again after connectivity returns.
+    // The saved session becomes readable when connectivity returns, but its profile
+    // endpoint is still failing. Wait for the provider to finish its bounded retries.
     mocks.getSession.mockResolvedValue({ data: { session } });
     fireEvent(window, new Event("online"));
-
-    // The profile endpoint is still unavailable: bootstrap must remain retryable
-    // and must not sign the user out merely because the profile request failed.
     await waitFor(() => {
-      expect(consultasPerfil).toBe(4);
-      expect(screen.getByTestId("user").textContent).toBe("");
+      expect(errorSpy).toHaveBeenCalledWith(
+        "No se pudo verificar el perfil de la sesión",
+        expect.any(Error),
+      );
     }, { timeout: 4000 });
+    expect(screen.getByTestId("user").textContent).toBe("");
     expect(mocks.signOut).not.toHaveBeenCalled();
 
-    // A subsequent online event simulates recovery of the profile endpoint.
+    // Once the profile endpoint recovers, reconnecting must restore the same session.
+    perfilDisponible = true;
     fireEvent(window, new Event("online"));
 
     await waitFor(() => {
@@ -190,5 +193,6 @@ describe("AppProvider · recuperación de resincronización", () => {
 
     expect(mocks.signOut).not.toHaveBeenCalled();
     expect(consultasPerfil).toBeGreaterThanOrEqual(5);
+    errorSpy.mockRestore();
   });
 });
