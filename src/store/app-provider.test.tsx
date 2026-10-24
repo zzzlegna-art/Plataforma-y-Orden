@@ -146,7 +146,9 @@ describe("AppProvider · recuperación de resincronización", () => {
     let consultasPerfil = 0;
 
     mocks.onAuthStateChange.mockReturnValue({ data: { subscription: { unsubscribe: vi.fn() } } });
-    mocks.getSession.mockResolvedValue({ data: { session } });
+    // Start offline from the auth bootstrap's point of view. This keeps the
+    // scenario deterministic even when React replays effects in development/tests.
+    mocks.getSession.mockResolvedValue({ data: { session: null } });
     mocks.leerPerfil.mockResolvedValue(perfil);
     mocks.consultarPerfilSesion.mockImplementation(async () => {
       consultasPerfil += 1;
@@ -166,8 +168,19 @@ describe("AppProvider · recuperación de resincronización", () => {
       expect(screen.getByTestId("user").textContent).toBe("");
     }, { timeout: 4000 });
 
-    // The first bootstrap failed only because the profile endpoint was unreachable.
-    // Returning online must retry the same persisted session rather than leaving it stuck.
+    // Simulate a persisted session becoming readable again after connectivity returns.
+    mocks.getSession.mockResolvedValue({ data: { session } });
+    fireEvent(window, new Event("online"));
+
+    // The profile endpoint is still unavailable: bootstrap must remain retryable
+    // and must not sign the user out merely because the profile request failed.
+    await waitFor(() => {
+      expect(consultasPerfil).toBe(4);
+      expect(screen.getByTestId("user").textContent).toBe("");
+    }, { timeout: 4000 });
+    expect(mocks.signOut).not.toHaveBeenCalled();
+
+    // A subsequent online event simulates recovery of the profile endpoint.
     fireEvent(window, new Event("online"));
 
     await waitFor(() => {
@@ -176,6 +189,6 @@ describe("AppProvider · recuperación de resincronización", () => {
     }, { timeout: 4000 });
 
     expect(mocks.signOut).not.toHaveBeenCalled();
-    expect(consultasPerfil).toBeGreaterThanOrEqual(5);
+    expect(consultasPerfil).toBe(5);
   });
 });
