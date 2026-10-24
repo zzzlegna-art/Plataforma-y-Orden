@@ -163,10 +163,10 @@ describe("AppProvider · recuperación de resincronización", () => {
     render(<AppProvider><Harness /></AppProvider>);
 
     await waitFor(() => {
-      expect(mocks.consultarPerfilSesion).toHaveBeenCalledTimes(4);
       expect(screen.getByTestId("ready").textContent).toBe("true");
       expect(screen.getByTestId("user").textContent).toBe("");
     }, { timeout: 4000 });
+    expect(mocks.consultarPerfilSesion).not.toHaveBeenCalled();
 
     // Simulate a persisted session becoming readable again after connectivity returns.
     mocks.getSession.mockResolvedValue({ data: { session } });
