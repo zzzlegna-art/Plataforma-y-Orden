@@ -34,6 +34,55 @@ describe("findProductForReference", () => {
     expect(findProductForReference([product], "Apple iPhone 13 Pro Max 256 GB")).toBeUndefined();
   });
 
+  it("usa la imagen del inventario para Apple Watch con sufijos de Excel", () => {
+    const watch42 = {
+      name: "Watch Serie 11 - 42",
+      imageUrl: "https://example.com/watch-42.png",
+    };
+    const watch46 = {
+      name: "Watch Serie 11 - 46",
+      imageUrl: "https://example.com/watch-46.png",
+    };
+
+    expect(findProductForReference([watch42, watch46], "Apple Watch Serie 11 46 MMM NEW")).toBe(watch46);
+  });
+
+  it("ignora colores, condición y capacidad sin confundir el modelo", () => {
+    const samsung = {
+      name: "Samsung S26 Ultra negro 512 GB",
+      imageUrl: "https://example.com/samsung-s26.png",
+    };
+
+    expect(findProductForReference([samsung], "Samsung S26 Ultra 256 GB NEW")).toBe(samsung);
+  });
+
+  it("no confunde iPhone Pro con Pro Max al quitar variantes", () => {
+    const pro = {
+      name: "iPhone 13 Pro 128 GB",
+      imageUrl: "https://example.com/iphone-pro.png",
+    };
+
+    expect(findProductForReference([pro], "Apple iPhone 13 Pro Max 256 GB")).toBeUndefined();
+  });
+
+  it("reconoce abreviaturas antiguas de iPhone", () => {
+    const iphone13 = {
+      name: "iPhone 13 128 GB",
+      imageUrl: "https://example.com/iphone-13.png",
+    };
+
+    expect(findProductForReference([iphone13], "13 de 128")).toBe(iphone13);
+  });
+
+  it("corrige una errata común en la referencia del Apple Watch", () => {
+    const watch46 = {
+      name: "Watch Serie 11 - 46",
+      imageUrl: "https://example.com/watch-46.png",
+    };
+
+    expect(findProductForReference([watch46], "Apple Wacth Serie 11 46 MMM NEW")).toBe(watch46);
+  });
+
   it("devuelve undefined si no hay referencia", () => {
     expect(findProductForReference([], "")).toBeUndefined();
   });
