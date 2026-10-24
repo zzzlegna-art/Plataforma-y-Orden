@@ -343,87 +343,166 @@ const SerialesPrevios = ({ embedded = false }: { embedded?: boolean }) => {
                 </div>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="seriales-previos-excel">{t("serialesPrevios.excelFileLabel")}</Label>
+                <Label htmlFor="seriales-previos-excel">Seleccionar archivos de ventas previas</Label>
                 <input
                   ref={excelInputRef}
                   id="seriales-previos-excel"
                   type="file"
+                  multiple
                   accept=".xlsx,.xls,.xlsm,.xlsb,.csv"
                   disabled={leyendoExcel || importandoExcel}
                   onChange={(event) => {
-                    const file = event.currentTarget.files?.[0];
+                    const files = Array.from(event.currentTarget.files ?? []);
                     event.currentTarget.value = "";
-                    if (file) void cargarExcel(file);
+                    if (files.length > 0) void cargarExcels(files);
                   }}
                   className="block w-full rounded-md border bg-background px-3 py-2 text-sm file:mr-3 file:rounded-md file:border-0 file:bg-primary file:px-3 file:py-1.5 file:text-primary-foreground"
                 />
                 <p className="text-xs text-muted-foreground">
-                  {t("serialesPrevios.excelFileHint", { max: MAX_SERIAL_IMPORT.toLocaleString("es-CO") })}
+                  Puedes seleccionar muchos Excel a la vez. Se detectan seriales, referencias, clientes y fechas cuando aparecen en el archivo o en su nombre. Máximo 20.000 seriales por archivo y 25 MB por archivo.
                 </p>
               </div>
 
               {leyendoExcel ? (
-                <p className="text-sm text-muted-foreground">{t("serialesPrevios.excelReading")}</p>
+                <p className="text-sm text-muted-foreground">Leyendo archivos y detectando columnas…</p>
               ) : null}
               {errorExcel ? (
                 <p role="alert" className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
                   {errorExcel}
                 </p>
               ) : null}
-              {archivoExcel && estadisticasExcel ? (
+
+              {archivosExcel.length > 0 && estadisticasExcel ? (
                 <div className="space-y-3 rounded-lg border bg-muted/20 p-3">
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-semibold">{archivoExcel.nombre}</p>
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      {t("serialesPrevios.excelSheets", { sheets: archivoExcel.hojas.join(", ") })}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {t("serialesPrevios.excelColumns", { columns: archivoExcel.columnas.join(", ") })}
-                    </p>
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div>
+                      <p className="text-sm font-semibold">
+                        {archivosExcel.length} archivo(s) en la lista · {estadisticasExcel.leidos.toLocaleString("es-CO")} seriales detectados
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        Revisa los metadatos y quita con la X cualquier archivo que hayas añadido por error.
+                      </p>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      disabled={leyendoExcel || importandoExcel}
+                      onClick={() => {
+                        setArchivosExcel([]);
+                        setErrorExcel(null);
+                        if (excelInputRef.current) excelInputRef.current.value = "";
+                      }}
+                    >
+                      Vaciar lista
+                    </Button>
                   </div>
+
                   <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
                     <div className="rounded-md border bg-card p-3">
-                      <p className="text-xs text-muted-foreground">{t("serialesPrevios.excelReadLabel")}</p>
-                      <p className="text-xl font-semibold tabular-nums">{archivoExcel.seriales.length.toLocaleString("es-CO")}</p>
+                      <p className="text-xs text-muted-foreground">Filas leídas</p>
+                      <p className="text-xl font-semibold tabular-nums">{estadisticasExcel.leidos.toLocaleString("es-CO")}</p>
                     </div>
                     <div className="rounded-md border bg-card p-3">
-                      <p className="text-xs text-muted-foreground">{t("serialesPrevios.excelNewLabel")}</p>
+                      <p className="text-xs text-muted-foreground">Seriales nuevos</p>
                       <p className="text-xl font-semibold tabular-nums text-success">{estadisticasExcel.nuevos.toLocaleString("es-CO")}</p>
                     </div>
                     <div className="rounded-md border bg-card p-3">
-                      <p className="text-xs text-muted-foreground">{t("serialesPrevios.excelDuplicatesLabel")}</p>
+                      <p className="text-xs text-muted-foreground">Duplicados que se omitirán</p>
                       <p className="text-xl font-semibold tabular-nums">{estadisticasExcel.duplicados.toLocaleString("es-CO")}</p>
                     </div>
                   </div>
-                  <div className="space-y-1">
-                    <p className="text-xs font-medium">{t("serialesPrevios.excelSampleLabel")}</p>
-                    <p className="break-all font-tabular text-xs text-muted-foreground">
-                      {archivoExcel.seriales.slice(0, 8).join(" · ")}
-                    </p>
+
+                  <div className="space-y-2">
+                    {archivosExcel.map((archivo, index) => (
+                      <div key={archivo.id} className="space-y-3 rounded-md border bg-card p-3">
+                        <div className="flex items-start gap-2">
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-sm font-semibold">{archivo.nombre}</p>
+                            <p className="mt-1 text-xs text-muted-foreground">
+                              {archivo.registros.length.toLocaleString("es-CO")} seriales · Hojas: {archivo.hojas.join(", ")}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              Columnas detectadas: {archivo.columnas.join(", ")}
+                            </p>
+                          </div>
+                          <Button
+                            type="button"
+                            size="icon"
+                            variant="ghost"
+                            className="h-8 w-8 shrink-0 text-destructive"
+                            aria-label={`Quitar ${archivo.nombre} de la lista`}
+                            title="Quitar archivo"
+                            disabled={importandoExcel}
+                            onClick={() => setArchivosExcel((actuales) => actuales.filter((item) => item.id !== archivo.id))}
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
+
+                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                          <div className="space-y-1">
+                            <Label htmlFor={`cliente-previo-${index}`}>Cliente por defecto (opcional)</Label>
+                            <input
+                              id={`cliente-previo-${index}`}
+                              type="text"
+                              value={archivo.clientePorDefecto}
+                              disabled={importandoExcel}
+                              placeholder="Nombre del cliente"
+                              onChange={(event) => setArchivosExcel((actuales) => actuales.map((item) =>
+                                item.id === archivo.id ? { ...item, clientePorDefecto: event.target.value } : item,
+                              ))}
+                              className="h-9 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <Label htmlFor={`fecha-previa-${index}`}>Fecha de venta por defecto (opcional)</Label>
+                            <input
+                              id={`fecha-previa-${index}`}
+                              type="date"
+                              value={archivo.fechaVentaPorDefecto}
+                              disabled={importandoExcel}
+                              onChange={(event) => setArchivosExcel((actuales) => actuales.map((item) =>
+                                item.id === archivo.id ? { ...item, fechaVentaPorDefecto: event.target.value } : item,
+                              ))}
+                              className="h-9 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                            />
+                          </div>
+                        </div>
+
+                        <p className="break-words text-xs text-muted-foreground">
+                          Vista previa: {archivo.registros.slice(0, 3).map((registro) =>
+                            `${registro.serial} — ${registro.referencia || "Sin referencia"} · ${registro.cliente || archivo.clientePorDefecto || "Sin cliente"} · ${registro.fechaVenta || archivo.fechaVentaPorDefecto || "Sin fecha"}`,
+                          ).join(" / ")}
+                        </p>
+                        {archivo.advertencia ? (
+                          <p className="rounded-md border border-warning/40 bg-warning/10 px-3 py-2 text-xs">
+                            {t(`serialesPrevios.excelWarning.${archivo.advertencia}`)}
+                          </p>
+                        ) : null}
+                      </div>
+                    ))}
                   </div>
-                  {archivoExcel.advertencia ? (
-                    <p className="rounded-md border border-warning/40 bg-warning/10 px-3 py-2 text-xs">
-                      {t(`serialesPrevios.excelWarning.${archivoExcel.advertencia}`)}
-                    </p>
-                  ) : null}
+
                   <Button
                     type="button"
                     loading={importandoExcel}
-                    disabled={importandoExcel || leyendoExcel || archivoExcel.seriales.length === 0}
+                    disabled={importandoExcel || leyendoExcel || estadisticasExcel.leidos === 0}
                     onClick={() => void importarExcel()}
                   >
                     <Upload />
-                    {t("serialesPrevios.excelImportAction", { count: archivoExcel.seriales.length.toLocaleString("es-CO") })}
+                    Importar {estadisticasExcel.leidos.toLocaleString("es-CO")} seriales de {archivosExcel.length} archivo(s)
                   </Button>
                 </div>
               ) : null}
+
               {resultadoExcel ? (
                 <p role="status" className="rounded-md border border-success/40 bg-success/10 px-3 py-2 text-sm text-success">
                   {t("serialesPrevios.excelResult", {
                     leidos: resultadoExcel.leidos,
                     importados: resultadoExcel.importados,
                     duplicados: resultadoExcel.duplicados,
-                  })}
+                  })} · {resultadoExcel.archivos} archivo(s) procesado(s)
                 </p>
               ) : null}
             </section>
