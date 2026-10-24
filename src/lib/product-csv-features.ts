@@ -17,7 +17,7 @@ export const getProductCsvFeatureCategoryIssue = (
   if (!category?.trim()) return "missing_type";
   if (!supportsTechnicalSpecs) return "unsupported_type";
 
-  const entries = features.split(/\s+\|\s+/).map((entry) => entry.trim()).filter(Boolean);
+  const entries = features.split(/\s*\|\s*/).map((entry) => entry.trim()).filter(Boolean);
   const malformed = entries.some((entry) => {
     const separator = entry.indexOf(":");
     return separator < 1 || !entry.slice(separator + 1).trim();
