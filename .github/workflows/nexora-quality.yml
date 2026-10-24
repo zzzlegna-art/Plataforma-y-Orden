@@ -26,6 +26,9 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Validate manual backup script
+        run: bash -n scripts/backup-supabase.sh
+
       - name: Audit production dependencies
         run: pnpm audit --prod
       - name: Deployment configuration

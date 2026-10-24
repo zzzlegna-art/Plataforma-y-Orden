@@ -33,7 +33,15 @@ fi
 
 mkdir -p "$out"
 chmod 700 "$out"
-trap 'rc=$?; if (( rc != 0 )); then echo "ERROR: backup incompleto; revisa y no uses la carpeta: '"$out"'" >&2; fi' EXIT
+backup_exit() {
+  local rc=$?
+  trap - EXIT
+  if (( rc != 0 )); then
+    printf 'ERROR: backup incompleto; revisa y no uses la carpeta: %s\\n' "$out" >&2
+  fi
+  exit "$rc"
+}
+trap backup_exit EXIT
 
 echo "Exportando roles de PostgreSQL..."
 supabase db dump --db-url "$SUPABASE_DB_URL" -f "$out/roles.sql" --role-only
