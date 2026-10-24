@@ -1,5 +1,7 @@
 # Auditoría de Seguridad — Bodega 6A
 
+> Para el estado vigente al 24 de octubre de 2026, consulta también `docs/NEXORA_AUDITORIA_FINAL.md`. Las recomendaciones antiguas se conservan como historial.
+
 ## Alcance
 
 Revisión de controles de seguridad de la aplicación:
@@ -109,3 +111,15 @@ Estos registros no demuestran por sí solos que sean la causa del error del nave
 3. Añadir pruebas automatizadas de acceso sin sesión y de separación entre roles.
 4. Revaluar índices de claves foráneas a medida que crezca el volumen real.
 5. Revisar tablas heredadas con su historial de migraciones antes de eliminarlas o concederles acceso.
+
+
+## Auditoría de cierre — 2026-10-24
+
+El informe vigente está en `docs/NEXORA_AUDITORIA_FINAL.md`. Resumen de esta ejecución:
+
+- 51/51 tablas públicas con RLS; las 21 tablas operativas tienen políticas explícitas.
+- Se aplicó `nexora_least_privilege_defaults`: sin privilegios de tabla innecesarios para roles API, sin RPC público anónimo y con defaults del propietario `postgres` endurecidos.
+- El script SQL de RLS/permisos pasó en una transacción con `ROLLBACK`.
+- Se añadieron pruebas para `RequireAuth` y `RequirePermission`; suite total: 547 aprobadas.
+- `pnpm check` y `pnpm check:deploy` pasan; la compilación también. Permanecen dos advertencias ESLint preexistentes y una advertencia de tamaño de chunk de Vite.
+- Siguen pendientes la protección contra contraseñas filtradas, confirmar backups y probar aislamiento con sesiones reales. La conexión no permite modificar defaults de `supabase_admin`; los objetos de la aplicación están bajo `postgres`.

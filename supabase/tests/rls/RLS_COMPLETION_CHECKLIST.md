@@ -11,7 +11,7 @@ Actualizado: 2026-10-24. Proyecto Supabase revisado en vivo: `ivholkjldntrmagcmo
 - [x] Bucket `product-images` público para lectura de imágenes de catálogo; cargas y borrados requieren personal activo.
 - [x] Funciones `SECURITY DEFINER` de autorización/almacenamiento verificadas con `search_path=public` y comprobación del usuario activo.
 - [x] Restricciones de integridad revisadas para seriales únicos, estados de unidades, pedidos y garantías.
-- [x] Migración de privilegios mínimos creada para quitar `TRUNCATE`, `REFERENCES`, `TRIGGER` y `MAINTAIN` de roles API, eliminar ejecución anónima de RPC y endurecer los defaults del propietario de objetos de la aplicación (`postgres`).
+- [x] Migración de privilegios mínimos aplicada para quitar `TRUNCATE`, `REFERENCES`, `TRIGGER` y `MAINTAIN` de roles API, eliminar ejecución anónima de RPC y endurecer los defaults del propietario de objetos de la aplicación (`postgres`).
 - [ ] Defaults del rol administrado `supabase_admin`: la conexión no es miembro de ese rol y no puede cambiar sus ACL predeterminadas. La auditoría confirmó que los 51 objetos públicos y las 18 funciones de la aplicación pertenecen a `postgres`; objetos internos del proveedor quedan fuera de esta migración.
 
 ## Pruebas automatizadas
@@ -20,9 +20,9 @@ Actualizado: 2026-10-24. Proyecto Supabase revisado en vivo: `ivholkjldntrmagcmo
 - [x] Reglas de pedidos/despachos, garantías/devoluciones, importaciones y seriales.
 - [x] Contrato estático de la migración de privilegios mínimos.
 - [x] Pruebas de rutas privadas: redirección sin sesión y protección por permiso.
-- [x] Script SQL de verificación RLS, permisos de tabla/función, historial inmutable y Storage disponible en `rls_role_isolation_tests.sql`.
+- [x] Script SQL `rls_role_isolation_tests.sql` ejecutado en el proyecto Supabase conectado dentro de una transacción con `ROLLBACK`; terminó sin excepciones.
 - [ ] Ejecutar pruebas de aislamiento con dos sesiones reales distintas (administrador y bodeguero). No se simula ni se declara validado sin credenciales de prueba.
-- [ ] Ejecutar el script SQL contra un entorno de prueba dedicado desde CI; la suite de frontend no sustituye la prueba con roles reales.
+- [ ] Automatizar el script SQL en un entorno de prueba dedicado desde CI; la ejecución de preflight en producción no sustituye la prueba con roles reales.
 
 ## Ajustes de configuración del proveedor
 
@@ -31,4 +31,4 @@ Actualizado: 2026-10-24. Proyecto Supabase revisado en vivo: `ivholkjldntrmagcmo
 
 ## Criterio de cierre
 
-La auditoría de código y los controles SQL de la aplicación se consideran cerrados cuando la migración se aplique y sus aserciones pasen. La certificación integral de seguridad sigue condicionada a las pruebas con sesiones reales y a confirmar protección de contraseñas filtradas/backups en el panel del proveedor.
+La auditoría de código y el hardening SQL de la aplicación están aplicados y sus aserciones pasaron. La certificación integral de seguridad sigue condicionada a las pruebas con sesiones reales, la protección de contraseñas filtradas y la confirmación de backups en el panel del proveedor.
