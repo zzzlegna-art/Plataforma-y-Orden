@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Download, History, LockOpen, PencilLine, Printer, ShieldAlert, Undo2 } from "lucide-react";
+import { CalendarDays, Clock3, Database, Download, FileText, History, LockOpen, PencilLine, Printer, ShieldAlert, ShoppingCart, Smartphone, Tag, Undo2, UserRound } from "lucide-react";
 import { Link, useSearchParams } from "react-router-dom";
 import { CodeLink, TextWithCodeLink } from "@/components/shared/code-link";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
@@ -73,6 +73,13 @@ const rutaOperativaGarantia = (warranty: { id: string; status: string }) => {
   return `/garantias?tab=${tab}&focus=${encodeURIComponent(warranty.id)}`;
 };
 
+const normalizarReferenciaCatalogo = (valor: string) =>
+  valor
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLocaleLowerCase()
+    .replace(/[^a-z0-9]/g, "");
+
 /** Ficha y línea de tiempo de un serial/IMEI con acciones de mantenimiento. */
 const HistorialSerial = ({ embedded = false }: { embedded?: boolean }) => {
   const { t } = useTranslation();
@@ -98,6 +105,19 @@ const HistorialSerial = ({ embedded = false }: { embedded?: boolean }) => {
     [db, search],
   );
   const product = unit ? db.products.find((item) => item.id === unit.productId) : undefined;
+  const productoVentaPrevia = useMemo(() => {
+    const referencia = serialPrevio?.referencia;
+    if (!referencia) return undefined;
+    const normalizada = normalizarReferenciaCatalogo(referencia);
+    const exacto = db.products.find((item) => normalizarReferenciaCatalogo(item.name) === normalizada);
+    if (exacto) return exacto;
+    return db.products
+      .filter((item) => {
+        const nombre = normalizarReferenciaCatalogo(item.name);
+        return nombre.length >= 8 && (normalizada.includes(nombre) || nombre.includes(normalizada));
+      })
+      .sort((a, b) => normalizarReferenciaCatalogo(b.name).length - normalizarReferenciaCatalogo(a.name).length)[0];
+  }, [db.products, serialPrevio?.referencia]);
   const timeline = useMemo(() => (unit ? getUnitTimeline(db, unit.id) : []), [db, unit]);
 
   // Recepción, venta, cliente y garantías del equipo (cada una se puede abrir desde aquí).
@@ -199,37 +219,96 @@ const HistorialSerial = ({ embedded = false }: { embedded?: boolean }) => {
       ) : null}
 
       {search && !unit && garantiasPorSerialManual.length === 0 && serialPrevio ? (
-        <section className="space-y-2 rounded-lg border border-warning/40 bg-warning/5 p-4 shadow-sm">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <h2 className="text-sm font-semibold">{t("serialHistory.priorSaleTitle")}</h2>
-            <Badge tone="warning" label={t("warranty.origin.previa")} withDot={false} />
+        <section className="overflow-hidden rounded-2xl border border-warning/40 bg-gradient-to-br from-warning/[0.08] via-card to-card p-4 shadow-sm sm:p-5">
+          <div className="grid gap-4 md:grid-cols-[minmax(0,190px)_minmax(0,1fr)]">
+            <div className="flex min-h-44 items-center justify-center rounded-xl border border-border/70 bg-background/80 p-3">
+              <div className="relative grid h-40 w-36 place-items-center">
+                <Smartphone aria-hidden="true" className="h-12 w-12 text-muted-foreground/30" />
+                <ProductThumbnail
+                  src={productoVentaPrevia?.imageUrl}
+                  alt={productoVentaPrevia?.name ?? serialPrevio.referencia ?? "Producto de venta previa"}
+                  size="2xl"
+                  className="absolute inset-0 h-full w-full rounded-xl border-0 bg-transparent p-2 shadow-none"
+                />
+              </div>
+            </div>
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div className="flex min-w-0 items-start gap-3">
+                  <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-warning/15 text-warning-foreground">
+                    <ShoppingCart aria-hidden="true" className="h-5 w-5" />
+                  </span>
+                  <div className="min-w-0">
+                    <h2 className="text-base font-semibold">{t("serialHistory.priorSaleTitle")}</h2>
+                    <p className="mt-1 text-sm leading-6 text-muted-foreground">
+                      {t("serialHistory.priorSaleDescription", { serial: serialPrevio.serial })}
+                    </p>
+                  </div>
+                </div>
+                <Badge tone="warning" label={t("serialHistory.priorSaleBadge")} withDot={false} />
+              </div>
+
+              <div className="mt-4 flex items-start gap-2 rounded-xl border border-border/60 bg-muted/35 px-3 py-2.5 text-xs text-muted-foreground">
+                <Clock3 aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0" />
+                <span>{t("serialHistory.priorSaleImportedAt", { date: formatDateTime(serialPrevio.createdAt) })}</span>
+              </div>
+
+              <dl className="mt-2 grid gap-x-6 sm:grid-cols-2">
+                {serialPrevio.referencia ? (
+                  <div className="flex min-w-0 items-start gap-3 border-b border-border/60 py-3">
+                    <Tag aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+                    <div className="min-w-0 flex-1 sm:grid sm:grid-cols-[100px_minmax(0,1fr)] sm:gap-2">
+                      <dt className="text-xs text-muted-foreground">Referencia</dt>
+                      <dd className="break-words text-sm font-medium">{productoVentaPrevia?.name ?? serialPrevio.referencia}</dd>
+                    </div>
+                  </div>
+                ) : null}
+                {serialPrevio.cliente ? (
+                  <div className="flex min-w-0 items-start gap-3 border-b border-border/60 py-3">
+                    <UserRound aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+                    <div className="min-w-0 flex-1 sm:grid sm:grid-cols-[100px_minmax(0,1fr)] sm:gap-2">
+                      <dt className="text-xs text-muted-foreground">Cliente</dt>
+                      <dd className="break-words text-sm font-medium">{serialPrevio.cliente}</dd>
+                    </div>
+                  </div>
+                ) : null}
+                {serialPrevio.fechaVenta ? (
+                  <div className="flex min-w-0 items-start gap-3 border-b border-border/60 py-3">
+                    <CalendarDays aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+                    <div className="min-w-0 flex-1 sm:grid sm:grid-cols-[100px_minmax(0,1fr)] sm:gap-2">
+                      <dt className="text-xs text-muted-foreground">Fecha de venta</dt>
+                      <dd className="break-words text-sm font-medium">{serialPrevio.fechaVenta}</dd>
+                    </div>
+                  </div>
+                ) : null}
+                {serialPrevio.archivoOrigen ? (
+                  <div className="flex min-w-0 items-start gap-3 border-b border-border/60 py-3">
+                    <FileText aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+                    <div className="min-w-0 flex-1 sm:grid sm:grid-cols-[100px_minmax(0,1fr)] sm:gap-2">
+                      <dt className="text-xs text-muted-foreground">Archivo</dt>
+                      <dd className="break-all text-sm font-medium">{serialPrevio.archivoOrigen}</dd>
+                    </div>
+                  </div>
+                ) : null}
+                {serialPrevio.hojaOrigen || serialPrevio.filaOrigen ? (
+                  <div className="flex min-w-0 items-start gap-3 border-b border-border/60 py-3">
+                    <Database aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+                    <div className="min-w-0 flex-1 sm:grid sm:grid-cols-[100px_minmax(0,1fr)] sm:gap-2">
+                      <dt className="text-xs text-muted-foreground">Origen</dt>
+                      <dd className="break-words text-sm font-medium">
+                        {serialPrevio.hojaOrigen || "hoja desconocida"}{serialPrevio.filaOrigen ? " · fila " + serialPrevio.filaOrigen : ""}
+                      </dd>
+                    </div>
+                  </div>
+                ) : null}
+              </dl>
+              {serialPrevio.notas ? (
+                <p className="mt-3 rounded-lg bg-muted/40 px-3 py-2 text-sm text-muted-foreground">
+                  <span className="font-medium text-foreground">{t("common.notes")}:</span> {serialPrevio.notas}
+                </p>
+              ) : null}
+            </div>
           </div>
-          <p className="text-sm text-muted-foreground">
-            {t("serialHistory.priorSaleDescription", { serial: serialPrevio.serial })}
-          </p>
-          <p className="text-xs text-muted-foreground">
-            {t("serialHistory.priorSaleImportedAt", { date: formatDateTime(serialPrevio.createdAt) })}
-          </p>
-          {serialPrevio.referencia ? (
-            <p className="text-sm"><span className="text-muted-foreground">Referencia:</span> {serialPrevio.referencia}</p>
-          ) : null}
-          {serialPrevio.cliente ? (
-            <p className="text-sm"><span className="text-muted-foreground">Cliente:</span> {serialPrevio.cliente}</p>
-          ) : null}
-          {serialPrevio.fechaVenta ? (
-            <p className="text-sm"><span className="text-muted-foreground">Fecha de venta:</span> {serialPrevio.fechaVenta}</p>
-          ) : null}
-          {serialPrevio.archivoOrigen ? (
-            <p className="break-all text-xs text-muted-foreground"><span>Archivo:</span> {serialPrevio.archivoOrigen}</p>
-          ) : null}
-          {serialPrevio.hojaOrigen || serialPrevio.filaOrigen ? (
-            <p className="text-xs text-muted-foreground">
-              Origen: {serialPrevio.hojaOrigen || "hoja desconocida"}{serialPrevio.filaOrigen ? ` · fila ${serialPrevio.filaOrigen}` : ""}
-            </p>
-          ) : null}
-          {serialPrevio.notas ? (
-            <p className="text-sm">{t("common.notes")}: {serialPrevio.notas}</p>
-          ) : null}
         </section>
       ) : null}
 
