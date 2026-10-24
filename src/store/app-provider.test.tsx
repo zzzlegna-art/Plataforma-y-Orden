@@ -140,4 +140,59 @@ describe("AppProvider · recuperación de resincronización", () => {
     });
     expect(screen.getByTestId("products").textContent).not.toContain("optimistic");
   });
+
+  it("mantiene la sesión recuperable si falla temporalmente la consulta del perfil", async () => {
+    const inicial = emptyDb();
+    let consultasPerfil = 0;
+    let perfilDisponible = false;
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    mocks.onAuthStateChange.mockReturnValue({ data: { subscription: { unsubscribe: vi.fn() } } });
+    // Start without a readable persisted session so the reconnect path is explicit.
+    mocks.getSession.mockResolvedValue({ data: { session: null } });
+    mocks.leerPerfil.mockResolvedValue(perfil);
+    mocks.consultarPerfilSesion.mockImplementation(async () => {
+      consultasPerfil += 1;
+      if (!perfilDisponible) throw new Error("network unavailable");
+      return perfil;
+    });
+    mocks.suscribirCambios.mockReturnValue(vi.fn());
+    mocks.setAuth.mockResolvedValue(undefined);
+    mocks.signOut.mockResolvedValue({ error: null });
+    mocks.pullDb.mockResolvedValue(inicial);
+
+    render(<AppProvider><Harness /></AppProvider>);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("ready").textContent).toBe("true");
+      expect(screen.getByTestId("user").textContent).toBe("");
+    }, { timeout: 4000 });
+    expect(mocks.consultarPerfilSesion).not.toHaveBeenCalled();
+
+    // The saved session becomes readable when connectivity returns, but its profile
+    // endpoint is still failing. Wait for the provider to finish its bounded retries.
+    mocks.getSession.mockResolvedValue({ data: { session } });
+    fireEvent(window, new Event("online"));
+    await waitFor(() => {
+      expect(errorSpy).toHaveBeenCalledWith(
+        "No se pudo verificar el perfil de la sesión",
+        expect.any(Error),
+      );
+    }, { timeout: 4000 });
+    expect(screen.getByTestId("user").textContent).toBe("");
+    expect(mocks.signOut).not.toHaveBeenCalled();
+
+    // Once the profile endpoint recovers, reconnecting must restore the same session.
+    perfilDisponible = true;
+    fireEvent(window, new Event("online"));
+
+    await waitFor(() => {
+      expect(screen.getByTestId("user").textContent).toBe("user-1");
+      expect(mocks.pullDb).toHaveBeenCalled();
+    }, { timeout: 4000 });
+
+    expect(mocks.signOut).not.toHaveBeenCalled();
+    expect(consultasPerfil).toBeGreaterThanOrEqual(5);
+    errorSpy.mockRestore();
+  });
 });

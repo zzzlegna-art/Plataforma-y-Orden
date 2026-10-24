@@ -64,11 +64,20 @@ const traducirErrorAuth = (mensaje: string) => {
  * milisegundos en estar visible, así que se reintenta la lectura.
  */
 const buscarPerfil = async (userId: string) => {
+  let errorFinal: unknown;
   for (let intento = 0; intento < 4; intento += 1) {
-    const perfil = await leerPerfil(userId);
-    if (perfil) return perfil;
-    await esperar(400);
+    try {
+      // No usar leerPerfil aquí: esa función convierte los errores de red en null,
+      // indistinguible de un perfil inexistente. Un fallo temporal no debe cerrar sesión.
+      const perfil = await consultarPerfilSesion(userId);
+      errorFinal = undefined;
+      if (perfil) return perfil;
+    } catch (error) {
+      errorFinal = error;
+    }
+    if (intento < 3) await esperar(400);
   }
+  if (errorFinal) throw errorFinal;
   return null;
 };
 
@@ -277,6 +286,14 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
         }
         if (intentoSesionRef.current !== intento) return;
         aplicarUsuario(actor);
+      } catch (error) {
+        // Si el perfil no se pudo consultar por un fallo temporal, deja la sesión
+        // reintentable. No confundas un error de red con una cuenta inactiva.
+        if (intentoSesionRef.current === intento) {
+          sesionRef.current = undefined;
+          console.error("No se pudo verificar el perfil de la sesión", error);
+          toast.error(t("errors.loadFailed"));
+        }
       } finally {
         if (intentoSesionRef.current === intento) setAbriendo(false);
       }
@@ -436,18 +453,32 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
     [aplicarDb, liberarBloqueo, refrescar],
   );
 
+  const reintentarSesionOInventario = useCallback(async () => {
+    if (userRef.current) {
+      await refrescar();
+      return;
+    }
+    try {
+      const { data, error } = await supabase.auth.getSession();
+      if (error) throw error;
+      if (data.session) await abrirSesion(data.session);
+    } catch (error) {
+      console.warn("No se pudo reintentar la sesión tras recuperar la conexión.", error);
+    }
+  }, [abrirSesion, refrescar]);
+
   useEffect(() => {
     const alVolver = () => {
-      if (document.visibilityState === "visible") void refrescar();
+      if (document.visibilityState === "visible") void reintentarSesionOInventario();
     };
-    const alRecuperarConexion = () => void refrescar();
+    const alRecuperarConexion = () => void reintentarSesionOInventario();
     document.addEventListener("visibilitychange", alVolver);
     window.addEventListener("online", alRecuperarConexion);
     return () => {
       document.removeEventListener("visibilitychange", alVolver);
       window.removeEventListener("online", alRecuperarConexion);
     };
-  }, [refrescar]);
+  }, [reintentarSesionOInventario]);
 
   const login = useCallback<AppValue["login"]>(async (email, password) => {
     const { data, error } = await supabase.auth.signInWithPassword({
