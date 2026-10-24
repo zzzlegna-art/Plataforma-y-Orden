@@ -67,18 +67,19 @@ export const ThemeToggle = () => {
       ref={buttonRef}
       variant="ghost"
       size="icon"
-      className="relative h-11 w-11 overflow-hidden"
+      className="relative h-11 w-11 overflow-hidden rounded-lg hover:bg-accent/80"
       aria-label={t("common.toggleTheme")}
       title={t("common.toggleTheme")}
+      aria-pressed={isDark}
       onClick={handleClick}
     >
       <Sun
-        className={`absolute transition-all duration-500 ease-out ${
+        className={`absolute transition-all duration-300 ease-out motion-reduce:transition-none ${
           isDark ? "rotate-0 scale-100 opacity-100" : "-rotate-90 scale-0 opacity-0"
         }`}
       />
       <Moon
-        className={`absolute transition-all duration-500 ease-out ${
+        className={`absolute transition-all duration-300 ease-out motion-reduce:transition-none ${
           isDark ? "rotate-90 scale-0 opacity-0" : "rotate-0 scale-100 opacity-100"
         }`}
       />

@@ -14,6 +14,12 @@ describe("buttonVariants · sidebar", () => {
     expect(clases).not.toMatch(/(^|\s)bg-background(\s|$)/);
   });
 
+  it("unifica el radio de botones normales y compactos", () => {
+    expect(buttonVariants({ variant: "default" })).toContain("rounded-lg");
+    expect(buttonVariants({ size: "sm" })).toContain("rounded-lg");
+    expect(buttonVariants({ size: "sm" })).not.toContain("rounded-md");
+  });
+
   it("'outline' no cambia: sigue siendo el botón claro de siempre", () => {
     expect(buttonVariants({ variant: "outline" })).toContain("bg-background");
   });

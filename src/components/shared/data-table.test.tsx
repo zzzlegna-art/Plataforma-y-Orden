@@ -64,7 +64,7 @@ describe("DataTable · estado vacío", () => {
     expect(screen.getByRole("button", { name: "Crear" })).toBeTruthy();
   });
 
-  it("con filas, se ve la tabla y no el estado vacío", () => {
+  it("con filas, aplica la superficie y los estados visuales unificados", () => {
     dibujar(
       <DataTable
         rows={[{ id: "1" }]}
@@ -75,5 +75,9 @@ describe("DataTable · estado vacío", () => {
       />,
     );
     expect(screen.queryByText("Sin productos")).toBeNull();
+    const table = screen.getByRole("table");
+    expect(table.closest(".overflow-hidden")?.className).toContain("rounded-xl");
+    expect(table.querySelector("thead")?.className).toContain("bg-muted/50");
+    expect(table.querySelector("tbody tr")?.className).toContain("hover:bg-primary/[0.04]");
   });
 });

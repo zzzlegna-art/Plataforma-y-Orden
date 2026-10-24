@@ -85,15 +85,15 @@ export const DataTable = <T,>({
   const paginado = rows.length > TAMANO_PAGINA;
 
   return (
-    <div className={cn("overflow-hidden rounded-lg border bg-card shadow-sm", className)}>
+    <div className={cn("overflow-hidden rounded-xl border border-border/80 bg-card shadow-sm transition-shadow duration-200 motion-reduce:transition-none", className)}>
       {esMovil ? (
-        <div className="divide-y">
+        <div className="divide-y divide-border/70">
           {visibles.map((row) => (
             <div
               key={rowKey(row)}
               onClick={onRowClick ? () => onRowClick(row) : undefined}
               className={cn(
-                "p-4",
+                "p-4 transition-colors duration-150 hover:bg-primary/[0.035] motion-reduce:transition-none",
                 onRowClick && "cursor-pointer active:bg-muted/60",
                 rowClassName?.(row),
               )}
