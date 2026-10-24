@@ -112,7 +112,7 @@ const parseNumber = (value: string, field: string): { value: number; error?: str
   // como "12abc" o "COPX 100" en un importe aparentemente válido.
   const currencyCodes = "(?:COP|USD|EUR|MXN|ARS|CLP|PEN|BRL|CAD|AUD)";
   const withoutCurrency = text
-    .replace(new RegExp(\`^\\s*\${currencyCodes}\\s*|\\s*\${currencyCodes}\\s*$\`, "i"), "")
+    .replace(new RegExp("^\\s*" + currencyCodes + "\\s*|\\s*" + currencyCodes + "\\s*$", "i"), "")
     .replace(/^\\s*[$€£¥₹]\\s*|\\s*[$€£¥₹]\\s*$/g, "")
     .trim();
   if (/[a-z]/i.test(withoutCurrency)) {
