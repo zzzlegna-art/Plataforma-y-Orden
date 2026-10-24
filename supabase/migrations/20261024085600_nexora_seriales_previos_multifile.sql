@@ -19,6 +19,8 @@ alter table public.bodega_previous_serials
   add column source_file text,
   add column import_batch_id uuid references public.bodega_previous_serial_import_batches(id) on delete set null;
 
+create index if not exists bodega_units_serial_normalized_idx
+  on public.bodega_units (lower(btrim(serial)));
 create index bodega_previous_serials_import_batch_idx
   on public.bodega_previous_serials (import_batch_id);
 create index bodega_previous_serial_import_batches_created_at_idx
