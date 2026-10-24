@@ -69,7 +69,7 @@ const normalizeModelReference = (value: string) => {
       continue;
     }
     // Capacidad sin unidad: solo se descarta después de haber identificado el número del modelo.
-    if (STORAGE_SIZES.has(word) && modelWords.some((token) => /^\d+$/.test(token))) continue;
+    if (STORAGE_SIZES.has(word) && modelWords.length > 1) continue;
     if (NON_MODEL_VARIANTS.has(word)) continue;
 
     modelWords.push(word);
