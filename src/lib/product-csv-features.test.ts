@@ -20,6 +20,11 @@ describe("getProductCsvFeatureCategoryIssue", () => {
     expect(getProductCsvFeatureCategoryIssue("RAM: 8 GB", "celular", true)).toBeUndefined();
   });
 
+  it("accepts valid fields separated by a pipe with or without surrounding spaces", () => {
+    expect(getProductCsvFeatureCategoryIssue("RAM: 8 GB|Processor: A18", "celular", true)).toBeUndefined();
+    expect(getProductCsvFeatureCategoryIssue("RAM: 8 GB | Processor: A18", "celular", true)).toBeUndefined();
+  });
+
   it("blocks malformed feature values that the parser would otherwise ignore", () => {
     expect(getProductCsvFeatureCategoryIssue("RAM 8 GB", "celular", true)).toBe("malformed_features");
     expect(getProductCsvFeatureCategoryIssue("RAM:", "celular", true)).toBe("malformed_features");
