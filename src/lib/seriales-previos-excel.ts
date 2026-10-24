@@ -199,6 +199,7 @@ type HojaDetectada = {
   columnaReferencia?: number;
   columnaCliente?: number;
   columnaFecha?: number;
+  porDatos?: boolean;
 };
 
 const detectarHojaConEncabezado = (
@@ -323,6 +324,7 @@ const detectarColumnasPorDatos = (
     columnaReferencia,
     columnaCliente,
     columnaFecha,
+    porDatos: true,
   };
 };
 
@@ -453,7 +455,7 @@ export const parseSerialWorkbook = (
       for (let indice = 0; indice < detectada.columnasSerial.length; indice += 1) {
         const columna = detectada.columnasSerial[indice];
         const serial = valorCelda(detectada.hoja, fila, columna, detectada.nombre);
-        if (!serial) continue;
+        if (!serial || (detectada.porDatos && !pareceSerial(serial))) continue;
 
         const encabezadoSerial = detectada.encabezados[indice] ?? "";
         const referenciaFila = detectada.columnaReferencia !== undefined
@@ -466,10 +468,13 @@ export const parseSerialWorkbook = (
           ? fechaDesdeCelda(detectada.hoja, fila, detectada.columnaFecha)
           : undefined;
 
-        const referencia = referenciaFila ||
-          (esCabeceraSerial(encabezadoSerial) || esCabeceraConocida(encabezadoSerial)
-            ? ""
-            : encabezadoSerial.trim());
+        const referenciaEncabezado =
+          !esCabeceraSerial(encabezadoSerial) && !esCabeceraConocida(encabezadoSerial)
+            ? encabezadoSerial.trim()
+            : "";
+        const referencia = detectada.porDatos
+          ? (referenciaEncabezado || referenciaFila)
+          : (referenciaFila || referenciaEncabezado);
 
         registros.push({
           serial,
