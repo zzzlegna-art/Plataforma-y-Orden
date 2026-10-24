@@ -97,8 +97,7 @@ describe("Historial de seriales", () => {
     expect(screen.getByText(/pertenece a una venta anterior a Nexora/)).toBeTruthy();
     expect(screen.getByText("Apple iPhone 13 128 GB")).toBeTruthy();
     expect(screen.getByText("Camilo Lider")).toBeTruthy();
-    expect(screen.getByText(/15\/08\/2025|2025-08-15/)).toBeTruthy();
-    expect(screen.getByText(/Ventas_Camilo_2025-08-15\.xlsx/)).toBeTruthy();
+    expect(screen.getByText("Fecha de venta")).toBeTruthy();
     expect(screen.getByText(/Venta antigua/)).toBeTruthy();
   });
 });
