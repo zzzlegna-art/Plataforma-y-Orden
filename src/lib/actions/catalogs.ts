@@ -10,7 +10,7 @@ import { isSameText, requireNumber, requirePermission, requireText } from "./gua
  * Ejemplos: "iPhone 13 128 GB" -> "IP13-128", "iPhone 14 Pro Max 256GB" -> "IP14PM-256",
  * "Samsung Galaxy S24 Ultra 256 GB" -> "S24U-256". El IMEI sigue identificando cada unidad.
  */
-export const generarSkuProducto = (db: Db, name: string, ignoreId?: string): string => {
+export const generarSkuProducto = (db: Db, name: string, ignoreId?: string, reservedSkus: ReadonlySet<string> = new Set()): string => {
   const normalizado = name
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
@@ -68,6 +68,7 @@ export const generarSkuProducto = (db: Db, name: string, ignoreId?: string): str
 
   const base = (modelo + (capacidad ? "-" + capacidad : "")).slice(0, 12);
   const taken = (sku: string) =>
+    reservedSkus.has(sku.trim().toUpperCase()) ||
     db.products.some((product) => product.id !== ignoreId && product.sku.trim().toUpperCase() === sku);
   if (!taken(base)) return base;
 
