@@ -65,6 +65,24 @@ describe("findProductForReference", () => {
     expect(findProductForReference([pro], "Apple iPhone 13 Pro Max 256 GB")).toBeUndefined();
   });
 
+  it("reconoce abreviaturas antiguas de iPhone", () => {
+    const iphone13 = {
+      name: "iPhone 13 128 GB",
+      imageUrl: "https://example.com/iphone-13.png",
+    };
+
+    expect(findProductForReference([iphone13], "13 de 128")).toBe(iphone13);
+  });
+
+  it("corrige una errata común en la referencia del Apple Watch", () => {
+    const watch46 = {
+      name: "Watch Serie 11 - 46",
+      imageUrl: "https://example.com/watch-46.png",
+    };
+
+    expect(findProductForReference([watch46], "Apple Wacth Serie 11 46 MMM NEW")).toBe(watch46);
+  });
+
   it("devuelve undefined si no hay referencia", () => {
     expect(findProductForReference([], "")).toBeUndefined();
   });
