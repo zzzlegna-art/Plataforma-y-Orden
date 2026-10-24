@@ -260,9 +260,25 @@ export const buscarSerialPrevio = (db: Db, serial: string) => {
 };
 
 export const listarSerialesPrevios = (db: Db, busqueda?: string) => {
-  const needle = busqueda?.trim().toLowerCase();
+  const normalizar = (valor: string | undefined) =>
+    (valor ?? "")
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .trim();
+  const needle = normalizar(busqueda);
   return db.serialesPrevios
-    .filter((item) => !needle || item.serial.toLowerCase().includes(needle))
+    .filter((item) =>
+      !needle ||
+      [
+        item.serial,
+        item.referencia,
+        item.cliente,
+        item.fechaVenta,
+        item.archivoOrigen,
+        item.notas,
+      ].some((valor) => normalizar(valor).includes(needle)),
+    )
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 };
 

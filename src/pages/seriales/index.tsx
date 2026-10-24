@@ -36,7 +36,7 @@ import {
   reingresarUnit,
   reportarNovedad,
 } from "@/lib/actions/units";
-import { formatCurrency, formatDateTime } from "@/lib/format";
+import { formatCurrency, formatDate, formatDateTime } from "@/lib/format";
 import { imprimirEtiquetas } from "@/lib/print-labels";
 import {
   buscarSerialPrevio,
@@ -207,9 +207,24 @@ const HistorialSerial = ({ embedded = false }: { embedded?: boolean }) => {
           <p className="text-sm text-muted-foreground">
             {t("serialHistory.priorSaleDescription", { serial: serialPrevio.serial })}
           </p>
-          <p className="text-xs text-muted-foreground">
-            {t("serialHistory.priorSaleImportedAt", { date: formatDateTime(serialPrevio.createdAt) })}
-          </p>
+          {serialPrevio.referencia ? (
+            <p className="text-sm">
+              <span className="text-muted-foreground">{t("serialHistory.priorSaleReference")}: </span>
+              <span className="font-medium">{serialPrevio.referencia}</span>
+            </p>
+          ) : null}
+          {serialPrevio.cliente ? (
+            <p className="text-sm">
+              <span className="text-muted-foreground">{t("serialHistory.priorSaleCustomer")}: </span>
+              <span className="font-medium">{serialPrevio.cliente}</span>
+            </p>
+          ) : null}
+          {serialPrevio.fechaVenta ? (
+            <p className="text-sm">
+              <span className="text-muted-foreground">{t("serialHistory.priorSaleSaleDate")}: </span>
+              <span className="font-medium">{formatDate(serialPrevio.fechaVenta)}</span>
+            </p>
+          ) : null}
           {serialPrevio.notas ? (
             <p className="text-sm">{t("common.notes")}: {serialPrevio.notas}</p>
           ) : null}

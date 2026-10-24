@@ -542,6 +542,11 @@ const ESPECIFICACIONES: Spec<unknown>[] = [
     aFila: (s) => ({
       id: s.id,
       serial: s.serial,
+      referencia: nulo(s.referencia),
+      cliente: nulo(s.cliente),
+      fecha_venta: nulo(s.fechaVenta),
+      source_file: nulo(s.archivoOrigen),
+      import_batch_id: nulo(s.loteImportacionId),
       notas: nulo(s.notas),
       created_by: nulo(s.createdBy),
       created_at: s.createdAt,
@@ -549,6 +554,11 @@ const ESPECIFICACIONES: Spec<unknown>[] = [
     desdeFila: (f) => ({
       id: String(f.id),
       serial: texto(f.serial) ?? "",
+      referencia: texto(f.referencia) ?? undefined,
+      cliente: texto(f.cliente) ?? undefined,
+      fechaVenta: texto(f.fecha_venta) ?? undefined,
+      archivoOrigen: texto(f.source_file) ?? undefined,
+      loteImportacionId: texto(f.import_batch_id) ?? undefined,
       notas: texto(f.notas) ?? undefined,
       createdBy: texto(f.created_by) ?? "",
       createdAt: fecha(f.created_at),
@@ -851,33 +861,62 @@ export const pushDb = async (previo: Db, siguiente: Db): Promise<void> => {
   }
 };
 
-/** Resultado de una importación masiva de seriales previos confirmada por el servidor. */
+/** Resultado confirmado por el servidor para un lote de seriales previos. */
 export type ResultadoImportacionSerialesPreviosLote = {
+  leidos: number;
   importados: number;
   duplicados: number;
+  conflictosInventario: number;
+  loteId?: string;
   auditoria?: AuditLog;
 };
 
+export type RegistroImportacionSerialPrevio = {
+  serial: string;
+  referencia?: string;
+  cliente?: string;
+  fechaVenta?: string;
+  notas?: string;
+};
+
+export type LoteImportacionSerialesPrevios = {
+  id: string;
+  archivo: string;
+  leidos: number;
+  importados: number;
+  duplicados: number;
+  conflictosInventario: number;
+  createdAt: string;
+};
+
 /**
- * Importa hasta 20.000 seriales en una transacción del servidor. La base de datos
- * vuelve a validar el rol y aplica la deduplicación incluso frente a importaciones
- * simultáneas desde otros dispositivos.
+ * Importa un archivo/lote con metadatos opcionales. La base vuelve a validar el rol,
+ * evita duplicados en paralelo y omite seriales que ya existen en el inventario activo.
  */
-export const importarSerialesPreviosEnLote = async (
-  seriales: string[],
-  notas?: string,
+export const importarRegistrosSerialesPreviosEnLote = async (
+  registros: RegistroImportacionSerialPrevio[],
+  archivoOrigen: string,
 ): Promise<ResultadoImportacionSerialesPreviosLote> => {
-  const valores = seriales.map((serial) => serial.trim()).filter(Boolean);
+  const valores = registros
+    .map((registro) => ({
+      serial: registro.serial.trim(),
+      referencia: registro.referencia?.trim() || undefined,
+      cliente: registro.cliente?.trim() || undefined,
+      fechaVenta: registro.fechaVenta?.trim() || undefined,
+      notas: registro.notas?.trim() || undefined,
+    }))
+    .filter((registro) => Boolean(registro.serial));
+
   if (valores.length > 20_000) {
     throw new DomainError("serialesPrevios.excelErrorTooMany");
   }
   if (valores.length === 0) {
-    return { importados: 0, duplicados: 0 };
+    return { leidos: 0, importados: 0, duplicados: 0, conflictosInventario: 0 };
   }
 
-  const { data, error } = await nube.rpc("nexora_importar_seriales_previos", {
-    p_seriales: valores,
-    p_notas: notas?.trim() || null,
+  const { data, error } = await nube.rpc("nexora_importar_seriales_previos_detallado", {
+    p_registros: valores,
+    p_archivo_origen: archivoOrigen,
   });
 
   if (error) {
@@ -899,39 +938,65 @@ export const importarSerialesPreviosEnLote = async (
   const respuesta = data as Fila;
   const importados = numero(respuesta.importados);
   const duplicados = numero(respuesta.duplicados);
-
-  // El servidor devuelve solo el resumen: la pantalla se resincroniza después,
-  // sin transferir otra vez las 20.000 filas en la respuesta del RPC.
+  const conflictosInventario = numero(respuesta.conflictosInventario);
+  const leidos = numero(respuesta.leidos);
   if (
     importados < 0 ||
     duplicados < 0 ||
-    importados + duplicados !== valores.length
+    conflictosInventario < 0 ||
+    leidos !== valores.length ||
+    importados + duplicados + conflictosInventario !== leidos
   ) {
     throw new DomainError("errors.saveFailed");
   }
 
-  let auditoria: AuditLog | undefined;
-  if (respuesta.auditoria && typeof respuesta.auditoria === "object") {
-    const fila = respuesta.auditoria as Fila;
-    auditoria = {
-      id: String(fila.id ?? ""),
-      userId: texto(fila.userId) ?? "",
-      userEmail: texto(fila.userEmail) ?? "",
-      action: (texto(fila.action) as AuditLog["action"]) ?? "create",
-      entity: (texto(fila.entity) as AuditLog["entity"]) ?? "serial_previo",
-      entityId: texto(fila.entityId) ?? undefined,
-      details: texto(fila.details) ?? undefined,
-      createdAt: fecha(fila.createdAt),
-    };
-  }
-
   return {
+    leidos,
     importados,
     duplicados,
-    auditoria,
+    conflictosInventario,
+    loteId: texto(respuesta.loteId) ?? undefined,
   };
 };
 
+/** Conserva la entrada de pegado manual usando las mismas reglas seguras del importador Excel. */
+export const importarSerialesPreviosEnLote = (
+  seriales: string[],
+  notas?: string,
+): Promise<ResultadoImportacionSerialesPreviosLote> =>
+  importarRegistrosSerialesPreviosEnLote(
+    seriales.map((serial) => ({ serial, notas })),
+    "Pegado manual",
+  );
+
+/** Devuelve los 20 lotes más recientes para que el usuario pueda auditar cada archivo importado. */
+export const listarLotesImportacionSerialesPrevios = async (): Promise<LoteImportacionSerialesPrevios[]> => {
+  const { data, error } = await nube
+    .from("bodega_previous_serial_import_batches")
+    .select("id,source_file,rows_read,imported_count,duplicate_count,inventory_conflict_count,created_at")
+    .order("created_at", { ascending: false })
+    .range(0, 19);
+
+  if (error) {
+    throw new DomainError("errors.saveFailed", {
+      detalle: detalleTecnico(error.message),
+    });
+  }
+
+  if (!Array.isArray(data)) return [];
+  return data.map((row) => {
+    const lote = row as Fila;
+    return {
+      id: String(lote.id),
+      archivo: texto(lote.source_file) ?? "Archivo sin nombre",
+      leidos: numero(lote.rows_read),
+      importados: numero(lote.imported_count),
+      duplicados: numero(lote.duplicate_count),
+      conflictosInventario: numero(lote.inventory_conflict_count),
+      createdAt: fecha(lote.created_at),
+    };
+  });
+};
 // ---------------------------------------------------------------------------
 // Control físico de seriales (migración 0005)
 //

@@ -73,34 +73,33 @@ beforeEach(() => {
 });
 
 describe("importarSerialesPreviosEnLote", () => {
-  it("envía el lote al RPC y devuelve filas nuevas y auditoría", async () => {
-    const auditoria = {
-      id: "22345678-1234-1234-1234-123456789012",
-      userId: "admin-1",
-      userEmail: "admin@example.com",
-      action: "create",
-      entity: "serial_previo",
-      entityId: null,
-      details: "1 seriales previos importados (lote)",
-      createdAt: ahora,
-    };
+  it("envía registros detallados al RPC y valida el resumen confirmado por servidor", async () => {
     mocks.rpc.mockResolvedValue({
-      data: { importados: 1, duplicados: 1, auditoria },
+      data: {
+        leidos: 2,
+        importados: 1,
+        duplicados: 1,
+        conflictosInventario: 0,
+        loteId: "lote-1",
+      },
       error: null,
     });
 
     const resultado = await importarSerialesPreviosEnLote(["SP-001", "sp-001"]);
 
-    expect(mocks.rpc).toHaveBeenCalledWith("nexora_importar_seriales_previos", {
-      p_seriales: ["SP-001", "sp-001"],
-      p_notas: null,
+    expect(mocks.rpc).toHaveBeenCalledWith("nexora_importar_seriales_previos_detallado", {
+      p_registros: [
+        { serial: "SP-001", referencia: undefined, cliente: undefined, fechaVenta: undefined, notas: undefined },
+        { serial: "sp-001", referencia: undefined, cliente: undefined, fechaVenta: undefined, notas: undefined },
+      ],
+      p_archivo_origen: "Pegado manual",
     });
-    expect(resultado.importados).toBe(1);
-    expect(resultado.duplicados).toBe(1);
-    expect(resultado.auditoria).toMatchObject({
-      userId: "admin-1",
-      entity: "serial_previo",
-      entityId: undefined,
+    expect(resultado).toMatchObject({
+      leidos: 2,
+      importados: 1,
+      duplicados: 1,
+      conflictosInventario: 0,
+      loteId: "lote-1",
     });
   });
 
@@ -117,8 +116,17 @@ describe("importarSerialesPreviosEnLote", () => {
       error: { code: "42501", message: "BODEGA_FORBIDDEN" },
     });
 
-    await expect(importarSerialesPreviosEnLote(["SP-001"])).rejects.toMatchObject({
-      key: "errors.forbidden",
+    await expect(importarSerialesPreviosEnLote(["SP-001"])).rejects.toBeInstanceOf(DomainError);
+  });
+
+  it("rechaza un resumen incoherente del servidor", async () => {
+    mocks.rpc.mockResolvedValue({
+      data: { leidos: 2, importados: 1, duplicados: 0, conflictosInventario: 0 },
+      error: null,
+    });
+
+    await expect(importarSerialesPreviosEnLote(["SP-001", "SP-002"])).rejects.toMatchObject({
+      key: "errors.saveFailed",
     });
   });
 });

@@ -81,6 +81,10 @@ describe("Historial de seriales", () => {
       serialesPrevios: [{
         id: "sp1",
         serial: "111222333444555",
+        referencia: "Apple iPhone 13 128 GB",
+        cliente: "Camilo Lider",
+        fechaVenta: "2025-08-15",
+        archivoOrigen: "Ventas_Camilo_2025-08-15.xlsx",
         notas: "Venta antigua",
         createdBy: "u1",
         createdAt: "2026-10-20T10:00:00.000Z",
@@ -91,6 +95,9 @@ describe("Historial de seriales", () => {
 
     expect(await screen.findByText("Serial de una venta previa")).toBeTruthy();
     expect(screen.getByText(/pertenece a una venta anterior a Nexora/)).toBeTruthy();
+    expect(screen.getByText("Apple iPhone 13 128 GB")).toBeTruthy();
+    expect(screen.getByText("Camilo Lider")).toBeTruthy();
+    expect(screen.getByText(/Fecha de venta/)).toBeTruthy();
     expect(screen.getByText(/Venta antigua/)).toBeTruthy();
   });
 });
