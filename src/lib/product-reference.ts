@@ -5,7 +5,7 @@ type ProductReference = Pick<Product, "name" | "imageUrl">;
 const normalizeReference = (value: string) =>
   value
     .normalize("NFD")
-    .replace(/[\\u0300-\\u036f]/g, "")
+    .replace(/[\u0300-\u036f]/g, "")
     .toLocaleLowerCase()
     .replace(/[^a-z0-9]/g, "");
 
@@ -17,7 +17,7 @@ const normalizeReference = (value: string) =>
 const normalizeModelReference = (value: string) =>
   normalizeReference(value)
     .replace(/^apple/, "")
-    .replace(/\\d+(?:gb|tb|mb)/g, "");
+    .replace(/\d+(?:gb|tb|mb)/g, "");
 
 export const findProductForReference = (
   products: readonly ProductReference[],
