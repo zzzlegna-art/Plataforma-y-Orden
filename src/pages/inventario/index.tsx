@@ -72,7 +72,7 @@ import {
 } from "@/lib/export";
 import { descargarCsv } from "@/lib/csv";
 import { getProductTechnicalSpecFieldsForCategory } from "@/lib/product-specs";
-import { coincideBusquedaInventario } from "@/lib/inventory-search";
+import { coincideBusquedaInventario, indexUnitSerialsByProduct } from "@/lib/inventory-search";
 import { clearInventoryFilters, getInventoryFilters, updateInventoryFilter } from "@/lib/inventory-filters";
 import { formatCurrency, todayIso } from "@/lib/format";
 import { getProductRows, type ProductRow, type ProductStock } from "@/lib/selectors";
@@ -518,6 +518,10 @@ const Inventario = () => {
     [db.productTypes],
   );
 
+  // Índice de seriales por producto: se construye una vez por actualización de unidades,
+  // no en cada tecla de búsqueda.
+  const serialsByProduct = useMemo(() => indexUnitSerialsByProduct(db.units), [db.units]);
+
   const rows = useMemo(() => {
     const cond = condicion === "" ? undefined : condicion;
     // El stock se calcula con la condición elegida: al filtrar "nuevos" no se
@@ -548,10 +552,11 @@ const Inventario = () => {
           productType ? etiquetaTipoProducto(t, productType) : undefined,
           ...standardSpecValues,
           ...customSpecValues,
+          ...(serialsByProduct.get(row.product.id) ?? []),
         ]);
       })
       .sort((a, b) => a.product.name.localeCompare(b.product.name));
-  }, [db, search, tipo, brandId, lowOnly, includeInactive, condicion, productTypesByKey, t]);
+  }, [db, search, tipo, brandId, lowOnly, includeInactive, condicion, productTypesByKey, serialsByProduct, t]);
 
   // Resumen de lo que se ve en la lista (respeta los filtros y la condición elegida).
   const totalDisponibles = rows.reduce((suma, row) => suma + row.stock.disponible, 0);
