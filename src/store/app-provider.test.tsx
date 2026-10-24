@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { useContext } from "react";
+import { useContext, useState } from "react";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -50,10 +50,12 @@ const perfil = { id: "user-1", email: "admin@example.com", full_name: "Admin", r
 
 const Harness = () => {
   const app = useContext(AppContext);
+  const [runError, setRunError] = useState("");
   if (!app) return null;
   return (
     <div>
       <div data-testid="user">{app.user?.id ?? ""}</div>
+      <div data-testid="run-error">{runError}</div>
       <div data-testid="products">{app.db.products.map((product) => product.name).join(",")}</div>
       <button onClick={() => {
         void app.run((db) => {
@@ -62,7 +64,7 @@ const Harness = () => {
             price: 10, cost: 5, minStock: 0, isActive: true,
             createdAt: "2026-10-24T00:00:00.000Z", updatedAt: "2026-10-24T00:00:00.000Z",
           });
-        }).catch(() => undefined);
+        }).catch((error: unknown) => setRunError(error instanceof Error ? error.message : String(error)));
       }}>Guardar cambio</button>
     </div>
   );
@@ -88,6 +90,7 @@ describe("AppProvider · recuperación de resincronización", () => {
     mocks.leerPerfil.mockResolvedValue(perfil);
     mocks.suscribirCambios.mockReturnValue(vi.fn());
     mocks.setAuth.mockResolvedValue(undefined);
+    mocks.signOut.mockResolvedValue({ error: null });
     mocks.pushDb.mockRejectedValue(new Error("network unavailable"));
     let recoveryPulls = 0;
     mocks.pullDb.mockImplementation(async () => {
@@ -103,7 +106,12 @@ describe("AppProvider · recuperación de resincronización", () => {
     await waitFor(() => expect(screen.getByTestId("user").textContent).toBe("user-1"));
 
     fireEvent.click(screen.getByRole("button", { name: "Guardar cambio" }));
-    await waitFor(() => expect(mocks.pushDb).toHaveBeenCalledTimes(1));
+    await waitFor(() => {
+      expect(
+        mocks.pushDb.mock.calls.length === 1 || screen.getByTestId("run-error").textContent !== "",
+      ).toBe(true);
+    });
+    expect(screen.getByTestId("run-error").textContent).toBe("");
     await waitFor(() => expect(mocks.pullDb).toHaveBeenCalledTimes(2));
 
     // The optimistic row must not be treated as confirmed after the save failed.
