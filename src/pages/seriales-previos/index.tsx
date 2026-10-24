@@ -424,11 +424,29 @@ const SerialesPrevios = ({ embedded = false }: { embedded?: boolean }) => {
                           <div className="min-w-0 flex-1">
                             <p className="truncate text-sm font-semibold">{archivo.nombre}</p>
                             <p className="mt-1 text-xs text-muted-foreground">
-                              {archivo.registros.length.toLocaleString("es-CO")} seriales · Hojas: {archivo.hojas.join(", ")}
+                              {archivo.registros.length.toLocaleString("es-CO")} seriales · {new Set(archivo.registros.map((registro) => registro.cliente).filter(Boolean)).size} clientes detectados · {new Set(archivo.registros.map((registro) => registro.referencia).filter(Boolean)).size} referencias · Hojas: {archivo.hojas.join(", ")}
                             </p>
                             <p className="text-xs text-muted-foreground">
-                              Columnas detectadas: {archivo.columnas.join(", ")}
+                              {archivo.columnas.length} columnas detectadas
                             </p>
+                            {archivo.columnas.length > 0 ? (
+                              <details className="mt-1 text-xs text-muted-foreground">
+                                <summary className="cursor-pointer select-none hover:text-foreground">
+                                  Ver columnas detectadas
+                                </summary>
+                                <ul className="mt-2 grid max-h-36 grid-cols-1 gap-1 overflow-y-auto rounded-md bg-muted/30 p-2 sm:grid-cols-2">
+                                  {archivo.columnas.map((columna, columnaIndex) => (
+                                    <li
+                                      key={`${archivo.id}-columna-${columnaIndex}`}
+                                      className="truncate"
+                                      title={columna}
+                                    >
+                                      {columna}
+                                    </li>
+                                  ))}
+                                </ul>
+                              </details>
+                            ) : null}
                           </div>
                           <Button
                             type="button"
@@ -446,7 +464,7 @@ const SerialesPrevios = ({ embedded = false }: { embedded?: boolean }) => {
 
                         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                           <div className="space-y-1">
-                            <Label htmlFor={`cliente-previo-${index}`}>Cliente por defecto (opcional)</Label>
+                            <Label htmlFor={`cliente-previo-${index}`}>Cliente por defecto (solo si no se detecta por columna)</Label>
                             <input
                               id={`cliente-previo-${index}`}
                               type="text"
