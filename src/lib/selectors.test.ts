@@ -13,7 +13,7 @@ describe("búsqueda de seriales previos", () => {
       cliente: "Chavela",
       fechaVenta: "2026-03-16",
       archivoOrigen: "Ventas_16-03-2026.xlsx",
-      hojaOrigen: "Chavela",
+      hojaOrigen: "Hoja Historial",
       filaOrigen: 15,
       notas: "Venta histórica",
       createdBy: "admin",
@@ -42,6 +42,7 @@ describe("búsqueda de seriales previos", () => {
       "2026-03-16",
       "Ventas_16-03-2026",
       "Chavela",
+      "historial",
       "15",
       "historica",
     ]) {
