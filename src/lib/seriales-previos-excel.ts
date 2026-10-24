@@ -371,6 +371,37 @@ const detectarFechaEnNombre = (nombre?: string): string | undefined => {
   return undefined;
 };
 
+const detectarFechaSinEtiqueta = (libro: XLSX.WorkBook): string | undefined => {
+  const fechas = new Set<string>();
+  for (const nombreHoja of libro.SheetNames) {
+    const hoja = libro.Sheets[nombreHoja];
+    const referencia = hoja?.["!ref"];
+    if (!hoja || !referencia) continue;
+    const rango = XLSX.utils.decode_range(referencia);
+    const maxFila = Math.min(rango.e.r, rango.s.r + 4);
+    const maxColumna = Math.min(rango.e.c, rango.s.c + 30);
+
+    for (let fila = rango.s.r; fila <= maxFila; fila += 1) {
+      let filaDeDatosSeriales = false;
+      for (let columna = rango.s.c; columna <= maxColumna; columna += 1) {
+        const valor = valorCelda(hoja, fila, columna, nombreHoja);
+        if (esCabeceraSerial(valor) || esSerialProbable(valor)) {
+          filaDeDatosSeriales = true;
+          break;
+        }
+      }
+      if (filaDeDatosSeriales) continue;
+
+      for (let columna = rango.s.c; columna <= maxColumna; columna += 1) {
+        const fecha = parsearFechaCelda(celda(hoja, fila, columna)) ??
+          parsearTextoFecha(valorCelda(hoja, fila, columna, nombreHoja));
+        if (fecha) fechas.add(fecha);
+      }
+    }
+  }
+  return fechas.size === 1 ? [...fechas][0] : undefined;
+};
+
 const detectarMetadatosEnLibro = (
   libro: XLSX.WorkBook,
   nombreArchivo?: string,
@@ -398,7 +429,6 @@ const detectarMetadatosEnLibro = (
 
       for (let columna = rango.s.c; columna <= maxColumna; columna += 1) {
         const valor = valorCelda(hoja, fila, columna, nombreHoja);
-        const normalizado = normalizarCabecera(valor);
         if (!fechaVenta && esCabeceraFecha(valor)) {
           fechaVenta =
             parsearFechaCelda(celda(hoja, fila, columna + 1)) ??
@@ -420,7 +450,10 @@ const detectarMetadatosEnLibro = (
     }
   }
 
-  return { cliente, fechaVenta: fechaVenta ?? detectarFechaEnNombre(nombreArchivo) };
+  return {
+    cliente,
+    fechaVenta: fechaVenta ?? detectarFechaSinEtiqueta(libro) ?? detectarFechaEnNombre(nombreArchivo),
+  };
 };
 
 const detectarColumna = (hoja: HojaDetectada, predicado: (valor: unknown) => boolean) => {
