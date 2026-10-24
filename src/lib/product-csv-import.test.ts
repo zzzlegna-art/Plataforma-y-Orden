@@ -58,6 +58,13 @@ describe("parseProductCsv", () => {
     expect(rows[0].error).toContain("costo debe ser un número");
   });
 
+  it("rechaza códigos de moneda incrustados entre dígitos", () => {
+    const rows = parseProductCsv(
+      "Producto;Precio;Costo;Stock mínimo\nTablet;1 COP 2;USD 100;1",
+    );
+    expect(rows[0].error).toContain("precio debe ser un número");
+  });
+
   it("permite códigos monetarios conocidos sin aceptar texto arbitrario", () => {
     const rows = parseProductCsv(
       "Producto;Precio;Costo;Stock mínimo\nTablet;COP 1.200;USD 100;1",

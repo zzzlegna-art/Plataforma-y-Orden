@@ -110,9 +110,10 @@ const parseNumber = (value: string, field: string): { value: number; error?: str
   if (!text) return { value: 0 };
   // Permite símbolos/códigos monetarios conocidos, pero no convierte texto arbitrario
   // como "12abc" o "COPX 100" en un importe aparentemente válido.
+  const currencyCodes = "(?:COP|USD|EUR|MXN|ARS|CLP|PEN|BRL|CAD|AUD)";
   const withoutCurrency = text
-    .replace(/\b(?:COP|USD|EUR|MXN|ARS|CLP|PEN|BRL|CAD|AUD)\b/gi, "")
-    .replace(/[$€£¥₹]/g, "")
+    .replace(new RegExp("^\\s*" + currencyCodes + "\\s*|\\s*" + currencyCodes + "\\s*$", "i"), "")
+    .replace(/^\\s*[$€£¥₹]\\s*|\\s*[$€£¥₹]\\s*$/g, "")
     .trim();
   if (/[a-z]/i.test(withoutCurrency)) {
     return { value: 0, error: `El campo ${field} debe ser un número mayor o igual a cero.` };
