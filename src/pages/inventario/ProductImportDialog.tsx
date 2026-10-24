@@ -131,6 +131,10 @@ export const ProductImportDialog = ({ trigger }: { trigger: React.ReactNode }) =
         return { row, status: "invalid", reason: t("productImport.featuresUnsupportedType") };
       }
 
+      if (featureCategoryIssue === "malformed_features") {
+        return { row, status: "invalid", reason: t("productImport.featuresMalformed") };
+      }
+
       if (row.brand) {
         const brand = db.brands.find((candidate) => sameName(candidate.name, row.brand));
         if (!brand) return { row, status: "invalid", reason: t("productImport.unknownBrand", { brand: row.brand }) };
