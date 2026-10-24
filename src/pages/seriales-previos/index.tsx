@@ -363,7 +363,7 @@ const SerialesPrevios = ({ embedded = false }: { embedded?: boolean }) => {
                   className="block w-full rounded-md border bg-background px-3 py-2 text-sm file:mr-3 file:rounded-md file:border-0 file:bg-primary file:px-3 file:py-1.5 file:text-primary-foreground"
                 />
                 <p className="text-xs text-muted-foreground">
-                  Puedes seleccionar muchos Excel a la vez. Se detectan seriales, referencias, clientes y fechas cuando aparecen en el archivo o en su nombre. Máximo 20.000 seriales por archivo y 25 MB por archivo.
+                  Puedes seleccionar muchos Excel a la vez. Se detectan seriales, referencias, clientes (incluido el nombre de cada hoja) y fechas. Máximo 20.000 seriales por archivo y 25 MB por archivo.
                 </p>
               </div>
 
@@ -464,7 +464,7 @@ const SerialesPrevios = ({ embedded = false }: { embedded?: boolean }) => {
 
                         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                           <div className="space-y-1">
-                            <Label htmlFor={`cliente-previo-${index}`}>Cliente por defecto (solo si no se detecta por columna)</Label>
+                            <Label htmlFor={`cliente-previo-${index}`}>Cliente por defecto (solo si no se detecta en la hoja ni en los datos)</Label>
                             <input
                               id={`cliente-previo-${index}`}
                               type="text"
