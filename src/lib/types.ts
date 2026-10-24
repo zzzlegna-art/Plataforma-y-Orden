@@ -315,6 +315,11 @@ export interface Technician {
 export interface SerialPrevio {
   id: string;
   serial: string;
+  referencia?: string;
+  cliente?: string;
+  fechaVenta?: string;
+  archivoOrigen?: string;
+  loteImportacionId?: string;
   notas?: string;
   createdBy: string;
   createdAt: string;
