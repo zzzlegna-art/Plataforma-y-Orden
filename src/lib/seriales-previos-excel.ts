@@ -183,7 +183,8 @@ const fechaDesdeNombre = (nombre: string): string | undefined => {
 };
 
 const pareceSerial = (valor: string) => {
-  const limpio = valor.trim().replace(/\s+/g, "");
+  const limpio = valor.trim();
+  if (/\s/.test(limpio)) return false;
   return /^\d{10,20}$/.test(limpio) ||
     (/^[A-Z0-9][A-Z0-9-]{7,24}$/i.test(limpio) && /[A-Z]/i.test(limpio) && /\d/.test(limpio));
 };
