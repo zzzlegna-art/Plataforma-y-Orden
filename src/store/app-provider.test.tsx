@@ -176,6 +176,6 @@ describe("AppProvider · recuperación de resincronización", () => {
     }, { timeout: 4000 });
 
     expect(mocks.signOut).not.toHaveBeenCalled();
-    expect(mocks.getSession).toHaveBeenCalledTimes(2);
+    expect(consultasPerfil).toBeGreaterThanOrEqual(5);
   });
 });
