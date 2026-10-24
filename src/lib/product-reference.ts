@@ -5,20 +5,60 @@ type ProductReference = Pick<Product, "name" | "imageUrl">;
 const normalizeReference = (value: string) =>
   value
     .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[\\u0300-\\u036f]/g, "")
     .toLocaleLowerCase()
     .replace(/[^a-z0-9]/g, "");
 
-/**
- * Normaliza el modelo sin la marca Apple al inicio ni la capacidad de almacenamiento.
- * Las ventas antiguas suelen indicar, por ejemplo, 256 GB mientras el catálogo solo
- * tiene la misma referencia fotografiada en 128 GB. La capacidad no cambia la foto.
- */
+const normalizeWords = (value: string) =>
+  value
+    .normalize("NFD")
+    .replace(/[\\u0300-\\u036f]/g, "")
+    .toLocaleLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim()
+    .split(/\\s+/)
+    .filter(Boolean);
+
+const STORAGE_UNITS = new Set(["gb", "tb", "mb"]);
+const NON_MODEL_VARIANTS = new Set([
+  "new", "nuevo", "nueva", "seminuevo", "seminueva", "usado", "usada",
+  "used", "openbox", "mmm",
+  "negro", "negra", "black", "midnight", "graphite", "grafito",
+  "blanco", "blanca", "white", "starlight", "plata", "plateado", "plateada",
+  "silver", "gris", "gray", "grey", "natural", "titanio", "titanium",
+  "desert", "deserttitanium", "azul", "blue", "rosa", "pink", "purple",
+  "morado", "morado", "verde", "green", "amarillo", "yellow", "rojo", "red",
+  "naranja", "orange", "beige", "lavender", "lila",
+]);
+
 const normalizeReferenceWithoutBrand = (value: string) =>
   normalizeReference(value).replace(/^apple/, "");
 
-const normalizeModelReference = (value: string) =>
-  normalizeReferenceWithoutBrand(value).replace(/\d+(?:gb|tb|mb)/g, "");
+/**
+ * Identifica el modelo del catálogo sin incluir la capacidad, el color o la
+ * condición que suelen añadirse en las referencias de Excel. No elimina rasgos
+ * del modelo (por ejemplo, "Pro Max"), para evitar mezclar equipos diferentes.
+ */
+const normalizeModelReference = (value: string) => {
+  const words = normalizeWords(value);
+  if (words[0] === "apple") words.shift();
+
+  const modelWords: string[] = [];
+  for (let index = 0; index < words.length; index += 1) {
+    const word = words[index];
+
+    if (/^\\d+(?:gb|tb|mb)$/.test(word)) continue;
+    if (/^\\d+$/.test(word) && STORAGE_UNITS.has(words[index + 1] ?? "")) {
+      index += 1;
+      continue;
+    }
+    if (NON_MODEL_VARIANTS.has(word)) continue;
+
+    modelWords.push(word === "series" ? "serie" : word);
+  }
+
+  return modelWords.join("");
+};
 
 export const findProductForReference = (
   products: readonly ProductReference[],
