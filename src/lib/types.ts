@@ -315,6 +315,13 @@ export interface Technician {
 export interface SerialPrevio {
   id: string;
   serial: string;
+  referencia?: string;
+  cliente?: string;
+  /** Fecha de venta original, no la fecha en que se importó. ISO YYYY-MM-DD. */
+  fechaVenta?: string;
+  archivoOrigen?: string;
+  hojaOrigen?: string;
+  filaOrigen?: number;
   notas?: string;
   createdBy: string;
   createdAt: string;

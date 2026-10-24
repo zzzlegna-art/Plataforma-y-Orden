@@ -542,6 +542,12 @@ const ESPECIFICACIONES: Spec<unknown>[] = [
     aFila: (s) => ({
       id: s.id,
       serial: s.serial,
+      referencia: nulo(s.referencia),
+      cliente: nulo(s.cliente),
+      fecha_venta: nulo(s.fechaVenta),
+      archivo_origen: nulo(s.archivoOrigen),
+      hoja_origen: nulo(s.hojaOrigen),
+      fila_origen: nulo(s.filaOrigen),
       notas: nulo(s.notas),
       created_by: nulo(s.createdBy),
       created_at: s.createdAt,
@@ -549,6 +555,14 @@ const ESPECIFICACIONES: Spec<unknown>[] = [
     desdeFila: (f) => ({
       id: String(f.id),
       serial: texto(f.serial) ?? "",
+      referencia: texto(f.referencia) ?? undefined,
+      cliente: texto(f.cliente) ?? undefined,
+      fechaVenta: texto(f.fecha_venta) ?? undefined,
+      archivoOrigen: texto(f.archivo_origen) ?? undefined,
+      hojaOrigen: texto(f.hoja_origen) ?? undefined,
+      filaOrigen: f.fila_origen === null || f.fila_origen === undefined
+        ? undefined
+        : numero(f.fila_origen),
       notas: texto(f.notas) ?? undefined,
       createdBy: texto(f.created_by) ?? "",
       createdAt: fecha(f.created_at),
@@ -851,6 +865,18 @@ export const pushDb = async (previo: Db, siguiente: Db): Promise<void> => {
   }
 };
 
+/** Fila de una venta anterior importada desde Excel. */
+export type RegistroImportacionVentaPrevia = {
+  serial: string;
+  referencia?: string;
+  cliente?: string;
+  fechaVenta?: string;
+  archivoOrigen?: string;
+  hojaOrigen?: string;
+  filaOrigen?: number;
+  notas?: string;
+};
+
 /** Resultado de una importación masiva de seriales previos confirmada por el servidor. */
 export type ResultadoImportacionSerialesPreviosLote = {
   importados: number;
@@ -863,6 +889,77 @@ export type ResultadoImportacionSerialesPreviosLote = {
  * vuelve a validar el rol y aplica la deduplicación incluso frente a importaciones
  * simultáneas desde otros dispositivos.
  */
+/**
+ * Importa filas con sus metadatos originales. Cada lote se confirma en una sola
+ * transacción y el servidor descarta seriales ya existentes en inventario, recepciones
+ * pendientes o ventas previas.
+ */
+export const importarVentasPreviasEnLote = async (
+  registros: RegistroImportacionVentaPrevia[],
+): Promise<ResultadoImportacionSerialesPreviosLote> => {
+  const valores = registros
+    .map((registro) => ({
+      serial: registro.serial.trim(),
+      referencia: registro.referencia?.trim() || undefined,
+      cliente: registro.cliente?.trim() || undefined,
+      fechaVenta: /^\d{4}-\d{2}-\d{2}$/.test(registro.fechaVenta ?? "")
+        ? registro.fechaVenta
+        : undefined,
+      archivoOrigen: registro.archivoOrigen?.trim() || undefined,
+      hojaOrigen: registro.hojaOrigen?.trim() || undefined,
+      filaOrigen: Number.isInteger(registro.filaOrigen) ? registro.filaOrigen : undefined,
+      notas: registro.notas?.trim() || undefined,
+    }))
+    .filter((registro) => registro.serial.length > 0);
+
+  if (valores.length > 20_000) {
+    throw new DomainError("serialesPrevios.excelErrorTooMany");
+  }
+  if (valores.length === 0) return { importados: 0, duplicados: 0 };
+
+  const { data, error } = await nube.rpc("nexora_importar_ventas_previas", {
+    p_registros: valores,
+  });
+
+  if (error) {
+    if (error.code === "42501" || error.message.includes("BODEGA_FORBIDDEN")) {
+      throw new DomainError("errors.forbidden");
+    }
+    if (error.message.includes("BODEGA_SERIAL_PREVIOS_LIMITE")) {
+      throw new DomainError("serialesPrevios.excelErrorTooMany");
+    }
+    throw new DomainError("errors.saveFailed", {
+      detalle: detalleTecnico(error.message),
+    });
+  }
+
+  if (!data || typeof data !== "object") throw new DomainError("errors.saveFailed");
+
+  const respuesta = data as Fila;
+  const importados = numero(respuesta.importados);
+  const duplicados = numero(respuesta.duplicados);
+  if (importados < 0 || duplicados < 0 || importados + duplicados !== valores.length) {
+    throw new DomainError("errors.saveFailed");
+  }
+
+  let auditoria: AuditLog | undefined;
+  if (respuesta.auditoria && typeof respuesta.auditoria === "object") {
+    const fila = respuesta.auditoria as Fila;
+    auditoria = {
+      id: String(fila.id ?? ""),
+      userId: texto(fila.userId) ?? "",
+      userEmail: texto(fila.userEmail) ?? "",
+      action: (texto(fila.action) as AuditLog["action"]) ?? "create",
+      entity: (texto(fila.entity) as AuditLog["entity"]) ?? "serial_previo",
+      entityId: texto(fila.entityId) ?? undefined,
+      details: texto(fila.details) ?? undefined,
+      createdAt: fecha(fila.createdAt),
+    };
+  }
+
+  return { importados, duplicados, auditoria };
+};
+
 export const importarSerialesPreviosEnLote = async (
   seriales: string[],
   notas?: string,
