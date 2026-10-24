@@ -37,6 +37,7 @@ import { eliminarSerialPrevio } from "@/lib/actions/seriales-previos";
 import { importarSerialesPreviosEnLote, importarVentasPreviasEnLote } from "@/lib/backend";
 import { DomainError } from "@/lib/db";
 import { formatDate } from "@/lib/format";
+import { findProductForReference } from "@/lib/product-reference";
 import {
   MAX_SERIAL_IMPORT,
   MAX_SERIAL_IMPORT_FILE_BYTES,
@@ -55,12 +56,6 @@ type ArchivoExcelEnCola = ParsedSerialWorkbook & {
   fechaVentaPorDefecto: string;
 };
 
-const normalizarReferenciaCatalogo = (valor: string) =>
-  valor
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLocaleLowerCase()
-    .replace(/[^a-z0-9]/g, "");
 
 /** Registro de ventas anteriores a la plataforma (seriales previos). */
 const SerialesPrevios = ({ embedded = false }: { embedded?: boolean }) => {
@@ -93,19 +88,10 @@ const SerialesPrevios = ({ embedded = false }: { embedded?: boolean }) => {
     () => (buscado ? buscarSerialPrevio(db, buscado) : undefined),
     [db, buscado],
   );
-  const productoEncontrado = useMemo(() => {
-    const referencia = encontrado?.referencia;
-    if (!referencia) return undefined;
-    const normalizada = normalizarReferenciaCatalogo(referencia);
-    const exacto = db.products.find((item) => normalizarReferenciaCatalogo(item.name) === normalizada);
-    if (exacto) return exacto;
-    return db.products
-      .filter((item) => {
-        const nombre = normalizarReferenciaCatalogo(item.name);
-        return nombre.length >= 8 && (normalizada.includes(nombre) || nombre.includes(normalizada));
-      })
-      .sort((a, b) => normalizarReferenciaCatalogo(b.name).length - normalizarReferenciaCatalogo(a.name).length)[0];
-  }, [db.products, encontrado?.referencia]);
+  const productoEncontrado = useMemo(
+    () => findProductForReference(db.products, encontrado?.referencia),
+    [db.products, encontrado?.referencia],
+  );
 
   const copiarSerial = async (serial: string) => {
     try {
