@@ -469,7 +469,9 @@ export const parseSerialWorkbook = (
           : undefined;
 
         const referenciaEncabezado =
-          !esCabeceraSerial(encabezadoSerial) && !esCabeceraConocida(encabezadoSerial)
+          !esCabeceraSerial(encabezadoSerial) &&
+          !esCabeceraConocida(encabezadoSerial) &&
+          !/^[A-Z]{1,3}$/.test(encabezadoSerial.trim())
             ? encabezadoSerial.trim()
             : "";
         const referencia = detectada.porDatos
