@@ -482,8 +482,8 @@ export const parseSerialWorkbook = (
         registros.push({
           serial,
           referencia: referencia || undefined,
-          cliente: clienteFila || clienteDetectado,
-          fechaVenta: fechaFila ?? fechaVentaDetectada,
+          cliente: clienteFila || undefined,
+          fechaVenta: fechaFila,
           hoja: detectada.nombre,
           fila: fila + 1,
         });
