@@ -230,6 +230,47 @@ export const OrderLineCard = ({
         </>
       )}
 
+      {editablePrecio ? (
+        <div className="mt-4 space-y-2 rounded-lg border bg-muted/20 p-3">
+          <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
+            <div className="min-w-0 space-y-1.5">
+              <label htmlFor={`precio-venta-${line.item.id}`} className="text-xs font-medium text-muted-foreground">
+                {t("order.salesPrice")}
+              </label>
+              <Input
+                id={`precio-venta-${line.item.id}`}
+                type="number"
+                min="0.01"
+                step="0.01"
+                value={precioBorrador}
+                onChange={(event) => setPrecioBorrador(event.target.value)}
+              />
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              disabled={!precioValido || precioNumerico === line.item.unitPrice}
+              onClick={() => onCambiarPrecio?.(precioNumerico)}
+            >
+              {t("order.savePrice")}
+            </Button>
+          </div>
+          <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
+            <span className="text-muted-foreground">
+              {t("order.lineSubtotal", { subtotal: formatCurrency(precioValido ? precioNumerico * line.item.quantity : 0) })}
+            </span>
+            <span className={cn("font-medium", margenBrutoPct < 5 ? "text-warning" : "text-success")}>
+              {t("order.grossMargin", { margin: margenBrutoPct.toFixed(1) })}
+            </span>
+          </div>
+          {margenBrutoPct < 5 ? (
+            <p className="rounded-md border border-warning/40 bg-warning/10 px-2.5 py-2 text-xs text-warning">
+              {t("order.marginWarning")}
+            </p>
+          ) : null}
+        </div>
+      ) : null}
+
       {autoRepuesto ? null : line.units.length > 0 ? (
         // Los seriales ya ingresados van como etiquetas compactas en cuadrícula: caben varios por
         // fila y se alinean en columnas, en vez de una fila ancha por cada uno.
