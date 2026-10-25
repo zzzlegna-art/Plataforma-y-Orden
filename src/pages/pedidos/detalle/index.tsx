@@ -473,7 +473,6 @@ const PedidoDetalle = () => {
           </Button>
         </div>
         <h3 className="text-sm font-semibold">Factura comercial</h3>
-        </div>
         <p className="mb-3 text-sm text-muted-foreground">
           Descarga la factura comercial en PDF o Excel. Se habilita al confirmar la venta y el despacho.
         </p>
