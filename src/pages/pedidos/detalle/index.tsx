@@ -268,7 +268,7 @@ const PedidoDetalle = () => {
     }
     const result = await runAction(
       (db2, actor) => editarPrecioReferencia(db2, actor, { orderItemId, nuevoPrecio: precio }),
-      { success: "Precio actualizado. Revisa la advertencia de costo antes de confirmar la venta." },
+      { success: "order.updated" },
     );
     if (result) {
       setLineaPrecioEditando(null);
