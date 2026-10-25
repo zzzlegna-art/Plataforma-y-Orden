@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { DomainError, emptyDb } from "../db";
 import type { Actor, Order, OrderItem, Product, Unit } from "../types";
-import { confirmarPreparacionPedido, confirmarVentaPedido } from "./orders";
+import { confirmarPreparacionPedido, confirmarVentaPedido, editarPrecioReferencia } from "./orders";
 
 const actor: Actor = { id: "admin-test", email: "admin@example.test", fullName: "Prueba", role: "admin" };
 const producto: Product = {
@@ -73,6 +73,43 @@ describe("despacho seguro de pedidos", () => {
     expect(db.orders[0].status).toBe("despachado");
     expect(db.units[0].status).toBe("vendido");
     expect(db.movements).toHaveLength(1);
+  });
+
+  it("permite negociar el precio de una línea y recalcula subtotal y total del pedido", () => {
+    const db = emptyDb();
+    db.products.push({ ...producto });
+    db.orders.push({ ...pedido, status: "preparado", total: 300 });
+    db.orderItems.push({ ...linea, quantity: 2, unitPrice: 150, subtotal: 300 });
+
+    const updated = editarPrecioReferencia(db, actor, {
+      orderItemId: linea.id,
+      nuevoPrecio: 125,
+    });
+
+    expect(updated.unitPrice).toBe(125);
+    expect(updated.subtotal).toBe(250);
+    expect(db.orders[0].total).toBe(250);
+    expect(db.products[0].price).toBe(150);
+  });
+
+  it("permite guardar precio por debajo del costo para mostrar advertencia, pero la venta sigue bloqueada", () => {
+    const db = emptyDb();
+    db.products.push({ ...producto, cost: 175 });
+    db.orders.push({ ...pedido, status: "preparado" });
+    db.orderItems.push({ ...linea, quantity: 1, subtotal: 150 });
+    db.units.push({ ...unidad, cost: 180 });
+    db.orderItemUnits.push({
+      id: "asignacion-1",
+      orderItemId: linea.id,
+      unitId: unidad.id,
+      createdAt: pedido.createdAt,
+    });
+
+    editarPrecioReferencia(db, actor, { orderItemId: linea.id, nuevoPrecio: 160 });
+    expect(db.orderItems[0].unitPrice).toBe(160);
+    expect(db.orders[0].total).toBe(160);
+    expect(() => confirmarVentaPedido(db, actor, { orderId: pedido.id })).toThrow(DomainError);
+    expect(db.orders[0].status).toBe("preparado");
   });
 
   it("bloquea confirmar la venta cuando el precio es inferior al costo real de la unidad", () => {
