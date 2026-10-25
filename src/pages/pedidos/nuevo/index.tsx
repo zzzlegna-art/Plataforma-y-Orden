@@ -418,21 +418,22 @@ const NuevoPedido = () => {
                 <p className="mt-1 text-xs text-muted-foreground">{t("order.noRefsMatchHint")}</p>
               </div>
             ) : (
-              <ul className="grid content-start gap-2 sm:grid-cols-2 xl:grid-cols-3 lg:max-h-[calc(100vh-22rem)] lg:overflow-y-auto lg:pr-1">
+              <ul className="grid min-w-0 grid-cols-[repeat(auto-fit,minmax(min(100%,17rem),1fr))] content-start gap-3 lg:max-h-[calc(100vh-22rem)] lg:overflow-y-auto lg:pr-1">
                 {lista.map(({ product, disponibles }) => {
                   const enPedido = cantidadEnPedido(product);
                   return (
                     <li
                       key={product.id}
                       className={cn(
-                        "flex items-center gap-3 rounded-lg border bg-card p-3 transition-[border-color,box-shadow,transform] duration-200 motion-reduce:transition-none [@media(hover:hover)]:hover:-translate-y-0.5 hover:shadow-elegant motion-reduce:[@media(hover:hover)]:hover:translate-y-0",
+                        "flex min-w-0 items-center gap-3 rounded-xl border bg-card p-3 transition-[border-color,box-shadow,transform] duration-200 motion-reduce:transition-none [@media(hover:hover)]:hover:-translate-y-0.5 hover:shadow-elegant motion-reduce:[@media(hover:hover)]:hover:translate-y-0",
                         enPedido > 0 && "border-primary/50 bg-primary/5",
                         disponibles === 0 && "opacity-60",
                       )}
                     >
                       <ProductMiniThumb imageUrl={product.imageUrl} name={product.name} />
                       <div className="min-w-0 flex-1">
-                        <p className="line-clamp-2 text-sm font-medium leading-snug">{product.name}</p>
+                        <p className="line-clamp-2 break-normal text-sm font-semibold leading-snug" title={product.name}>{product.name}</p>
+                         <p className="font-tabular truncate text-xs text-muted-foreground">{product.sku}</p>
                         <p className="mt-0.5 text-xs text-muted-foreground">
                           {t("order.availableInBodega", { count: disponibles })}
                         </p>
