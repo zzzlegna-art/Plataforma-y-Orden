@@ -1,11 +1,13 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Package, Trash2, X } from "lucide-react";
 
 import { SerialScanInput } from "@/components/shared/serial-scan-input";
 import { ConditionBadge } from "@/components/shared/status-badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import type { OrderLineView } from "@/lib/selectors";
+import { formatCurrency } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 /** Tarjeta de progreso de una referencia del pedido: cantidad y serialización. */
@@ -20,6 +22,8 @@ export const OrderLineCard = ({
   onAgregarUnidades,
   onQuitarUnidades,
   disponibles,
+  editablePrecio = false,
+  onCambiarPrecio,
   destacada = false,
 }: {
   line: OrderLineView;
@@ -33,15 +37,24 @@ export const OrderLineCard = ({
   onQuitarUnidades?: () => void;
   /** Unidades libres en inventario (solo se usa en los repuestos). */
   disponibles?: number;
+  editablePrecio?: boolean;
+  onCambiarPrecio?: (precio: number) => void;
   /** Resalta la tarjeta: un serial escaneado en otra referencia acaba de caer aquí. */
   destacada?: boolean;
 }) => {
   const { t } = useTranslation();
   const [imageFailed, setImageFailed] = useState(false);
+  const [precioBorrador, setPrecioBorrador] = useState(String(line.item.unitPrice));
+  useEffect(() => setPrecioBorrador(String(line.item.unitPrice)), [line.item.unitPrice]);
   const pct = Math.min(100, Math.round((line.serializados / line.item.quantity) * 100));
   const complete = line.serializados >= line.item.quantity;
   // Los repuestos no se escanean: mientras el pedido se prepara se descuentan solos al finalizar.
   const autoRepuesto = line.esRepuesto && editable;
+  const costosUnidades = line.units.map((unit) => unit.cost ?? line.product?.cost ?? 0);
+  const costoReferencia = costosUnidades.length > 0 ? Math.max(...costosUnidades) : (line.product?.cost ?? 0);
+  const precioNumerico = Number(precioBorrador);
+  const margenBrutoPct = precioNumerico > 0 ? ((precioNumerico - costoReferencia) / precioNumerico) * 100 : -100;
+  const precioValido = Number.isFinite(precioNumerico) && precioNumerico > 0;
 
   // El campo para escanear o escribir seriales va arriba, junto a la referencia, para ver cómo
   // sube el contador mientras se agregan, sin bajar hasta el final de la lista.
