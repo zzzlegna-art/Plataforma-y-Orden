@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { DomainError, emptyDb } from "../db";
 import type { Actor, Order, OrderItem, Product, Unit } from "../types";
-import { finalizarPedido } from "./orders";
+import { confirmarPreparacionPedido, confirmarVentaPedido } from "./orders";
 
 const actor: Actor = { id: "admin-test", email: "admin@example.test", fullName: "Prueba", role: "admin" };
 const producto: Product = {
@@ -35,7 +35,7 @@ describe("despacho seguro de pedidos", () => {
       { id: "asignacion-1", orderItemId: linea.id, unitId: unidad.id, createdAt: pedido.createdAt },
       { id: "asignacion-2", orderItemId: linea.id, unitId: unidad.id, createdAt: pedido.createdAt },
     );
-    expect(() => finalizarPedido(db, actor, { orderId: pedido.id })).toThrow(DomainError);
+    expect(() => confirmarPreparacionPedido(db, actor, { orderId: pedido.id })).toThrow(DomainError);
     expect(db.orders[0].status).toBe("en_preparacion");
     expect(db.units[0].status).toBe("en_bodega");
     expect(db.movements).toHaveLength(0);
@@ -51,4 +51,47 @@ describe("despacho seguro de pedidos", () => {
     expect(() => finalizarPedido(db, actor, { orderId: pedido.id })).toThrow(DomainError);
     expect(db.units[0].status).toBe("en_bodega");
   });
+  it("separa la preparación de la salida y solo vende en la segunda confirmación", () => {
+    const db = emptyDb();
+    db.products.push(producto);
+    db.orders.push({ ...pedido });
+    db.orderItems.push({ ...linea, quantity: 1, subtotal: 150 });
+    db.units.push({ ...unidad });
+    db.orderItemUnits.push({
+      id: "asignacion-1",
+      orderItemId: linea.id,
+      unitId: unidad.id,
+      createdAt: pedido.createdAt,
+    });
+
+    confirmarPreparacionPedido(db, actor, { orderId: pedido.id });
+    expect(db.orders[0].status).toBe("preparado");
+    expect(db.units[0].status).toBe("en_bodega");
+    expect(db.movements).toHaveLength(0);
+
+    confirmarVentaPedido(db, actor, { orderId: pedido.id });
+    expect(db.orders[0].status).toBe("despachado");
+    expect(db.units[0].status).toBe("vendido");
+    expect(db.movements).toHaveLength(1);
+  });
+
+  it("bloquea confirmar la venta cuando el precio es inferior al costo real de la unidad", () => {
+    const db = emptyDb();
+    db.products.push({ ...producto, cost: 175 });
+    db.orders.push({ ...pedido, status: "preparado" });
+    db.orderItems.push({ ...linea, quantity: 1, unitPrice: 150, subtotal: 150 });
+    db.units.push({ ...unidad, cost: 180 });
+    db.orderItemUnits.push({
+      id: "asignacion-1",
+      orderItemId: linea.id,
+      unitId: unidad.id,
+      createdAt: pedido.createdAt,
+    });
+
+    expect(() => confirmarVentaPedido(db, actor, { orderId: pedido.id })).toThrow(DomainError);
+    expect(db.orders[0].status).toBe("preparado");
+    expect(db.units[0].status).toBe("en_bodega");
+    expect(db.movements).toHaveLength(0);
+  });
+
 });
