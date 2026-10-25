@@ -55,9 +55,13 @@ export const ProductPicker = ({
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-60" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-[min(92vw,26rem)] p-0" align="start">
-        <Command>
-          <CommandInput {...SEARCH_INPUT_PROPS} placeholder={t("product.searchPlaceholder")} />
+      <PopoverContent className="w-[var(--radix-popover-trigger-width)] max-w-[calc(100vw-2rem)] overflow-hidden p-0" align="start">
+        <Command className="min-w-0">
+          <CommandInput
+            {...SEARCH_INPUT_PROPS}
+            placeholder={t("product.searchPlaceholder")}
+            className="h-10 min-w-0 rounded-none border-0 px-0 shadow-none outline-none ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:outline-none"
+          />
           <CommandList>
             <CommandEmpty>{t("common.noResults")}</CommandEmpty>
             <CommandGroup>
