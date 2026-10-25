@@ -319,11 +319,11 @@ export const exportOrderSerialRelationPdf = ({
 
 export interface SalesDocumentLine {
   reference: string;
+  product: string;
   condition?: string;
   quantity: number;
   unitPrice: number;
   subtotal: number;
-  serials: string[];
 }
 
 export interface SalesDocumentCustomer {
@@ -403,30 +403,7 @@ const drawSalesMetadata = (
   return top + 2 * (cellH + gap) - gap;
 };
 
-const buildSalesDocumentRows = (
-  input: SalesDocumentInput,
-  includePrices: boolean,
-) => input.lines.map((line) => {
-  const serials = line.serials.length ? line.serials.join("\n") : "No requiere serial";
-  const base: (string | number)[] = [
-    line.reference,
-    line.condition || "—",
-    line.quantity,
-  ];
-  if (includePrices) {
-    base.push(
-      formatDocumentMoney(line.unitPrice, input.currency),
-      formatDocumentMoney(line.subtotal, input.currency),
-    );
-  }
-  base.push(serials);
-  return base;
-});
-
-/**
- * Documento comercial interno de venta. No calcula impuestos porque la configuración
- * fiscal y la integración de factura electrónica deben validarse antes de emitir factura DIAN.
- */
+/** Genera la factura comercial del pedido en PDF. */
 export const exportSalesInvoicePdf = (input: SalesDocumentInput) => {
   const doc = new jsPDF({ orientation: "landscape", unit: "pt", format: "a4" });
   const pageW = doc.internal.pageSize.getWidth();
@@ -436,7 +413,7 @@ export const exportSalesInvoicePdf = (input: SalesDocumentInput) => {
   const company = exportCompanyName(input.companyName);
   const documentNumber = `FAC-${input.orderCode}`;
   const title = `FACTURA COMERCIAL · ${documentNumber}`;
-  const subtitle = `${company} · Documento interno de venta · No reemplaza factura electrónica DIAN`;
+  const subtitle = `${company} · Pedido ${input.orderCode}`;
   const drawHeader = () => dibujarEncabezado(doc, title, subtitle, margin);
   drawHeader();
 
@@ -457,8 +434,15 @@ export const exportSalesInvoicePdf = (input: SalesDocumentInput) => {
   autoTable(doc, {
     startY: tableStart,
     margin: { top: CONTENT_TOP, left: margin, right: margin, bottom: FOOTER_SPACE + 20 },
-    head: [["Referencia / producto", "Condición", "Cant.", "Precio unitario", "Subtotal", "IMEI / seriales"]],
-    body: buildSalesDocumentRows(input, true),
+    head: [["Referencia", "Producto", "Condición", "Cantidad", "Precio unitario", "Subtotal"]],
+    body: input.lines.map((line) => [
+      line.reference,
+      line.product,
+      line.condition || "—",
+      line.quantity,
+      formatDocumentMoney(line.unitPrice, input.currency),
+      formatDocumentMoney(line.subtotal, input.currency),
+    ]),
     showHead: "everyPage",
     rowPageBreak: "avoid",
     styles: {
@@ -474,12 +458,12 @@ export const exportSalesInvoicePdf = (input: SalesDocumentInput) => {
     headStyles: { fillColor: NAVY, textColor: [255, 255, 255], lineColor: CYAN, lineWidth: 0.8, fontStyle: "bold" },
     alternateRowStyles: { fillColor: CYAN_PALE },
     columnStyles: {
-      0: { cellWidth: width * 0.25, fontStyle: "bold", textColor: CYAN_DARK },
-      1: { cellWidth: width * 0.10 },
-      2: { cellWidth: width * 0.07, halign: "center" },
-      3: { cellWidth: width * 0.14, halign: "right" },
-      4: { cellWidth: width * 0.14, halign: "right" },
-      5: { cellWidth: width * 0.30, font: "courier", fontSize: 7 },
+      0: { cellWidth: width * 0.13, fontStyle: "bold", textColor: CYAN_DARK },
+      1: { cellWidth: width * 0.25 },
+      2: { cellWidth: width * 0.12 },
+      3: { cellWidth: width * 0.08, halign: "center" },
+      4: { cellWidth: width * 0.21, halign: "right" },
+      5: { cellWidth: width * 0.21, halign: "right" },
     },
     didDrawPage: () => drawHeader(),
   });
@@ -500,94 +484,7 @@ export const exportSalesInvoicePdf = (input: SalesDocumentInput) => {
   doc.text("TOTAL COMERCIAL", pageW - margin - 218, y + 16);
   doc.setFontSize(14);
   doc.text(formatDocumentMoney(total, input.currency), pageW - margin - 218, y + 33);
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(7);
-  doc.setTextColor(MUTED[0], MUTED[1], MUTED[2]);
-  doc.text(
-    doc.splitTextToSize("Documento comercial interno. Impuestos y requisitos fiscales no se calculan ni se certifican en este PDF. Para factura electrónica válida, emitir mediante el sistema autorizado correspondiente.", width) as string[],
-    margin,
-    y + 16,
-  );
   dibujarPies(doc, `Factura comercial · ${input.orderCode}`, margin);
-  doc.save(input.filename);
-  return doc;
-};
-
-/** Remisión operativa para la entrega de equipos; no reemplaza la factura de venta. */
-export const exportSalesRemisionPdf = (input: SalesDocumentInput) => {
-  const doc = new jsPDF({ orientation: "portrait", unit: "pt", format: "a4" });
-  const pageW = doc.internal.pageSize.getWidth();
-  const pageH = doc.internal.pageSize.getHeight();
-  const margin = 28;
-  const width = pageW - margin * 2;
-  const company = exportCompanyName(input.companyName);
-  const documentNumber = `REM-${input.orderCode}`;
-  const title = `REMISIÓN DE VENTA · ${documentNumber}`;
-  const subtitle = `${company} · Documento de entrega y trazabilidad`;
-  const drawHeader = () => dibujarEncabezado(doc, title, subtitle, margin);
-  drawHeader();
-
-  const metaBottom = drawSalesMetadata(doc, input, margin, CONTENT_TOP, width, documentNumber);
-  const contact = [
-    input.customer.address ? `Dirección de entrega: ${input.customer.address}` : "",
-    input.customer.phone ? `Teléfono: ${input.customer.phone}` : "",
-    input.customer.contactName ? `Contacto: ${input.customer.contactName}` : "",
-  ].filter(Boolean).join(" · ");
-  if (contact) {
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(8);
-    doc.setTextColor(TEXT[0], TEXT[1], TEXT[2]);
-    doc.text(doc.splitTextToSize(contact, width) as string[], margin, metaBottom + 14);
-  }
-
-  const tableStart = metaBottom + (contact ? 27 : 12);
-  autoTable(doc, {
-    startY: tableStart,
-    margin: { top: CONTENT_TOP, left: margin, right: margin, bottom: FOOTER_SPACE + 65 },
-    head: [["Referencia / producto", "Condición", "Cant.", "IMEI / seriales"]],
-    body: buildSalesDocumentRows(input, false),
-    showHead: "everyPage",
-    rowPageBreak: "avoid",
-    styles: {
-      font: "helvetica",
-      fontSize: 8,
-      cellPadding: { top: 7, bottom: 7, left: 7, right: 7 },
-      textColor: TEXT,
-      lineColor: BORDER,
-      lineWidth: 0.45,
-      valign: "middle",
-      overflow: "linebreak",
-    },
-    headStyles: { fillColor: NAVY, textColor: [255, 255, 255], lineColor: CYAN, lineWidth: 0.8, fontStyle: "bold" },
-    alternateRowStyles: { fillColor: CYAN_PALE },
-    columnStyles: {
-      0: { cellWidth: width * 0.39, fontStyle: "bold", textColor: CYAN_DARK },
-      1: { cellWidth: width * 0.15 },
-      2: { cellWidth: width * 0.10, halign: "center" },
-      3: { cellWidth: width * 0.36, font: "courier", fontSize: 7.5 },
-    },
-    didDrawPage: () => drawHeader(),
-  });
-
-  let y = ((doc as jsPDF & { lastAutoTable?: { finalY: number } }).lastAutoTable?.finalY ?? tableStart) + 24;
-  if (y > pageH - 100) {
-    doc.addPage();
-    drawHeader();
-    y = CONTENT_TOP + 18;
-  }
-  doc.setDrawColor(BORDER[0], BORDER[1], BORDER[2]);
-  doc.line(margin, y + 26, margin + width * 0.42, y + 26);
-  doc.line(margin + width * 0.58, y + 26, margin + width, y + 26);
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(8);
-  doc.setTextColor(TEXT[0], TEXT[1], TEXT[2]);
-  doc.text("Entregado por", margin, y + 40);
-  doc.text("Recibido conforme", margin + width * 0.58, y + 40);
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(7);
-  doc.setTextColor(MUTED[0], MUTED[1], MUTED[2]);
-  doc.text("La firma confirma la recepción física de los artículos descritos.", margin, y + 56);
-  dibujarPies(doc, `Remisión de venta · ${input.orderCode}`, margin);
   doc.save(input.filename);
   return doc;
 };

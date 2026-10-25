@@ -2,7 +2,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { strFromU8, unzipSync } from "fflate";
 
-import { exportCompanyName, exportExcel, exportOrderSerialRelationPdf, exportPedidosHistorialExcel, exportProductCatalogExcel, exportSalesInvoicePdf, exportSalesRemisionPdf, normalizeCatalogText } from "./export";
+import { exportCompanyName, exportExcel, exportOrderSerialRelationPdf, exportPedidosHistorialExcel, exportProductCatalogExcel, exportSalesInvoicePdf, normalizeCatalogText } from "./export";
 
 const ONE_PIXEL_JPEG =
   "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCAABAAEDASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwD6pooooA//2Q==";
@@ -101,7 +101,8 @@ describe("documentos comerciales de pedido", () => {
     },
     lines: [
       {
-        reference: "iPhone 18 Pro Max 256 GB",
+        reference: "IPH18PM-256",
+        product: "iPhone 18 Pro Max 256 GB",
         condition: "Nuevo",
         quantity: 2,
         unitPrice: 4200000,
@@ -112,18 +113,24 @@ describe("documentos comerciales de pedido", () => {
     filename: "documento-prueba.pdf",
   };
 
-  it("genera factura comercial PDF con referencia al pedido", () => {
+  it("genera factura comercial PDF con referencia, producto y valores sin incluir seriales ni avisos fiscales", () => {
     const doc = exportSalesInvoicePdf(input);
     expect(doc.getNumberOfPages()).toBeGreaterThan(0);
-    expect(doc.output()).toContain("FAC-PED-261025-002");
-    expect(doc.output()).toContain("No reemplaza factura electrónica DIAN");
-  });
-
-  it("genera remisión PDF con referencia al pedido y espacio de recibido conforme", () => {
-    const doc = exportSalesRemisionPdf(input);
-    expect(doc.getNumberOfPages()).toBeGreaterThan(0);
-    expect(doc.output()).toContain("REM-PED-261025-002");
-    expect(doc.output()).toContain("Recibido conforme");
+    const pdfText = doc.output();
+    expect(pdfText).toContain("FAC-PED-261025-002");
+    expect(pdfText).toContain("IPH18PM-256");
+    expect(pdfText).toContain("iPhone 18 Pro Max 256 GB");
+    expect(pdfText).toContain("Referencia");
+    expect(pdfText).toContain("Producto");
+    expect(pdfText).toContain("Condición");
+    expect(pdfText).toContain("Cantidad");
+    expect(pdfText).toContain("Precio unitario");
+    expect(pdfText).toContain("Subtotal");
+    expect(pdfText).not.toContain("000000006520990");
+    expect(pdfText).not.toContain("000000004102691");
+    expect(pdfText).not.toContain("Impuestos y requisitos fiscales");
+    expect(pdfText).not.toContain("sistema autorizado correspondiente");
+    expect(pdfText).not.toContain("No reemplaza factura electrónica DIAN");
   });
 });
 

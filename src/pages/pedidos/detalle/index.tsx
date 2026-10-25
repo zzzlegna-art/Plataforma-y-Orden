@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { ArrowLeft, Check, Download, FileSpreadsheet, FileText, PackagePlus, Receipt, Truck, Undo2, Wrench } from "lucide-react";
+import { ArrowLeft, Check, Download, FileSpreadsheet, PackagePlus, Receipt, Undo2, Wrench } from "lucide-react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
 
@@ -40,7 +40,7 @@ import {
   serializarImeiPedido,
   unidadesLibres,
 } from "@/lib/actions/orders";
-import { exportExcel, exportOrderSerialRelationPdf, exportSalesInvoicePdf, exportSalesRemisionPdf } from "@/lib/export";
+import { exportExcel, exportSalesInvoicePdf } from "@/lib/export";
 import { formatCurrency, formatDate, todayIso } from "@/lib/format";
 import { findUnitBySerial, getOrderView } from "@/lib/selectors";
 import type { UnitCondition } from "@/lib/types";
@@ -127,12 +127,12 @@ const PedidoDetalle = () => {
       address: customer?.address,
     },
     lines: lines.map((line) => ({
-      reference: line.product?.name ?? "Producto sin nombre",
+      reference: line.product?.sku ?? "—",
+      product: line.product?.name ?? "Producto sin nombre",
       condition: line.esRepuesto ? "No aplica" : line.item.condition ? t(`condition.${line.item.condition}`) : "—",
       quantity: line.item.quantity,
       unitPrice: line.item.unitPrice,
       subtotal: line.item.subtotal,
-      serials: line.units.map((unit) => unit.serial),
     })),
   });
   const addProduct = db.products.find((p) => p.id === addProductId);
@@ -439,97 +439,12 @@ const PedidoDetalle = () => {
       <section className="rounded-xl border bg-card p-4 shadow-sm">
         <div className="mb-3 flex items-center gap-2">
           <Download className="h-4 w-4 text-primary" />
-          <h2 className="text-sm font-semibold">Exportaciones de este pedido</h2>
+          <h2 className="text-sm font-semibold">Factura comercial</h2>
         </div>
         <p className="mb-3 text-sm text-muted-foreground">
-          El PDF conserva la relación de seriales para el empaque. El Excel incluye un resumen por referencia y una hoja con los IMEI individuales.
+          Descarga la factura comercial en PDF o Excel. Se habilita al confirmar la venta y el despacho.
         </p>
         <div className="flex flex-wrap gap-2">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => {
-              exportOrderSerialRelationPdf({
-                orderCode: order.code,
-                companyName: db.settings.companyName,
-                customer: customer?.name ?? "Sin cliente",
-                orderDate: formatDate(order.orderDate),
-                lines: lines.map((line) => ({
-                  reference: line.product?.name ?? "Producto sin nombre",
-                  condition: line.esRepuesto ? "No aplica" : line.item.condition ? t(`condition.${line.item.condition}`) : "—",
-                  quantity: line.item.quantity,
-                  serials: line.units.map((unit) => unit.serial),
-                  requiresSerial: !line.esRepuesto,
-                })),
-                filename: `pedido-${order.code.toLowerCase()}-seriales-${todayIso()}.pdf`,
-              });
-            }}
-          >
-            <FileText />
-            PDF · Relación de seriales
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => {
-              const resumen = lines.map((line) => [
-                line.product?.name ?? "Producto sin nombre",
-                line.esRepuesto ? "No aplica" : line.item.condition ? t(`condition.${line.item.condition}`) : "—",
-                line.item.quantity,
-                line.esRepuesto ? "No aplica" : line.units.length,
-                line.esRepuesto ? "No requiere serial" : line.units.map((unit) => unit.serial).join("\n") || "Pendiente de serializar",
-                line.item.unitPrice,
-                line.item.subtotal,
-              ]);
-              const detalleSeriales = lines.flatMap((line) => {
-                const base = line.product?.name ?? "Producto sin nombre";
-                const condicion = line.esRepuesto ? "No aplica" : line.item.condition ? t(`condition.${line.item.condition}`) : "—";
-                const comunes = [
-                  order.code,
-                  customer?.name ?? "Sin cliente",
-                  formatDate(order.orderDate),
-                  base,
-                  condicion,
-                  line.item.quantity,
-                  line.item.unitPrice,
-                  line.item.subtotal,
-                ];
-                if (line.esRepuesto) return [[...comunes, "No requiere serial"]];
-                if (line.units.length === 0) return [[...comunes, "Pendiente de serializar"]];
-                return line.units.map((unit) => [...comunes, unit.serial]);
-              });
-              exportExcel({
-                filename: `pedido-${order.code.toLowerCase()}-${todayIso()}.xlsx`,
-                sheets: [
-                  {
-                    name: "Resumen",
-                    title: `Pedido ${order.code}`,
-                    subtitle: `Cliente: ${customer?.name ?? "Sin cliente"} · Fecha: ${formatDate(order.orderDate)}`,
-                    columns: ["Referencia", "Condición", "Cantidad solicitada", "Seriales asignados", "IMEI / seriales asignados", "Precio unitario", "Subtotal"],
-                    rows: resumen,
-                    numberFormats: { 2: "#,##0", 5: "#,##0", 6: "#,##0" },
-                    columnWidths: [36, 16, 18, 16, 44, 18, 18],
-                    wrapColumns: [4],
-                    rowHeights: resumen.map((row) => Math.max(24, String(row[4]).split("\n").length * 15)),
-                  },
-                  {
-                    name: "Seriales detallados",
-                    title: `Detalle individual de seriales · ${order.code}`,
-                    subtitle: `Cliente: ${customer?.name ?? "Sin cliente"} · Fecha: ${formatDate(order.orderDate)} · Cada IMEI ocupa una fila independiente`,
-                    columns: ["Pedido", "Cliente", "Fecha", "Referencia", "Condición", "Cantidad de línea", "Precio unitario", "Subtotal de línea", "IMEI / serial"],
-                    rows: detalleSeriales,
-                    numberFormats: { 5: "#,##0", 6: "#,##0", 7: "#,##0" },
-                    columnWidths: [22, 24, 18, 38, 16, 16, 18, 20, 24],
-                    wrapColumns: [3, 8],
-                    freezeRows: 4,
-                  },
-                ],
-              });
-            }}
-          >
-            <FileSpreadsheet />
-            Excel · Detalle del pedido
-          </Button>
           <Button
             type="button"
             variant="outline"
@@ -549,25 +464,37 @@ const PedidoDetalle = () => {
             type="button"
             variant="outline"
             disabled={!ventaConfirmada}
-            title={!ventaConfirmada ? "Confirma la venta y el despacho para habilitar la remisión." : undefined}
+            title={!ventaConfirmada ? "Confirma la venta y el despacho para habilitar la factura comercial." : undefined}
             onClick={() => {
-              exportSalesRemisionPdf({
-                ...datosDocumentoVenta(),
-                filename: `remision-${order.code.toLowerCase()}-${todayIso()}.pdf`,
+              const formatoMoneda = db.settings.currency === "COP" ? '"$"#,##0' : "#,##0.00";
+              exportExcel({
+                filename: `factura-comercial-${order.code.toLowerCase()}-${todayIso()}.xlsx`,
+                sheets: [{
+                  name: "Factura comercial",
+                  title: `Factura comercial · ${order.code}`,
+                  subtitle: `Cliente: ${customer?.name ?? "Sin cliente"} · Fecha: ${formatDate(order.orderDate)}`,
+                  columns: ["Referencia", "Producto", "Condición", "Cantidad", "Precio unitario", "Subtotal"],
+                  rows: lines.map((line) => [
+                    line.product?.sku ?? "—",
+                    line.product?.name ?? "Producto sin nombre",
+                    line.esRepuesto ? "No aplica" : line.item.condition ? t(`condition.${line.item.condition}`) : "—",
+                    line.item.quantity,
+                    line.item.unitPrice,
+                    line.item.subtotal,
+                  ]),
+                  numberFormats: { 3: "#,##0", 4: formatoMoneda, 5: formatoMoneda },
+                  columnWidths: [20, 38, 16, 14, 20, 20],
+                  wrapColumns: [1],
+                  freezeRows: 4,
+                }],
               });
             }}
           >
-            <Truck />
-            Remisión de venta · PDF
+            <FileSpreadsheet />
+            Factura comercial · Excel
           </Button>
         </div>
-        <p className="mt-3 text-xs text-muted-foreground">
-          {!ventaConfirmada
-            ? "La factura comercial y la remisión se habilitan después de confirmar la venta y el despacho."
-            : "La factura comercial es un documento interno y no reemplaza una factura electrónica validada por la DIAN. La remisión documenta la entrega y los seriales."}
-        </p>
       </section>
-
       <div className="grid gap-3 sm:grid-cols-3">
         <div className="rounded-lg border bg-card p-4">
           <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
