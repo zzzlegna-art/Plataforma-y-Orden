@@ -22,6 +22,11 @@ const findOrder = (db: Db, orderId: string) => {
 const orderItems = (db: Db, orderId: string) =>
   db.orderItems.filter((item) => item.orderId === orderId);
 
+const recalcularTotalPedido = (db: Db, order: Order) => {
+  order.total = orderItems(db, order.id).reduce((sum, item) => sum + item.subtotal, 0);
+  order.updatedAt = nowIso();
+};
+
 const assertEnPreparacion = (order: Order) => {
   if (order.status !== "en_preparacion") {
     throw new DomainError("errors.orderNotEditable");
@@ -125,6 +130,7 @@ export const agregarReferenciaPedido = (
   if (existente) {
     existente.quantity += quantity;
     existente.subtotal = existente.quantity * existente.unitPrice;
+    recalcularTotalPedido(db, order);
     return existente;
   }
   const item: OrderItem = {
@@ -137,6 +143,7 @@ export const agregarReferenciaPedido = (
     subtotal: quantity * product.price,
   };
   db.orderItems.push(item);
+  recalcularTotalPedido(db, order);
   return item;
 };
 
@@ -156,12 +163,41 @@ export const quitarReferenciaPedido = (
     throw new DomainError("errors.referenceHasSerials", { count: asignados.length });
   }
   db.orderItems = db.orderItems.filter((row) => row.id !== item.id);
+  recalcularTotalPedido(db, order);
   logAudit(db, actor, {
     action: "update",
     entity: "order",
     entityId: order.id,
     details: `${order.code} · referencia quitada`,
   });
+};
+
+/**
+ * Ajusta el precio comercial de una referencia una vez confirmada la preparación.
+ * El costo de compra no se modifica; el control de precio mínimo se valida al confirmar la venta.
+ */
+export const actualizarPrecioReferencia = (
+  db: Db,
+  actor: Actor,
+  input: { orderItemId: string; unitPrice: number },
+): OrderItem => {
+  requirePermission(actor, "orders.manage");
+  const item = db.orderItems.find((row) => row.id === input.orderItemId);
+  if (!item) throw new DomainError("errors.notFound");
+  const order = findOrder(db, item.orderId);
+  if (order.status !== "preparado") throw new DomainError("errors.orderNotPrepared");
+
+  const unitPrice = requireNumber(input.unitPrice, "errors.invalidSalePrice", 0.01);
+  item.unitPrice = unitPrice;
+  item.subtotal = item.quantity * unitPrice;
+  recalcularTotalPedido(db, order);
+  logAudit(db, actor, {
+    action: "update",
+    entity: "order",
+    entityId: order.id,
+    details: `${order.code} · precio de venta actualizado para ${item.productId}`,
+  });
+  return item;
 };
 
 /** Cambia la cantidad pedida de una referencia (no puede bajar del serializado). */
@@ -188,6 +224,7 @@ export const editarCantidadReferencia = (
   }
   item.quantity = nueva;
   item.subtotal = nueva * item.unitPrice;
+  recalcularTotalPedido(db, order);
   logAudit(db, actor, {
     action: "update",
     entity: "order",
