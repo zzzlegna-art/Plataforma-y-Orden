@@ -498,7 +498,7 @@ const PedidoDetalle = () => {
         </div>
         <div className="rounded-lg border bg-card p-4">
           <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-            {t("order.total")}
+            {preparado ? t("order.total") : t("order.units")}
           </p>
           <p className="font-tabular mt-1 text-xl font-semibold">
             {preparado ? formatCurrency(order.total) : t("order.unitsToDispatch", { count: requested })}
