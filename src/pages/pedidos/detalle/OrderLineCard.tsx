@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Package, Trash2, X } from "lucide-react";
+import { CopySerialButton } from "@/components/shared/copy-serial-button";
 
 import { SerialScanInput } from "@/components/shared/serial-scan-input";
 import { ConditionBadge } from "@/components/shared/status-badge";
@@ -226,7 +227,8 @@ export const OrderLineCard = ({
               key={unit.id}
               className="flex animate-fade-in items-center justify-between gap-1 rounded-md border bg-background/40 py-1 pl-2.5 pr-1 motion-reduce:animate-none"
             >
-              <span className="font-tabular text-[13px]">{unit.serial}</span>
+              <span className="font-tabular min-w-0 truncate text-[13px]">{unit.serial}</span>
+              <CopySerialButton serial={unit.serial} />
               {editable || edicionDespachado ? (
                 <Button
                   type="button"
