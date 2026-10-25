@@ -61,6 +61,7 @@ export const UnitStatusBadge = ({ status }: { status: UnitStatus }) => {
 
 const ORDER_TONES: Record<OrderStatus, Tone> = {
   en_preparacion: "info",
+  preparado: "warning",
   despachado: "success",
   cancelado: "destructive",
 };
