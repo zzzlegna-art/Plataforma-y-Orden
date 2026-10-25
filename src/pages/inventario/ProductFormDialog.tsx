@@ -357,7 +357,7 @@ export const ProductFormDialog = ({
               id="price"
               value={form.price}
               onValueChange={(price) => setForm((current) => ({ ...current, price }))}
-/>
+            />
           </div>
           <div className="space-y-2">
             <Label htmlFor="cost">{t("product.cost")}</Label>
@@ -365,7 +365,7 @@ export const ProductFormDialog = ({
               id="cost"
               value={form.cost}
               onValueChange={(cost) => setForm((current) => ({ ...current, cost }))}
-/>
+            />
           </div>
           <div className="space-y-2">
             <Label htmlFor="minStock">{t("product.minStock")}</Label>
@@ -374,7 +374,7 @@ export const ProductFormDialog = ({
               value={form.minStock}
               allowDecimal={false}
               onValueChange={(minStock) => setForm((current) => ({ ...current, minStock }))}
-/>
+            />
           </div>
           <div className="flex items-center justify-between rounded-md border px-3 py-2">
             <Label htmlFor="isActive" className="text-sm">
