@@ -248,7 +248,8 @@ export const exportOrderSerialRelationPdf = ({
   const newPage = () => {
     doc.addPage();
     drawHeader();
-    y = CONTENT_TOP;
+    drawOrderBand();
+    y = CONTENT_TOP + 40;
   };
 
   for (const line of lines) {
@@ -262,8 +263,7 @@ export const exportOrderSerialRelationPdf = ({
     const label = `${line.reference} (${condition}) x${line.quantity} — ${countLabel}`;
     const titleLines = doc.splitTextToSize(label, width - 22) as string[];
     const titleHeight = Math.max(15, titleLines.length * 11 + 5);
-    const serialRows = serials.length ? Math.ceil(serials.length / columns) : 1;
-    const maxRowsPerPage = Math.max(1, Math.floor((bottom - CONTENT_TOP - titleHeight - 24) / 12));
+    const maxRowsPerPage = Math.max(1, Math.floor((bottom - (CONTENT_TOP + 40) - titleHeight - 13) / 12));
     const chunks: string[][] = [];
     if (serials.length === 0) {
       chunks.push([]);
