@@ -31,6 +31,7 @@ import {
   cancelarPedido,
   cancelarPedidoDespachado,
   editarCantidadReferencia,
+  editarPrecioReferencia,
   confirmarPreparacionPedido,
   confirmarVentaPedido,
   quitarImeiPedido,
@@ -39,8 +40,8 @@ import {
   serializarImeiPedido,
   unidadesLibres,
 } from "@/lib/actions/orders";
-import { exportExcel, exportOrderSerialRelationPdf } from "@/lib/export";
-import { formatDate, todayIso } from "@/lib/format";
+import { exportExcel, exportOrderSerialRelationPdf, exportSalesInvoicePdf, exportSalesRemisionPdf } from "@/lib/export";
+import { formatCurrency, formatDate, todayIso } from "@/lib/format";
 import { findUnitBySerial, getOrderView } from "@/lib/selectors";
 import type { UnitCondition } from "@/lib/types";
 import { OrderLineCard } from "./OrderLineCard";
@@ -61,6 +62,8 @@ const PedidoDetalle = () => {
   const [addQty, setAddQty] = useState("1");
   const [addCondition, setAddCondition] = useState<UnitCondition>("nuevo");
   const [cancelMotivo, setCancelMotivo] = useState("");
+  const [lineaPrecioEditando, setLineaPrecioEditando] = useState<string | null>(null);
+  const [precioBorrador, setPrecioBorrador] = useState("");
 
   // Edición de pedidos despachados: agregar/quitar seriales con validación.
   const [agregarLinea, setAgregarLinea] = useState<string | null>(null);
@@ -96,6 +99,7 @@ const PedidoDetalle = () => {
   }
 
   const { order, customer, lines, requested } = view;
+  const totalPedido = lines.reduce((total, line) => total + line.item.subtotal, 0);
   // Los repuestos no llevan serial (se descuentan solos al finalizar): el progreso y lo que falta
   // por asignar solo cuentan las referencias que sí se escanean.
   const lineasConSerial = lines.filter((line) => !line.esRepuesto);
@@ -107,6 +111,7 @@ const PedidoDetalle = () => {
   // El administrador puede ajustar (agregar/quitar unidades) y anular pedidos ya despachados.
   const edicionDespachado = isAdmin && order.status === "despachado";
   const ventaConfirmada = order.status === "despachado";
+  const precioEditable = editable || preparado;
   const datosDocumentoVenta = () => ({
     orderCode: order.code,
     companyName: db.settings.companyName,
@@ -255,6 +260,22 @@ const PedidoDetalle = () => {
       (db2, actor) => quitarReferenciaPedido(db2, actor, { orderItemId }),
       { success: "order.updated", key: `pedido-quitar-linea:${orderItemId}` },
     );
+
+  const guardarPrecio = async (orderItemId: string) => {
+    const precio = Number(precioBorrador);
+    if (!precioBorrador.trim() || !Number.isFinite(precio) || precio < 0) {
+      toast.error("Ingresa un precio válido, igual o superior a cero.");
+      return;
+    }
+    const result = await runAction(
+      (db2, actor) => editarPrecioReferencia(db2, actor, { orderItemId, nuevoPrecio: precio }),
+      { success: "order.updated" },
+    );
+    if (result) {
+      setLineaPrecioEditando(null);
+      setPrecioBorrador("");
+    }
+  };
 
   const agregarReferencia = async () => {
     const result = await runAction(
@@ -435,7 +456,7 @@ const PedidoDetalle = () => {
                 orderDate: formatDate(order.orderDate),
                 lines: lines.map((line) => ({
                   reference: line.product?.name ?? "Producto sin nombre",
-                  condition: line.item.condition ?? "—",
+                  condition: line.esRepuesto ? "No aplica" : line.item.condition ? t(`condition.${line.item.condition}`) : "—",
                   quantity: line.item.quantity,
                   serials: line.units.map((unit) => unit.serial),
                   requiresSerial: !line.esRepuesto,
@@ -453,17 +474,29 @@ const PedidoDetalle = () => {
             onClick={() => {
               const resumen = lines.map((line) => [
                 line.product?.name ?? "Producto sin nombre",
-                line.item.condition ?? "—",
+                line.esRepuesto ? "No aplica" : line.item.condition ? t(`condition.${line.item.condition}`) : "—",
                 line.item.quantity,
-                line.units.length,
+                line.esRepuesto ? "No aplica" : line.units.length,
+                line.esRepuesto ? "No requiere serial" : line.units.map((unit) => unit.serial).join("\n") || "Pendiente de serializar",
+                line.item.unitPrice,
+                line.item.subtotal,
               ]);
               const detalleSeriales = lines.flatMap((line) => {
                 const base = line.product?.name ?? "Producto sin nombre";
-                const condicion = line.item.condition ?? "—";
-                if (line.units.length === 0) {
-                  return [[base, condicion, line.item.quantity, "Pendiente de serializar"]];
-                }
-                return line.units.map((unit) => [base, condicion, line.item.quantity, unit.serial]);
+                const condicion = line.esRepuesto ? "No aplica" : line.item.condition ? t(`condition.${line.item.condition}`) : "—";
+                const comunes = [
+                  order.code,
+                  customer?.name ?? "Sin cliente",
+                  formatDate(order.orderDate),
+                  base,
+                  condicion,
+                  line.item.quantity,
+                  line.item.unitPrice,
+                  line.item.subtotal,
+                ];
+                if (line.esRepuesto) return [[...comunes, "No requiere serial"]];
+                if (line.units.length === 0) return [[...comunes, "Pendiente de serializar"]];
+                return line.units.map((unit) => [...comunes, unit.serial]);
               });
               exportExcel({
                 filename: `pedido-${order.code.toLowerCase()}-${todayIso()}.xlsx`,
@@ -472,17 +505,22 @@ const PedidoDetalle = () => {
                     name: "Resumen",
                     title: `Pedido ${order.code}`,
                     subtitle: `Cliente: ${customer?.name ?? "Sin cliente"} · Fecha: ${formatDate(order.orderDate)}`,
-                    columns: ["Referencia", "Condición", "Cantidad solicitada", "Seriales asignados"],
+                    columns: ["Referencia", "Condición", "Cantidad solicitada", "Seriales asignados", "IMEI / seriales asignados", "Precio unitario", "Subtotal"],
                     rows: resumen,
-                    numberFormats: { 2: "#,##0", 3: "#,##0" },
+                    numberFormats: { 2: "#,##0", 5: "#,##0", 6: "#,##0" },
+                    columnWidths: [36, 16, 18, 16, 44, 18, 18],
+                    wrapColumns: [4],
+                    rowHeights: resumen.map((row) => Math.max(24, String(row[4]).split("\n").length * 15)),
                   },
                   {
-                    name: "Seriales",
-                    title: `Seriales del pedido ${order.code}`,
-                    subtitle: `Cliente: ${customer?.name ?? "Sin cliente"}`,
-                    columns: ["Referencia", "Condición", "Cantidad de línea", "IMEI / serial"],
+                    name: "Seriales detallados",
+                    title: `Detalle individual de seriales · ${order.code}`,
+                    subtitle: `Cliente: ${customer?.name ?? "Sin cliente"} · Fecha: ${formatDate(order.orderDate)} · Cada IMEI ocupa una fila independiente`,
+                    columns: ["Pedido", "Cliente", "Fecha", "Referencia", "Condición", "Cantidad de línea", "Precio unitario", "Subtotal de línea", "IMEI / serial"],
                     rows: detalleSeriales,
-                    numberFormats: { 2: "#,##0" },
+                    numberFormats: { 5: "#,##0", 6: "#,##0", 7: "#,##0" },
+                    columnWidths: [22, 24, 18, 38, 16, 16, 18, 20, 24],
+                    wrapColumns: [3, 8],
                     freezeRows: 4,
                   },
                 ],
@@ -552,8 +590,9 @@ const PedidoDetalle = () => {
             {t("order.total")}
           </p>
           <p className="font-tabular mt-1 text-xl font-semibold">
-            {t("order.unitsToDispatch", { count: requested })}
+            {formatCurrency(totalPedido)}
           </p>
+          <p className="mt-1 text-xs text-muted-foreground">Total estimado de la venta</p>
         </div>
       </div>
 
@@ -575,28 +614,108 @@ const PedidoDetalle = () => {
 
       <section className="space-y-3">
         <h3 className="text-sm font-semibold">{t("order.linesTitle")}</h3>
-        {lines.map((line) => (
-          <OrderLineCard
-            key={line.item.id}
-            line={line}
-            editable={editable}
-            edicionDespachado={edicionDespachado}
-            onCambiarCantidad={(delta) => cambiarCantidad(line.item.id, delta)}
-            onSerializar={(serial) => void serializar(serial, line.item.id)}
-            destacada={lineaDestacada === line.item.id}
-            onQuitarSerial={(serial) =>
-              edicionDespachado ? abrirQuitar(line.item.id, serial) : quitarSerial(serial)
-            }
-            onQuitarLinea={() => quitarLinea(line.item.id)}
-            onAgregarUnidades={() => abrirAgregar(line.item.id)}
-            onQuitarUnidades={() => abrirQuitar(line.item.id)}
-            disponibles={
-              line.esRepuesto && editable
-                ? unidadesLibres(db, line.item.productId).length
-                : undefined
-            }
-          />
-        ))}
+        {lines.map((line) => {
+          const costos = line.units.length > 0
+            ? line.units.map((unit) => unit.cost ?? line.product?.cost ?? 0)
+            : [line.product?.cost ?? 0];
+          const costoReferencia = Math.max(0, ...costos);
+          const precioBajoCosto = line.item.unitPrice < costoReferencia;
+          const editandoPrecio = lineaPrecioEditando === line.item.id;
+          return (
+            <div key={line.item.id} className="space-y-2">
+              <OrderLineCard
+                line={line}
+                editable={editable}
+                edicionDespachado={edicionDespachado}
+                onCambiarCantidad={(delta) => cambiarCantidad(line.item.id, delta)}
+                onSerializar={(serial) => void serializar(serial, line.item.id)}
+                destacada={lineaDestacada === line.item.id}
+                onQuitarSerial={(serial) =>
+                  edicionDespachado ? abrirQuitar(line.item.id, serial) : quitarSerial(serial)
+                }
+                onQuitarLinea={() => quitarLinea(line.item.id)}
+                onAgregarUnidades={() => abrirAgregar(line.item.id)}
+                onQuitarUnidades={() => abrirQuitar(line.item.id)}
+                disponibles={
+                  line.esRepuesto && editable
+                    ? unidadesLibres(db, line.item.productId).length
+                    : undefined
+                }
+              />
+              <div className="flex flex-wrap items-center gap-x-5 gap-y-2 rounded-lg border bg-card/70 px-4 py-3 text-sm">
+                <div>
+                  <p className="text-xs text-muted-foreground">Precio unitario</p>
+                  <p className="font-tabular font-semibold">{formatCurrency(line.item.unitPrice)}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Subtotal · {line.item.quantity} unidades</p>
+                  <p className="font-tabular font-semibold">{formatCurrency(line.item.subtotal)}</p>
+                </div>
+                {line.product ? (
+                  <div>
+                    <p className="text-xs text-muted-foreground">Costo de referencia</p>
+                    <p className="font-tabular">{formatCurrency(costoReferencia)}</p>
+                  </div>
+                ) : null}
+                {precioEditable ? (
+                  editandoPrecio ? (
+                    <div className="flex flex-wrap items-end gap-2 sm:ml-auto">
+                      <div className="space-y-1">
+                        <Label htmlFor={`precio-${line.item.id}`}>Nuevo precio unitario</Label>
+                        <Input
+                          id={`precio-${line.item.id}`}
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          value={precioBorrador}
+                          onChange={(event) => setPrecioBorrador(event.target.value)}
+                          className="w-44"
+                        />
+                      </div>
+                      <Button
+                        type="button"
+                        size="sm"
+                        loading={runAction.pending}
+                        onClick={() => void guardarPrecio(line.item.id)}
+                      >
+                        Guardar precio
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          setLineaPrecioEditando(null);
+                          setPrecioBorrador("");
+                        }}
+                      >
+                        Cancelar
+                      </Button>
+                    </div>
+                  ) : (
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      className="sm:ml-auto"
+                      onClick={() => {
+                        setLineaPrecioEditando(line.item.id);
+                        setPrecioBorrador(String(line.item.unitPrice));
+                      }}
+                    >
+                      Editar precio de venta
+                    </Button>
+                  )
+                ) : null}
+                {precioBajoCosto ? (
+                  <p className="basis-full rounded-md border border-warning/40 bg-warning/10 px-3 py-2 text-xs font-medium text-warning">
+                    Advertencia: el precio de venta está por debajo del costo ({formatCurrency(costoReferencia)}). Puedes ajustar el precio, pero el sistema no permitirá confirmar la venta mientras siga por debajo del costo real.
+                  </p>
+                ) : null}
+              </div>
+            </div>
+          );
+        })}
       </section>
 
       {order.status === "despachado" ? (

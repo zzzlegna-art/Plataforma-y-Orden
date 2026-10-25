@@ -55,6 +55,33 @@ describe("PDF de relación de seriales", () => {
     });
 
     expect(doc.getNumberOfPages()).toBeGreaterThan(0);
+    const pdfText = doc.output();
+    expect(pdfText).toContain("iPhone 18 Pro Max 256 GB");
+    expect(pdfText).toContain("000000006520990");
+    expect(pdfText).toContain("000000004102691");
+    expect(pdfText).toContain("PED-001");
+  });
+
+  it("divide grandes cantidades de IMEI en páginas legibles sin omitir seriales", () => {
+    Object.defineProperty(URL, "createObjectURL", {
+      configurable: true,
+      value: () => "blob:serial-relation-many-test",
+    });
+    Object.defineProperty(URL, "revokeObjectURL", { configurable: true, value: () => undefined });
+    const serials = Array.from({ length: 420 }, (_, index) => String(100000000000000 + index));
+    const doc = exportOrderSerialRelationPdf({
+      orderCode: "PED-MULTI",
+      companyName: "NEXORA",
+      customer: "Cliente de prueba",
+      orderDate: "25 oct 2026",
+      filename: "pedido-multi-seriales.pdf",
+      lines: [{ reference: "iPhone de prueba", condition: "nuevo", quantity: serials.length, serials }],
+    });
+
+    expect(doc.getNumberOfPages()).toBeGreaterThan(1);
+    const pdfText = doc.output();
+    expect(pdfText).toContain(serials[0]);
+    expect(pdfText).toContain(serials[serials.length - 1]);
   });
 });
 
