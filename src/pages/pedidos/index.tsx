@@ -9,7 +9,6 @@ import { PageHeader } from "@/components/shared/page-header";
 import { SearchField } from "@/components/shared/search-field";
 import { OrderStatusBadge } from "@/components/shared/status-badge";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -17,22 +16,17 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { useStore } from "@/hooks/use-store";
 import {
   exportCompanyName,
   exportExcel,
-  exportPedidosHistorialExcel,
-  exportPedidosHistorialPdf,
   exportPdf,
   exportSubtitle,
-  exportSubtitlePedidos,
 } from "@/lib/export";
-import { formatCurrency, formatDate, formatDateTime, todayIso } from "@/lib/format";
+import { formatDate, todayIso } from "@/lib/format";
 import { getOrderViews, type OrderView } from "@/lib/selectors";
 
-const STATUSES = ["en_preparacion", "despachado", "cancelado"] as const;
+const STATUSES = ["en_preparacion", "preparado", "despachado", "cancelado"] as const;
 
 /** Listado de pedidos a clientes mayoristas. */
 const Pedidos = () => {
@@ -66,11 +60,7 @@ const Pedidos = () => {
       { replace: true },
     );
   const [exportOpen, setExportOpen] = useState(false);
-  const [exportScope, setExportScope] = useState<"todos" | "despachados">("todos");
   const [soloFiltrado, setSoloFiltrado] = useState(true);
-
-  const [historialDesde, setHistorialDesde] = useState("");
-  const [historialHasta, setHistorialHasta] = useState("");
 
   const rows = useMemo(() => {
     const needle = search.trim().toLowerCase();
@@ -95,105 +85,34 @@ const Pedidos = () => {
       view.order.code,
       view.customer?.name ?? t("order.noCustomer"),
       formatDate(view.order.orderDate),
-      t("order.serializedOf", { assigned: view.assigned, requested: view.requested }),
-      formatCurrency(view.order.total),
-      t(`orderStatus.${view.order.status}`),
+      view.order.status === "despachado" ? view.assigned : 0,
     ]);
     const head = [
       t("order.code"),
       t("order.customer"),
       t("order.orderDate"),
-      t("order.units"),
-      t("order.total"),
-      t("export.estado"),
+      t("order.unitsDispatched"),
     ];
 
     if (format === "pdf") {
       exportPdf({
-        title: `${t("nav.orders")} — ${exportCompanyName(db.settings.companyName)}`,
+        title: t("nav.orders") + " — " + exportCompanyName(db.settings.companyName),
         subtitle: exportSubtitle(body.length),
         head,
         body,
-        filename: `pedidos-${todayIso()}.pdf`,
+        filename: "pedidos-resumen-" + todayIso() + ".pdf",
         highlightColumns: [0],
       });
     } else {
       exportExcel({
-        filename: `pedidos-${todayIso()}.xlsx`,
-        sheets: [
-          {
-            name: "Pedidos",
-            title: `${t("nav.orders")} — ${exportCompanyName(db.settings.companyName)}`,
-            subtitle: exportSubtitle(body.length),
-            columns: head,
-            rows: body,
-          },
-        ],
-      });
-    }
-  };
-
-  const despachadosEnRango = useMemo(() => {
-    return rows
-      .filter((view) => view.order.status === "despachado")
-      .filter((view) => {
-        const fecha = (view.order.deliveryDate ?? view.order.createdAt).slice(0, 10);
-        if (historialDesde && fecha < historialDesde) return false;
-        if (historialHasta && fecha > historialHasta) return false;
-        return true;
-      });
-  }, [rows, historialDesde, historialHasta]);
-
-  const exportarHistorial = (format: "pdf" | "excel") => {
-    if (despachadosEnRango.length === 0) {
-      toast.error(t("export.noData"));
-      return;
-    }
-
-    // Estructura común: cada pedido con sus líneas (referencia, cantidad y seriales) por
-    // separado, para poder armar tanto el PDF (fichas con texto) como el Excel (columnas).
-    const pedidos = despachadosEnRango.map((view) => ({
-      code: view.order.code,
-      cliente: view.customer?.name ?? t("order.noCustomer"),
-      fecha: formatDateTime(view.order.deliveryDate ?? view.order.createdAt),
-      lineas: view.lines.map((linea) => ({
-        referencia: [
-          linea.product?.name ?? "—",
-          linea.item.condition ? `(${t(`condition.${linea.item.condition}`)})` : null,
-        ]
-          .filter(Boolean)
-          .join(" "),
-        cantidad: linea.item.quantity,
-        seriales: linea.units.map((unit) => unit.serial),
-      })),
-    }));
-
-    if (format === "pdf") {
-      exportPedidosHistorialPdf({
-        title: `${t("export.ordersHistoryTitle")} — ${exportCompanyName(db.settings.companyName)}`,
-        subtitle: exportSubtitlePedidos(pedidos.length),
-        pedidos: pedidos.map((pedido) => ({
-          code: pedido.code,
-          cliente: pedido.cliente,
-          fecha: pedido.fecha,
-          lineas: pedido.lineas.map((linea) => ({
-            title: `${linea.referencia} x${linea.cantidad} — ${linea.seriales.length} ${t("export.imeis")}`,
-            seriales: linea.seriales,
-          })),
-        })),
-        filename: `historial-pedidos-${todayIso()}.pdf`,
-      });
-    } else {
-      exportPedidosHistorialExcel({
-        title: t("export.ordersHistoryTitle"),
-        subtitle: exportSubtitlePedidos(pedidos.length),
-        pedidos,
-        filename: `historial-pedidos-${todayIso()}.xlsx`,
-        labels: {
-          referencia: t("export.referencia"),
-          cantidad: t("order.quantity"),
-          seriales: t("export.imeis"),
-        },
+        filename: "pedidos-resumen-" + todayIso() + ".xlsx",
+        sheets: [{
+          name: "Resumen pedidos",
+          title: t("nav.orders") + " — " + exportCompanyName(db.settings.companyName),
+          subtitle: exportSubtitle(body.length),
+          columns: head,
+          rows: body,
+        }],
       });
     }
     setExportOpen(false);
@@ -236,12 +155,7 @@ const Pedidos = () => {
           <div className="flex flex-wrap items-center gap-2">
             <Button
               variant="outline"
-              onClick={() => {
-                setExportScope("todos");
-                setHistorialDesde("");
-                setHistorialHasta("");
-                setExportOpen(true);
-              }}
+              onClick={() => setExportOpen(true)}
             >
               <Download />
               {t("export.button")}
@@ -363,90 +277,27 @@ const Pedidos = () => {
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>{t("export.button")}</DialogTitle>
-            <DialogDescription>{t("export.choose")}</DialogDescription>
+            <DialogDescription>{t("export.ordersSummaryHint")}</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-2">
+            <label className="flex cursor-pointer items-start gap-3 rounded-md border p-3 transition-colors hover:bg-muted/50">
+              <input
+                type="checkbox"
+                checked={soloFiltrado}
+                onChange={(event) => setSoloFiltrado(event.target.checked)}
+                className="mt-1"
+              />
+              <span>
+                <span className="block text-sm font-medium">{t("export.soloFiltrado")}</span>
+                <span className="mt-0.5 block text-xs text-muted-foreground">{t("export.soloFiltradoHint")}</span>
+              </span>
+            </label>
             <div className="grid grid-cols-2 gap-2">
-              <Button
-                type="button"
-                variant={exportScope === "todos" ? "default" : "outline"}
-                onClick={() => setExportScope("todos")}
-              >
-                {t("export.scopeTodos")}
-              </Button>
-              <Button
-                type="button"
-                variant={exportScope === "despachados" ? "default" : "outline"}
-                onClick={() => setExportScope("despachados")}
-              >
-                {t("export.scopeDespachados")}
-              </Button>
-            </div>
-
-            {exportScope === "todos" ? (
-              <label className="flex cursor-pointer items-start gap-3 rounded-md border p-3 transition-colors hover:bg-muted/50">
-                <Checkbox
-                  checked={soloFiltrado}
-                  onCheckedChange={(value) => setSoloFiltrado(Boolean(value))}
-                  className="mt-0.5"
-                />
-                <span>
-                  <span className="block text-sm font-medium">{t("export.soloFiltrado")}</span>
-                  <span className="mt-0.5 block text-xs text-muted-foreground">
-                    {t("export.soloFiltradoHint")}
-                  </span>
-                </span>
-              </label>
-            ) : (
-              <div className="space-y-3">
-                <p className="text-xs text-muted-foreground">{t("export.historialRangoHint")}</p>
-                {(search || status) && (
-                  <p className="rounded-md bg-muted/60 px-2 py-1.5 text-xs text-muted-foreground">
-                    {t("export.historialUsaBusqueda")}
-                  </p>
-                )}
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-2">
-                    <Label>{t("export.desde")}</Label>
-                    <Input
-                      type="date"
-                      value={historialDesde}
-                      max={historialHasta || undefined}
-                      onChange={(event) => setHistorialDesde(event.target.value)}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>{t("export.hasta")}</Label>
-                    <Input
-                      type="date"
-                      value={historialHasta}
-                      min={historialDesde || undefined}
-                      onChange={(event) => setHistorialHasta(event.target.value)}
-                    />
-                  </div>
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  {t("common.resultsCount", { count: despachadosEnRango.length })}
-                </p>
-              </div>
-            )}
-
-            <div className="grid grid-cols-2 gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => (exportScope === "todos" ? exportar("pdf") : exportarHistorial("pdf"))}
-              >
+              <Button type="button" variant="outline" onClick={() => exportar("pdf")}>
                 <FileText />
                 {t("export.pdf")}
               </Button>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() =>
-                  exportScope === "todos" ? exportar("excel") : exportarHistorial("excel")
-                }
-              >
+              <Button type="button" variant="outline" onClick={() => exportar("excel")}>
                 <FileSpreadsheet />
                 {t("export.excel")}
               </Button>
