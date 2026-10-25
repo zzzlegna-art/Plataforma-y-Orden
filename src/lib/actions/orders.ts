@@ -7,11 +7,20 @@
 
 import { createId, DomainError, logAudit, logMovement, nextDailyCode, nowIso } from "../db";
 import { diaBogota, hoyBogota } from "../dates";
-import type { Actor, Db, Order, OrderItem, OrderStatus, Unit, UnitCondition } from "../types";
+import type { Actor, Db, Order, OrderItem, OrderStatus, Product, Unit, UnitCondition } from "../types";
 import { esProductoRepuesto } from "../products";
 import { requireNumber, requirePermission } from "./guards";
 
-export const ORDER_STATUSES: OrderStatus[] = ["en_preparacion", "despachado", "cancelado"];
+export const ORDER_STATUSES: OrderStatus[] = ["en_preparacion", "preparado", "despachado", "cancelado"];
+export const MARGEN_MINIMO_BRUTO = 5;
+const pedidoMantieneReserva = (status: OrderStatus) => status === "en_preparacion" || status === "preparado";
+export const costoRealUnidad = (unit: Unit, product?: Product): number | undefined => {
+  if (typeof unit.cost === "number" && Number.isFinite(unit.cost) && unit.cost > 0) return unit.cost;
+  if (typeof product?.cost === "number" && Number.isFinite(product.cost) && product.cost > 0) return product.cost;
+  return undefined;
+};
+export const margenBrutoPorcentaje = (precioVenta: number, costo: number): number =>
+  precioVenta > 0 ? ((precioVenta - costo) / precioVenta) * 100 : Number.NEGATIVE_INFINITY;
 
 const findOrder = (db: Db, orderId: string) => {
   const order = db.orders.find((item) => item.id === orderId);
@@ -202,7 +211,7 @@ const unitEnOtroPedidoActivo = (db: Db, unitId: string) =>
     if (row.unitId !== unitId) return false;
     const item = db.orderItems.find((i) => i.id === row.orderItemId);
     const order = item ? db.orders.find((o) => o.id === item.orderId) : undefined;
-    return order && order.status === "en_preparacion";
+    return order && pedidoMantieneReserva(order.status);
   });
 
 /**
@@ -347,86 +356,101 @@ const asignarRepuestosAutomaticamente = (db: Db, orderId: string, items: OrderIt
   return nuevas.length;
 };
 
-/**
- * Finaliza el pedido: las referencias con serial deben estar completas; los repuestos se
- * asignan solos desde el inventario.
- */
-export const finalizarPedido = (
-  db: Db,
-  actor: Actor,
-  input: { orderId: string },
-): Order => {
+const validarAsignacionesPedido = (db: Db, order: Order, items: OrderItem[]) => {
+  if (items.length === 0) throw new DomainError("errors.orderNeedsItems");
+  const incompleta = items.find((item) => db.orderItemUnits.filter((row) => row.orderItemId === item.id).length !== item.quantity);
+  if (incompleta) throw new DomainError("errors.orderIncomplete", { product: db.products.find((p) => p.id === incompleta.productId)?.name ?? "" });
+  const ids = new Set<string>();
+  for (const item of items) for (const row of db.orderItemUnits.filter((a) => a.orderItemId === item.id)) {
+    if (ids.has(row.unitId)) throw new DomainError("errors.unitAlreadyAssigned");
+    ids.add(row.unitId);
+    const unit = db.units.find((u) => u.id === row.unitId);
+    if (!unit) throw new DomainError("errors.notFound");
+    if (unit.productId !== item.productId || (item.condition && unit.condition !== item.condition)) throw new DomainError("errors.unitProductMismatch");
+    if (unit.status !== "en_bodega" && unit.status !== "en_local") throw new DomainError("errors.unitNotAvailable", { serial: unit.serial });
+    const otherAssignment = db.orderItemUnits.some((other) => {
+      if (other.unitId !== unit.id || other.orderItemId === row.orderItemId) return false;
+      const otherItem = db.orderItems.find((candidate) => candidate.id === other.orderItemId);
+      const otherOrder = otherItem ? db.orders.find((candidate) => candidate.id === otherItem.orderId) : undefined;
+      return Boolean(otherOrder && otherOrder.id !== order.id && pedidoMantieneReserva(otherOrder.status));
+    });
+    if (otherAssignment) throw new DomainError("errors.unitAlreadyAssigned");
+  }
+};
+
+/** Fase 1: confirma preparación y reserva unidades; no las vende ni descuenta del inventario. */
+export const confirmarPreparacionPedido = (db: Db, actor: Actor, input: { orderId: string }): Order => {
   requirePermission(actor, "orders.manage");
   const order = findOrder(db, input.orderId);
   assertEnPreparacion(order);
   const items = orderItems(db, order.id);
-
   asignarRepuestosAutomaticamente(db, order.id, items);
+  validarAsignacionesPedido(db, order, items);
+  order.status = "preparado";
+  order.updatedAt = nowIso();
+  logAudit(db, actor, { action: "status", entity: "order", entityId: order.id, details: order.code + " · preparación confirmada; unidades reservadas, pendientes de venta" });
+  return order;
+};
 
-  const incompleta = items.find((item) => {
-    const asignados = db.orderItemUnits.filter((row) => row.orderItemId === item.id).length;
-    return asignados < item.quantity;
-  });
-  if (incompleta) {
-    const product = db.products.find((p) => p.id === incompleta.productId);
-    throw new DomainError("errors.orderIncomplete", { product: product?.name ?? "" });
+export const actualizarPreciosPedido = (db: Db, actor: Actor, input: { orderId: string; precios: Array<{ orderItemId: string; unitPrice: number }> }): Order => {
+  requirePermission(actor, "orders.manage");
+  const order = findOrder(db, input.orderId);
+  if (order.status !== "preparado") throw new DomainError("errors.orderPricesOnlyPrepared");
+  const items = orderItems(db, order.id);
+  if (input.precios.length !== items.length) throw new DomainError("errors.orderPricesIncomplete");
+  const prices = new Map<string, number>();
+  for (const entry of input.precios) {
+    if (prices.has(entry.orderItemId)) throw new DomainError("errors.orderPricesIncomplete");
+    prices.set(entry.orderItemId, requireNumber(entry.unitPrice, "errors.invalidPrice", 0.01));
   }
-
-  // Verificación final independiente de la interfaz: ningún IMEI puede repetirse
-  // ni salir en una referencia/condición diferente de la solicitada.
-  const idsDespacho = new Set<string>();
+  if (items.some((item) => !prices.has(item.id)) || prices.size !== items.length) throw new DomainError("errors.orderPricesIncomplete");
   for (const item of items) {
-    for (const row of db.orderItemUnits.filter((asignacion) => asignacion.orderItemId === item.id)) {
-      if (idsDespacho.has(row.unitId)) throw new DomainError("errors.unitAlreadyAssigned");
-      idsDespacho.add(row.unitId);
-      const unit = db.units.find((u) => u.id === row.unitId);
-      if (!unit) throw new DomainError("errors.notFound");
-      if (unit.productId !== item.productId || (item.condition && unit.condition !== item.condition)) {
-        throw new DomainError("errors.unitProductMismatch");
-      }
-      if (unitEnOtroPedidoActivo(db, unit.id) &&
-        db.orderItemUnits.some((asignacion) => asignacion.unitId === unit.id &&
-          asignacion.orderItemId !== item.id &&
-          db.orderItems.some((linea) => linea.id === asignacion.orderItemId && linea.orderId !== order.id &&
-            db.orders.some((pedido) => pedido.id === linea.orderId && pedido.status === "en_preparacion")))) {
-        throw new DomainError("errors.unitAlreadyAssigned");
-      }
-    }
+    const price = prices.get(item.id);
+    if (price === undefined) throw new DomainError("errors.orderPricesIncomplete");
+    item.unitPrice = price;
+    item.subtotal = Math.round(item.quantity * price * 100) / 100;
   }
+  order.total = Math.round(items.reduce((sum, item) => sum + item.subtotal, 0) * 100) / 100;
+  order.updatedAt = nowIso();
+  logAudit(db, actor, { action: "update", entity: "order", entityId: order.id, details: order.code + " · precios de venta actualizados" });
+  return order;
+};
 
+/** Fase 2: valida costo y margen y confirma la venta/despacho. */
+export const finalizarPedido = (db: Db, actor: Actor, input: { orderId: string; aceptarMargenBajo?: boolean }): Order => {
+  requirePermission(actor, "orders.manage");
+  const order = findOrder(db, input.orderId);
+  if (order.status !== "preparado") throw new DomainError("errors.orderSaleOnlyPrepared");
+  const items = orderItems(db, order.id);
+  validarAsignacionesPedido(db, order, items);
+  const lineasBajoMargen: string[] = [];
+  for (const item of items) {
+    if (!Number.isFinite(item.unitPrice) || item.unitPrice <= 0) throw new DomainError("errors.invalidPrice");
+    const product = db.products.find((p) => p.id === item.productId);
+    const units = db.orderItemUnits.filter((a) => a.orderItemId === item.id).map((a) => db.units.find((u) => u.id === a.unitId)).filter((u): u is Unit => Boolean(u));
+    const costs = units.map((unit) => costoRealUnidad(unit, product));
+    if (costs.some((cost) => cost === undefined)) throw new DomainError("errors.orderCostMissing", { product: product?.name ?? "" });
+    const knownCosts = costs as number[];
+    const abovePrice = knownCosts.find((cost) => item.unitPrice < cost);
+    if (abovePrice !== undefined) throw new DomainError("errors.orderPriceBelowCost", { product: product?.name ?? "", cost: abovePrice, price: item.unitPrice });
+    const totalCost = knownCosts.reduce((sum, cost) => sum + cost, 0);
+    if (margenBrutoPorcentaje(item.unitPrice * item.quantity, totalCost) < MARGEN_MINIMO_BRUTO) lineasBajoMargen.push(product?.name ?? item.productId);
+  }
+  if (lineasBajoMargen.length && !input.aceptarMargenBajo) {
+    throw new DomainError("errors.orderLowMarginConfirmRequired", { products: lineasBajoMargen.join(", "), margin: MARGEN_MINIMO_BRUTO });
+  }
   const deliveredAt = nowIso();
-  items.forEach((item) => {
-    db.orderItemUnits
-      .filter((row) => row.orderItemId === item.id)
-      .forEach((row) => {
-        const unit = db.units.find((u) => u.id === row.unitId);
-        // Nunca se despacha en silencio un pedido con una unidad que ya no está disponible.
-        if (!unit) throw new DomainError("errors.notFound");
-        if (unit.status !== "en_bodega" && unit.status !== "en_local") {
-          throw new DomainError("errors.unitNotAvailable", { serial: unit.serial });
-        }
-        unit.status = "vendido";
-        logMovement(db, actor, {
-          productId: unit.productId,
-          unitId: unit.id,
-          type: "salida",
-          referenceType: "pedido",
-          referenceId: order.id,
-          notes: `Salida por pedido ${order.code}`,
-          createdAt: deliveredAt,
-        });
-      });
-  });
-
+  items.forEach((item) => db.orderItemUnits.filter((row) => row.orderItemId === item.id).forEach((row) => {
+    const unit = db.units.find((u) => u.id === row.unitId);
+    if (!unit) throw new DomainError("errors.notFound");
+    if (unit.status !== "en_bodega" && unit.status !== "en_local") throw new DomainError("errors.unitNotAvailable", { serial: unit.serial });
+    unit.status = "vendido";
+    logMovement(db, actor, { productId: unit.productId, unitId: unit.id, type: "salida", referenceType: "pedido", referenceId: order.id, notes: "Salida por venta confirmada del pedido " + order.code, createdAt: deliveredAt });
+  }));
   order.status = "despachado";
   order.deliveryDate = diaBogota(deliveredAt);
   order.updatedAt = deliveredAt;
-  logAudit(db, actor, {
-    action: "status",
-    entity: "order",
-    entityId: order.id,
-    details: `${order.code} · despachado`,
-  });
+  logAudit(db, actor, { action: "status", entity: "order", entityId: order.id, details: order.code + " · venta confirmada y despachada" });
   return order;
 };
 
@@ -438,7 +462,7 @@ export const cancelarPedido = (
 ): Order => {
   requirePermission(actor, "users.manage");
   const order = findOrder(db, input.orderId);
-  assertEnPreparacion(order);
+  if (!pedidoMantieneReserva(order.status)) throw new DomainError("errors.orderNotEditable");
   const itemIds = orderItems(db, order.id).map((item) => item.id);
   db.orderItemUnits = db.orderItemUnits.filter(
     (row) => !itemIds.includes(row.orderItemId),
@@ -456,7 +480,8 @@ export const cancelarPedido = (
 };
 
 export const nextOrderStatuses = (status: OrderStatus): OrderStatus[] => {
-  if (status === "en_preparacion") return ["despachado", "cancelado"];
+  if (status === "en_preparacion") return ["preparado", "cancelado"];
+  if (status === "preparado") return ["despachado", "cancelado"];
   return [];
 };
 
