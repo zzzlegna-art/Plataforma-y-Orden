@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { ScanLine, AlertTriangle, Clock3, ShieldCheck, ArrowRight } from "lucide-react";
+import { toast } from "sonner";
+import { ScanLine, AlertTriangle, Clock3, ShieldCheck, ArrowRight, Copy } from "lucide-react";
 
 import { DataTable } from "@/components/shared/data-table";
 import { ProductThumbnail } from "@/components/shared/product-thumbnail";
@@ -76,6 +77,20 @@ const Unidades = ({ embedded = false }: { embedded?: boolean }) => {
     const unit = findUnitBySerial(db, serial);
     setSearch(serial);
     if (unit) setSelectedId(unit.id);
+  };
+
+  const copiarSerialesVisibles = async () => {
+    const seriales = rows.map((row) => row.unit.serial).filter(Boolean);
+    if (seriales.length === 0) {
+      toast.error(t("unit.noSerialsToCopy"));
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(seriales.join("\\n"));
+      toast.success(t("unit.serialsCopied", { count: seriales.length }));
+    } catch {
+      toast.error(t("unit.copySerialsError"));
+    }
   };
 
   const renderCard = (row: UnitRow) => (
@@ -194,6 +209,22 @@ const Unidades = ({ embedded = false }: { embedded?: boolean }) => {
             />
           </div>
         </div>
+      </div>
+
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <p className="text-sm text-muted-foreground">
+          {t("common.resultsCount", { count: rows.length })}
+        </p>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          disabled={rows.length === 0}
+          onClick={() => void copiarSerialesVisibles()}
+        >
+          <Copy />
+          {t("unit.copySerials")}
+        </Button>
       </div>
 
       <DataTable<UnitRow>
