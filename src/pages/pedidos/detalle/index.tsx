@@ -31,7 +31,8 @@ import {
   cancelarPedido,
   cancelarPedidoDespachado,
   editarCantidadReferencia,
-  finalizarPedido,
+  confirmarPreparacionPedido,
+  confirmarVentaPedido,
   quitarImeiPedido,
   quitarReferenciaPedido,
   quitarSerialDespachado,
@@ -102,6 +103,7 @@ const PedidoDetalle = () => {
   const assigned = lineasConSerial.reduce((suma, line) => suma + line.serializados, 0);
   const pending = requestedSerial - assigned;
   const editable = order.status === "en_preparacion";
+  const preparado = order.status === "preparado";
   // El administrador puede ajustar (agregar/quitar unidades) y anular pedidos ya despachados.
   const edicionDespachado = isAdmin && order.status === "despachado";
   const addProduct = db.products.find((p) => p.id === addProductId);
@@ -249,12 +251,19 @@ const PedidoDetalle = () => {
     }
   };
 
-  const finalizar = async () => {
-    // El diálogo mantiene el bloqueo hasta recibir la confirmación del servidor.
-    await runAction((db2, actor) => finalizarPedido(db2, actor, { orderId: order.id }), {
+  const confirmarPreparacion = async () => {
+    await runAction((db2, actor) => confirmarPreparacionPedido(db2, actor, { orderId: order.id }), {
+      success: "order.prepared",
+      weighty: true,
+      key: `pedido-preparar:${order.id}`,
+    });
+  };
+
+  const confirmarVenta = async () => {
+    await runAction((db2, actor) => confirmarVentaPedido(db2, actor, { orderId: order.id }), {
       success: "order.dispatched",
       weighty: true,
-      key: `pedido-finalizar:${order.id}`,
+      key: `pedido-venta:${order.id}`,
     });
   };
 
@@ -310,13 +319,43 @@ const PedidoDetalle = () => {
                 trigger={
                   <Button disabled={pending > 0 || runAction.pending} loading={runAction.pending}>
                     <Check />
-                    {t("order.finalize")}
+                    {t("order.confirmPreparation")}
                   </Button>
                 }
-                title="Verificar y despachar pedido"
-                description={`Se van a despachar ${assigned} equipos verificados por IMEI y ${requested - requestedSerial} unidades adicionales (incluidos repuestos). Confirma que las referencias y cantidades coinciden con la entrega física. Esta acción registra la salida del inventario.`}
-                confirmLabel="Confirmar despacho"
-                onConfirm={finalizar}
+                title="Confirmar preparación del pedido"
+                description={`Se reservarán ${requested} unidades verificadas para este pedido. No se marcarán como vendidas ni se registrará salida del inventario hasta la segunda confirmación.`}
+                confirmLabel="Confirmar preparación"
+                onConfirm={confirmarPreparacion}
+              />
+              {isAdmin ? (
+                <ConfirmDialog
+                  trigger={
+                    <Button variant="outline" className="text-destructive">
+                      <Undo2 />
+                      {t("order.action.cancelado")}
+                    </Button>
+                  }
+                  title={t("order.cancelTitle")}
+                  description={t("order.cancelDescription")}
+                  confirmLabel={t("order.action.confirmCancel")}
+                  destructive
+                  onConfirm={cancelar}
+                />
+              ) : null}
+            </>
+          ) : preparado ? (
+            <>
+              <ConfirmDialog
+                trigger={
+                  <Button disabled={runAction.pending} loading={runAction.pending}>
+                    <Check />
+                    {t("order.confirmSale")}
+                  </Button>
+                }
+                title="Confirmar venta y despacho"
+                description="Esta segunda confirmación registra la salida del inventario y marca las unidades como vendidas. Se validará que los precios no sean inferiores al costo real de cada unidad."
+                confirmLabel="Confirmar venta y despacho"
+                onConfirm={confirmarVenta}
               />
               {isAdmin ? (
                 <ConfirmDialog
@@ -459,7 +498,9 @@ const PedidoDetalle = () => {
         </div>
       </div>
 
-      {editable && pending === 0 ? <p className="rounded-lg border border-primary/30 bg-primary/5 px-4 py-3 text-sm text-primary">Verificación completa: {assigned} de {requestedSerial} equipos con IMEI asignado. Revisa físicamente las unidades antes de confirmar el despacho.</p> : null}
+      {editable && pending === 0 ? <p className="rounded-lg border border-primary/30 bg-primary/5 px-4 py-3 text-sm text-primary">Verificación completa: {assigned} de {requestedSerial} equipos con IMEI asignado. Revisa físicamente las unidades antes de confirmar la preparación.</p> : null}
+
+      {preparado ? <p className="rounded-lg border border-primary/30 bg-primary/5 px-4 py-3 text-sm text-primary">{t("order.preparedNote")}</p> : null}
 
       {editable && pending > 0 ? (
         <p className="rounded-lg border border-warning/40 bg-warning/10 px-4 py-3 text-sm text-warning">

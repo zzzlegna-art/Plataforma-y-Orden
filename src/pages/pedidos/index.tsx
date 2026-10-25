@@ -28,7 +28,7 @@ import {
 import { formatDate, todayIso } from "@/lib/format";
 import { getOrderViews, type OrderView } from "@/lib/selectors";
 
-const STATUSES = ["en_preparacion", "despachado", "cancelado"] as const;
+const STATUSES = ["en_preparacion", "preparado", "despachado", "cancelado"] as const;
 
 /** Listado de pedidos a clientes mayoristas. */
 const Pedidos = () => {
