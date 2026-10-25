@@ -48,7 +48,7 @@ describe("despacho seguro de pedidos", () => {
     db.orderItems.push({ ...linea, quantity: 1 });
     db.units.push({ ...unidad, condition: "seminuevo" });
     db.orderItemUnits.push({ id: "asignacion-1", orderItemId: linea.id, unitId: unidad.id, createdAt: pedido.createdAt });
-    expect(() => finalizarPedido(db, actor, { orderId: pedido.id })).toThrow(DomainError);
+    expect(() => confirmarPreparacionPedido(db, actor, { orderId: pedido.id })).toThrow(DomainError);
     expect(db.units[0].status).toBe("en_bodega");
   });
   it("separa la preparación de la salida y solo vende en la segunda confirmación", () => {
