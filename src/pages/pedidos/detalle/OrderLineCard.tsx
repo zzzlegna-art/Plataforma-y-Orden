@@ -1,10 +1,12 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Package, Trash2, X } from "lucide-react";
 
 import { SerialScanInput } from "@/components/shared/serial-scan-input";
 import { ConditionBadge } from "@/components/shared/status-badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { formatCurrency } from "@/lib/format";
 import type { OrderLineView } from "@/lib/selectors";
 import { cn } from "@/lib/utils";
 
@@ -20,6 +22,8 @@ export const OrderLineCard = ({
   onAgregarUnidades,
   onQuitarUnidades,
   disponibles,
+  editablePrecio = false,
+  onCambiarPrecio,
   destacada = false,
 }: {
   line: OrderLineView;
@@ -33,15 +37,24 @@ export const OrderLineCard = ({
   onQuitarUnidades?: () => void;
   /** Unidades libres en inventario (solo se usa en los repuestos). */
   disponibles?: number;
+  editablePrecio?: boolean;
+  onCambiarPrecio?: (precio: number) => void;
   /** Resalta la tarjeta: un serial escaneado en otra referencia acaba de caer aquí. */
   destacada?: boolean;
 }) => {
   const { t } = useTranslation();
   const [imageFailed, setImageFailed] = useState(false);
+  const [precioBorrador, setPrecioBorrador] = useState(String(line.item.unitPrice));
+  useEffect(() => setPrecioBorrador(String(line.item.unitPrice)), [line.item.unitPrice]);
   const pct = Math.min(100, Math.round((line.serializados / line.item.quantity) * 100));
   const complete = line.serializados >= line.item.quantity;
   // Los repuestos no se escanean: mientras el pedido se prepara se descuentan solos al finalizar.
   const autoRepuesto = line.esRepuesto && editable;
+  const costosUnidades = line.units.map((unit) => unit.cost ?? line.product?.cost ?? 0);
+  const costoReferencia = costosUnidades.length > 0 ? Math.max(...costosUnidades) : (line.product?.cost ?? 0);
+  const precioNumerico = Number(precioBorrador);
+  const margenBrutoPct = precioNumerico > 0 ? ((precioNumerico - costoReferencia) / precioNumerico) * 100 : -100;
+  const precioValido = Number.isFinite(precioNumerico) && precioNumerico > 0;
 
   // El campo para escanear o escribir seriales va arriba, junto a la referencia, para ver cómo
   // sube el contador mientras se agregan, sin bajar hasta el final de la lista.
@@ -216,6 +229,47 @@ export const OrderLineCard = ({
           </p>
         </>
       )}
+
+      {editablePrecio ? (
+        <div className="mt-4 space-y-2 rounded-lg border bg-muted/20 p-3">
+          <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
+            <div className="min-w-0 space-y-1.5">
+              <label htmlFor={`precio-venta-${line.item.id}`} className="text-xs font-medium text-muted-foreground">
+                {t("order.salesPrice")}
+              </label>
+              <Input
+                id={`precio-venta-${line.item.id}`}
+                type="number"
+                min="0.01"
+                step="0.01"
+                value={precioBorrador}
+                onChange={(event) => setPrecioBorrador(event.target.value)}
+              />
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              disabled={!precioValido || precioNumerico === line.item.unitPrice}
+              onClick={() => onCambiarPrecio?.(precioNumerico)}
+            >
+              {t("order.savePrice")}
+            </Button>
+          </div>
+          <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
+            <span className="text-muted-foreground">
+              {t("order.lineSubtotal", { subtotal: formatCurrency(precioValido ? precioNumerico * line.item.quantity : 0) })}
+            </span>
+            <span className={cn("font-medium", margenBrutoPct < 5 ? "text-warning" : "text-success")}>
+              {t("order.grossMargin", { margin: margenBrutoPct.toFixed(1) })}
+            </span>
+          </div>
+          {margenBrutoPct < 5 ? (
+            <p className="rounded-md border border-warning/40 bg-warning/10 px-2.5 py-2 text-xs text-warning">
+              {t("order.marginWarning")}
+            </p>
+          ) : null}
+        </div>
+      ) : null}
 
       {autoRepuesto ? null : line.units.length > 0 ? (
         // Los seriales ya ingresados van como etiquetas compactas en cuadrícula: caben varios por

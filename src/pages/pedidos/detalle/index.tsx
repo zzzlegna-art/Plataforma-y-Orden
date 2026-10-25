@@ -27,6 +27,7 @@ import { useRunAction } from "@/hooks/use-run-action";
 import { useStore } from "@/hooks/use-store";
 import {
   agregarReferenciaPedido,
+  actualizarPrecioReferencia,
   agregarSerialDespachado,
   cancelarPedido,
   cancelarPedidoDespachado,
@@ -40,7 +41,7 @@ import {
   unidadesLibres,
 } from "@/lib/actions/orders";
 import { exportCompanyName, exportExcel, exportPdf, exportSubtitle } from "@/lib/export";
-import { formatDate, todayIso } from "@/lib/format";
+import { formatCurrency, formatDate, todayIso } from "@/lib/format";
 import { findUnitBySerial, getOrderView } from "@/lib/selectors";
 import type { UnitCondition } from "@/lib/types";
 import { OrderLineCard } from "./OrderLineCard";
@@ -249,6 +250,13 @@ const PedidoDetalle = () => {
       setAddQty("1");
       setAddCondition("nuevo");
     }
+  };
+
+  const cambiarPrecio = (orderItemId: string, unitPrice: number) => {
+    void runAction(
+      (db2, actor) => actualizarPrecioReferencia(db2, actor, { orderItemId, unitPrice }),
+      { success: "order.updated", key: `pedido-precio:${orderItemId}` },
+    );
   };
 
   const confirmarPreparacion = async () => {
@@ -490,10 +498,10 @@ const PedidoDetalle = () => {
         </div>
         <div className="rounded-lg border bg-card p-4">
           <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-            {t("order.total")}
+            {preparado ? t("order.total") : t("order.units")}
           </p>
           <p className="font-tabular mt-1 text-xl font-semibold">
-            {t("order.unitsToDispatch", { count: requested })}
+            {preparado ? formatCurrency(order.total) : t("order.unitsToDispatch", { count: requested })}
           </p>
         </div>
       </div>
@@ -521,6 +529,8 @@ const PedidoDetalle = () => {
             key={line.item.id}
             line={line}
             editable={editable}
+            editablePrecio={preparado}
+            onCambiarPrecio={(precio) => cambiarPrecio(line.item.id, precio)}
             edicionDespachado={edicionDespachado}
             onCambiarCantidad={(delta) => cambiarCantidad(line.item.id, delta)}
             onSerializar={(serial) => void serializar(serial, line.item.id)}
