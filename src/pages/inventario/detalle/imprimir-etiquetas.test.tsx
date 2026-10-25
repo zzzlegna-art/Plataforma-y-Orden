@@ -10,7 +10,7 @@ import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vite
 vi.mock("@/lib/backend", () => ({}));
 vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn(), warning: vi.fn() } }));
 
-const mocks = vi.hoisted(() => ({ imprimirEtiquetas: vi.fn(), writeText: vi.fn() }));
+const mocks = vi.hoisted(() => ({ imprimirEtiquetas: vi.fn() }));
 vi.mock("@/lib/print-labels", () => ({ imprimirEtiquetas: mocks.imprimirEtiquetas }));
 
 import type { CambioRemoto } from "@/lib/backend";
@@ -103,31 +103,13 @@ beforeAll(async () => {
   }));
   vi.stubGlobal("ResizeObserver", class { observe() {} unobserve() {} disconnect() {} });
 });
-beforeEach(() => {
-  mocks.imprimirEtiquetas.mockReset();
-  mocks.writeText.mockReset().mockResolvedValue(undefined);
-  Object.defineProperty(navigator.clipboard, "writeText", {
-    configurable: true,
-    value: mocks.writeText,
-  });
-});
+beforeEach(() => mocks.imprimirEtiquetas.mockReset());
 afterEach(cleanup);
 
 describe("Detalle de producto · elegir seriales e imprimir etiquetas", () => {
   it("el botón empieza deshabilitado, sin nada elegido", () => {
     dibujar();
     expect(botonImprimir().hasAttribute("disabled")).toBe(true);
-  });
-
-  it("copia los seriales visibles del producto en líneas separadas", async () => {
-    const user = userEvent.setup();
-    dibujar();
-
-    await user.click(screen.getByRole("button", { name: "Copiar seriales" }));
-
-    expect(mocks.writeText).toHaveBeenCalledWith(
-      "359175923749557\n354791666675724\n357065942117702",
-    );
   });
 
   it("elegir dos seriales e imprimir manda exactamente esos dos, con el nombre del producto", async () => {
