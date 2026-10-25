@@ -6,8 +6,8 @@ import { SerialScanInput } from "@/components/shared/serial-scan-input";
 import { ConditionBadge } from "@/components/shared/status-badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import type { OrderLineView } from "@/lib/selectors";
 import { formatCurrency } from "@/lib/format";
+import type { OrderLineView } from "@/lib/selectors";
 import { cn } from "@/lib/utils";
 
 /** Tarjeta de progreso de una referencia del pedido: cantidad y serialización. */
