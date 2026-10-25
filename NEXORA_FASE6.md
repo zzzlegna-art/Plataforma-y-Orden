@@ -11,11 +11,12 @@
 - `pnpm audit --prod` reporta 0 vulnerabilidades después de actualizar jsPDF, React Router y las dependencias transitorias; ambos workflows de CI ejecutan esta auditoría.
 - La aplicación conserva los controles de autenticación, roles, integridad de seriales, historial de pedidos/garantías y Storage privado para documentos de garantía.
 
-## Pendientes explícitos
+## Decisiones de alcance y estado
 
-- La protección de contraseñas filtradas requiere cambiar la organización de Free a Pro o superior; se necesita autorización del propietario para incurrir en el costo.
-- Ejecutar `scripts/backup-supabase.sh` desde una estación segura, cifrar la copia y probar restauración; Storage y Auth necesitan un plan de respaldo separado.
-- Ejecutar pruebas de aislamiento con sesiones reales de administrador y bodeguero.
+- La protección de contraseñas filtradas queda fuera del alcance actual por decisión del usuario. No cambiar el plan Free ni activar una función de pago.
+- El backup externo se aplaza hasta nueva solicitud. El script `scripts/backup-supabase.sh` y la guía están listos, pero no se ha ejecutado el script ni se ha creado una copia desde esta sesión.
+- El usuario confirma que ya probó el aislamiento entre administrador y bodeguero; se acepta como completado para este alcance sin afirmar que esta sesión reprodujo la prueba.
+- Mejora técnica aún pendiente: automatizar el SQL de RLS y las pruebas de roles en un entorno dedicado de CI.
 - La conexión actual no puede modificar defaults del rol administrado `supabase_admin`; los 51 objetos públicos y las 18 funciones de la aplicación están bajo el propietario `postgres`, cuyos defaults sí se endurecieron.
 - La compilación mantiene una advertencia de Vite por el tamaño del chunk principal; no bloquea la compilación.
 

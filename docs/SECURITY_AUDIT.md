@@ -135,3 +135,15 @@ El análisis inicial de producción encontró 53 avisos, incluidos 2 críticos y
 La organización Supabase se verificó como `free`. La protección contra contraseñas filtradas solo está disponible en Pro o superior ([documentación oficial](https://supabase.com/docs/guides/auth/password-security)); no se cambió el plan porque requiere autorización de costo del propietario.
 
 Supabase no ofrece backups diarios descargables en el plan Free ([política de backups](https://supabase.com/docs/guides/platform/backups)). Se añadieron el script `scripts/backup-supabase.sh` y la guía `docs/SUPABASE_BACKUP_FREE_TIER.md` para exportar roles, esquema y datos. La exportación no se ejecutó desde esta sesión, no se debe considerar un backup existente, y requiere una cadena de conexión segura. Los objetos de Storage y los datos administrados por Auth requieren un procedimiento separado y una restauración de prueba.
+
+
+## Decisiones de alcance posteriores — 2026-10-24
+
+El usuario definió el alcance operativo tras la auditoría:
+
+- La protección contra contraseñas filtradas queda fuera del alcance actual; no se cambiará el plan Free.
+- La exportación/backup externo se aplaza hasta nueva solicitud. El script y la guía están disponibles, pero no se ha ejecutado un backup ni se debe inferir que exista una copia.
+- El usuario confirma haber probado la separación de sesiones entre administrador y bodeguero. Se registra como confirmación del usuario, no como verificación independiente de esta sesión.
+- Sigue pendiente como mejora técnica automatizar las pruebas SQL de RLS y roles en un entorno dedicado de CI.
+
+El hardening SQL, las pruebas automatizadas de aplicación, la auditoría de dependencias y el despliegue quedan completados para el alcance acordado. No se declara una restauración de backup verificada.

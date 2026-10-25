@@ -2,6 +2,8 @@
 
 **Estado verificado el 24 de octubre de 2026:** la organización de Nexora está en el plan Free. Según la [documentación oficial de Supabase](https://supabase.com/docs/guides/platform/backups), los backups diarios descargables están disponibles en Pro, Team y Enterprise. Para proyectos Free, Supabase recomienda exportar los datos con la CLI y conservar copias fuera del proveedor.
 
+**Decisión actual del usuario:** la ejecución del backup se aplaza hasta nueva solicitud. Esta guía es de referencia para más adelante; no ejecutar el script ahora. No se ha creado ninguna copia por esta sesión.
+
 ## Crear una copia lógica
 
 Requisitos:

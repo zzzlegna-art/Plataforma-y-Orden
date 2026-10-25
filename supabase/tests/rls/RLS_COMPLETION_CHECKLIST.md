@@ -21,16 +21,16 @@ Actualizado: 2026-10-24. Proyecto Supabase revisado en vivo: `ivholkjldntrmagcmo
 - [x] Contrato estático de la migración de privilegios mínimos.
 - [x] Pruebas de rutas privadas: redirección sin sesión y protección por permiso.
 - [x] Script SQL `rls_role_isolation_tests.sql` ejecutado en el proyecto Supabase conectado dentro de una transacción con `ROLLBACK`; terminó sin excepciones.
-- [ ] Ejecutar pruebas de aislamiento con dos sesiones reales distintas (administrador y bodeguero). No se simula ni se declara validado sin credenciales de prueba.
+- [x] Aislamiento con sesiones reales de administrador y bodeguero: el usuario confirma que ya lo probó. Se registra como completado por confirmación del usuario; no se afirma que esta sesión haya reproducido la prueba.
 - [ ] Automatizar el script SQL en un entorno de prueba dedicado desde CI; la ejecución de preflight en producción no sustituye la prueba con roles reales.
 
-## Ajustes de configuración del proveedor
+## Ajustes de configuración y decisiones de alcance
 
-- [ ] Protección contra contraseñas filtradas: la organización está en plan `free` y esta función requiere Pro o superior. El propietario debe autorizar cualquier cambio de plan; después se activa en [Auth settings](https://supabase.com/dashboard/project/ivholkjldntrmagcmogh/auth/providers?provider=Email) y se prueba.
+- [x] Protección contra contraseñas filtradas: el usuario decide descartarla del alcance actual. La función requiere Pro o superior; no se cambió el plan ni se incurrió en costos.
 - [x] Guía y script de exportación local para el plan Free añadidos: `docs/SUPABASE_BACKUP_FREE_TIER.md` y `scripts/backup-supabase.sh`.
-- [ ] Ejecutar el script desde una estación segura con `SUPABASE_DB_URL`, cifrar la copia y almacenarla fuera del equipo. El script no se ha ejecutado desde esta sesión.
-- [ ] Exportar por separado los objetos de `warranty-documents` y `product-images`, definir cómo respaldar los datos gestionados por Auth y probar restauración en un proyecto aislado. `supabase db dump` no incluye los archivos de Storage ni los esquemas administrados de Auth/Storage.
+- [⏸] Ejecución del backup externo aplazada por decisión del usuario. El script no se ha ejecutado desde esta sesión y no se ha creado una copia. No ejecutar hasta nueva solicitud.
+- [ ] Si se retoma el backup: exportar por separado los objetos de `warranty-documents` y `product-images`, definir cómo respaldar los datos gestionados por Auth, cifrar la copia y probar restauración en un proyecto aislado. `supabase db dump` no incluye los archivos de Storage ni los esquemas administrados de Auth/Storage.
 
 ## Criterio de cierre
 
-La auditoría de código y el hardening SQL de la aplicación están aplicados y sus aserciones pasaron. La certificación integral de seguridad sigue condicionada a la autorización del plan para la protección de contraseñas filtradas, la ejecución y restauración de backups externos, y las pruebas con sesiones reales.
+El hardening SQL, las pruebas automatizadas y el despliegue están completados para el alcance acordado. El usuario confirma que probó el aislamiento de roles. La protección de contraseñas filtradas queda fuera de alcance y el backup externo se aplaza. No se declara un backup existente ni una restauración verificada. La automatización del SQL de RLS en CI y los límites de permisos del rol administrado siguen como mejoras técnicas.
