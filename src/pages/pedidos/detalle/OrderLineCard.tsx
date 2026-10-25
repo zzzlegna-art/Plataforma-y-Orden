@@ -221,7 +221,7 @@ export const OrderLineCard = ({
       {autoRepuesto ? null : line.units.length > 0 ? (
         // Los seriales ya ingresados van como etiquetas compactas en cuadrícula: caben varios por
         // fila y se alinean en columnas, en vez de una fila ancha por cada uno.
-        <ul className="mt-3 grid grid-cols-[repeat(auto-fill,minmax(9.75rem,1fr))] gap-1.5">
+        <ul className="mt-3 grid grid-cols-[repeat(auto-fill,minmax(min(100%,13rem),1fr))] gap-1.5">
           {line.units.map((unit) => (
             <li
               key={unit.id}
