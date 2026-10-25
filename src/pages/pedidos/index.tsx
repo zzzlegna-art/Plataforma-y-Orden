@@ -25,7 +25,8 @@ import {
   exportSubtitle,
   exportSubtitlePedidos,
 } from "@/lib/export";
-import { formatDate, todayIso } from "@/lib/format";
+import { formatCurrency, formatDate, todayIso } from "@/lib/format";
+import { getOrderSalesTotal, isEstimatedOrderTotal } from "@/lib/order-sales-total";
 import { getOrderViews, type OrderView } from "@/lib/selectors";
 
 const STATUSES = ["en_preparacion", "preparado", "despachado", "cancelado"] as const;
@@ -90,12 +91,14 @@ const Pedidos = () => {
       view.customer?.name ?? t("order.noCustomer"),
       formatDate(view.order.orderDate),
       view.order.status === "despachado" ? view.assigned : 0,
+      view.order.status === "despachado" ? (getOrderSalesTotal(view) ?? 0) : "—",
     ]);
     const head = [
       t("order.code"),
       t("order.customer"),
       t("order.orderDate"),
       "Unidades despachadas",
+      t("order.salesTotal"),
     ];
 
     if (format === "pdf") {
@@ -117,7 +120,7 @@ const Pedidos = () => {
             subtitle: exportSubtitle(body.length),
             columns: head,
             rows: body,
-            numberFormats: { 3: "#,##0" },
+            numberFormats: { 3: "#,##0", 4: db.settings.currency === "COP" ? '"$" #,##0.00' : "#,##0.00" },
           },
         ],
       });
@@ -141,6 +144,17 @@ const Pedidos = () => {
         <span className="font-tabular">
           {t("order.serializedOf", { assigned: view.assigned, requested: view.requested })}
         </span>
+      </div>
+      <div className="flex items-start justify-between gap-3 border-t pt-2 text-sm">
+        <span className="text-muted-foreground">{t("order.salesTotal")}</span>
+        <div className="text-right">
+          <p className="font-tabular font-semibold">
+            {getOrderSalesTotal(view) === null ? "—" : formatCurrency(getOrderSalesTotal(view))}
+          </p>
+          {isEstimatedOrderTotal(view) ? (
+            <span className="text-xs text-muted-foreground">{t("order.estimatedTotal")}</span>
+          ) : null}
+        </div>
       </div>
       <Button size="sm" variant="outline" className="w-full" asChild>
         {/* stopPropagation: la tarjeta ya navega al tocarla (onRowClick); sin esto, este enlace
@@ -257,6 +271,21 @@ const Pedidos = () => {
               <span className="font-tabular text-sm">
                 {t("order.serializedOf", { assigned: view.assigned, requested: view.requested })}
               </span>
+            ),
+          },
+          {
+            key: "salesTotal",
+            header: t("order.salesTotal"),
+            align: "right",
+            cell: (view) => (
+              <div className="min-w-32 text-right">
+                <span className="font-tabular text-sm font-semibold">
+                  {getOrderSalesTotal(view) === null ? "—" : formatCurrency(getOrderSalesTotal(view))}
+                </span>
+                {isEstimatedOrderTotal(view) ? (
+                  <p className="text-xs text-muted-foreground">{t("order.estimatedTotal")}</p>
+                ) : null}
+              </div>
             ),
           },
           {
