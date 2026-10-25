@@ -208,88 +208,109 @@ export const exportOrderSerialRelationPdf = ({
   const doc = new jsPDF({ orientation: "portrait", unit: "pt", format: "a4" });
   const pageW = doc.internal.pageSize.getWidth();
   const pageH = doc.internal.pageSize.getHeight();
-  const margin = 28;
+  const margin = 24;
   const width = pageW - margin * 2;
-  const serialLines = lines.filter((line) => line.requiresSerial !== false);
-  const totalUnits = serialLines.reduce((sum, line) => sum + line.quantity, 0);
-  const assignedSerials = serialLines.reduce((sum, line) => sum + line.serials.length, 0);
+  const bottom = pageH - FOOTER_SPACE;
+  const columns = 6;
+  const columnWidth = (width - 24) / columns;
   const company = exportCompanyName(companyName);
-  const title = `Relación de seriales · ${orderCode} · ${company}`;
-  const subtitle = exportSubtitle(lines.length, `Cliente: ${customer || "Sin cliente"}`);
+  const totalUnits = lines.reduce((sum, line) => sum + line.quantity, 0);
+  const totalSerials = lines
+    .filter((line) => line.requiresSerial !== false)
+    .reduce((sum, line) => sum + line.serials.length, 0);
+  const title = "Relación de seriales";
+  const subtitle = `${company} · ${totalSerials} IMEI asignados · Generado el ${formatDateTime(new Date().toISOString())}`;
 
   const drawHeader = () => dibujarEncabezado(doc, title, subtitle, margin);
-  drawHeader();
-
-  // Franja compacta con datos operativos del pedido, visible antes de la tabla.
-  const metaY = CONTENT_TOP;
-  const metaH = 48;
-  doc.setFillColor(CYAN_PALE[0], CYAN_PALE[1], CYAN_PALE[2]);
-  doc.setDrawColor(BORDER[0], BORDER[1], BORDER[2]);
-  doc.roundedRect(margin, metaY, width, metaH, 5, 5, "FD");
-
-  const metaColumns = [
-    { label: "CLIENTE", value: customer || "Sin cliente", x: margin + 12, w: width * 0.36 },
-    { label: "FECHA DEL PEDIDO", value: orderDate || "—", x: margin + width * 0.39, w: width * 0.25 },
-    { label: "UNIDADES", value: String(totalUnits), x: margin + width * 0.68, w: width * 0.12 },
-    { label: "IMEI ASIGNADOS", value: `${assignedSerials}/${totalUnits}`, x: margin + width * 0.82, w: width * 0.16 },
-  ];
-  metaColumns.forEach(({ label, value, x, w }) => {
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(6.8);
-    doc.setTextColor(MUTED[0], MUTED[1], MUTED[2]);
-    doc.text(label, x, metaY + 16, { maxWidth: w });
+  const drawOrderBand = () => {
+    const y = CONTENT_TOP;
+    const h = 32;
+    doc.setFillColor(CYAN_PALE[0], CYAN_PALE[1], CYAN_PALE[2]);
+    doc.setDrawColor(BORDER[0], BORDER[1], BORDER[2]);
+    doc.roundedRect(margin, y, width, h, 4, 4, "FD");
+    doc.setFillColor(CYAN[0], CYAN[1], CYAN[2]);
+    doc.roundedRect(margin, y, 5, h, 2, 2, "F");
     doc.setFont("helvetica", "bold");
     doc.setFontSize(9);
     doc.setTextColor(NAVY[0], NAVY[1], NAVY[2]);
-    const wrapped = doc.splitTextToSize(value, w) as string[];
-    doc.text(wrapped.slice(0, 2), x, metaY + 31);
-  });
+    doc.text(orderCode, margin + 13, y + 13);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(7.8);
+    doc.setTextColor(MUTED[0], MUTED[1], MUTED[2]);
+    const meta = `${customer || "Sin cliente"} · ${orderDate || "Fecha sin registrar"} · ${totalUnits} unidades · ${totalSerials} IMEI`;
+    doc.text(doc.splitTextToSize(meta, width - 150).slice(0, 2) as string[], pageW - margin - 10, y + 13, { align: "right" });
+  };
 
-  const body = lines.map((line) => [
-    line.reference,
-    line.condition || "—",
-    line.quantity,
-    line.requiresSerial === false
-      ? "No requiere serial"
-      : line.serials.length > 0
-        ? line.serials.join("\n")
-        : "Pendiente de serializar",
-  ]);
+  drawHeader();
+  drawOrderBand();
+  let y = CONTENT_TOP + 40;
 
-  autoTable(doc, {
-    startY: metaY + metaH + 12,
-    margin: { top: CONTENT_TOP, left: margin, right: margin, bottom: FOOTER_SPACE },
-    head: [["Referencia", "Condición", "Cantidad", "IMEI / seriales"]],
-    body,
-    showHead: "everyPage",
-    rowPageBreak: "avoid",
-    styles: {
-      font: "helvetica",
-      fontSize: 8.5,
-      cellPadding: { top: 7, bottom: 7, left: 7, right: 7 },
-      textColor: TEXT,
-      lineColor: BORDER,
-      lineWidth: 0.5,
-      valign: "middle",
-      overflow: "linebreak",
-    },
-    headStyles: {
-      fillColor: NAVY,
-      textColor: [255, 255, 255],
-      lineColor: CYAN,
-      lineWidth: 0.8,
-      fontStyle: "bold",
-      fontSize: 8.5,
-    },
-    alternateRowStyles: { fillColor: CYAN_PALE },
-    columnStyles: {
-      0: { cellWidth: width * 0.39, fontStyle: "bold", textColor: CYAN_DARK },
-      1: { cellWidth: width * 0.15 },
-      2: { cellWidth: width * 0.12, halign: "center" },
-      3: { cellWidth: width * 0.34, fontSize: 8, font: "courier" },
-    },
-    didDrawPage: () => drawHeader(),
-  });
+  const newPage = () => {
+    doc.addPage();
+    drawHeader();
+    y = CONTENT_TOP;
+  };
+
+  for (const line of lines) {
+    const serials = line.requiresSerial === false ? [] : line.serials;
+    const condition = line.requiresSerial === false ? "No aplica" : (line.condition || "—");
+    const countLabel = line.requiresSerial === false
+      ? "sin serial"
+      : serials.length
+        ? `${serials.length} IMEI${serials.length === 1 ? "" : "s"}`
+        : "seriales pendientes";
+    const label = `${line.reference} (${condition}) x${line.quantity} — ${countLabel}`;
+    const titleLines = doc.splitTextToSize(label, width - 22) as string[];
+    const titleHeight = Math.max(15, titleLines.length * 11 + 5);
+    const serialRows = serials.length ? Math.ceil(serials.length / columns) : 1;
+    const maxRowsPerPage = Math.max(1, Math.floor((bottom - CONTENT_TOP - titleHeight - 24) / 12));
+    const chunks: string[][] = [];
+    if (serials.length === 0) {
+      chunks.push([]);
+    } else {
+      for (let offset = 0; offset < serials.length; offset += columns * maxRowsPerPage) {
+        chunks.push(serials.slice(offset, offset + columns * maxRowsPerPage));
+      }
+    }
+
+    chunks.forEach((chunk, chunkIndex) => {
+      const chunkRows = chunk.length ? Math.ceil(chunk.length / columns) : 1;
+      const headerText = chunkIndex === 0 ? titleLines : doc.splitTextToSize(`${line.reference} — continuación de IMEI`, width - 22) as string[];
+      const headerH = Math.max(18, headerText.length * 11 + 7);
+      const cardH = headerH + chunkRows * 12 + 13;
+      if (y + cardH > bottom) newPage();
+
+      doc.setFillColor(255, 255, 255);
+      doc.setDrawColor(BORDER[0], BORDER[1], BORDER[2]);
+      doc.roundedRect(margin, y, width, cardH, 4, 4, "FD");
+      doc.setFillColor(CYAN_PALE[0], CYAN_PALE[1], CYAN_PALE[2]);
+      doc.roundedRect(margin + 0.5, y + 0.5, width - 1, headerH, 3, 3, "F");
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(8.7);
+      doc.setTextColor(NAVY[0], NAVY[1], NAVY[2]);
+      doc.text(headerText, margin + 10, y + 13);
+
+      doc.setFont("courier", "normal");
+      doc.setFontSize(7.4);
+      doc.setTextColor(TEXT[0], TEXT[1], TEXT[2]);
+      if (chunk.length === 0) {
+        const emptyText = line.requiresSerial === false ? "No requiere serial" : "Pendiente de serializar";
+        doc.setFont("helvetica", "italic");
+        doc.setFontSize(7.8);
+        doc.setTextColor(MUTED[0], MUTED[1], MUTED[2]);
+        doc.text(emptyText, margin + 10, y + headerH + 13);
+      } else {
+        chunk.forEach((serial, index) => {
+          const col = index % columns;
+          const row = Math.floor(index / columns);
+          const x = margin + 10 + col * columnWidth;
+          const textY = y + headerH + 12 + row * 12;
+          doc.text(serial, x, textY, { maxWidth: columnWidth - 4 });
+        });
+      }
+      y += cardH + 6;
+    });
+  }
 
   dibujarPies(doc, `Relación de seriales · ${orderCode}`, margin);
   doc.save(filename);
