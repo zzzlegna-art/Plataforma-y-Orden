@@ -3,6 +3,7 @@ import { ImagePlus, Plus, Trash2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 
+import { FormattedNumberInput } from "@/components/shared/formatted-number-input";
 import { OptionSelect } from "@/components/shared/option-select";
 import { Button } from "@/components/ui/button";
 import {
@@ -352,35 +353,28 @@ export const ProductFormDialog = ({
           </div>
           <div className="space-y-2">
             <Label htmlFor="price">{t("product.price")}</Label>
-            <Input
+            <FormattedNumberInput
               id="price"
-              type="number"
-              min={0}
-              step="0.01"
               value={form.price}
-              onChange={(event) => setForm({ ...form, price: event.target.value })}
-            />
+              onValueChange={(price) => setForm((current) => ({ ...current, price }))}
+/>
           </div>
           <div className="space-y-2">
             <Label htmlFor="cost">{t("product.cost")}</Label>
-            <Input
+            <FormattedNumberInput
               id="cost"
-              type="number"
-              min={0}
-              step="0.01"
               value={form.cost}
-              onChange={(event) => setForm({ ...form, cost: event.target.value })}
-            />
+              onValueChange={(cost) => setForm((current) => ({ ...current, cost }))}
+/>
           </div>
           <div className="space-y-2">
             <Label htmlFor="minStock">{t("product.minStock")}</Label>
-            <Input
+            <FormattedNumberInput
               id="minStock"
-              type="number"
-              min={0}
               value={form.minStock}
-              onChange={(event) => setForm({ ...form, minStock: event.target.value })}
-            />
+              allowDecimal={false}
+              onValueChange={(minStock) => setForm((current) => ({ ...current, minStock }))}
+/>
           </div>
           <div className="flex items-center justify-between rounded-md border px-3 py-2">
             <Label htmlFor="isActive" className="text-sm">
