@@ -455,7 +455,7 @@ const PedidoDetalle = () => {
                 orderDate: formatDate(order.orderDate),
                 lines: lines.map((line) => ({
                   reference: line.product?.name ?? "Producto sin nombre",
-                  condition: line.item.condition ?? "—",
+                  condition: line.esRepuesto ? "No aplica" : line.item.condition ? t(`condition.${line.item.condition}`) : "—",
                   quantity: line.item.quantity,
                   serials: line.units.map((unit) => unit.serial),
                   requiresSerial: !line.esRepuesto,
@@ -473,7 +473,7 @@ const PedidoDetalle = () => {
             onClick={() => {
               const resumen = lines.map((line) => [
                 line.product?.name ?? "Producto sin nombre",
-                line.esRepuesto ? "No aplica" : line.item.condition ?? "—",
+                line.esRepuesto ? "No aplica" : line.item.condition ? t(`condition.${line.item.condition}`) : "—",
                 line.item.quantity,
                 line.esRepuesto ? "No aplica" : line.units.length,
                 line.esRepuesto ? "No requiere serial" : line.units.map((unit) => unit.serial).join("\n") || "Pendiente de serializar",
@@ -482,7 +482,7 @@ const PedidoDetalle = () => {
               ]);
               const detalleSeriales = lines.flatMap((line) => {
                 const base = line.product?.name ?? "Producto sin nombre";
-                const condicion = line.esRepuesto ? "No aplica" : line.item.condition ?? "—";
+                const condicion = line.esRepuesto ? "No aplica" : line.item.condition ? t(`condition.${line.item.condition}`) : "—";
                 const comunes = [
                   order.code,
                   customer?.name ?? "Sin cliente",
