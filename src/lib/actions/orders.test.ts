@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { DomainError, emptyDb } from "../db";
 import type { Actor, Order, OrderItem, Product, Unit } from "../types";
-import { confirmarPreparacionPedido, confirmarVentaPedido } from "./orders";
+import { actualizarPrecioReferencia, confirmarPreparacionPedido, confirmarVentaPedido } from "./orders";
 
 const actor: Actor = { id: "admin-test", email: "admin@example.test", fullName: "Prueba", role: "admin" };
 const producto: Product = {
@@ -92,6 +92,40 @@ describe("despacho seguro de pedidos", () => {
     expect(db.orders[0].status).toBe("preparado");
     expect(db.units[0].status).toBe("en_bodega");
     expect(db.movements).toHaveLength(0);
+  });
+
+  it("permite cambiar el precio por referencia solo después de preparar y recalcula el total", () => {
+    const db = emptyDb();
+    db.products.push(producto);
+    db.orders.push({ ...pedido, status: "preparado" });
+    db.orderItems.push({ ...linea });
+
+    actualizarPrecioReferencia(db, actor, { orderItemId: linea.id, unitPrice: 200 });
+
+    expect(db.orderItems[0].unitPrice).toBe(200);
+    expect(db.orderItems[0].subtotal).toBe(400);
+    expect(db.orders[0].total).toBe(400);
+  });
+
+  it("no permite editar precios durante la preparación", () => {
+    const db = emptyDb();
+    db.products.push(producto);
+    db.orders.push({ ...pedido, status: "en_preparacion" });
+    db.orderItems.push({ ...linea });
+
+    expect(() => actualizarPrecioReferencia(db, actor, { orderItemId: linea.id, unitPrice: 200 })).toThrow(DomainError);
+    expect(db.orderItems[0].unitPrice).toBe(150);
+    expect(db.orders[0].total).toBe(300);
+  });
+
+  it("rechaza precios de venta cero o negativos", () => {
+    const db = emptyDb();
+    db.products.push(producto);
+    db.orders.push({ ...pedido, status: "preparado" });
+    db.orderItems.push({ ...linea });
+
+    expect(() => actualizarPrecioReferencia(db, actor, { orderItemId: linea.id, unitPrice: 0 })).toThrow(DomainError);
+    expect(() => actualizarPrecioReferencia(db, actor, { orderItemId: linea.id, unitPrice: -1 })).toThrow(DomainError);
   });
 
 });
