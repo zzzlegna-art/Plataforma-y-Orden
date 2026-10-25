@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Printer, ScanLine, X } from "lucide-react";
+import { toast } from "sonner";
+import { Copy, Printer, ScanLine, X } from "lucide-react";
 
 import { DataTable, type Column } from "@/components/shared/data-table";
 import { PrintLabelsDialog } from "@/components/shared/print-labels-dialog";
@@ -94,6 +95,20 @@ export const SerialesSeccion = ({
     const elegidos = visibles.filter((item) => seleccionados.has(item.unit.id));
     if (elegidos.length === 0) return;
     imprimirEtiquetas(elegidos.map((item) => ({ producto: product.name, serial: item.unit.serial, nota })));
+  };
+
+  const copiarSerialesVisibles = async () => {
+    const seriales = visibles.map((item) => item.unit.serial).filter(Boolean);
+    if (seriales.length === 0) {
+      toast.error(t("unit.noSerialsToCopy"));
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(seriales.join("\\n"));
+      toast.success(t("unit.serialsCopied", { count: seriales.length }));
+    } catch {
+      toast.error(t("unit.copySerialsError"));
+    }
   };
 
   const columnas: Column<UnitRow>[] = [
@@ -236,17 +251,29 @@ export const SerialesSeccion = ({
             {t("common.clear")}
           </Button>
         ) : null}
-        <Button
-          size="sm"
-          className="ml-auto h-7"
-          disabled={seleccionados.size === 0}
-          onClick={() => setDialogoImprimir(true)}
-        >
-          <Printer />
-          {seleccionados.size > 0
-            ? t("unit.printLabelsCount", { count: seleccionados.size })
-            : t("unit.printLabels")}
-        </Button>
+        <div className="ml-auto flex flex-wrap items-center gap-2">
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-7"
+            disabled={visibles.length === 0}
+            onClick={() => void copiarSerialesVisibles()}
+          >
+            <Copy />
+            {t("unit.copySerials")}
+          </Button>
+          <Button
+            size="sm"
+            className="h-7"
+            disabled={seleccionados.size === 0}
+            onClick={() => setDialogoImprimir(true)}
+          >
+            <Printer />
+            {seleccionados.size > 0
+              ? t("unit.printLabelsCount", { count: seleccionados.size })
+              : t("unit.printLabels")}
+          </Button>
+        </div>
       </div>
 
       <DataTable
