@@ -473,17 +473,29 @@ const PedidoDetalle = () => {
             onClick={() => {
               const resumen = lines.map((line) => [
                 line.product?.name ?? "Producto sin nombre",
-                line.item.condition ?? "—",
+                line.esRepuesto ? "No aplica" : line.item.condition ?? "—",
                 line.item.quantity,
-                line.units.length,
+                line.esRepuesto ? "No aplica" : line.units.length,
+                line.esRepuesto ? "No requiere serial" : line.units.map((unit) => unit.serial).join("\n") || "Pendiente de serializar",
+                line.item.unitPrice,
+                line.item.subtotal,
               ]);
               const detalleSeriales = lines.flatMap((line) => {
                 const base = line.product?.name ?? "Producto sin nombre";
-                const condicion = line.item.condition ?? "—";
-                if (line.units.length === 0) {
-                  return [[base, condicion, line.item.quantity, "Pendiente de serializar"]];
-                }
-                return line.units.map((unit) => [base, condicion, line.item.quantity, unit.serial]);
+                const condicion = line.esRepuesto ? "No aplica" : line.item.condition ?? "—";
+                const comunes = [
+                  order.code,
+                  customer?.name ?? "Sin cliente",
+                  formatDate(order.orderDate),
+                  base,
+                  condicion,
+                  line.item.quantity,
+                  line.item.unitPrice,
+                  line.item.subtotal,
+                ];
+                if (line.esRepuesto) return [[...comunes, "No requiere serial"]];
+                if (line.units.length === 0) return [[...comunes, "Pendiente de serializar"]];
+                return line.units.map((unit) => [...comunes, unit.serial]);
               });
               exportExcel({
                 filename: `pedido-${order.code.toLowerCase()}-${todayIso()}.xlsx`,
@@ -492,17 +504,22 @@ const PedidoDetalle = () => {
                     name: "Resumen",
                     title: `Pedido ${order.code}`,
                     subtitle: `Cliente: ${customer?.name ?? "Sin cliente"} · Fecha: ${formatDate(order.orderDate)}`,
-                    columns: ["Referencia", "Condición", "Cantidad solicitada", "Seriales asignados"],
+                    columns: ["Referencia", "Condición", "Cantidad solicitada", "Seriales asignados", "IMEI / seriales asignados", "Precio unitario", "Subtotal"],
                     rows: resumen,
-                    numberFormats: { 2: "#,##0", 3: "#,##0" },
+                    numberFormats: { 2: "#,##0", 5: "#,##0", 6: "#,##0" },
+                    columnWidths: [36, 16, 18, 16, 44, 18, 18],
+                    wrapColumns: [4],
+                    rowHeights: resumen.map((row) => Math.max(24, String(row[4]).split("\n").length * 15)),
                   },
                   {
-                    name: "Seriales",
-                    title: `Seriales del pedido ${order.code}`,
-                    subtitle: `Cliente: ${customer?.name ?? "Sin cliente"}`,
-                    columns: ["Referencia", "Condición", "Cantidad de línea", "IMEI / serial"],
+                    name: "Seriales detallados",
+                    title: `Detalle individual de seriales · ${order.code}`,
+                    subtitle: `Cliente: ${customer?.name ?? "Sin cliente"} · Fecha: ${formatDate(order.orderDate)} · Cada IMEI ocupa una fila independiente`,
+                    columns: ["Pedido", "Cliente", "Fecha", "Referencia", "Condición", "Cantidad de línea", "Precio unitario", "Subtotal de línea", "IMEI / serial"],
                     rows: detalleSeriales,
-                    numberFormats: { 2: "#,##0" },
+                    numberFormats: { 5: "#,##0", 6: "#,##0", 7: "#,##0" },
+                    columnWidths: [22, 24, 18, 38, 16, 16, 18, 20, 24],
+                    wrapColumns: [3, 8],
                     freezeRows: 4,
                   },
                 ],
