@@ -1,11 +1,45 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { strFromU8, unzipSync } from "fflate";
+import { jsPDF } from "jspdf";
 
-import { exportCompanyName, exportExcel, exportPedidosHistorialExcel, exportProductCatalogExcel, normalizeCatalogText } from "./export";
+import { exportCompanyName, exportExcel, exportOrderSerialRelationPdf, exportPedidosHistorialExcel, exportProductCatalogExcel, normalizeCatalogText } from "./export";
 
 const ONE_PIXEL_JPEG =
   "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCAABAAEDASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwD6pooooA//2Q==";
+
+describe("PDF de relación de seriales", () => {
+  afterEach(() => vi.restoreAllMocks());
+
+  it("genera la relación de seriales con metadatos del pedido y descarga el PDF", () => {
+    const save = vi.spyOn(jsPDF.prototype, "save").mockImplementation(function () { return this; });
+
+    exportOrderSerialRelationPdf({
+      orderCode: "PED-001",
+      companyName: "NEXORA",
+      customer: "Cliente de prueba",
+      orderDate: "25 oct 2026",
+      filename: "pedido-ped-001-seriales.pdf",
+      lines: [
+        {
+          reference: "iPhone 18 Pro Max 256 GB",
+          condition: "nuevo",
+          quantity: 2,
+          serials: ["000000006520990", "000000004102691"],
+        },
+        {
+          reference: "Repuesto de prueba",
+          condition: "nuevo",
+          quantity: 1,
+          serials: [],
+          requiresSerial: false,
+        },
+      ],
+    });
+
+    expect(save).toHaveBeenCalledWith("pedido-ped-001-seriales.pdf");
+  });
+});
 
 describe("identidad de exportaciones", () => {
   it("usa Nexora cuando el nombre de empresa es genérico", () => {
