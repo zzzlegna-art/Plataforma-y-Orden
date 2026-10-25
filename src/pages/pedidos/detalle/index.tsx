@@ -39,7 +39,7 @@ import {
   serializarImeiPedido,
   unidadesLibres,
 } from "@/lib/actions/orders";
-import { exportCompanyName, exportExcel, exportPdf, exportSubtitle } from "@/lib/export";
+import { exportExcel, exportOrderSerialRelationPdf } from "@/lib/export";
 import { formatDate, todayIso } from "@/lib/format";
 import { findUnitBySerial, getOrderView } from "@/lib/selectors";
 import type { UnitCondition } from "@/lib/types";
@@ -404,19 +404,19 @@ const PedidoDetalle = () => {
             type="button"
             variant="outline"
             onClick={() => {
-              const body = lines.map((line) => [
-                line.product?.name ?? "Producto sin nombre",
-                line.item.condition ?? "—",
-                line.item.quantity,
-                line.units.map((unit) => unit.serial).join("\n") || "Pendiente de serializar",
-              ]);
-              exportPdf({
-                title: `Relación de seriales · ${order.code} · ${exportCompanyName(db.settings.companyName)}`,
-                subtitle: exportSubtitle(lines.length, `Cliente: ${customer?.name ?? "Sin cliente"}`),
-                head: ["Referencia", "Condición", "Cantidad", "IMEI / seriales"],
-                body,
+              exportOrderSerialRelationPdf({
+                orderCode: order.code,
+                companyName: db.settings.companyName,
+                customer: customer?.name ?? "Sin cliente",
+                orderDate: formatDate(order.orderDate),
+                lines: lines.map((line) => ({
+                  reference: line.product?.name ?? "Producto sin nombre",
+                  condition: line.item.condition ?? "—",
+                  quantity: line.item.quantity,
+                  serials: line.units.map((unit) => unit.serial),
+                  requiresSerial: !line.esRepuesto,
+                })),
                 filename: `pedido-${order.code.toLowerCase()}-seriales-${todayIso()}.pdf`,
-                highlightColumns: [0],
               });
             }}
           >
