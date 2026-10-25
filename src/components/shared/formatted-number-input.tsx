@@ -40,7 +40,7 @@ export const FormattedNumberInput = ({
     if (caret === null || !inputRef.current) return;
     inputRef.current.setSelectionRange(caret, caret);
     pendingCaretRef.current = null;
-  }, [displayValue]);
+  });
 
   const handleChange = (event: ChangeEvent<HTMLInputElement>) => {
     const rawValue = event.currentTarget.value;
