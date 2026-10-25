@@ -39,8 +39,11 @@ import { DomainError } from "@/lib/db";
 import { formatDate } from "@/lib/format";
 import { findProductForReference } from "@/lib/product-reference";
 import {
+  getSerialImportQueueLimitIssue,
   MAX_SERIAL_IMPORT,
   MAX_SERIAL_IMPORT_FILE_BYTES,
+  MAX_SERIAL_IMPORT_FILES,
+  MAX_SERIAL_IMPORT_TOTAL,
   parseSerialWorkbook,
   SerialWorkbookError,
   type ParsedSerialWorkbook,
@@ -167,6 +170,21 @@ const SerialesPrevios = ({ embedded = false }: { embedded?: boolean }) => {
 
     try {
       for (const file of files) {
+        const serialesYaEnCola = registrosEnCola.length + nuevos.reduce(
+          (total, archivo) => total + archivo.registros.length,
+          0,
+        );
+        const limiteArchivos = getSerialImportQueueLimitIssue(
+          archivosExcel.length + nuevos.length,
+          serialesYaEnCola,
+          1,
+          0,
+        );
+        if (limiteArchivos === "too_many_files") {
+          errores.push(t("serialesPrevios.excelErrorTooManyFiles", { limit: MAX_SERIAL_IMPORT_FILES }));
+          break;
+        }
+
         const extension = file.name.toLowerCase().split(".").pop();
         if (!extension || !["xlsx", "xls", "xlsm", "xlsb", "csv"].includes(extension)) {
           errores.push(`${file.name}: formato no compatible`);
@@ -185,6 +203,23 @@ const SerialesPrevios = ({ embedded = false }: { embedded?: boolean }) => {
 
         try {
           const parsed = parseSerialWorkbook(await file.arrayBuffer(), file.name);
+          const serialesActuales = registrosEnCola.length + nuevos.reduce(
+            (total, archivo) => total + archivo.registros.length,
+            0,
+          );
+          const limiteCola = getSerialImportQueueLimitIssue(
+            archivosExcel.length + nuevos.length,
+            serialesActuales,
+            1,
+            parsed.registros.length,
+          );
+          if (limiteCola === "too_many_total") {
+            errores.push(file.name + ": " + t("serialesPrevios.excelErrorTooManyTotal", {
+              limit: MAX_SERIAL_IMPORT_TOTAL.toLocaleString("es-CO"),
+            }));
+            continue;
+          }
+
           nuevos.push({
             ...parsed,
             id,
@@ -219,6 +254,12 @@ const SerialesPrevios = ({ embedded = false }: { embedded?: boolean }) => {
 
   const importarExcel = async () => {
     if (registrosEnCola.length === 0 || importandoExcel) return;
+    if (registrosEnCola.length > MAX_SERIAL_IMPORT_TOTAL) {
+      toast.error(t("serialesPrevios.excelErrorTooManyTotal", {
+        limit: MAX_SERIAL_IMPORT_TOTAL.toLocaleString("es-CO"),
+      }));
+      return;
+    }
     setImportandoExcel(true);
 
     const totalLeidos = registrosEnCola.length;
@@ -475,7 +516,7 @@ const SerialesPrevios = ({ embedded = false }: { embedded?: boolean }) => {
                   className="block w-full rounded-md border bg-background px-3 py-2 text-sm file:mr-3 file:rounded-md file:border-0 file:bg-primary file:px-3 file:py-1.5 file:text-primary-foreground"
                 />
                 <p className="text-xs text-muted-foreground">
-                  Puedes seleccionar muchos Excel a la vez. Se detectan seriales, referencias, clientes (incluido el nombre de cada hoja) y fechas. Máximo 20.000 seriales por archivo y 25 MB por archivo.
+                  Puedes seleccionar varios Excel a la vez. Se detectan seriales, referencias, clientes (incluido el nombre de cada hoja) y fechas. Máximo 20.000 seriales y 25 MB por archivo, 100 archivos y 100.000 seriales por importación.
                 </p>
               </div>
 
@@ -493,7 +534,7 @@ const SerialesPrevios = ({ embedded = false }: { embedded?: boolean }) => {
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <div>
                       <p className="text-sm font-semibold">
-                        {archivosExcel.length} archivo(s) en la lista · {estadisticasExcel.leidos.toLocaleString("es-CO")} seriales detectados
+                        {archivosExcel.length}/{MAX_SERIAL_IMPORT_FILES} archivo(s) en la lista · {estadisticasExcel.leidos.toLocaleString("es-CO")}/{MAX_SERIAL_IMPORT_TOTAL.toLocaleString("es-CO")} seriales detectados
                       </p>
                       <p className="text-xs text-muted-foreground">
                         Revisa los metadatos y quita con la X cualquier archivo que hayas añadido por error.

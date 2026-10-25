@@ -32,13 +32,12 @@ import {
   type ProductFormDraft,
 } from "@/lib/product-form-draft";
 import { normalizeCatalogText } from "@/lib/catalog-text";
+import { getProductImageExtension, validateProductImageFile } from "@/lib/product-image";
 import { getProductTechnicalSpecFieldsForCategory, getProductTechnicalSpecsForCategory } from "@/lib/product-specs";
 import { etiquetaTipoProducto, tiposProductoOrdenados } from "@/lib/products";
 import type { Product, ProductCategory, ProductTechnicalSpecs } from "@/lib/types";
 
 const PRODUCT_IMAGE_BUCKET = "product-images";
-const MAX_PRODUCT_IMAGE_BYTES = 5 * 1024 * 1024;
-const PRODUCT_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"] as const;
 
 const getProductImageStoragePath = (url?: string): string | undefined => {
   if (!url) return undefined;
@@ -153,12 +152,13 @@ export const ProductFormDialog = ({
   const handleImageChange = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
-    if (!(PRODUCT_IMAGE_TYPES as readonly string[]).includes(file.type)) {
+    const validationError = validateProductImageFile(file);
+    if (validationError === "invalid_type") {
       setImageError(t("product.imageInvalidType"));
       event.target.value = "";
       return;
     }
-    if (file.size > MAX_PRODUCT_IMAGE_BYTES) {
+    if (validationError === "too_large") {
       setImageError(t("product.imageTooLarge"));
       event.target.value = "";
       return;
@@ -200,8 +200,7 @@ export const ProductFormDialog = ({
     try {
       let imageUrl: string | null | undefined = product?.imageUrl;
       if (imageFile) {
-        const extension =
-          imageFile.type === "image/png" ? "png" : imageFile.type === "image/webp" ? "webp" : "jpg";
+        const extension = getProductImageExtension(imageFile.type);
         uploadedPath = `products/${crypto.randomUUID()}.${extension}`;
         const { error } = await supabase.storage.from(PRODUCT_IMAGE_BUCKET).upload(uploadedPath, imageFile, {
           cacheControl: "3600",
