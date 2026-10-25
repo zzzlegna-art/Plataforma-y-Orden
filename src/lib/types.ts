@@ -50,6 +50,7 @@ export type MovementReference = "recepcion" | "pedido" | "garantia" | "manual";
 
 export type OrderStatus =
   | "en_preparacion"
+  | "preparado"
   | "despachado"
   | "cancelado";
 
