@@ -1299,5 +1299,9 @@
   "guide.noResultsHint": "Prueba con otra palabra, como «serial», «garantía» o «catálogo».",
   "guide.clearSearch": "Limpiar búsqueda",
   "guide.footer": "Diseñada para consultar mientras trabajas.",
-  "guide.sync.text": "Los registros se sincronizan con los demás dispositivos conectados. Si no ves un cambio, comprueba tu conexión y que tu usuario tenga permiso para consultar esa sección."
+  "guide.sync.text": "Los registros se sincronizan con los demás dispositivos conectados. Si no ves un cambio, comprueba tu conexión y que tu usuario tenga permiso para consultar esa sección.",
+  "unit.copySerials": "Copiar seriales",
+  "unit.serialsCopied": "{{count}} seriales copiados",
+  "unit.noSerialsToCopy": "No hay seriales para copiar.",
+  "unit.copySerialsError": "No se pudieron copiar los seriales."
 }
