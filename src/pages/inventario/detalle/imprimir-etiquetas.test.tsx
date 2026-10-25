@@ -103,13 +103,30 @@ beforeAll(async () => {
   }));
   vi.stubGlobal("ResizeObserver", class { observe() {} unobserve() {} disconnect() {} });
 });
-beforeEach(() => mocks.imprimirEtiquetas.mockReset());
+beforeEach(() => {
+  mocks.imprimirEtiquetas.mockReset();
+  Object.defineProperty(navigator, "clipboard", {
+    configurable: true,
+    value: { writeText: vi.fn().mockResolvedValue(undefined) },
+  });
+});
 afterEach(cleanup);
 
 describe("Detalle de producto · elegir seriales e imprimir etiquetas", () => {
   it("el botón empieza deshabilitado, sin nada elegido", () => {
     dibujar();
     expect(botonImprimir().hasAttribute("disabled")).toBe(true);
+  });
+
+  it("copia los seriales visibles del producto en líneas separadas", async () => {
+    const user = userEvent.setup();
+    dibujar();
+
+    await user.click(screen.getByRole("button", { name: "Copiar seriales" }));
+
+    expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
+      "359175923749557\\n354791666675724\\n357065942117702",
+    );
   });
 
   it("elegir dos seriales e imprimir manda exactamente esos dos, con el nombre del producto", async () => {
