@@ -107,6 +107,7 @@ describe("documentos comerciales de pedido", () => {
         quantity: 2,
         unitPrice: 4200000,
         subtotal: 8400000,
+        serials: ["000000006520990", "000000004102691"],
       },
     ],
     filename: "documento-prueba.pdf",
