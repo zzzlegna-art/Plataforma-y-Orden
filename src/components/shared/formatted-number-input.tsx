@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState, type ChangeEvent, type ComponentProps } from "react";
+import { useLayoutEffect, useRef, type ChangeEvent, type ComponentProps } from "react";
 
 import { Input } from "@/components/ui/input";
 import {
@@ -27,13 +27,9 @@ export const FormattedNumberInput = ({
   allowDecimal = true,
   ...props
 }: FormattedNumberInputProps) => {
-  const [displayValue, setDisplayValue] = useState(() => formatGroupedNumber(value, allowDecimal));
   const inputRef = useRef<HTMLInputElement>(null);
   const pendingCaretRef = useRef<number | null>(null);
-
-  useEffect(() => {
-    setDisplayValue(formatGroupedNumber(value, allowDecimal));
-  }, [value, allowDecimal]);
+  const displayValue = formatGroupedNumber(value, allowDecimal);
 
   useLayoutEffect(() => {
     const caret = pendingCaretRef.current;
@@ -50,14 +46,12 @@ export const FormattedNumberInput = ({
       allowDecimal,
     );
     const nextValue = parseGroupedNumber(rawValue, allowDecimal);
-    const nextDisplayValue = formatGroupedNumber(nextValue, allowDecimal);
 
     pendingCaretRef.current = getGroupedNumberCaret(
-      nextDisplayValue,
+      formatGroupedNumber(nextValue, allowDecimal),
       meaningfulCharactersBeforeCaret,
       allowDecimal,
     );
-    setDisplayValue(nextDisplayValue);
     onValueChange(nextValue);
   };
 
