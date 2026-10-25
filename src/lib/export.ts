@@ -219,7 +219,7 @@ export const exportOrderSerialRelationPdf = ({
     .filter((line) => line.requiresSerial !== false)
     .reduce((sum, line) => sum + line.serials.length, 0);
   const title = "Relación de seriales";
-  const subtitle = `${company} · ${totalSerials} IMEI asignados · Generado el ${formatDateTime(new Date().toISOString())}`;
+  const subtitle = `${company} · Generado el ${formatDateTime(new Date().toISOString())}`;
 
   const drawHeader = () => dibujarEncabezado(doc, title, subtitle, margin);
   const drawOrderBand = () => {
