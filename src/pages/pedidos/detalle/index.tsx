@@ -40,7 +40,7 @@ import {
   serializarImeiPedido,
   unidadesLibres,
 } from "@/lib/actions/orders";
-import { exportExcel, exportSalesInvoicePdf } from "@/lib/export";
+import { exportExcel, exportOrderSerialRelationPdf, exportSalesInvoicePdf } from "@/lib/export";
 import { formatCurrency, formatDate, todayIso } from "@/lib/format";
 import { findUnitBySerial, getOrderView } from "@/lib/selectors";
 import type { UnitCondition } from "@/lib/types";
@@ -439,8 +439,40 @@ const PedidoDetalle = () => {
       <section className="rounded-xl border bg-card p-4 shadow-sm">
         <div className="mb-3 flex items-center gap-2">
           <Download className="h-4 w-4 text-primary" />
-          <h2 className="text-sm font-semibold">Factura comercial</h2>
+          <h2 className="text-sm font-semibold">Documentos del pedido</h2>
         </div>
+        <div className="mb-4 border-b pb-4">
+          <h3 className="text-sm font-semibold">Relación de seriales · empaque</h3>
+          <p className="my-2 text-sm text-muted-foreground">
+            PDF con las referencias y cada IMEI asignado, listo para imprimir e incluir dentro de la caja.
+          </p>
+          <Button
+            type="button"
+            variant="outline"
+            disabled={assigned === 0}
+            title={assigned === 0 ? "Asigna al menos un serial para generar la relación." : undefined}
+            onClick={() => {
+              exportOrderSerialRelationPdf({
+                orderCode: order.code,
+                companyName: db.settings.companyName,
+                customer: customer?.name ?? "Sin cliente",
+                orderDate: formatDate(order.orderDate),
+                lines: lines.map((line) => ({
+                  reference: line.product?.name ?? "Producto sin nombre",
+                  condition: line.esRepuesto ? "No aplica" : t(`condition.${line.item.condition}`),
+                  quantity: line.item.quantity,
+                  serials: line.units.map((unit) => unit.serial),
+                  requiresSerial: !line.esRepuesto,
+                })),
+                filename: `pedido-${order.code.toLowerCase()}-seriales-${todayIso()}.pdf`,
+              });
+            }}
+          >
+            <Download />
+            PDF · Relación de seriales
+          </Button>
+        </div>
+        <h3 className="text-sm font-semibold">Factura comercial</h3>
         <p className="mb-3 text-sm text-muted-foreground">
           Descarga la factura comercial en PDF o Excel. Se habilita al confirmar la venta y el despacho.
         </p>

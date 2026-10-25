@@ -1303,5 +1303,7 @@
   "unit.copySerials": "Copiar seriales",
   "unit.serialsCopied": "{{count}} seriales copiados",
   "unit.noSerialsToCopy": "No hay seriales para copiar.",
-  "unit.copySerialsError": "No se pudieron copiar los seriales."
+  "unit.copySerialsError": "No se pudieron copiar los seriales.",
+  "unit.copySerial": "Copiar serial {{serial}}",
+  "unit.serialCopied": "Serial copiado"
 }

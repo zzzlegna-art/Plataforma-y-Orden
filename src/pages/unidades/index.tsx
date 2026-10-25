@@ -1,8 +1,8 @@
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { toast } from "sonner";
-import { ScanLine, AlertTriangle, Clock3, ShieldCheck, ArrowRight, Copy } from "lucide-react";
+import { ScanLine, AlertTriangle, Clock3, ShieldCheck, ArrowRight } from "lucide-react";
 
+import { CopySerialButton } from "@/components/shared/copy-serial-button";
 import { DataTable } from "@/components/shared/data-table";
 import { ProductThumbnail } from "@/components/shared/product-thumbnail";
 import { PageHeader } from "@/components/shared/page-header";
@@ -79,20 +79,6 @@ const Unidades = ({ embedded = false }: { embedded?: boolean }) => {
     if (unit) setSelectedId(unit.id);
   };
 
-  const copiarSerialesVisibles = async () => {
-    const seriales = rows.map((row) => row.unit.serial).filter(Boolean);
-    if (seriales.length === 0) {
-      toast.error(t("unit.noSerialsToCopy"));
-      return;
-    }
-    try {
-      await navigator.clipboard.writeText(seriales.join("\n"));
-      toast.success(t("unit.serialsCopied", { count: seriales.length }));
-    } catch {
-      toast.error(t("unit.copySerialsError"));
-    }
-  };
-
   const renderCard = (row: UnitRow) => (
     <div className="space-y-2">
       <div className="flex items-start justify-between gap-2">
@@ -104,7 +90,10 @@ const Unidades = ({ embedded = false }: { embedded?: boolean }) => {
             className="rounded-xl p-0"
           />
           <div className="min-w-0">
-            <p className="font-tabular truncate font-medium">{row.unit.serial}</p>
+            <div className="flex min-w-0 items-center gap-1">
+              <p className="font-tabular truncate font-medium">{row.unit.serial}</p>
+              <CopySerialButton serial={row.unit.serial} />
+            </div>
             <p className="truncate text-xs text-muted-foreground">{row.product?.name ?? "—"}</p>
           </div>
         </div>
@@ -211,22 +200,6 @@ const Unidades = ({ embedded = false }: { embedded?: boolean }) => {
         </div>
       </div>
 
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="text-sm text-muted-foreground">
-          {t("common.resultsCount", { count: rows.length })}
-        </p>
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          disabled={rows.length === 0}
-          onClick={() => void copiarSerialesVisibles()}
-        >
-          <Copy />
-          {t("unit.copySerials")}
-        </Button>
-      </div>
-
       <DataTable<UnitRow>
         rows={rows}
         rowKey={(row) => row.unit.id}
@@ -241,7 +214,10 @@ const Unidades = ({ embedded = false }: { embedded?: boolean }) => {
             key: "serial",
             header: t("unit.serial"),
             cell: (row) => (
-              <span className="font-tabular font-medium">{row.unit.serial}</span>
+              <span className="inline-flex items-center gap-1">
+                <span className="font-tabular font-medium">{row.unit.serial}</span>
+                <CopySerialButton serial={row.unit.serial} />
+              </span>
             ),
           },
           {

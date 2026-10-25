@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Package, Trash2, X } from "lucide-react";
+import { CopySerialButton } from "@/components/shared/copy-serial-button";
 
 import { SerialScanInput } from "@/components/shared/serial-scan-input";
 import { ConditionBadge } from "@/components/shared/status-badge";
@@ -220,13 +221,14 @@ export const OrderLineCard = ({
       {autoRepuesto ? null : line.units.length > 0 ? (
         // Los seriales ya ingresados van como etiquetas compactas en cuadrícula: caben varios por
         // fila y se alinean en columnas, en vez de una fila ancha por cada uno.
-        <ul className="mt-3 grid grid-cols-[repeat(auto-fill,minmax(9.75rem,1fr))] gap-1.5">
+        <ul className="mt-3 grid grid-cols-[repeat(auto-fill,minmax(min(100%,13rem),1fr))] gap-1.5">
           {line.units.map((unit) => (
             <li
               key={unit.id}
               className="flex animate-fade-in items-center justify-between gap-1 rounded-md border bg-background/40 py-1 pl-2.5 pr-1 motion-reduce:animate-none"
             >
-              <span className="font-tabular text-[13px]">{unit.serial}</span>
+              <span className="font-tabular min-w-0 truncate text-[13px]">{unit.serial}</span>
+              <CopySerialButton serial={unit.serial} />
               {editable || edicionDespachado ? (
                 <Button
                   type="button"
