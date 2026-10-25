@@ -1305,5 +1305,7 @@
   "unit.noSerialsToCopy": "No hay seriales para copiar.",
   "unit.copySerialsError": "No se pudieron copiar los seriales.",
   "unit.copySerial": "Copiar serial {{serial}}",
-  "unit.serialCopied": "Serial copiado"
+  "unit.serialCopied": "Serial copiado",
+  "order.salesTotal": "Total de venta",
+  "order.estimatedTotal": "Estimado · pendiente de venta"
 }
