@@ -293,6 +293,7 @@ export const exportOrderSerialRelationPdf = ({
 
   dibujarPies(doc, `Relación de seriales · ${orderCode}`, margin);
   doc.save(filename);
+  return doc;
 };
 
 /** Subtítulo de los reportes de garantías: fecha, nota opcional y equipos. */
