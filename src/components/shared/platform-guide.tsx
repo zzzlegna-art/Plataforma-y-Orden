@@ -224,7 +224,7 @@ export const PlatformGuide = ({ variant = "hero" }: { variant?: "hero" | "sideba
 
             <p className="mt-5 flex items-start gap-2 rounded-lg bg-muted/50 px-3 py-2.5 text-xs leading-relaxed text-muted-foreground">
               <Wifi aria-hidden className="mt-0.5 h-4 w-4 shrink-0" />
-              <span>{t("guide.movil.text")}</span>
+              <span>{t("guide.sync.text")}</span>
             </p>
           </div>
 

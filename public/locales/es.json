@@ -1292,5 +1292,6 @@
   "guide.noResults": "No encontramos temas con esa búsqueda",
   "guide.noResultsHint": "Prueba con otra palabra, como «serial», «garantía» o «catálogo».",
   "guide.clearSearch": "Limpiar búsqueda",
-  "guide.footer": "Diseñada para consultar mientras trabajas."
+  "guide.footer": "Diseñada para consultar mientras trabajas.",
+  "guide.sync.text": "Los registros se sincronizan con los demás dispositivos conectados. Si no ves un cambio, comprueba tu conexión y que tu usuario tenga permiso para consultar esa sección."
 }
