@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { DomainError, emptyDb } from "../db";
 import type { Actor, Db, UnitStatus } from "../types";
 import { createCustomer, updateCustomer } from "./customers";
-import { cancelarPedidoDespachado, createOrder, finalizarPedido, quitarSerialDespachado } from "./orders";
+import { cancelarPedidoDespachado, confirmarVentaPedido, createOrder, quitarSerialDespachado } from "./orders";
 import { importarSerialesPrevios } from "./seriales-previos";
 import { corregirUnitSerial, liberarUnitsLote } from "./units";
 import { updateSettings } from "./users";
@@ -15,7 +15,7 @@ const uid = () => `id-${++contador}`;
 
 /** Un producto, un cliente y un pedido con una unidad asignada por cada estado dado. */
 const escenario = (
-  estadoPedido: "en_preparacion" | "despachado",
+  estadoPedido: "en_preparacion" | "preparado" | "despachado",
   estados: UnitStatus[],
   categoria: "celular" | "repuesto" = "celular",
 ): Db => {
@@ -54,23 +54,23 @@ describe("createOrder", () => {
   });
 });
 
-describe("finalizarPedido", () => {
+describe("confirmarVentaPedido", () => {
   it("marca las unidades como vendidas", () => {
-    const db = escenario("en_preparacion", ["en_bodega", "en_bodega"]);
-    finalizarPedido(db, admin, { orderId: "o1" });
+    const db = escenario("preparado", ["en_bodega", "en_bodega"]);
+    confirmarVentaPedido(db, admin, { orderId: "o1" });
     expect(db.units.map((u) => u.status)).toEqual(["vendido", "vendido"]);
     expect(db.orders[0].status).toBe("despachado");
   });
 
   it("no despacha si una unidad ya no está disponible", () => {
-    const db = escenario("en_preparacion", ["en_bodega", "en_reparacion"]);
-    expect(clave(() => finalizarPedido(db, admin, { orderId: "o1" }))).toBe("errors.unitNotAvailable");
+    const db = escenario("preparado", ["en_bodega", "en_reparacion"]);
+    expect(clave(() => confirmarVentaPedido(db, admin, { orderId: "o1" }))).toBe("errors.unitNotAvailable");
   });
 
   it("no despacha en silencio si una unidad no existe", () => {
-    const db = escenario("en_preparacion", ["en_bodega"]);
+    const db = escenario("preparado", ["en_bodega"]);
     db.units = [];
-    expect(clave(() => finalizarPedido(db, admin, { orderId: "o1" }))).toBe("errors.notFound");
+    expect(clave(() => confirmarVentaPedido(db, admin, { orderId: "o1" }))).toBe("errors.notFound");
   });
 });
 
@@ -177,9 +177,9 @@ describe("auditoría: entityId debe ser un uuid o no estar (la columna es uuid)"
   });
 
   it("despachar y anular pedidos usan siempre el id del pedido", () => {
-    const db = escenario("en_preparacion", ["en_bodega"]);
+    const db = escenario("preparado", ["en_bodega"]);
     db.orders[0].id = "11111111-1111-4111-8111-111111111111";
-    finalizarPedido(db, admin, { orderId: db.orders[0].id });
+    confirmarVentaPedido(db, admin, { orderId: db.orders[0].id });
     expect(sinEntidadInvalida(db)).toBe(true);
   });
 });
