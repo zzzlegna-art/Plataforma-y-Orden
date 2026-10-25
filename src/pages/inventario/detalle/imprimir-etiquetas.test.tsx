@@ -106,9 +106,9 @@ beforeAll(async () => {
 beforeEach(() => {
   mocks.imprimirEtiquetas.mockReset();
   mocks.writeText.mockReset().mockResolvedValue(undefined);
-  Object.defineProperty(navigator, "clipboard", {
+  Object.defineProperty(navigator.clipboard, "writeText", {
     configurable: true,
-    value: { writeText: mocks.writeText },
+    value: mocks.writeText,
   });
 });
 afterEach(cleanup);
