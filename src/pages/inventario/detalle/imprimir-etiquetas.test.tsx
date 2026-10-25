@@ -10,7 +10,7 @@ import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vite
 vi.mock("@/lib/backend", () => ({}));
 vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn(), warning: vi.fn() } }));
 
-const mocks = vi.hoisted(() => ({ imprimirEtiquetas: vi.fn() }));
+const mocks = vi.hoisted(() => ({ imprimirEtiquetas: vi.fn(), writeText: vi.fn() }));
 vi.mock("@/lib/print-labels", () => ({ imprimirEtiquetas: mocks.imprimirEtiquetas }));
 
 import type { CambioRemoto } from "@/lib/backend";
@@ -105,9 +105,10 @@ beforeAll(async () => {
 });
 beforeEach(() => {
   mocks.imprimirEtiquetas.mockReset();
+  mocks.writeText.mockReset().mockResolvedValue(undefined);
   Object.defineProperty(navigator, "clipboard", {
     configurable: true,
-    value: { writeText: vi.fn().mockResolvedValue(undefined) },
+    value: { writeText: mocks.writeText },
   });
 });
 afterEach(cleanup);
@@ -124,7 +125,7 @@ describe("Detalle de producto · elegir seriales e imprimir etiquetas", () => {
 
     await user.click(screen.getByRole("button", { name: "Copiar seriales" }));
 
-    expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
+    expect(mocks.writeText).toHaveBeenCalledWith(
       "359175923749557\\n354791666675724\\n357065942117702",
     );
   });
