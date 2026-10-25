@@ -746,7 +746,7 @@ export interface DashboardData {
   hasAmounts: boolean;
 }
 
-const OPEN_ORDER_STATUSES = ["en_preparacion"];
+const OPEN_ORDER_STATUSES = ["en_preparacion", "preparado"];
 
 export const getDashboard = (db: Db): DashboardData => {
   const rows = getProductRows(db);
