@@ -11,7 +11,7 @@ import type { Actor, Db, Order, OrderItem, OrderStatus, Unit, UnitCondition } fr
 import { esProductoRepuesto } from "../products";
 import { requireNumber, requirePermission } from "./guards";
 
-export const ORDER_STATUSES: OrderStatus[] = ["en_preparacion", "despachado", "cancelado"];
+export const ORDER_STATUSES: OrderStatus[] = ["en_preparacion", "preparado", "despachado", "cancelado"];
 
 const findOrder = (db: Db, orderId: string) => {
   const order = db.orders.find((item) => item.id === orderId);
@@ -202,7 +202,7 @@ const unitEnOtroPedidoActivo = (db: Db, unitId: string) =>
     if (row.unitId !== unitId) return false;
     const item = db.orderItems.find((i) => i.id === row.orderItemId);
     const order = item ? db.orders.find((o) => o.id === item.orderId) : undefined;
-    return order && order.status === "en_preparacion";
+    return order && (order.status === "en_preparacion" || order.status === "preparado");
   });
 
 /**
@@ -348,10 +348,45 @@ const asignarRepuestosAutomaticamente = (db: Db, orderId: string, items: OrderIt
 };
 
 /**
- * Finaliza el pedido: las referencias con serial deben estar completas; los repuestos se
- * asignan solos desde el inventario.
+ * Verifica que todas las unidades del pedido estén asignadas una sola vez,
+ * correspondan a la referencia solicitada y sigan físicamente disponibles.
  */
-export const finalizarPedido = (
+const validarAsignacionesPedido = (db: Db, order: Order, items: OrderItem[]) => {
+  const idsAsignados = new Set<string>();
+  for (const item of items) {
+    const asignaciones = db.orderItemUnits.filter((row) => row.orderItemId === item.id);
+    if (asignaciones.length < item.quantity) {
+      const product = db.products.find((p) => p.id === item.productId);
+      throw new DomainError("errors.orderIncomplete", { product: product?.name ?? "" });
+    }
+    for (const row of asignaciones) {
+      if (idsAsignados.has(row.unitId)) throw new DomainError("errors.unitAlreadyAssigned");
+      idsAsignados.add(row.unitId);
+      const unit = db.units.find((u) => u.id === row.unitId);
+      if (!unit) throw new DomainError("errors.notFound");
+      if (unit.productId !== item.productId || (item.condition && unit.condition !== item.condition)) {
+        throw new DomainError("errors.unitProductMismatch");
+      }
+      if (unit.status !== "en_bodega" && unit.status !== "en_local") {
+        throw new DomainError("errors.unitNotAvailable", { serial: unit.serial });
+      }
+      const asignadaEnOtroPedido = db.orderItemUnits.some((otra) => {
+        if (otra.unitId !== unit.id || otra.orderItemId === row.orderItemId) return false;
+        const otraLinea = db.orderItems.find((linea) => linea.id === otra.orderItemId);
+        const otroPedido = otraLinea && db.orders.find((pedido) => pedido.id === otraLinea.orderId);
+        return Boolean(otroPedido && otroPedido.id !== order.id &&
+          (otroPedido.status === "en_preparacion" || otroPedido.status === "preparado"));
+      });
+      if (asignadaEnOtroPedido) throw new DomainError("errors.unitAlreadyAssigned");
+    }
+  }
+};
+
+/**
+ * Primera confirmación: prepara y reserva las unidades, sin descontarlas del inventario
+ * ni marcarlas como vendidas. La salida solo ocurre al confirmar la venta.
+ */
+export const confirmarPreparacionPedido = (
   db: Db,
   actor: Actor,
   input: { orderId: string },
@@ -360,63 +395,71 @@ export const finalizarPedido = (
   const order = findOrder(db, input.orderId);
   assertEnPreparacion(order);
   const items = orderItems(db, order.id);
+  if (items.length === 0) throw new DomainError("errors.orderNeedsItems");
 
   asignarRepuestosAutomaticamente(db, order.id, items);
+  validarAsignacionesPedido(db, order, items);
 
-  const incompleta = items.find((item) => {
-    const asignados = db.orderItemUnits.filter((row) => row.orderItemId === item.id).length;
-    return asignados < item.quantity;
+  const preparedAt = nowIso();
+  order.status = "preparado";
+  order.updatedAt = preparedAt;
+  logAudit(db, actor, {
+    action: "status",
+    entity: "order",
+    entityId: order.id,
+    details: `${order.code} · preparación confirmada; inventario reservado, sin salida`,
   });
-  if (incompleta) {
-    const product = db.products.find((p) => p.id === incompleta.productId);
-    throw new DomainError("errors.orderIncomplete", { product: product?.name ?? "" });
-  }
+  return order;
+};
 
-  // Verificación final independiente de la interfaz: ningún IMEI puede repetirse
-  // ni salir en una referencia/condición diferente de la solicitada.
-  const idsDespacho = new Set<string>();
+/**
+ * Segunda confirmación: registra la venta y la salida física de las unidades reservadas.
+ * El costo real de cada unidad se valida antes de modificar inventario.
+ */
+export const confirmarVentaPedido = (
+  db: Db,
+  actor: Actor,
+  input: { orderId: string },
+): Order => {
+  requirePermission(actor, "orders.manage");
+  const order = findOrder(db, input.orderId);
+  if (order.status !== "preparado") throw new DomainError("errors.orderNotPrepared");
+  const items = orderItems(db, order.id);
+  validarAsignacionesPedido(db, order, items);
+
   for (const item of items) {
+    const product = db.products.find((p) => p.id === item.productId);
     for (const row of db.orderItemUnits.filter((asignacion) => asignacion.orderItemId === item.id)) {
-      if (idsDespacho.has(row.unitId)) throw new DomainError("errors.unitAlreadyAssigned");
-      idsDespacho.add(row.unitId);
       const unit = db.units.find((u) => u.id === row.unitId);
       if (!unit) throw new DomainError("errors.notFound");
-      if (unit.productId !== item.productId || (item.condition && unit.condition !== item.condition)) {
-        throw new DomainError("errors.unitProductMismatch");
-      }
-      if (unitEnOtroPedidoActivo(db, unit.id) &&
-        db.orderItemUnits.some((asignacion) => asignacion.unitId === unit.id &&
-          asignacion.orderItemId !== item.id &&
-          db.orderItems.some((linea) => linea.id === asignacion.orderItemId && linea.orderId !== order.id &&
-            db.orders.some((pedido) => pedido.id === linea.orderId && pedido.status === "en_preparacion")))) {
-        throw new DomainError("errors.unitAlreadyAssigned");
+      const costoReal = unit.cost ?? product?.cost;
+      if (costoReal !== undefined && item.unitPrice < costoReal) {
+        throw new DomainError("errors.saleBelowCost", {
+          serial: unit.serial,
+          costo: costoReal,
+          precio: item.unitPrice,
+        });
       }
     }
   }
 
   const deliveredAt = nowIso();
-  items.forEach((item) => {
-    db.orderItemUnits
-      .filter((row) => row.orderItemId === item.id)
-      .forEach((row) => {
-        const unit = db.units.find((u) => u.id === row.unitId);
-        // Nunca se despacha en silencio un pedido con una unidad que ya no está disponible.
-        if (!unit) throw new DomainError("errors.notFound");
-        if (unit.status !== "en_bodega" && unit.status !== "en_local") {
-          throw new DomainError("errors.unitNotAvailable", { serial: unit.serial });
-        }
-        unit.status = "vendido";
-        logMovement(db, actor, {
-          productId: unit.productId,
-          unitId: unit.id,
-          type: "salida",
-          referenceType: "pedido",
-          referenceId: order.id,
-          notes: `Salida por pedido ${order.code}`,
-          createdAt: deliveredAt,
-        });
+  for (const item of items) {
+    for (const row of db.orderItemUnits.filter((asignacion) => asignacion.orderItemId === item.id)) {
+      const unit = db.units.find((u) => u.id === row.unitId);
+      if (!unit) throw new DomainError("errors.notFound");
+      unit.status = "vendido";
+      logMovement(db, actor, {
+        productId: unit.productId,
+        unitId: unit.id,
+        type: "salida",
+        referenceType: "pedido",
+        referenceId: order.id,
+        notes: `Salida por venta confirmada del pedido ${order.code}`,
+        createdAt: deliveredAt,
       });
-  });
+    }
+  }
 
   order.status = "despachado";
   order.deliveryDate = diaBogota(deliveredAt);
@@ -425,10 +468,13 @@ export const finalizarPedido = (
     action: "status",
     entity: "order",
     entityId: order.id,
-    details: `${order.code} · despachado`,
+    details: `${order.code} · venta confirmada y despachada`,
   });
   return order;
 };
+
+/** Compatibilidad para llamadas existentes: finalizar ahora significa confirmar la venta. */
+export const finalizarPedido = confirmarVentaPedido;
 
 /** Cancela el pedido (solo administrador); los seriales quedan libres. */
 export const cancelarPedido = (
@@ -438,7 +484,9 @@ export const cancelarPedido = (
 ): Order => {
   requirePermission(actor, "users.manage");
   const order = findOrder(db, input.orderId);
-  assertEnPreparacion(order);
+  if (order.status !== "en_preparacion" && order.status !== "preparado") {
+    throw new DomainError("errors.orderNotEditable");
+  }
   const itemIds = orderItems(db, order.id).map((item) => item.id);
   db.orderItemUnits = db.orderItemUnits.filter(
     (row) => !itemIds.includes(row.orderItemId),
@@ -456,7 +504,8 @@ export const cancelarPedido = (
 };
 
 export const nextOrderStatuses = (status: OrderStatus): OrderStatus[] => {
-  if (status === "en_preparacion") return ["despachado", "cancelado"];
+  if (status === "en_preparacion") return ["preparado", "cancelado"];
+  if (status === "preparado") return ["despachado", "cancelado"];
   return [];
 };
 
