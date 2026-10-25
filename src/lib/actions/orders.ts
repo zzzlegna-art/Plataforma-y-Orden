@@ -466,6 +466,8 @@ export const confirmarVentaPedido = (
   if (order.status !== "preparado") throw new DomainError("errors.orderNotPrepared");
   const items = orderItems(db, order.id);
   validarAsignacionesPedido(db, order, items);
+  // Corrige posibles totales antiguos antes de confirmar definitivamente la venta.
+  order.total = items.reduce((total, item) => total + item.subtotal, 0);
 
   for (const item of items) {
     const product = db.products.find((p) => p.id === item.productId);
