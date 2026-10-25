@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("react-i18next", () => ({
@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { CopySerialButton } from "./copy-serial-button";
 
 afterEach(() => {
+  cleanup();
   vi.restoreAllMocks();
 });
 
