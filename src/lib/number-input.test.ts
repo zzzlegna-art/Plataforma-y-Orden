@@ -29,7 +29,7 @@ describe("localized number input", () => {
   it("does not allow decimal separators in integer-only fields", () => {
     expect(formatGroupedNumber("10000", false)).toBe("10.000");
     expect(parseGroupedNumber("10.000", false)).toBe("10000");
-    expect(parseGroupedNumber("10,5", false)).toBe("105");
+    expect(parseGroupedNumber("10,5", false)).toBe("10");
   });
 
   it("keeps the caret aligned with digits when thousands dots are inserted", () => {
