@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { ArrowLeft, Check, Download, FileSpreadsheet, FileText, PackagePlus, Undo2, Wrench } from "lucide-react";
+import { ArrowLeft, Check, Download, FileSpreadsheet, FileText, PackagePlus, Receipt, Truck, Undo2, Wrench } from "lucide-react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
 
@@ -39,7 +39,7 @@ import {
   serializarImeiPedido,
   unidadesLibres,
 } from "@/lib/actions/orders";
-import { exportCompanyName, exportExcel, exportPdf, exportSubtitle } from "@/lib/export";
+import { exportExcel, exportOrderSerialRelationPdf } from "@/lib/export";
 import { formatDate, todayIso } from "@/lib/format";
 import { findUnitBySerial, getOrderView } from "@/lib/selectors";
 import type { UnitCondition } from "@/lib/types";
@@ -106,6 +106,30 @@ const PedidoDetalle = () => {
   const preparado = order.status === "preparado";
   // El administrador puede ajustar (agregar/quitar unidades) y anular pedidos ya despachados.
   const edicionDespachado = isAdmin && order.status === "despachado";
+  const ventaConfirmada = order.status === "despachado";
+  const datosDocumentoVenta = () => ({
+    orderCode: order.code,
+    companyName: db.settings.companyName,
+    currency: db.settings.currency,
+    orderDate: formatDate(order.orderDate),
+    deliveryDate: order.deliveryDate ? formatDate(order.deliveryDate) : formatDate(order.orderDate),
+    customer: {
+      name: customer?.name ?? "Sin cliente",
+      taxId: customer?.taxId,
+      contactName: customer?.contactName,
+      email: customer?.email,
+      phone: customer?.phone,
+      address: customer?.address,
+    },
+    lines: lines.map((line) => ({
+      reference: line.product?.name ?? "Producto sin nombre",
+      condition: line.esRepuesto ? "No aplica" : line.item.condition ? t(`condition.${line.item.condition}`) : "—",
+      quantity: line.item.quantity,
+      unitPrice: line.item.unitPrice,
+      subtotal: line.item.subtotal,
+      serials: line.units.map((unit) => unit.serial),
+    })),
+  });
   const addProduct = db.products.find((p) => p.id === addProductId);
   const lineaQuitar = quitarAbierto
     ? lines.find((l) => l.item.id === quitarAbierto.orderItemId)
@@ -404,19 +428,19 @@ const PedidoDetalle = () => {
             type="button"
             variant="outline"
             onClick={() => {
-              const body = lines.map((line) => [
-                line.product?.name ?? "Producto sin nombre",
-                line.item.condition ?? "—",
-                line.item.quantity,
-                line.units.map((unit) => unit.serial).join("\n") || "Pendiente de serializar",
-              ]);
-              exportPdf({
-                title: `Relación de seriales · ${order.code} · ${exportCompanyName(db.settings.companyName)}`,
-                subtitle: exportSubtitle(lines.length, `Cliente: ${customer?.name ?? "Sin cliente"}`),
-                head: ["Referencia", "Condición", "Cantidad", "IMEI / seriales"],
-                body,
+              exportOrderSerialRelationPdf({
+                orderCode: order.code,
+                companyName: db.settings.companyName,
+                customer: customer?.name ?? "Sin cliente",
+                orderDate: formatDate(order.orderDate),
+                lines: lines.map((line) => ({
+                  reference: line.product?.name ?? "Producto sin nombre",
+                  condition: line.item.condition ?? "—",
+                  quantity: line.item.quantity,
+                  serials: line.units.map((unit) => unit.serial),
+                  requiresSerial: !line.esRepuesto,
+                })),
                 filename: `pedido-${order.code.toLowerCase()}-seriales-${todayIso()}.pdf`,
-                highlightColumns: [0],
               });
             }}
           >
@@ -468,7 +492,42 @@ const PedidoDetalle = () => {
             <FileSpreadsheet />
             Excel · Detalle del pedido
           </Button>
+          <Button
+            type="button"
+            variant="outline"
+            disabled={!ventaConfirmada}
+            title={!ventaConfirmada ? "Confirma la venta y el despacho para habilitar la factura comercial." : undefined}
+            onClick={() => {
+              exportSalesInvoicePdf({
+                ...datosDocumentoVenta(),
+                filename: `factura-comercial-${order.code.toLowerCase()}-${todayIso()}.pdf`,
+              });
+            }}
+          >
+            <Receipt />
+            Factura comercial · PDF
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            disabled={!ventaConfirmada}
+            title={!ventaConfirmada ? "Confirma la venta y el despacho para habilitar la remisión." : undefined}
+            onClick={() => {
+              exportSalesRemisionPdf({
+                ...datosDocumentoVenta(),
+                filename: `remision-${order.code.toLowerCase()}-${todayIso()}.pdf`,
+              });
+            }}
+          >
+            <Truck />
+            Remisión de venta · PDF
+          </Button>
         </div>
+        <p className="mt-3 text-xs text-muted-foreground">
+          {!ventaConfirmada
+            ? "La factura comercial y la remisión se habilitan después de confirmar la venta y el despacho."
+            : "La factura comercial es un documento interno y no reemplaza una factura electrónica validada por la DIAN. La remisión documenta la entrega y los seriales."}
+        </p>
       </section>
 
       <div className="grid gap-3 sm:grid-cols-3">

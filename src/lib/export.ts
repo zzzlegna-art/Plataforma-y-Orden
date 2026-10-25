@@ -176,6 +176,401 @@ export const exportPdf = ({
   doc.save(filename);
 };
 
+export interface OrderSerialRelationLine {
+  reference: string;
+  condition: string;
+  quantity: number;
+  serials: string[];
+  /** Los repuestos y otros artículos no serializados no requieren IMEI. */
+  requiresSerial?: boolean;
+}
+
+/**
+ * PDF de relación de seriales para empaque y verificación.
+ * Resume el pedido en una franja superior y agrupa los IMEI por referencia,
+ * conservando cada serial en una línea independiente para facilitar la lectura.
+ */
+export const exportOrderSerialRelationPdf = ({
+  orderCode,
+  companyName,
+  customer,
+  orderDate,
+  lines,
+  filename,
+}: {
+  orderCode: string;
+  companyName?: string | null;
+  customer: string;
+  orderDate: string;
+  lines: OrderSerialRelationLine[];
+  filename: string;
+}) => {
+  const doc = new jsPDF({ orientation: "portrait", unit: "pt", format: "a4" });
+  const pageW = doc.internal.pageSize.getWidth();
+  const pageH = doc.internal.pageSize.getHeight();
+  const margin = 28;
+  const width = pageW - margin * 2;
+  const serialLines = lines.filter((line) => line.requiresSerial !== false);
+  const totalUnits = serialLines.reduce((sum, line) => sum + line.quantity, 0);
+  const assignedSerials = serialLines.reduce((sum, line) => sum + line.serials.length, 0);
+  const company = exportCompanyName(companyName);
+  const title = `Relación de seriales · ${orderCode} · ${company}`;
+  const subtitle = exportSubtitle(lines.length, `Cliente: ${customer || "Sin cliente"}`);
+
+  const drawHeader = () => dibujarEncabezado(doc, title, subtitle, margin);
+  drawHeader();
+
+  // Franja compacta con datos operativos del pedido, visible antes de la tabla.
+  const metaY = CONTENT_TOP;
+  const metaH = 48;
+  doc.setFillColor(CYAN_PALE[0], CYAN_PALE[1], CYAN_PALE[2]);
+  doc.setDrawColor(BORDER[0], BORDER[1], BORDER[2]);
+  doc.roundedRect(margin, metaY, width, metaH, 5, 5, "FD");
+
+  const metaColumns = [
+    { label: "CLIENTE", value: customer || "Sin cliente", x: margin + 12, w: width * 0.36 },
+    { label: "FECHA DEL PEDIDO", value: orderDate || "—", x: margin + width * 0.39, w: width * 0.25 },
+    { label: "UNIDADES", value: String(totalUnits), x: margin + width * 0.68, w: width * 0.12 },
+    { label: "IMEI ASIGNADOS", value: `${assignedSerials}/${totalUnits}`, x: margin + width * 0.82, w: width * 0.16 },
+  ];
+  metaColumns.forEach(({ label, value, x, w }) => {
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(6.8);
+    doc.setTextColor(MUTED[0], MUTED[1], MUTED[2]);
+    doc.text(label, x, metaY + 16, { maxWidth: w });
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(9);
+    doc.setTextColor(NAVY[0], NAVY[1], NAVY[2]);
+    const wrapped = doc.splitTextToSize(value, w) as string[];
+    doc.text(wrapped.slice(0, 2), x, metaY + 31);
+  });
+
+  const body = lines.map((line) => [
+    line.reference,
+    line.condition || "—",
+    line.quantity,
+    line.requiresSerial === false
+      ? "No requiere serial"
+      : line.serials.length > 0
+        ? line.serials.join("\n")
+        : "Pendiente de serializar",
+  ]);
+
+  autoTable(doc, {
+    startY: metaY + metaH + 12,
+    margin: { top: CONTENT_TOP, left: margin, right: margin, bottom: FOOTER_SPACE },
+    head: [["Referencia", "Condición", "Cantidad", "IMEI / seriales"]],
+    body,
+    showHead: "everyPage",
+    rowPageBreak: "avoid",
+    styles: {
+      font: "helvetica",
+      fontSize: 8.5,
+      cellPadding: { top: 7, bottom: 7, left: 7, right: 7 },
+      textColor: TEXT,
+      lineColor: BORDER,
+      lineWidth: 0.5,
+      valign: "middle",
+      overflow: "linebreak",
+    },
+    headStyles: {
+      fillColor: NAVY,
+      textColor: [255, 255, 255],
+      lineColor: CYAN,
+      lineWidth: 0.8,
+      fontStyle: "bold",
+      fontSize: 8.5,
+    },
+    alternateRowStyles: { fillColor: CYAN_PALE },
+    columnStyles: {
+      0: { cellWidth: width * 0.39, fontStyle: "bold", textColor: CYAN_DARK },
+      1: { cellWidth: width * 0.15 },
+      2: { cellWidth: width * 0.12, halign: "center" },
+      3: { cellWidth: width * 0.34, fontSize: 8, font: "courier" },
+    },
+    didDrawPage: () => drawHeader(),
+  });
+
+  dibujarPies(doc, `Relación de seriales · ${orderCode}`, margin);
+  doc.save(filename);
+  return doc;
+};
+
+export interface SalesDocumentLine {
+  reference: string;
+  condition?: string;
+  quantity: number;
+  unitPrice: number;
+  subtotal: number;
+  serials: string[];
+}
+
+export interface SalesDocumentCustomer {
+  name: string;
+  taxId?: string;
+  contactName?: string;
+  email?: string;
+  phone?: string;
+  address?: string;
+}
+
+export interface SalesDocumentInput {
+  orderCode: string;
+  companyName?: string | null;
+  currency: string;
+  orderDate: string;
+  deliveryDate?: string;
+  customer: SalesDocumentCustomer;
+  lines: SalesDocumentLine[];
+  filename: string;
+}
+
+const formatDocumentMoney = (amount: number, currency: string) => {
+  const validCurrency = /^[A-Z]{3}$/.test(currency) ? currency : "COP";
+  try {
+    return new Intl.NumberFormat("es-CO", {
+      style: "currency",
+      currency: validCurrency,
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 2,
+    }).format(amount);
+  } catch {
+    return new Intl.NumberFormat("es-CO", { maximumFractionDigits: 2 }).format(amount);
+  }
+};
+
+const drawSalesMetadata = (
+  doc: jsPDF,
+  input: SalesDocumentInput,
+  margin: number,
+  top: number,
+  width: number,
+  documentNumber: string,
+) => {
+  const company = exportCompanyName(input.companyName);
+  const customer = input.customer;
+  const entries = [
+    { label: "EMISOR", value: company },
+    { label: "CLIENTE", value: customer.name || "Consumidor / cliente sin nombre" },
+    { label: "NIT / IDENTIFICACIÓN", value: customer.taxId || "No registrado" },
+    { label: "PEDIDO", value: input.orderCode },
+    { label: "DOCUMENTO", value: documentNumber },
+    { label: "FECHA", value: input.deliveryDate || input.orderDate },
+  ];
+  const columns = 3;
+  const gap = 8;
+  const cellW = (width - gap * (columns - 1)) / columns;
+  const cellH = 42;
+  entries.forEach((entry, index) => {
+    const col = index % columns;
+    const row = Math.floor(index / columns);
+    const x = margin + col * (cellW + gap);
+    const y = top + row * (cellH + gap);
+    doc.setFillColor(CYAN_PALE[0], CYAN_PALE[1], CYAN_PALE[2]);
+    doc.setDrawColor(BORDER[0], BORDER[1], BORDER[2]);
+    doc.roundedRect(x, y, cellW, cellH, 4, 4, "FD");
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(6.5);
+    doc.setTextColor(MUTED[0], MUTED[1], MUTED[2]);
+    doc.text(entry.label, x + 8, y + 13);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(8.5);
+    doc.setTextColor(NAVY[0], NAVY[1], NAVY[2]);
+    const value = doc.splitTextToSize(entry.value, cellW - 16) as string[];
+    doc.text(value.slice(0, 2), x + 8, y + 27);
+  });
+  return top + 2 * (cellH + gap) - gap;
+};
+
+const buildSalesDocumentRows = (
+  input: SalesDocumentInput,
+  includePrices: boolean,
+) => input.lines.map((line) => {
+  const serials = line.serials.length ? line.serials.join("\n") : "No requiere serial";
+  const base: (string | number)[] = [
+    line.reference,
+    line.condition || "—",
+    line.quantity,
+  ];
+  if (includePrices) {
+    base.push(
+      formatDocumentMoney(line.unitPrice, input.currency),
+      formatDocumentMoney(line.subtotal, input.currency),
+    );
+  }
+  base.push(serials);
+  return base;
+});
+
+/**
+ * Documento comercial interno de venta. No calcula impuestos porque la configuración
+ * fiscal y la integración de factura electrónica deben validarse antes de emitir factura DIAN.
+ */
+export const exportSalesInvoicePdf = (input: SalesDocumentInput) => {
+  const doc = new jsPDF({ orientation: "landscape", unit: "pt", format: "a4" });
+  const pageW = doc.internal.pageSize.getWidth();
+  const pageH = doc.internal.pageSize.getHeight();
+  const margin = 28;
+  const width = pageW - margin * 2;
+  const company = exportCompanyName(input.companyName);
+  const documentNumber = `FAC-${input.orderCode}`;
+  const title = `FACTURA COMERCIAL · ${documentNumber}`;
+  const subtitle = `${company} · Documento interno de venta · No reemplaza factura electrónica DIAN`;
+  const drawHeader = () => dibujarEncabezado(doc, title, subtitle, margin);
+  drawHeader();
+
+  const metaBottom = drawSalesMetadata(doc, input, margin, CONTENT_TOP, width, documentNumber);
+  const customerDetails = [
+    input.customer.address ? `Dirección: ${input.customer.address}` : "",
+    input.customer.phone ? `Teléfono: ${input.customer.phone}` : "",
+    input.customer.email ? `Correo: ${input.customer.email}` : "",
+  ].filter(Boolean).join(" · ");
+  if (customerDetails) {
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(7.5);
+    doc.setTextColor(TEXT[0], TEXT[1], TEXT[2]);
+    doc.text(doc.splitTextToSize(customerDetails, width) as string[], margin, metaBottom + 14);
+  }
+
+  const tableStart = metaBottom + (customerDetails ? 26 : 12);
+  autoTable(doc, {
+    startY: tableStart,
+    margin: { top: CONTENT_TOP, left: margin, right: margin, bottom: FOOTER_SPACE + 20 },
+    head: [["Referencia / producto", "Condición", "Cant.", "Precio unitario", "Subtotal", "IMEI / seriales"]],
+    body: buildSalesDocumentRows(input, true),
+    showHead: "everyPage",
+    rowPageBreak: "avoid",
+    styles: {
+      font: "helvetica",
+      fontSize: 7.5,
+      cellPadding: { top: 6, bottom: 6, left: 6, right: 6 },
+      textColor: TEXT,
+      lineColor: BORDER,
+      lineWidth: 0.45,
+      valign: "middle",
+      overflow: "linebreak",
+    },
+    headStyles: { fillColor: NAVY, textColor: [255, 255, 255], lineColor: CYAN, lineWidth: 0.8, fontStyle: "bold" },
+    alternateRowStyles: { fillColor: CYAN_PALE },
+    columnStyles: {
+      0: { cellWidth: width * 0.25, fontStyle: "bold", textColor: CYAN_DARK },
+      1: { cellWidth: width * 0.10 },
+      2: { cellWidth: width * 0.07, halign: "center" },
+      3: { cellWidth: width * 0.14, halign: "right" },
+      4: { cellWidth: width * 0.14, halign: "right" },
+      5: { cellWidth: width * 0.30, font: "courier", fontSize: 7 },
+    },
+    didDrawPage: () => drawHeader(),
+  });
+
+  let y = ((doc as jsPDF & { lastAutoTable?: { finalY: number } }).lastAutoTable?.finalY ?? tableStart) + 18;
+  if (y > pageH - 112) {
+    doc.addPage();
+    drawHeader();
+    y = CONTENT_TOP + 10;
+  }
+  const total = input.lines.reduce((sum, line) => sum + line.subtotal, 0);
+  doc.setFillColor(CYAN_PALE[0], CYAN_PALE[1], CYAN_PALE[2]);
+  doc.setDrawColor(BORDER[0], BORDER[1], BORDER[2]);
+  doc.roundedRect(pageW - margin - 230, y, 230, 42, 5, 5, "FD");
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(9);
+  doc.setTextColor(NAVY[0], NAVY[1], NAVY[2]);
+  doc.text("TOTAL COMERCIAL", pageW - margin - 218, y + 16);
+  doc.setFontSize(14);
+  doc.text(formatDocumentMoney(total, input.currency), pageW - margin - 218, y + 33);
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(7);
+  doc.setTextColor(MUTED[0], MUTED[1], MUTED[2]);
+  doc.text(
+    doc.splitTextToSize("Documento comercial interno. Impuestos y requisitos fiscales no se calculan ni se certifican en este PDF. Para factura electrónica válida, emitir mediante el sistema autorizado correspondiente.", width) as string[],
+    margin,
+    y + 16,
+  );
+  dibujarPies(doc, `Factura comercial · ${input.orderCode}`, margin);
+  doc.save(input.filename);
+  return doc;
+};
+
+/** Remisión operativa para la entrega de equipos; no reemplaza la factura de venta. */
+export const exportSalesRemisionPdf = (input: SalesDocumentInput) => {
+  const doc = new jsPDF({ orientation: "portrait", unit: "pt", format: "a4" });
+  const pageW = doc.internal.pageSize.getWidth();
+  const pageH = doc.internal.pageSize.getHeight();
+  const margin = 28;
+  const width = pageW - margin * 2;
+  const company = exportCompanyName(input.companyName);
+  const documentNumber = `REM-${input.orderCode}`;
+  const title = `REMISIÓN DE VENTA · ${documentNumber}`;
+  const subtitle = `${company} · Documento de entrega y trazabilidad`;
+  const drawHeader = () => dibujarEncabezado(doc, title, subtitle, margin);
+  drawHeader();
+
+  const metaBottom = drawSalesMetadata(doc, input, margin, CONTENT_TOP, width, documentNumber);
+  const contact = [
+    input.customer.address ? `Dirección de entrega: ${input.customer.address}` : "",
+    input.customer.phone ? `Teléfono: ${input.customer.phone}` : "",
+    input.customer.contactName ? `Contacto: ${input.customer.contactName}` : "",
+  ].filter(Boolean).join(" · ");
+  if (contact) {
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8);
+    doc.setTextColor(TEXT[0], TEXT[1], TEXT[2]);
+    doc.text(doc.splitTextToSize(contact, width) as string[], margin, metaBottom + 14);
+  }
+
+  const tableStart = metaBottom + (contact ? 27 : 12);
+  autoTable(doc, {
+    startY: tableStart,
+    margin: { top: CONTENT_TOP, left: margin, right: margin, bottom: FOOTER_SPACE + 65 },
+    head: [["Referencia / producto", "Condición", "Cant.", "IMEI / seriales"]],
+    body: buildSalesDocumentRows(input, false),
+    showHead: "everyPage",
+    rowPageBreak: "avoid",
+    styles: {
+      font: "helvetica",
+      fontSize: 8,
+      cellPadding: { top: 7, bottom: 7, left: 7, right: 7 },
+      textColor: TEXT,
+      lineColor: BORDER,
+      lineWidth: 0.45,
+      valign: "middle",
+      overflow: "linebreak",
+    },
+    headStyles: { fillColor: NAVY, textColor: [255, 255, 255], lineColor: CYAN, lineWidth: 0.8, fontStyle: "bold" },
+    alternateRowStyles: { fillColor: CYAN_PALE },
+    columnStyles: {
+      0: { cellWidth: width * 0.39, fontStyle: "bold", textColor: CYAN_DARK },
+      1: { cellWidth: width * 0.15 },
+      2: { cellWidth: width * 0.10, halign: "center" },
+      3: { cellWidth: width * 0.36, font: "courier", fontSize: 7.5 },
+    },
+    didDrawPage: () => drawHeader(),
+  });
+
+  let y = ((doc as jsPDF & { lastAutoTable?: { finalY: number } }).lastAutoTable?.finalY ?? tableStart) + 24;
+  if (y > pageH - 100) {
+    doc.addPage();
+    drawHeader();
+    y = CONTENT_TOP + 18;
+  }
+  doc.setDrawColor(BORDER[0], BORDER[1], BORDER[2]);
+  doc.line(margin, y + 26, margin + width * 0.42, y + 26);
+  doc.line(margin + width * 0.58, y + 26, margin + width, y + 26);
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(8);
+  doc.setTextColor(TEXT[0], TEXT[1], TEXT[2]);
+  doc.text("Entregado por", margin, y + 40);
+  doc.text("Recibido conforme", margin + width * 0.58, y + 40);
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(7);
+  doc.setTextColor(MUTED[0], MUTED[1], MUTED[2]);
+  doc.text("La firma confirma la recepción física de los artículos descritos.", margin, y + 56);
+  dibujarPies(doc, `Remisión de venta · ${input.orderCode}`, margin);
+  doc.save(input.filename);
+  return doc;
+};
+
 /** Subtítulo de los reportes de garantías: fecha, nota opcional y equipos. */
 export const exportSubtitleEquipos = (count: number, note?: string) => {
   const when = new Intl.DateTimeFormat("es-MX", {
