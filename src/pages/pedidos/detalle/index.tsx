@@ -99,6 +99,7 @@ const PedidoDetalle = () => {
   }
 
   const { order, customer, lines, requested } = view;
+  const totalPedido = lines.reduce((total, line) => total + line.item.subtotal, 0);
   // Los repuestos no llevan serial (se descuentan solos al finalizar): el progreso y lo que falta
   // por asignar solo cuentan las referencias que sí se escanean.
   const lineasConSerial = lines.filter((line) => !line.esRepuesto);
@@ -589,7 +590,7 @@ const PedidoDetalle = () => {
             {t("order.total")}
           </p>
           <p className="font-tabular mt-1 text-xl font-semibold">
-            {formatCurrency(order.total)}
+            {formatCurrency(totalPedido)}
           </p>
           <p className="mt-1 text-xs text-muted-foreground">Total estimado de la venta</p>
         </div>
