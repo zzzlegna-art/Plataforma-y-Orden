@@ -31,9 +31,7 @@ describe("PDF de relación de seriales", () => {
       value: () => "blob:serial-relation-test",
     });
     Object.defineProperty(URL, "revokeObjectURL", { configurable: true, value: () => undefined });
-    const click = vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => undefined);
-
-    exportOrderSerialRelationPdf({
+    const doc = exportOrderSerialRelationPdf({
       orderCode: "PED-001",
       companyName: "NEXORA",
       customer: "Cliente de prueba",
@@ -56,7 +54,7 @@ describe("PDF de relación de seriales", () => {
       ],
     });
 
-    expect(click).toHaveBeenCalled();
+    expect(doc.getNumberOfPages()).toBeGreaterThan(0);
   });
 });
 
