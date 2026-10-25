@@ -104,7 +104,7 @@ export const SerialesSeccion = ({
       return;
     }
     try {
-      await navigator.clipboard.writeText(seriales.join("\\n"));
+      await navigator.clipboard.writeText(seriales.join("\n"));
       toast.success(t("unit.serialsCopied", { count: seriales.length }));
     } catch {
       toast.error(t("unit.copySerialsError"));
