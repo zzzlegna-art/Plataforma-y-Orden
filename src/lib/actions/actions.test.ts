@@ -179,6 +179,7 @@ describe("auditoría: entityId debe ser un uuid o no estar (la columna es uuid)"
   it("despachar y anular pedidos usan siempre el id del pedido", () => {
     const db = escenario("preparado", ["en_bodega"]);
     db.orders[0].id = "11111111-1111-4111-8111-111111111111";
+    db.orderItems[0].orderId = db.orders[0].id;
     finalizarPedido(db, admin, { orderId: db.orders[0].id });
     expect(sinEntidadInvalida(db)).toBe(true);
   });
