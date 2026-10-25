@@ -20,7 +20,10 @@ export const parseGroupedNumber = (value: string, allowDecimal = true): string =
   const trimmed = value.trim();
   if (!trimmed) return "";
 
-  if (!allowDecimal || !trimmed.includes(",")) {
+  if (!allowDecimal) {
+    return trimmed.split(",", 1)[0].replace(/\D/g, "");
+  }
+  if (!trimmed.includes(",")) {
     return trimmed.replace(/\D/g, "");
   }
 
