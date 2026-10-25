@@ -126,7 +126,7 @@ describe("Detalle de producto · elegir seriales e imprimir etiquetas", () => {
     await user.click(screen.getByRole("button", { name: "Copiar seriales" }));
 
     expect(mocks.writeText).toHaveBeenCalledWith(
-      "359175923749557\\n354791666675724\\n357065942117702",
+      "359175923749557\n354791666675724\n357065942117702",
     );
   });
 
