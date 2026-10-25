@@ -258,7 +258,7 @@ export const exportOrderSerialRelationPdf = ({
     const countLabel = line.requiresSerial === false
       ? "sin serial"
       : serials.length
-        ? `${serials.length} IMEI${serials.length === 1 ? "" : "s"}`
+        ? `${serials.length} IMEI`
         : "seriales pendientes";
     const label = `${line.reference} (${condition}) x${line.quantity} — ${countLabel}`;
     const titleLines = doc.splitTextToSize(label, width - 22) as string[];
