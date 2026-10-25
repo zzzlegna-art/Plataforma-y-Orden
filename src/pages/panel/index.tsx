@@ -55,121 +55,15 @@ import {
   STOCK_BAJO_CELULARES,
 } from "@/lib/selectors";
 import type { UnitCondition } from "@/lib/types";
+import { RankChart } from "./rank-chart";
 
 import {
   firmaRankClientes,
   firmaRankProductos,
-  getRankSharePercent,
   rankDatumsDeClientes,
   rankDatumsDeProductos,
   type RankDatum,
 } from "@/lib/dashboard-charts";
-
-/** Nexora fase 2: panel premium conservando selectores y permisos originales. */
-/** Ranking horizontal premium: legible en móvil y con contexto de participación. */
-const RankChart = ({
-  data,
-  formatValue,
-  summaryLabel,
-}: {
-  data: RankDatum[];
-  formatValue: (value: number) => string;
-  summaryLabel: string;
-}) => {
-  const totalValue = data.reduce((total, row) => total + Math.max(0, row.value), 0);
-  const leader = data[0];
-  const leaderShare = leader ? Math.round(getRankSharePercent(leader.value, totalValue)) : 0;
-
-  return (
-    <div className="space-y-3">
-      <div className="relative isolate overflow-hidden rounded-2xl border border-primary/15 bg-gradient-to-br from-primary/[0.08] via-card to-card p-4">
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute -right-8 -top-10 h-28 w-28 rounded-full bg-primary/10 blur-3xl"
-        />
-        <div className="relative flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-primary">
-              <Sparkles className="h-3 w-3" />
-              Resumen del ranking
-            </span>
-            <p className="font-tabular mt-3 text-2xl font-bold tracking-tight">{formatValue(totalValue)}</p>
-            <p className="mt-1 text-xs leading-4 text-muted-foreground">{summaryLabel}</p>
-          </div>
-          {leader ? (
-            <div className="max-w-[44%] shrink-0 text-right">
-              <span className="inline-flex items-center gap-1 rounded-full border border-amber-500/25 bg-amber-500/10 px-2.5 py-1 text-[10px] font-semibold text-amber-700 dark:text-amber-300">
-                <span aria-hidden="true">✦</span>
-                LÍDER
-              </span>
-              <p title={leader.name} className="mt-2 truncate text-sm font-semibold">{leader.name}</p>
-              <p className="font-tabular mt-0.5 text-xs text-muted-foreground">{leaderShare}% del total</p>
-            </div>
-          ) : null}
-        </div>
-      </div>
-
-      <div className="space-y-1">
-        {data.map((row, index) => {
-          const barWidth = getRankSharePercent(row.value, totalValue);
-          const share = Math.round(barWidth);
-          const rankTone =
-            index === 0
-              ? "border-amber-500/25 bg-amber-500/10 text-amber-700 dark:text-amber-300"
-              : index === 1
-                ? "border-slate-400/30 bg-slate-400/10 text-slate-600 dark:text-slate-300"
-                : index === 2
-                  ? "border-orange-700/20 bg-orange-700/10 text-orange-700 dark:text-orange-300"
-                  : "border-border bg-muted/60 text-muted-foreground";
-
-          return (
-            <div
-              key={row.key}
-              className="group rounded-xl border border-transparent px-2.5 py-3 transition-all duration-200 hover:border-border/70 hover:bg-muted/35"
-            >
-              <div className="flex items-center gap-3">
-                <span
-                  className={cn(
-                    "grid h-9 w-9 shrink-0 place-items-center rounded-xl border text-[11px] font-bold tabular-nums transition-transform duration-200 group-hover:scale-105",
-                    rankTone,
-                  )}
-                  aria-label={"Puesto " + (index + 1)}
-                >
-                  {String(index + 1).padStart(2, "0")}
-                </span>
-                <div className="min-w-0 flex-1">
-                  <div className="mb-2 flex items-start justify-between gap-3">
-                    <p title={row.name} className="min-w-0 truncate text-sm font-semibold leading-5">
-                      {row.name}
-                    </p>
-                    <span className="font-tabular shrink-0 text-sm font-bold">{formatValue(row.value)}</span>
-                  </div>
-                  <div
-                    role="img"
-                    aria-label={row.name + ": " + formatValue(row.value) + ", " + share + "% del total del ranking"}
-                    className="h-2 overflow-hidden rounded-full bg-muted/80 ring-1 ring-inset ring-border/40"
-                  >
-                    <div
-                      className="h-full rounded-full transition-[width] duration-700 ease-out"
-                      style={{
-                        width: String(barWidth) + "%",
-                        background: "linear-gradient(90deg, hsl(var(--primary)) 0%, hsl(var(--primary-glow)) 100%)",
-                      }}
-                    />
-                  </div>
-                  <div className="mt-1.5 flex items-center justify-between gap-2 text-[10px] text-muted-foreground">
-                    <span>{index === 0 ? "Mayor aporte" : "Participación del ranking"}</span>
-                    <span className="font-tabular font-medium">{share}%</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-};
 
 /** Panel general: indicadores, rankings y alertas operativas. */
 const Panel = () => {
@@ -659,6 +553,7 @@ const Panel = () => {
             ) : (
               <RankChart
                 data={productsChart}
+                selectedSummaryLabel="Unidades vendidas de esta referencia"
                 summaryLabel={t("dashboard.unitsTotal", { count: productsChart.reduce((total, row) => total + row.value, 0) })}
                 formatValue={(value) => formatNumber(value)}
               />
@@ -698,6 +593,7 @@ const Panel = () => {
             ) : (
               <RankChart
                 data={customersChart}
+                selectedSummaryLabel={clientesPorMonto ? "Compras acumuladas de este cliente" : "Unidades compradas por este cliente"}
                 summaryLabel={
                   clientesPorMonto
                     ? "Valor acumulado de los clientes destacados"
