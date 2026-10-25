@@ -176,6 +176,125 @@ export const exportPdf = ({
   doc.save(filename);
 };
 
+export interface OrderSerialRelationLine {
+  reference: string;
+  condition: string;
+  quantity: number;
+  serials: string[];
+  /** Los repuestos y otros artículos no serializados no requieren IMEI. */
+  requiresSerial?: boolean;
+}
+
+/**
+ * PDF de relación de seriales para empaque y verificación.
+ * Resume el pedido en una franja superior y agrupa los IMEI por referencia,
+ * conservando cada serial en una línea independiente para facilitar la lectura.
+ */
+export const exportOrderSerialRelationPdf = ({
+  orderCode,
+  companyName,
+  customer,
+  orderDate,
+  lines,
+  filename,
+}: {
+  orderCode: string;
+  companyName?: string | null;
+  customer: string;
+  orderDate: string;
+  lines: OrderSerialRelationLine[];
+  filename: string;
+}) => {
+  const doc = new jsPDF({ orientation: "portrait", unit: "pt", format: "a4" });
+  const pageW = doc.internal.pageSize.getWidth();
+  const pageH = doc.internal.pageSize.getHeight();
+  const margin = 28;
+  const width = pageW - margin * 2;
+  const serialLines = lines.filter((line) => line.requiresSerial !== false);
+  const totalUnits = serialLines.reduce((sum, line) => sum + line.quantity, 0);
+  const assignedSerials = serialLines.reduce((sum, line) => sum + line.serials.length, 0);
+  const company = exportCompanyName(companyName);
+  const title = `Relación de seriales · ${orderCode} · ${company}`;
+  const subtitle = exportSubtitle(lines.length, `Cliente: ${customer || "Sin cliente"}`);
+
+  const drawHeader = () => dibujarEncabezado(doc, title, subtitle, margin);
+  drawHeader();
+
+  // Franja compacta con datos operativos del pedido, visible antes de la tabla.
+  const metaY = CONTENT_TOP;
+  const metaH = 48;
+  doc.setFillColor(CYAN_PALE[0], CYAN_PALE[1], CYAN_PALE[2]);
+  doc.setDrawColor(BORDER[0], BORDER[1], BORDER[2]);
+  doc.roundedRect(margin, metaY, width, metaH, 5, 5, "FD");
+
+  const metaColumns = [
+    { label: "CLIENTE", value: customer || "Sin cliente", x: margin + 12, w: width * 0.36 },
+    { label: "FECHA DEL PEDIDO", value: orderDate || "—", x: margin + width * 0.39, w: width * 0.25 },
+    { label: "UNIDADES", value: String(totalUnits), x: margin + width * 0.68, w: width * 0.12 },
+    { label: "IMEI ASIGNADOS", value: `${assignedSerials}/${totalUnits}`, x: margin + width * 0.82, w: width * 0.16 },
+  ];
+  metaColumns.forEach(({ label, value, x, w }) => {
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(6.8);
+    doc.setTextColor(MUTED[0], MUTED[1], MUTED[2]);
+    doc.text(label, x, metaY + 16, { maxWidth: w });
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(9);
+    doc.setTextColor(NAVY[0], NAVY[1], NAVY[2]);
+    const wrapped = doc.splitTextToSize(value, w) as string[];
+    doc.text(wrapped.slice(0, 2), x, metaY + 31);
+  });
+
+  const body = lines.map((line) => [
+    line.reference,
+    line.condition || "—",
+    line.quantity,
+    line.requiresSerial === false
+      ? "No requiere serial"
+      : line.serials.length > 0
+        ? line.serials.join("\n")
+        : "Pendiente de serializar",
+  ]);
+
+  autoTable(doc, {
+    startY: metaY + metaH + 12,
+    margin: { top: CONTENT_TOP, left: margin, right: margin, bottom: FOOTER_SPACE },
+    head: [["Referencia", "Condición", "Cantidad", "IMEI / seriales"]],
+    body,
+    showHead: "everyPage",
+    rowPageBreak: "avoid",
+    styles: {
+      font: "helvetica",
+      fontSize: 8.5,
+      cellPadding: { top: 7, bottom: 7, left: 7, right: 7 },
+      textColor: TEXT,
+      lineColor: BORDER,
+      lineWidth: 0.5,
+      valign: "middle",
+      overflow: "linebreak",
+    },
+    headStyles: {
+      fillColor: NAVY,
+      textColor: [255, 255, 255],
+      lineColor: CYAN,
+      lineWidth: 0.8,
+      fontStyle: "bold",
+      fontSize: 8.5,
+    },
+    alternateRowStyles: { fillColor: CYAN_PALE },
+    columnStyles: {
+      0: { cellWidth: width * 0.39, fontStyle: "bold", textColor: CYAN_DARK },
+      1: { cellWidth: width * 0.15 },
+      2: { cellWidth: width * 0.12, halign: "center" },
+      3: { cellWidth: width * 0.34, fontSize: 8, font: "courier" },
+    },
+    didDrawPage: () => drawHeader(),
+  });
+
+  dibujarPies(doc, `Relación de seriales · ${orderCode}`, margin);
+  doc.save(filename);
+};
+
 /** Subtítulo de los reportes de garantías: fecha, nota opcional y equipos. */
 export const exportSubtitleEquipos = (count: number, note?: string) => {
   const when = new Intl.DateTimeFormat("es-MX", {
