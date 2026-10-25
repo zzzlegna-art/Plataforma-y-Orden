@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { ArrowLeft, Check, PackagePlus, Undo2, Wrench } from "lucide-react";
+import { ArrowLeft, Check, Download, FileSpreadsheet, FileText, PackagePlus, Undo2, Wrench } from "lucide-react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
 
@@ -38,7 +38,8 @@ import {
   serializarImeiPedido,
   unidadesLibres,
 } from "@/lib/actions/orders";
-import { formatDate } from "@/lib/format";
+import { exportCompanyName, exportExcel, exportPdf, exportSubtitle } from "@/lib/export";
+import { formatDate, todayIso } from "@/lib/format";
 import { findUnitBySerial, getOrderView } from "@/lib/selectors";
 import type { UnitCondition } from "@/lib/types";
 import { OrderLineCard } from "./OrderLineCard";
@@ -350,6 +351,86 @@ const PedidoDetalle = () => {
           ) : null
         }
       />
+
+      <section className="rounded-xl border bg-card p-4 shadow-sm">
+        <div className="mb-3 flex items-center gap-2">
+          <Download className="h-4 w-4 text-primary" />
+          <h2 className="text-sm font-semibold">Exportaciones de este pedido</h2>
+        </div>
+        <p className="mb-3 text-sm text-muted-foreground">
+          El PDF conserva la relación de seriales para el empaque. El Excel incluye un resumen por referencia y una hoja con los IMEI individuales.
+        </p>
+        <div className="flex flex-wrap gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => {
+              const body = lines.map((line) => [
+                line.product?.name ?? "Producto sin nombre",
+                line.item.condition ?? "—",
+                line.item.quantity,
+                line.units.map((unit) => unit.serial).join("\n") || "Pendiente de serializar",
+              ]);
+              exportPdf({
+                title: `Relación de seriales · ${order.code} · ${exportCompanyName(db.settings.companyName)}`,
+                subtitle: exportSubtitle(lines.length, `Cliente: ${customer?.name ?? "Sin cliente"}`),
+                head: ["Referencia", "Condición", "Cantidad", "IMEI / seriales"],
+                body,
+                filename: `pedido-${order.code.toLowerCase()}-seriales-${todayIso()}.pdf`,
+                highlightColumns: [0],
+              });
+            }}
+          >
+            <FileText />
+            PDF · Relación de seriales
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => {
+              const resumen = lines.map((line) => [
+                line.product?.name ?? "Producto sin nombre",
+                line.item.condition ?? "—",
+                line.item.quantity,
+                line.units.length,
+              ]);
+              const detalleSeriales = lines.flatMap((line) => {
+                const base = line.product?.name ?? "Producto sin nombre";
+                const condicion = line.item.condition ?? "—";
+                if (line.units.length === 0) {
+                  return [[base, condicion, line.item.quantity, "Pendiente de serializar"]];
+                }
+                return line.units.map((unit) => [base, condicion, line.item.quantity, unit.serial]);
+              });
+              exportExcel({
+                filename: `pedido-${order.code.toLowerCase()}-${todayIso()}.xlsx`,
+                sheets: [
+                  {
+                    name: "Resumen",
+                    title: `Pedido ${order.code}`,
+                    subtitle: `Cliente: ${customer?.name ?? "Sin cliente"} · Fecha: ${formatDate(order.orderDate)}`,
+                    columns: ["Referencia", "Condición", "Cantidad solicitada", "Seriales asignados"],
+                    rows: resumen,
+                    numberFormats: { 2: "#,##0", 3: "#,##0" },
+                  },
+                  {
+                    name: "Seriales",
+                    title: `Seriales del pedido ${order.code}`,
+                    subtitle: `Cliente: ${customer?.name ?? "Sin cliente"}`,
+                    columns: ["Referencia", "Condición", "Cantidad de línea", "IMEI / serial"],
+                    rows: detalleSeriales,
+                    numberFormats: { 2: "#,##0" },
+                    freezeRows: 4,
+                  },
+                ],
+              });
+            }}
+          >
+            <FileSpreadsheet />
+            Excel · Detalle del pedido
+          </Button>
+        </div>
+      </section>
 
       <div className="grid gap-3 sm:grid-cols-3">
         <div className="rounded-lg border bg-card p-4">
