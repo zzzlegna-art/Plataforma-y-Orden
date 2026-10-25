@@ -68,7 +68,7 @@ describe("PDF de relación de seriales", () => {
       value: () => "blob:serial-relation-many-test",
     });
     Object.defineProperty(URL, "revokeObjectURL", { configurable: true, value: () => undefined });
-    const serials = Array.from({ length: 240 }, (_, index) => String(100000000000000 + index));
+    const serials = Array.from({ length: 420 }, (_, index) => String(100000000000000 + index));
     const doc = exportOrderSerialRelationPdf({
       orderCode: "PED-MULTI",
       companyName: "NEXORA",
