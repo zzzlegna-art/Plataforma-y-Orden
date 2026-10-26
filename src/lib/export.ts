@@ -1598,15 +1598,9 @@ const loadCatalogImageData = async (url?: string): Promise<string | null> => {
  * Conserva las fotografías y características registradas sin reservar media página
  * para cada producto. Las referencias sin datos se identifican explícitamente.
  */
+
 export const exportProductCatalogPdf = async ({
-  title,
-  subtitle,
-  filename,
-  products,
-  includePrice,
-  includeStock,
-  labels,
-  onProgress,
+  title, subtitle, filename, products, includePrice, includeStock, labels, onProgress,
 }: ProductCatalogExportOptions) => {
   onProgress?.({ phase: "preparing", completed: 0, total: products.length, percent: 3 });
   const doc = new jsPDF({ orientation: "portrait", unit: "pt", format: "a4" });
@@ -1614,78 +1608,79 @@ export const exportProductCatalogPdf = async ({
   const pageH = doc.internal.pageSize.getHeight();
   const margin = 24;
   const cardWidth = pageW - margin * 2;
-  const gap = 9;
-  const imageBoxSize = 76;
-  const imageSize = 68;
-  const imageX = margin + 10;
-  const imageYInset = 11;
-  const textX = imageX + imageBoxSize + 13;
-  const textWidth = cardWidth - (textX - margin) - 12;
+  const pad = 14;
+  const gap = 12;
+  const imageBoxSize = 100;
+  const imageSize = 92;
+  const imageX = margin + pad;
+  const introX = imageX + imageBoxSize + 17;
+  const introWidth = cardWidth - (introX - margin) - pad;
+  const specX = margin + pad + 13;
+  const specWidth = cardWidth - 2 * pad - 27;
   const bottom = pageH - FOOTER_SPACE;
+  const maxCardHeight = bottom - CONTENT_TOP;
   const drawHeader = () => dibujarEncabezado(doc, title, subtitle, margin);
 
-  // Calculamos la altura según el contenido real de cada referencia. Así los productos
-  // sencillos ocupan menos espacio y los que tienen más características siguen siendo legibles.
+  // Medidas con el mismo interlineado de dibujo para no cortar texto.
   const layouts = products.map((product) => {
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(11.2);
-    const nameLines = splitCatalogLines(doc, normalizeCatalogText(product.name), textWidth, 2);
-
+    doc.setFontSize(13);
+    const nameLines = splitCatalogLines(doc, normalizeCatalogText(product.name), introWidth, 2);
     const metadata = [
-      `${labels.reference}: ${normalizeCatalogText(product.sku || "—")}`,
-      product.brand ? `${labels.brand}: ${normalizeCatalogText(product.brand)}` : null,
-      product.category ? `${labels.category}: ${normalizeCatalogText(product.category)}` : null,
-    ].filter(Boolean).join(" · ");
+      labels.reference + ": " + normalizeCatalogText(product.sku || "—"),
+      product.brand ? labels.brand + ": " + normalizeCatalogText(product.brand) : null,
+      product.category ? labels.category + ": " + normalizeCatalogText(product.category) : null,
+    ].filter(Boolean).join("  ·  ");
     doc.setFont("helvetica", "normal");
-    doc.setFontSize(7.6);
-    const metadataLines = splitCatalogLines(doc, metadata, textWidth, 2);
+    doc.setFontSize(8.8);
+    const metadataLines = splitCatalogLines(doc, metadata, introWidth, 3);
+    doc.setFontSize(9.1);
+    const descriptionLines = product.description?.trim()
+      ? splitCatalogLines(doc, normalizeCatalogText(product.description), introWidth, 3)
+      : [];
+    const introTextHeight = nameLines.length * 15.2 + 5 +
+      metadataLines.length * 11.4 +
+      (descriptionLines.length ? 7 + descriptionLines.length * 11.4 : 0);
+    const heroHeight = Math.max(imageBoxSize, introTextHeight + 8);
 
-    const allFeatures = product.features ?? [];
-    const visibleFeatures = allFeatures.slice(0, 10);
     doc.setFont("helvetica", "normal");
-    doc.setFontSize(7.2);
-    const featureLines = visibleFeatures.map((feature) =>
-      splitCatalogLines(doc, `• ${normalizeCatalogText(feature.label)}: ${normalizeCatalogText(feature.value)}`, textWidth, 2),
+    doc.setFontSize(9);
+    const featureRows = (product.features ?? []).map((feature) =>
+      splitCatalogLines(doc, normalizeCatalogText(feature.label) + ": " + normalizeCatalogText(feature.value), specWidth, 3),
     );
-    const noFeaturesLines = splitCatalogLines(doc, labels.noFeatures, textWidth, 2);
-    const omittedFeatures = Math.max(0, allFeatures.length - visibleFeatures.length);
-
-    const textHeight =
-      nameLines.length * 12.5 + 3 +
-      metadataLines.length * 8.5 + 4 +
-      7 +
-      (visibleFeatures.length > 0
-        ? featureLines.reduce((sum, lines) => sum + lines.length * 8.2 + 1, 0)
-        : noFeaturesLines.length * 8.2) +
-      (omittedFeatures > 0 ? 8.2 : 0) +
-      (includePrice || includeStock ? 11 : 0);
-    const cardHeight = Math.max(imageBoxSize + 22, 15 + textHeight + 10);
-
+    const rowHeight = (lines: string[]) => lines.length * 11.7 + 3.5;
+    const footerHeight = includePrice || includeStock ? 36 : 0;
+    const baseHeight = pad + heroHeight + 9 + 35 + footerHeight + 12;
+    const visibleFeatures: string[][] = [];
+    let usedHeight = 0;
+    for (const lines of featureRows) {
+      const extraSpace = featureRows.length > visibleFeatures.length + 1 ? 16 : 0;
+      if (usedHeight + rowHeight(lines) + extraSpace + baseHeight > maxCardHeight) break;
+      visibleFeatures.push(lines);
+      usedHeight += rowHeight(lines);
+    }
+    const omittedFeatures = featureRows.length - visibleFeatures.length;
+    const noFeaturesLines = splitCatalogLines(doc, labels.noFeatures, specWidth, 2);
+    const featuresHeight = visibleFeatures.length
+      ? usedHeight
+      : noFeaturesLines.length * 11.7 + 3.5;
+    const specsHeight = 35 + featuresHeight + (omittedFeatures > 0 ? 16 : 0);
+    const cardHeight = pad + heroHeight + 9 + specsHeight + footerHeight + 12;
     return {
-      product,
-      cardHeight,
-      nameLines,
-      metadataLines,
-      visibleFeatures,
-      featureLines,
-      noFeaturesLines,
-      omittedFeatures,
+      product, nameLines, metadataLines, descriptionLines, heroHeight,
+      visibleFeatures, noFeaturesLines, omittedFeatures, specsHeight, cardHeight,
     };
   });
 
   onProgress?.({ phase: "images", completed: 0, total: products.length, percent: 8 });
   const imageDataUrls: (string | null)[] = [];
-  // Descargamos imágenes en lotes pequeños y concurrentes: evita esperar una por una
-  // y permite mostrar progreso real durante la fase que suele tardar más.
   for (let index = 0; index < products.length; index += 4) {
     const batch = await Promise.all(
       products.slice(index, index + 4).map((product) => loadCatalogImageData(product.imageUrl)),
     );
     imageDataUrls.push(...batch);
     onProgress?.({
-      phase: "images",
-      completed: imageDataUrls.length,
-      total: products.length,
+      phase: "images", completed: imageDataUrls.length, total: products.length,
       percent: 8 + Math.round((imageDataUrls.length / Math.max(1, products.length)) * 48),
     });
   }
@@ -1693,7 +1688,6 @@ export const exportProductCatalogPdf = async ({
   onProgress?.({ phase: "rendering", completed: 0, total: layouts.length, percent: 58 });
   drawHeader();
   let cardY = CONTENT_TOP;
-
   for (let index = 0; index < layouts.length; index += 1) {
     const layout = layouts[index];
     if (cardY > CONTENT_TOP && cardY + layout.cardHeight > bottom) {
@@ -1701,119 +1695,109 @@ export const exportProductCatalogPdf = async ({
       drawHeader();
       cardY = CONTENT_TOP;
     }
-
     const {
-      product,
-      cardHeight,
-      nameLines,
-      metadataLines,
-      visibleFeatures,
-      featureLines,
-      noFeaturesLines,
-      omittedFeatures,
+      product, nameLines, metadataLines, descriptionLines, heroHeight,
+      visibleFeatures, noFeaturesLines, omittedFeatures, specsHeight, cardHeight,
     } = layout;
 
     doc.setFillColor(255, 255, 255);
     doc.setDrawColor(BORDER[0], BORDER[1], BORDER[2]);
-    doc.setLineWidth(0.7);
-    doc.roundedRect(margin, cardY, cardWidth, cardHeight, 6, 6, "FD");
+    doc.setLineWidth(0.8);
+    doc.roundedRect(margin, cardY, cardWidth, cardHeight, 8, 8, "FD");
+    doc.setFillColor(CYAN[0], CYAN[1], CYAN[2]);
+    doc.roundedRect(margin + 1, cardY + 13, 3, 30, 1, 1, "F");
 
-    const imageY = cardY + imageYInset;
+    const imageY = cardY + pad;
     doc.setFillColor(CYAN_PALE[0], CYAN_PALE[1], CYAN_PALE[2]);
     doc.setDrawColor(BORDER[0], BORDER[1], BORDER[2]);
-    doc.roundedRect(imageX, imageY, imageBoxSize, imageBoxSize, 5, 5, "FD");
-
+    doc.roundedRect(imageX, imageY, imageBoxSize, imageBoxSize, 6, 6, "FD");
     const imageData = imageDataUrls[index] ?? null;
     if (imageData) {
-      doc.addImage(
-        imageData,
-        "JPEG",
+      doc.addImage(imageData, "JPEG",
         imageX + (imageBoxSize - imageSize) / 2,
         imageY + (imageBoxSize - imageSize) / 2,
-        imageSize,
-        imageSize,
-      );
+        imageSize, imageSize);
     } else {
       doc.setFont("helvetica", "normal");
-      doc.setFontSize(7.5);
+      doc.setFontSize(8);
       doc.setTextColor(MUTED[0], MUTED[1], MUTED[2]);
       doc.text(
-        splitCatalogLines(doc, labels.imageUnavailable, imageBoxSize - 14, 2),
-        imageX + imageBoxSize / 2,
-        imageY + imageBoxSize / 2,
-        { align: "center" },
+        splitCatalogLines(doc, labels.imageUnavailable, imageBoxSize - 16, 2),
+        imageX + imageBoxSize / 2, imageY + imageBoxSize / 2, { align: "center" },
       );
     }
 
-    let cursorY = cardY + 15;
+    let cursorY = cardY + pad + 13;
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(11.2);
+    doc.setFontSize(13);
     doc.setTextColor(NAVY[0], NAVY[1], NAVY[2]);
-    doc.text(nameLines, textX, cursorY);
-    cursorY += nameLines.length * 12.5 + 3;
-
+    doc.text(nameLines, introX, cursorY, { lineHeightFactor: 1.17 });
+    cursorY += nameLines.length * 15.2 + 4;
     doc.setFont("helvetica", "normal");
-    doc.setFontSize(7.6);
+    doc.setFontSize(8.8);
     doc.setTextColor(MUTED[0], MUTED[1], MUTED[2]);
-    doc.text(metadataLines, textX, cursorY);
-    cursorY += metadataLines.length * 8.5 + 2;
-
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(8.2);
-    doc.setTextColor(CYAN_DARK[0], CYAN_DARK[1], CYAN_DARK[2]);
-    doc.text(labels.features, textX, cursorY);
-    cursorY += 9.2;
-
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(7.1);
-    doc.setTextColor(TEXT[0], TEXT[1], TEXT[2]);
-    if (visibleFeatures.length === 0) {
-      doc.setTextColor(MUTED[0], MUTED[1], MUTED[2]);
-      doc.text(noFeaturesLines, textX, cursorY);
-      cursorY += noFeaturesLines.length * 8.2;
-    } else {
-      visibleFeatures.forEach((feature, index) => {
-        const lines = featureLines[index] ?? [];
-        doc.text(lines, textX, cursorY);
-        cursorY += lines.length * 7.8 + 0.5;
-      });
+    doc.text(metadataLines, introX, cursorY, { lineHeightFactor: 1.3 });
+    cursorY += metadataLines.length * 11.4;
+    if (descriptionLines.length) {
+      cursorY += 7;
+      doc.setFontSize(9.1);
+      doc.setTextColor(TEXT[0], TEXT[1], TEXT[2]);
+      doc.text(descriptionLines, introX, cursorY, { lineHeightFactor: 1.24 });
     }
 
+    // Características a todo el ancho de la ficha: sin tipografía microscópica.
+    const specsX = margin + pad;
+    const specsY = cardY + pad + heroHeight + 9;
+    const specsW = cardWidth - pad * 2;
+    doc.setFillColor(CYAN_PALE[0], CYAN_PALE[1], CYAN_PALE[2]);
+    doc.roundedRect(specsX, specsY, specsW, specsHeight, 6, 6, "F");
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(9);
+    doc.setTextColor(CYAN_DARK[0], CYAN_DARK[1], CYAN_DARK[2]);
+    doc.text(labels.features.toUpperCase(), specX, specsY + 16);
+
+    cursorY = specsY + 31;
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(9);
+    doc.setTextColor(TEXT[0], TEXT[1], TEXT[2]);
+    const rows = visibleFeatures.length ? visibleFeatures : [noFeaturesLines];
+    rows.forEach((lines) => {
+      doc.setFillColor(CYAN_DARK[0], CYAN_DARK[1], CYAN_DARK[2]);
+      doc.circle(specX - 6, cursorY - 3.3, 1.4, "F");
+      doc.text(lines, specX, cursorY, { lineHeightFactor: 1.3 });
+      cursorY += lines.length * 11.7 + 3.5;
+    });
     if (omittedFeatures > 0) {
       doc.setFont("helvetica", "italic");
+      doc.setFontSize(8.5);
       doc.setTextColor(MUTED[0], MUTED[1], MUTED[2]);
-      doc.text(labels.moreFeatures(omittedFeatures), textX, cursorY);
-      cursorY += 8.2;
+      doc.text(labels.moreFeatures(omittedFeatures), specX, cursorY + 1);
     }
 
     if (includePrice || includeStock) {
+      const footerY = specsY + specsHeight + 22;
+      doc.setDrawColor(BORDER[0], BORDER[1], BORDER[2]);
+      doc.line(margin + pad, footerY - 16, pageW - margin - pad, footerY - 16);
       doc.setFont("helvetica", "bold");
-      doc.setFontSize(8);
+      doc.setFontSize(10);
       doc.setTextColor(NAVY[0], NAVY[1], NAVY[2]);
       if (includePrice) {
-        doc.text(`${labels.price}: ${product.price || "—"}`, textX, cursorY);
+        const price = labels.price + ": " + (product.price || "—");
+        doc.text(splitCatalogLines(doc, price, cardWidth * (includeStock ? 0.55 : 0.88), 1),
+          margin + pad, footerY);
       }
       if (includeStock) {
-        doc.text(
-          `${labels.stock}: ${product.stock ?? 0}`,
-          textX + textWidth,
-          cursorY,
-          { align: "right" },
-        );
+        doc.text(labels.stock + ": " + (product.stock ?? 0), pageW - margin - pad, footerY, { align: "right" });
       }
     }
 
     cardY += cardHeight + gap;
     onProgress?.({
-      phase: "rendering",
-      completed: index + 1,
-      total: layouts.length,
+      phase: "rendering", completed: index + 1, total: layouts.length,
       percent: 58 + Math.round(((index + 1) / Math.max(1, layouts.length)) * 36),
     });
-    // Cede el hilo entre fichas para que el navegador pueda pintar el avance.
     await new Promise<void>((resolve) => window.setTimeout(resolve, 0));
   }
-
   dibujarPies(doc, title, margin);
   onProgress?.({ phase: "saving", completed: layouts.length, total: layouts.length, percent: 96 });
   await new Promise<void>((resolve) => window.setTimeout(resolve, 0));
