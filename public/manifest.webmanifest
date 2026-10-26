@@ -1,16 +1,16 @@
 {
   "id": "/",
-  "name": "Bodega 6A",
-  "short_name": "Bodega 6A",
-  "description": "Recepción, inventario con seriales/IMEIs, pedidos mayoristas y garantías.",
+  "name": "Nexora | Smart Operations",
+  "short_name": "Nexora",
+  "description": "Plataforma Nexora: inventario, seriales, recepción, pedidos, despachos y garantías.",
   "lang": "es",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
   "prefer_related_applications": false,
   "orientation": "portrait-primary",
-  "background_color": "#FFFFFF",
-  "theme_color": "#F2802B",
+  "background_color": "#0A1933",
+  "theme_color": "#0A1933",
   "icons": [
     {
       "src": "/icons/icon-192.png",

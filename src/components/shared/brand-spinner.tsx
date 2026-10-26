@@ -1,4 +1,5 @@
 import { cn } from "@/lib/utils";
+import { BrandLogo } from "@/components/shared/brand-logo";
 
 const SIZES = {
   // Pantallas completas (carga inicial, inicio y cierre de sesión).
@@ -27,10 +28,10 @@ export const BrandSpinner = ({
           styles.ring,
         )}
       />
-      <img
-        src="/branding/nexora-symbol.webp"
+      <BrandLogo
+        variant="symbol"
         alt=""
-        className={cn("animate-logo-float object-contain motion-reduce:animate-none", styles.logo)}
+        className={cn("animate-logo-float motion-reduce:animate-none", styles.logo)}
       />
     </div>
   );
