@@ -13,6 +13,7 @@ import {
 import { useLocation, useNavigate } from "react-router-dom";
 
 import { InstallAppButton } from "@/components/shared/install-app-button";
+import { BrandLogo } from "@/components/shared/brand-logo";
 import { PlatformGuide } from "@/components/shared/platform-guide";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
 import { Button } from "@/components/ui/button";
@@ -90,16 +91,9 @@ const Login = () => {
             <div className="absolute inset-0 bg-[linear-gradient(145deg,rgba(255,255,255,.08),rgba(236,254,255,.18))] dark:bg-[linear-gradient(145deg,rgba(11,20,32,.1),rgba(11,20,32,.92))]" />
           </div>
 
-          <div className="relative flex items-center gap-3">
-            <img
-              src="/branding/nexora-symbol.webp"
-              alt={t("common.appName")}
-              className="h-11 w-11 rounded-xl object-cover ring-1 ring-white/15"
-            />
-            <div className="min-w-0">
-              <p className="text-lg font-semibold tracking-tight">{t("common.appName")}</p>
-              <p className="text-xs text-slate-600 dark:text-slate-300">{t("auth.brandTagline")}</p>
-            </div>
+          <div className="relative flex flex-col items-start gap-1">
+            <BrandLogo variant="horizontal" className="h-[62px] w-[235px] max-w-full" />
+            <p className="pl-[62px] text-xs text-slate-600 dark:text-slate-300">{t("auth.brandTagline")}</p>
           </div>
 
           <div className="relative mt-10 max-w-md space-y-5">
@@ -150,16 +144,9 @@ const Login = () => {
 
         <section className="flex min-w-0 flex-col justify-center bg-background/95 px-5 py-8 sm:px-10 sm:py-10 lg:px-12">
           <div className="mx-auto w-full max-w-[390px] animate-fade-in">
-            <div className="mb-8 flex items-center gap-3 lg:hidden">
-              <img
-                src="/branding/nexora-symbol.webp"
-                alt={t("common.appName")}
-                className="h-10 w-10 rounded-xl object-cover ring-1 ring-border"
-              />
-              <div className="min-w-0">
-                <p className="font-semibold tracking-tight">{t("common.appName")}</p>
-                <p className="text-xs text-muted-foreground">{t("auth.brandTagline")}</p>
-              </div>
+            <div className="mb-8 flex flex-col items-start gap-1 lg:hidden">
+              <BrandLogo variant="horizontal" className="h-12 w-[190px] max-w-full" />
+              <p className="pl-12 text-xs text-muted-foreground">{t("auth.brandTagline")}</p>
             </div>
 
             <div className="mb-7">
