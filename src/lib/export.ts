@@ -251,7 +251,7 @@ export const exportOrderSerialRelationPdf = ({
   const drawOrderBand = () => {
     const y = CONTENT_TOP;
     const gap = 8;
-    const colWidths = [130, 164, 112, width - 130 - 164 - 112 - 3 * gap];
+    const colWidths = [130, 160, 106, width - 130 - 160 - 106 - 3 * gap - 14];
     const details = [
       { label: "PEDIDO", value: orderCode },
       { label: "CLIENTE", value: customer || "Sin cliente" },
