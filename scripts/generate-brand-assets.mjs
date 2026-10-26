@@ -199,4 +199,19 @@ for (const size of [32, 180, 192, 512]) {
   writePng(`icons/${filename}`, appIcon(symbol, size));
 }
 writePng('icons/icon-maskable-512.png', appIcon(symbol, 512, true));
+
+// Replace the browser's legacy favicon fallback and SVG fallback as well.
+const favicon = readFileSync(join(ROOT, 'public/icons/favicon-32.png'));
+const icoHeader = Buffer.alloc(22);
+icoHeader.writeUInt16LE(1, 2); // ICO format
+icoHeader.writeUInt16LE(1, 4); // one image
+icoHeader[6] = 32; icoHeader[7] = 32;
+icoHeader.writeUInt16LE(1, 10);
+icoHeader.writeUInt16LE(32, 12);
+icoHeader.writeUInt32LE(favicon.length, 14);
+icoHeader.writeUInt32LE(22, 18);
+writeFileSync(join(ROOT, 'public/favicon.ico'), Buffer.concat([icoHeader, favicon]));
+const icon512 = readFileSync(join(ROOT, 'public/icons/icon-512.png'));
+const svgIcon = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><image width="512" height="512" href="data:image/png;base64,${icon512.toString('base64')}"/></svg>`;
+writeFileSync(join(ROOT, 'public/icons/icon.svg'), svgIcon);
 console.log('Nexora branding: PNG logo, light/dark theme, favicon and PWA icons generated');
