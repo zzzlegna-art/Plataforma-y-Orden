@@ -60,6 +60,9 @@ describe("PDF de relación de seriales", () => {
     expect(pdfText).toContain("000000006520990");
     expect(pdfText).toContain("000000004102691");
     expect(pdfText).toContain("PED-001");
+    expect(pdfText).toContain("/Subtype /Image"); // Logo oficial incrustado en el archivo, sin red.
+    expect(pdfText).toContain("NEXORA");
+    expect(pdfText).toContain("Página 1 de 1");
   });
 
   it("divide grandes cantidades de IMEI en páginas legibles sin omitir seriales", () => {
@@ -82,6 +85,9 @@ describe("PDF de relación de seriales", () => {
     const pdfText = doc.output();
     expect(pdfText).toContain(serials[0]);
     expect(pdfText).toContain(serials[serials.length - 1]);
+    expect(pdfText).toContain("/Subtype /Image");
+    expect((pdfText.match(/NEXORA/g) ?? []).length).toBeGreaterThanOrEqual(doc.getNumberOfPages());
+    expect(pdfText).toContain(`Página 1 de ${doc.getNumberOfPages()}`);
   });
 });
 
@@ -131,6 +137,33 @@ describe("documentos comerciales de pedido", () => {
     expect(pdfText).not.toContain("Impuestos y requisitos fiscales");
     expect(pdfText).not.toContain("sistema autorizado correspondiente");
     expect(pdfText).not.toContain("No reemplaza factura electrónica DIAN");
+    expect(pdfText).toContain("/Subtype /Image");
+    expect(pdfText).toContain("NEXORA");
+    expect(pdfText).toContain("TOTAL COMERCIAL");
+    expect(pdfText).toContain("Página 1 de 1");
+  });
+
+  it("conserva los precios y el total en facturas extensas con varias páginas y logo oficial", () => {
+    const doc = exportSalesInvoicePdf({
+      ...input,
+      filename: "factura-multipagina.pdf",
+      lines: Array.from({ length: 80 }, (_, index) => ({
+        reference: `REF-${index + 1}`,
+        product: "iPhone de prueba 256 GB",
+        condition: "Nuevo",
+        quantity: 1,
+        unitPrice: 1250000,
+        subtotal: 1250000,
+      })),
+    });
+    const text = doc.output();
+    expect(doc.getNumberOfPages()).toBeGreaterThan(1);
+    expect(text).toContain("REF-1");
+    expect(text).toContain("REF-80");
+    expect(text).toContain("TOTAL COMERCIAL");
+    expect(text).toContain("/Subtype /Image");
+    expect((text.match(/NEXORA/g) ?? []).length).toBeGreaterThanOrEqual(doc.getNumberOfPages());
+    expect(text).toContain(`Página 1 de ${doc.getNumberOfPages()}`);
   });
 });
 
