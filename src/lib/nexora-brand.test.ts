@@ -26,6 +26,12 @@ describe("Nexora branding for web and installable app", () => {
     expect(asPng("icons/icon-maskable-512.png")).toMatchObject({ width: 512, height: 512 });
   });
 
+  it("generates PNGs in the actual pnpm build and dev scripts", () => {
+    const pkg = JSON.parse(readFileSync("package.json", "utf8"));
+    expect(pkg.scripts.build).toContain("node scripts/generate-brand-assets.mjs && vite build");
+    expect(pkg.scripts.dev).toContain("node scripts/generate-brand-assets.mjs && vite");
+  });
+
   it("describes the app as Nexora and keeps the 512px icon maskable", () => {
     const manifest = JSON.parse(readFileSync("public/manifest.webmanifest", "utf8"));
     expect(manifest.name).toContain("Nexora");

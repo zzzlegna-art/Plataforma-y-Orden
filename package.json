@@ -4,15 +4,13 @@
   "version": "5.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "vite build",
+    "dev": "node scripts/generate-brand-assets.mjs && vite",
+    "build": "node scripts/generate-brand-assets.mjs && vite build",
     "check": "pnpm lint && pnpm exec tsc --noEmit",
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "vitest run",
-    "check:deploy": "node scripts/check-deploy.mjs",
-    "prebuild": "node scripts/generate-brand-assets.mjs",
-    "predev": "node scripts/generate-brand-assets.mjs"
+    "check:deploy": "node scripts/check-deploy.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.1",
