@@ -43,21 +43,21 @@ const HEADER_H = 82;
 const FOOTER_SPACE = 42;
 /** El contenido comienza siempre después del encabezado, incluso en las páginas siguientes. */
 const CONTENT_TOP = HEADER_H + 17;
-/** Logotipo horizontal para papel blanco: mismo emblema que la interfaz y la PWA. */
-const PDF_LOGO = `data:image/png;base64,${officialNexoraPdfLogo.trim()}`;
+/** PNG oficial horizontal, adaptado para fondo oscuro en generate-brand-assets.mjs. */
+const PDF_LOGO = `data:image/png;base64,${officialNexoraPdfLogo.trim()}\`;
 
-/** El logotipo oficial ya incluye el nombre: evitar duplicarlo junto al título. */
-const tituloDocumentoSinMarcaDuplicada = (title: string): string =>
-  title.replace(/\\s*[—–-]\\s*Nexora\\s*$/i, "").trim() || title;
+/** Evita duplicar la marca escrita al lado del logotipo oficial. */
+export const tituloDocumentoSinMarcaDuplicada = (title: string): string =>
+  title.replace(/\s*[—–-]\s*Nexora\s*$/i, "").trim() || title;
 
-/** Membrete unificado: logotipo real PNG, título claro y subtítulo del documento. */
+/** Membrete compartido: PNG transparente sobre azul noche, sin tarjeta blanca. */
 const dibujarEncabezado = (doc: jsPDF, title: string, subtitle: string, margin = 24) => {
   const pageW = doc.internal.pageSize.getWidth();
-  const logoPanelW = 182;
-  const logoPanelH = 48;
-  const logoX = margin + 8;
+  const logoX = margin + 2;
   const logoY = 19;
-  const textX = margin + logoPanelW + 18;
+  const logoWidth = 185;
+  const logoHeight = logoWidth * (128 / 556);
+  const textX = logoX + logoWidth + 24;
   const textWidth = pageW - margin - textX;
 
   doc.setFillColor(NAVY[0], NAVY[1], NAVY[2]);
@@ -66,10 +66,8 @@ const dibujarEncabezado = (doc: jsPDF, title: string, subtitle: string, margin =
   doc.rect(0, 0, pageW, 3, "F");
   doc.rect(0, HEADER_H - 2, pageW, 2, "F");
 
-  // Fondo blanco exclusivamente detrás del logo azul; evita perder contraste al imprimir.
-  doc.setFillColor(255, 255, 255);
-  doc.roundedRect(margin, 13, logoPanelW, logoPanelH + 11, 7, 7, "F");
-  doc.addImage(PDF_LOGO, "PNG", logoX, logoY, 166, 38, undefined, "FAST");
+  // El logo horizontal tiene fondo transparente y letras claras para contraste.
+  doc.addImage(PDF_LOGO, "PNG", logoX, logoY, logoWidth, logoHeight, undefined, "FAST");
 
   doc.setFont("helvetica", "bold");
   doc.setFontSize(pageW < 650 ? 14.5 : 17);
