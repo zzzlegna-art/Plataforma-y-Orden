@@ -2,6 +2,7 @@ import { useTranslation } from "react-i18next";
 import { NavLink } from "react-router-dom";
 
 import { PlatformGuide } from "@/components/shared/platform-guide";
+import { BrandLogo } from "@/components/shared/brand-logo";
 import { InstallAppButton } from "@/components/shared/install-app-button";
 import { usePermissions } from "@/hooks/use-permissions";
 import { cn } from "@/lib/utils";
@@ -15,16 +16,11 @@ export const SidebarNav = ({ onNavigate }: { onNavigate?: () => void }) => {
 
   return (
     <div className="safe-top flex h-full min-h-0 flex-col gap-6 overflow-y-auto bg-sidebar text-sidebar-foreground p-5 text-sidebar-foreground">
-      <div className="nx-sidebar-brand flex items-center gap-3 px-2 pt-1">
-        <img src="/branding/nexora-symbol.webp" alt="Nexora" className="h-12 w-12 shrink-0 rounded-xl object-cover transition-transform duration-300 motion-safe:group-hover:scale-[1.04]" />
-        <div className="min-w-0">
-          <p className="truncate text-sm font-semibold text-sidebar-accent-foreground">
-            NEXORA
-          </p>
-          <p className="truncate text-[10px] font-medium tracking-[0.16em] text-sidebar-foreground/65">
-            SMART OPERATIONS
-          </p>
-        </div>
+      <div className="nx-sidebar-brand flex flex-col items-start gap-0.5 px-2 pt-1">
+        <BrandLogo variant="horizontal" className="h-12 w-full max-w-[205px]" />
+        <p className="pl-[54px] text-[9px] font-medium tracking-[0.14em] text-sidebar-foreground/65">
+          SMART OPERATIONS
+        </p>
       </div>
 
       <nav className="flex flex-1 flex-col gap-1">
