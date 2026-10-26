@@ -127,18 +127,18 @@ function crop(image, x, y, w, h) {
 function recolorDark(image, onlyWordmark) {
   const result = Buffer.from(image.pixels);
   for (let y = 0; y < image.h; y++) {
-    if (onlyWordmark && y < image.h * 0.69) continue;
+    const onWordmark = y >= image.h * 0.69;
     for (let x = 0; x < image.w; x++) {
       const i = (y * image.w + x) * 4;
       if (result[i + 3] === 0) continue;
       const r = result[i], g = result[i + 1], b = result[i + 2];
       if (r < 80 && g < 130 && b < 210) {
-        if (onlyWordmark) {
+        if (onlyWordmark && onWordmark) {
           result[i] = 239; result[i + 1] = 248; result[i + 2] = 255;
         } else {
-          result[i] = Math.max(15, r + 20);
-          result[i + 1] = Math.max(105, g + 100);
-          result[i + 2] = Math.min(255, b + 90);
+          result[i] = Math.max(20, r + 30);
+          result[i + 1] = Math.max(100, g + 85);
+          result[i + 2] = Math.min(255, b + 105);
         }
       }
     }
@@ -169,10 +169,29 @@ function appIcon(symbol, size, maskable = false) {
   return { w: size, h: size, pixels };
 }
 
+
+function horizontalLogo(image) {
+  const width = 556, height = 128;
+  const pixels = Buffer.alloc(width * height * 4);
+  const icon = resize(crop(image, 112, 63, 236, 245), 112, 116);
+  const name = resize(crop(image, 19, 310, 415, 92), 403, 89);
+  const paste = (part, px, py) => {
+    for (let y = 0; y < part.h; y++) {
+      const targetStart = ((y + py) * width + px) * 4;
+      part.pixels.copy(pixels, targetStart, y * part.w * 4, (y + 1) * part.w * 4);
+    }
+  };
+  paste(icon, 4, 6);
+  paste(name, 143, 20);
+  return { w: width, h: height, pixels };
+}
+
 const logo = readPng(png);
 const symbol = crop(logo, 112, 63, 236, 245);
 writePng('branding/nexora-logo-light.png', logo);
 writePng('branding/nexora-logo-dark.png', recolorDark(logo, true));
+writePng('branding/nexora-horizontal-light.png', horizontalLogo(logo));
+writePng('branding/nexora-horizontal-dark.png', horizontalLogo(recolorDark(logo, true)));
 writePng('branding/nexora-symbol.png', resize(symbol, 384, 400));
 writePng('branding/nexora-symbol-dark.png', resize(recolorDark(symbol, false), 384, 400));
 for (const size of [32, 180, 192, 512]) {
