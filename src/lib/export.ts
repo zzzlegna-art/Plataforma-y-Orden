@@ -46,6 +46,10 @@ const CONTENT_TOP = HEADER_H + 17;
 /** Logotipo horizontal para papel blanco: mismo emblema que la interfaz y la PWA. */
 const PDF_LOGO = `data:image/png;base64,${officialNexoraPdfLogo.trim()}`;
 
+/** El logotipo oficial ya incluye el nombre: evitar duplicarlo junto al título. */
+const tituloDocumentoSinMarcaDuplicada = (title: string): string =>
+  title.replace(/\\s*[—–-]\\s*Nexora\\s*$/i, "").trim() || title;
+
 /** Membrete unificado: logotipo real PNG, título claro y subtítulo del documento. */
 const dibujarEncabezado = (doc: jsPDF, title: string, subtitle: string, margin = 24) => {
   const pageW = doc.internal.pageSize.getWidth();
@@ -70,7 +74,7 @@ const dibujarEncabezado = (doc: jsPDF, title: string, subtitle: string, margin =
   doc.setFont("helvetica", "bold");
   doc.setFontSize(pageW < 650 ? 14.5 : 17);
   doc.setTextColor(255, 255, 255);
-  const titleLines = doc.splitTextToSize(title, textWidth) as string[];
+  const titleLines = doc.splitTextToSize(tituloDocumentoSinMarcaDuplicada(title), textWidth) as string[];
   doc.text(titleLines.slice(0, 2), textX, 32, { lineHeightFactor: 1.12 });
 
   doc.setFont("helvetica", "normal");
@@ -100,7 +104,7 @@ const dibujarPies = (doc: jsPDF, title: string, margin = 24) => {
     doc.setFont("helvetica", "normal");
     doc.setFontSize(7.5);
     doc.setTextColor(MUTED[0], MUTED[1], MUTED[2]);
-    const context = (doc.splitTextToSize(title, contextWidth) as string[])[0] ?? title;
+    const context = (doc.splitTextToSize(tituloDocumentoSinMarcaDuplicada(title), contextWidth) as string[])[0] ?? title;
     doc.text(context, margin + 68, pageH - 17);
     doc.text(`Página ${pagina} de ${total}`, pageW - margin, pageH - 17, { align: "right" });
   }
