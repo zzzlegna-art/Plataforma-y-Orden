@@ -11,6 +11,7 @@ import XLSX from "xlsx-js-style";
 import { strFromU8, strToU8, unzipSync, zipSync } from "fflate";
 
 import { formatDateTime } from "./format";
+import officialNexoraPdfLogo from "../../scripts/nexora-pdf-logo.b64?raw";
 import { normalizeCatalogText } from "./catalog-text";
 export { normalizeCatalogText } from "./catalog-text";
 
@@ -36,48 +37,71 @@ const TEXT_HEX = "1C2E40";
 const MUTED_HEX = "5B7184";
 const WHITE_HEX = "FFFFFF";
 
-// --- Piezas comunes de los PDF: encabezado Nexora y pie con número de página ---
-const HEADER_H = 60;
-/** Espacio reservado abajo para el pie de página. */
-const FOOTER_SPACE = 40;
-/** Donde empieza el contenido en cada página, justo debajo del encabezado. */
-const CONTENT_TOP = HEADER_H + 18;
+// --- Identidad oficial Nexora para PDF: independiente del tema y de la red ---
+const HEADER_H = 82;
+/** Reserva inferior para paginación y pie institucional. */
+const FOOTER_SPACE = 42;
+/** El contenido comienza siempre después del encabezado, incluso en las páginas siguientes. */
+const CONTENT_TOP = HEADER_H + 17;
+/** Logotipo horizontal para papel blanco: mismo emblema que la interfaz y la PWA. */
+const PDF_LOGO = `data:image/png;base64,${officialNexoraPdfLogo.trim()}`;
 
-/** Encabezado Nexora: azul noche, acentos turquesa y texto de alto contraste. */
+/** Membrete unificado: logotipo real PNG, título claro y subtítulo del documento. */
 const dibujarEncabezado = (doc: jsPDF, title: string, subtitle: string, margin = 24) => {
   const pageW = doc.internal.pageSize.getWidth();
+  const logoPanelW = 182;
+  const logoPanelH = 48;
+  const logoX = margin + 8;
+  const logoY = 19;
+  const textX = margin + logoPanelW + 18;
+  const textWidth = pageW - margin - textX;
+
   doc.setFillColor(NAVY[0], NAVY[1], NAVY[2]);
   doc.rect(0, 0, pageW, HEADER_H, "F");
   doc.setFillColor(CYAN[0], CYAN[1], CYAN[2]);
-  doc.rect(0, 0, pageW, 4, "F");
+  doc.rect(0, 0, pageW, 3, "F");
   doc.rect(0, HEADER_H - 2, pageW, 2, "F");
-  doc.setTextColor(255, 255, 255);
+
+  // Fondo blanco exclusivamente detrás del logo azul; evita perder contraste al imprimir.
+  doc.setFillColor(255, 255, 255);
+  doc.roundedRect(margin, 13, logoPanelW, logoPanelH + 11, 7, 7, "F");
+  doc.addImage(PDF_LOGO, "PNG", logoX, logoY, 166, 38, undefined, "FAST");
+
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(17);
-  const titulo = (doc.splitTextToSize(title, pageW - margin * 2) as string[])[0] ?? title;
-  doc.text(titulo, margin, 28);
+  doc.setFontSize(pageW < 650 ? 14.5 : 17);
+  doc.setTextColor(255, 255, 255);
+  const titleLines = doc.splitTextToSize(title, textWidth) as string[];
+  doc.text(titleLines.slice(0, 2), textX, 32, { lineHeightFactor: 1.12 });
+
   doc.setFont("helvetica", "normal");
-  doc.setFontSize(9.5);
-  doc.setTextColor(239, 250, 252);
-  const subtitulo = doc.splitTextToSize(subtitle, pageW - margin * 2) as string[];
-  doc.text(subtitulo.slice(0, 2), margin, 46);
+  doc.setFontSize(8.5);
+  doc.setTextColor(220, 246, 250);
+  const subtitleLines = doc.splitTextToSize(subtitle, textWidth) as string[];
+  doc.text(subtitleLines.slice(0, 2), textX, 66);
 };
 
-/** Pie de cada página: línea fina, título del reporte y "Página X de Y". */
+/** Pie institucional compacto con marca, contexto y paginación en cada hoja. */
 const dibujarPies = (doc: jsPDF, title: string, margin = 24) => {
   const pageW = doc.internal.pageSize.getWidth();
   const pageH = doc.internal.pageSize.getHeight();
   const total = doc.getNumberOfPages();
-  const izquierda = (doc.splitTextToSize(title, pageW / 2) as string[])[0] ?? title;
+  const contextWidth = Math.max(70, pageW - margin * 2 - 255);
   for (let pagina = 1; pagina <= total; pagina += 1) {
     doc.setPage(pagina);
     doc.setDrawColor(BORDER[0], BORDER[1], BORDER[2]);
     doc.setLineWidth(0.6);
-    doc.line(margin, pageH - 30, pageW - margin, pageH - 30);
+    doc.line(margin, pageH - 31, pageW - margin, pageH - 31);
+    doc.setFillColor(CYAN[0], CYAN[1], CYAN[2]);
+    doc.roundedRect(margin, pageH - 25, 3, 12, 1, 1, "F");
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(8.5);
+    doc.setTextColor(NAVY[0], NAVY[1], NAVY[2]);
+    doc.text("NEXORA", margin + 9, pageH - 17);
     doc.setFont("helvetica", "normal");
-    doc.setFontSize(8);
+    doc.setFontSize(7.5);
     doc.setTextColor(MUTED[0], MUTED[1], MUTED[2]);
-    doc.text(izquierda, margin, pageH - 17);
+    const context = (doc.splitTextToSize(title, contextWidth) as string[])[0] ?? title;
+    doc.text(context, margin + 68, pageH - 17);
     doc.text(`Página ${pagina} de ${total}`, pageW - margin, pageH - 17, { align: "right" });
   }
 };
@@ -211,7 +235,7 @@ export const exportOrderSerialRelationPdf = ({
   const margin = 24;
   const width = pageW - margin * 2;
   const bottom = pageH - FOOTER_SPACE;
-  const columns = 6;
+  const columns = 5;
   const columnWidth = (width - 24) / columns;
   const company = exportCompanyName(companyName);
   const totalUnits = lines.reduce((sum, line) => sum + line.quantity, 0);
@@ -220,36 +244,51 @@ export const exportOrderSerialRelationPdf = ({
     .reduce((sum, line) => sum + line.serials.length, 0);
   const title = "Relación de seriales";
   const subtitle = `${company} · Generado el ${formatDateTime(new Date().toISOString())}`;
+  const bandH = 55;
+  const cardStart = CONTENT_TOP + bandH + 12;
 
   const drawHeader = () => dibujarEncabezado(doc, title, subtitle, margin);
   const drawOrderBand = () => {
     const y = CONTENT_TOP;
-    const h = 32;
-    doc.setFillColor(CYAN_PALE[0], CYAN_PALE[1], CYAN_PALE[2]);
+    const gap = 8;
+    const colWidths = [130, 160, 106, width - 130 - 160 - 106 - 3 * gap - 14];
+    const details = [
+      { label: "PEDIDO", value: orderCode },
+      { label: "CLIENTE", value: customer || "Sin cliente" },
+      { label: "FECHA", value: orderDate || "Sin registrar" },
+      { label: "CONTENIDO", value: `${totalUnits} uds. · ${totalSerials} IMEI` },
+    ];
     doc.setDrawColor(BORDER[0], BORDER[1], BORDER[2]);
-    doc.roundedRect(margin, y, width, h, 4, 4, "FD");
+    doc.setFillColor(CYAN_PALE[0], CYAN_PALE[1], CYAN_PALE[2]);
+    doc.roundedRect(margin, y, width, bandH, 5, 5, "FD");
     doc.setFillColor(CYAN[0], CYAN[1], CYAN[2]);
-    doc.roundedRect(margin, y, 5, h, 2, 2, "F");
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(9);
-    doc.setTextColor(NAVY[0], NAVY[1], NAVY[2]);
-    doc.text(orderCode, margin + 13, y + 13);
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(7.8);
-    doc.setTextColor(MUTED[0], MUTED[1], MUTED[2]);
-    const meta = `${customer || "Sin cliente"} · ${orderDate || "Fecha sin registrar"} · ${totalUnits} unidades · ${totalSerials} IMEI`;
-    doc.text(doc.splitTextToSize(meta, width - 150).slice(0, 2) as string[], pageW - margin - 10, y + 13, { align: "right" });
+    doc.roundedRect(margin, y, 4, bandH, 2, 2, "F");
+
+    let x = margin + 12;
+    details.forEach((entry, index) => {
+      const cellW = colWidths[index] - 7;
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(7);
+      doc.setTextColor(MUTED[0], MUTED[1], MUTED[2]);
+      doc.text(entry.label, x, y + 15);
+      doc.setFont("helvetica", index === 0 ? "bold" : "normal");
+      doc.setFontSize(index === 0 ? 9.5 : 8.2);
+      doc.setTextColor(NAVY[0], NAVY[1], NAVY[2]);
+      const valueLines = doc.splitTextToSize(entry.value, cellW) as string[];
+      doc.text(valueLines.slice(0, 2), x, y + 31, { lineHeightFactor: 1.18 });
+      x += colWidths[index] + gap;
+    });
   };
 
   drawHeader();
   drawOrderBand();
-  let y = CONTENT_TOP + 40;
+  let y = cardStart;
 
   const newPage = () => {
     doc.addPage();
     drawHeader();
     drawOrderBand();
-    y = CONTENT_TOP + 40;
+    y = cardStart;
   };
 
   for (const line of lines) {
@@ -263,7 +302,7 @@ export const exportOrderSerialRelationPdf = ({
     const label = `${line.reference} (${condition}) x${line.quantity} — ${countLabel}`;
     const titleLines = doc.splitTextToSize(label, width - 22) as string[];
     const titleHeight = Math.max(15, titleLines.length * 11 + 5);
-    const maxRowsPerPage = Math.max(1, Math.floor((bottom - (CONTENT_TOP + 40) - titleHeight - 13) / 12));
+    const maxRowsPerPage = Math.max(1, Math.floor((bottom - cardStart - titleHeight - 16) / 15));
     const chunks: string[][] = [];
     if (serials.length === 0) {
       chunks.push([]);
@@ -277,7 +316,7 @@ export const exportOrderSerialRelationPdf = ({
       const chunkRows = chunk.length ? Math.ceil(chunk.length / columns) : 1;
       const headerText = chunkIndex === 0 ? titleLines : doc.splitTextToSize(`${line.reference} — continuación de IMEI`, width - 22) as string[];
       const headerH = Math.max(18, headerText.length * 11 + 7);
-      const cardH = headerH + chunkRows * 12 + 13;
+      const cardH = headerH + chunkRows * 15 + 15;
       if (y + cardH > bottom) newPage();
 
       doc.setFillColor(255, 255, 255);
@@ -304,7 +343,7 @@ export const exportOrderSerialRelationPdf = ({
           const col = index % columns;
           const row = Math.floor(index / columns);
           const x = margin + 10 + col * columnWidth;
-          const textY = y + headerH + 12 + row * 12;
+          const textY = y + headerH + 13 + row * 15;
           doc.text(serial, x, textY, { maxWidth: columnWidth - 4 });
         });
       }
@@ -423,14 +462,15 @@ export const exportSalesInvoicePdf = (input: SalesDocumentInput) => {
     input.customer.phone ? `Teléfono: ${input.customer.phone}` : "",
     input.customer.email ? `Correo: ${input.customer.email}` : "",
   ].filter(Boolean).join(" · ");
+  let tableStart = metaBottom + 14;
   if (customerDetails) {
     doc.setFont("helvetica", "normal");
-    doc.setFontSize(7.5);
+    doc.setFontSize(7.8);
     doc.setTextColor(TEXT[0], TEXT[1], TEXT[2]);
-    doc.text(doc.splitTextToSize(customerDetails, width) as string[], margin, metaBottom + 14);
+    const detailLines = doc.splitTextToSize(customerDetails, width) as string[];
+    doc.text(detailLines, margin, metaBottom + 14, { lineHeightFactor: 1.2 });
+    tableStart = metaBottom + 20 + detailLines.length * 10;
   }
-
-  const tableStart = metaBottom + (customerDetails ? 26 : 12);
   autoTable(doc, {
     startY: tableStart,
     margin: { top: CONTENT_TOP, left: margin, right: margin, bottom: FOOTER_SPACE + 20 },
@@ -469,21 +509,35 @@ export const exportSalesInvoicePdf = (input: SalesDocumentInput) => {
   });
 
   let y = ((doc as jsPDF & { lastAutoTable?: { finalY: number } }).lastAutoTable?.finalY ?? tableStart) + 18;
-  if (y > pageH - 112) {
+  const totalBoxH = 62;
+  if (y + totalBoxH + 10 > pageH - FOOTER_SPACE) {
     doc.addPage();
     drawHeader();
-    y = CONTENT_TOP + 10;
+    y = CONTENT_TOP + 13;
   }
+
   const total = input.lines.reduce((sum, line) => sum + line.subtotal, 0);
+  const boxW = 265;
+  const boxX = pageW - margin - boxW;
   doc.setFillColor(CYAN_PALE[0], CYAN_PALE[1], CYAN_PALE[2]);
   doc.setDrawColor(BORDER[0], BORDER[1], BORDER[2]);
-  doc.roundedRect(pageW - margin - 230, y, 230, 42, 5, 5, "FD");
+  doc.roundedRect(boxX, y, boxW, totalBoxH, 6, 6, "FD");
+  doc.setFillColor(CYAN[0], CYAN[1], CYAN[2]);
+  doc.roundedRect(boxX, y, 4, totalBoxH, 2, 2, "F");
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(9);
+  doc.setFontSize(8.5);
+  doc.setTextColor(MUTED[0], MUTED[1], MUTED[2]);
+  doc.text("TOTAL COMERCIAL", boxX + 15, y + 20);
+  const displayTotal = formatDocumentMoney(total, input.currency);
+  doc.setFont("helvetica", "bold");
+  let size = 17;
+  doc.setFontSize(size);
+  while (doc.getTextWidth(displayTotal) > boxW - 30 && size > 10) {
+    size -= 1;
+    doc.setFontSize(size);
+  }
   doc.setTextColor(NAVY[0], NAVY[1], NAVY[2]);
-  doc.text("TOTAL COMERCIAL", pageW - margin - 218, y + 16);
-  doc.setFontSize(14);
-  doc.text(formatDocumentMoney(total, input.currency), pageW - margin - 218, y + 33);
+  doc.text(displayTotal, boxX + boxW - 15, y + 45, { align: "right" });
   dibujarPies(doc, `Factura comercial · ${input.orderCode}`, margin);
   doc.save(input.filename);
   return doc;
