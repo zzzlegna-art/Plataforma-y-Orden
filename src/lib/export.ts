@@ -1845,6 +1845,7 @@ export const exportProductCatalogExcel = async ({
     labels.product,
     labels.brand,
     labels.category,
+    labels.description,
     labels.features,
   ];
   if (includePrice) columns.push(labels.price);
@@ -1852,7 +1853,7 @@ export const exportProductCatalogExcel = async ({
 
   const featureTexts = products.map((product) =>
     product.features.length
-      ? product.features.map((feature) => normalizeCatalogText(feature.label) + ": " + normalizeCatalogText(feature.value)).join(" · ")
+      ? product.features.map((feature) => normalizeCatalogText(feature.label) + ": " + normalizeCatalogText(feature.value)).join("\n")
       : labels.noFeatures,
   );
   const rows = products.map((product, index) => {
@@ -1862,6 +1863,7 @@ export const exportProductCatalogExcel = async ({
       normalizeCatalogText(product.name),
       normalizeCatalogText(product.brand || "—"),
       normalizeCatalogText(product.category || "—"),
+      normalizeCatalogText(product.description || labels.noDescription),
       featureTexts[index],
     ];
     if (includePrice) row.push(product.price || "—");
@@ -1876,12 +1878,14 @@ export const exportProductCatalogExcel = async ({
   });
   const rowHeights = products.map((_, index) => {
     const features = featureTexts[index] || labels.noFeatures;
-    const featureLines = Math.max(1, Math.ceil(features.length / 48));
-    const extraRows = includePrice || includeStock ? 1 : 0;
-    return Math.min(160, Math.max(62, 14 + (featureLines + extraRows) * 11));
+    const featureLines = features.split("\n").reduce(
+      (sum, line) => sum + Math.max(1, Math.ceil(line.length / 52)), 0,
+    );
+    const descriptionLines = Math.ceil((products[index].description?.length ?? 0) / 46);
+    return Math.min(220, Math.max(82, 18 + Math.max(featureLines, descriptionLines) * 12));
   });
 
-  const columnWidths = [16, 15, 28, 16, 18, 42];
+  const columnWidths = [16, 17, 34, 17, 20, 44, 55];
   if (includePrice) columnWidths.push(15);
   if (includeStock) columnWidths.push(10);
 
@@ -1898,7 +1902,7 @@ export const exportProductCatalogExcel = async ({
         subtitle,
         columns,
         rows,
-        wrapColumns: [5],
+        wrapColumns: [5, 6],
         hyperlinkTargets,
         columnWidths,
         imageColumn: 0,
