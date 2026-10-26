@@ -602,7 +602,7 @@ const Inventario = () => {
 
     if (format === "pdf") {
       exportPdf({
-        title: `${t("nav.inventory")} — ${exportCompanyName(db.settings.companyName)}`,
+        title: t("nav.inventory"),
         subtitle: exportSubtitle(body.length),
         head,
         body,
@@ -682,7 +682,7 @@ const Inventario = () => {
     };
     const companyName = exportCompanyName(db.settings.companyName);
     const options = {
-      title: `${t("catalog.title")} — ${companyName}`,
+      title: format === "pdf" ? t("catalog.title") : `${t("catalog.title")} — ${companyName}`,
       subtitle: exportSubtitle(products.length),
       filename: `catalogo-nexora-${todayIso()}.${format === "pdf" ? "pdf" : format === "csv" ? "csv" : "xlsx"}`,
       products,
