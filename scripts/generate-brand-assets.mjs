@@ -98,6 +98,7 @@ function writePng(filename, image) {
   const out = join(ROOT, 'public', filename);
   mkdirSync(join(out, '..'), { recursive: true });
   writeFileSync(out, output);
+  return output;
 }
 function resize(img, w, h) {
   const result = Buffer.alloc(w * h * 4);
@@ -191,7 +192,10 @@ const symbol = crop(logo, 112, 63, 236, 245);
 writePng('branding/nexora-logo-light.png', logo);
 writePng('branding/nexora-logo-dark.png', recolorDark(logo, true));
 writePng('branding/nexora-horizontal-light.png', horizontalLogo(logo));
-writePng('branding/nexora-horizontal-dark.png', horizontalLogo(recolorDark(logo, true)));
+// Compartir la variante PNG transparente de alto contraste con los PDF.
+// El build genera el base64 localmente: no depende de red ni de CSS al exportar.
+const pdfDarkLogoPng = writePng('branding/nexora-horizontal-dark.png', horizontalLogo(recolorDark(logo, true)));
+writeFileSync(join(ROOT, 'scripts/nexora-pdf-logo.b64'), pdfDarkLogoPng.toString('base64'));
 writePng('branding/nexora-symbol.png', resize(symbol, 384, 400));
 writePng('branding/nexora-symbol-dark.png', resize(recolorDark(symbol, false), 384, 400));
 for (const size of [32, 180, 192, 512]) {
