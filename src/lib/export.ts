@@ -44,7 +44,7 @@ const FOOTER_SPACE = 42;
 /** El contenido comienza siempre después del encabezado, incluso en las páginas siguientes. */
 const CONTENT_TOP = HEADER_H + 17;
 /** PNG oficial horizontal, adaptado para fondo oscuro en generate-brand-assets.mjs. */
-const PDF_LOGO = `data:image/png;base64,${officialNexoraPdfLogo.trim()}\`;
+const PDF_LOGO = `data:image/png;base64,${officialNexoraPdfLogo.trim()}`;
 
 /** Evita duplicar la marca escrita al lado del logotipo oficial. */
 export const tituloDocumentoSinMarcaDuplicada = (title: string): string =>
