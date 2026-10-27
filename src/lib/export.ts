@@ -50,15 +50,25 @@ const PDF_LOGO = `data:image/png;base64,${officialNexoraPdfLogo.trim()}`;
 export const tituloDocumentoSinMarcaDuplicada = (title: string): string =>
   title.replace(/\s*[—–-]\s*Nexora\s*$/i, "").trim() || title;
 
-/** Membrete compartido: PNG transparente sobre azul noche, sin tarjeta blanca. */
+/** Quita el nombre que ya aparece en el logotipo, solo si abre el subtítulo. */
+export const subtituloDocumentoSinMarcaDuplicada = (subtitle: string): string =>
+  subtitle.replace(/^\s*Nexora\s*[·|—–-]\s*/i, "").trim();
+
+/**
+ * Membrete común de todos los PDF: logotipo PNG centrado verticalmente a la
+ * izquierda; título y subtítulo alineados a la derecha, como un bloque centrado.
+ * Adapta el espacio disponible a páginas A4 verticales y horizontales.
+ */
 const dibujarEncabezado = (doc: jsPDF, title: string, subtitle: string, margin = 24) => {
   const pageW = doc.internal.pageSize.getWidth();
-  const logoX = margin + 2;
-  const logoY = 19;
-  const logoWidth = 185;
+  const headerInnerW = pageW - margin * 2;
+  const logoWidth = Math.min(200, headerInnerW * 0.36);
   const logoHeight = logoWidth * (128 / 556);
-  const textX = logoX + logoWidth + 24;
-  const textWidth = pageW - margin - textX;
+  const logoX = margin;
+  const logoY = (HEADER_H - logoHeight) / 2;
+  const textRight = pageW - margin;
+  const textLeft = logoX + logoWidth + 24;
+  const textWidth = Math.max(100, textRight - textLeft);
 
   doc.setFillColor(NAVY[0], NAVY[1], NAVY[2]);
   doc.rect(0, 0, pageW, HEADER_H, "F");
@@ -66,20 +76,56 @@ const dibujarEncabezado = (doc: jsPDF, title: string, subtitle: string, margin =
   doc.rect(0, 0, pageW, 3, "F");
   doc.rect(0, HEADER_H - 2, pageW, 2, "F");
 
-  // El logo horizontal tiene fondo transparente y letras claras para contraste.
+  // Logo original transparente, sin fondo ni caja blanca.
   doc.addImage(PDF_LOGO, "PNG", logoX, logoY, logoWidth, logoHeight, undefined, "FAST");
 
+  // Dos columnas independientes: ninguna línea debe invadir el área del logo.
+  const cleanTitle = tituloDocumentoSinMarcaDuplicada(title);
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(pageW < 650 ? 14.5 : 17);
-  doc.setTextColor(255, 255, 255);
-  const titleLines = doc.splitTextToSize(tituloDocumentoSinMarcaDuplicada(title), textWidth) as string[];
-  doc.text(titleLines.slice(0, 2), textX, 32, { lineHeightFactor: 1.12 });
+  let titleFontSize = pageW < 650 ? 15.5 : 18;
+  doc.setFontSize(titleFontSize);
+  let titleLines = doc.splitTextToSize(cleanTitle, textWidth) as string[];
+  while (titleLines.length > 2 && titleFontSize > 11) {
+    titleFontSize -= 0.5;
+    doc.setFontSize(titleFontSize);
+    titleLines = doc.splitTextToSize(cleanTitle, textWidth) as string[];
+  }
+  titleLines = splitCatalogLines(doc, cleanTitle, textWidth, 2);
 
+  const cleanSubtitle = subtituloDocumentoSinMarcaDuplicada(subtitle);
   doc.setFont("helvetica", "normal");
-  doc.setFontSize(8.5);
-  doc.setTextColor(220, 246, 250);
-  const subtitleLines = doc.splitTextToSize(subtitle, textWidth) as string[];
-  doc.text(subtitleLines.slice(0, 2), textX, 66);
+  let subtitleFontSize = 8.8;
+  doc.setFontSize(subtitleFontSize);
+  let subtitleLines = cleanSubtitle ? (doc.splitTextToSize(cleanSubtitle, textWidth) as string[]) : [];
+  while (subtitleLines.length > 2 && subtitleFontSize > 7.5) {
+    subtitleFontSize -= 0.3;
+    doc.setFontSize(subtitleFontSize);
+    subtitleLines = doc.splitTextToSize(cleanSubtitle, textWidth) as string[];
+  }
+  if (cleanSubtitle) subtitleLines = splitCatalogLines(doc, cleanSubtitle, textWidth, 2);
+
+  // Centramos la altura combinada del título y su fecha, no cada texto por separado.
+  const titleLeading = titleFontSize * 1.2;
+  const subtitleLeading = subtitleFontSize * 1.25;
+  const between = subtitleLines.length ? 7 : 0;
+  const blockH = titleLines.length * titleLeading + between + subtitleLines.length * subtitleLeading;
+  const blockTop = (HEADER_H - blockH) / 2;
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(titleFontSize);
+  doc.setTextColor(255, 255, 255);
+  doc.text(titleLines, textRight, blockTop + titleFontSize * 0.85, {
+    align: "right", lineHeightFactor: 1.2,
+  });
+
+  if (subtitleLines.length) {
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(subtitleFontSize);
+    doc.setTextColor(220, 246, 250);
+    doc.text(subtitleLines, textRight,
+      blockTop + titleLines.length * titleLeading + between + subtitleFontSize * 0.84,
+      { align: "right", lineHeightFactor: 1.25 });
+  }
 };
 
 /** Pie institucional compacto con marca, contexto y paginación en cada hoja. */
