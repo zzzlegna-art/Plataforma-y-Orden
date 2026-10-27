@@ -49,6 +49,7 @@ import { formatDate, formatDateTime, todayIso } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { getReceptionRows, type ReceptionRow } from "@/lib/selectors";
 import { listSuppliers, type Supplier } from "@/lib/suppliers";
+import { ReceptionSupplierDialog } from "./ReceptionSupplierDialog";
 
 const STATUS_OPTIONS = ["", "captura", "confirmada"] as const;
 
@@ -330,19 +331,24 @@ const Recepciones = () => {
         <span className="text-xs text-muted-foreground">
           {t("receptions.unitCount", { count: row.units.length })}
         </span>
-        {row.reception.status === "captura" ? (
-          <Button size="sm" variant="outline" asChild>
-            <Link to={`/recepcion/nueva/${row.reception.id}`}>
-              <PencilLine />
-              {t("receptions.continue")}
-            </Link>
-          </Button>
-        ) : (
-          <Button size="sm" variant="ghost" onClick={() => setSelected(row)}>
-            <Eye />
-            {t("common.view")}
-          </Button>
-        )}
+        <div className="flex flex-wrap gap-1">
+          <ReceptionSupplierDialog
+            reception={db.receptions.find((item) => item.id === row.reception.id) ?? row.reception}
+            suppliers={suppliers}
+            trigger={<Button size="sm" variant="outline"><PencilLine className="h-4 w-4" /> Proveedor</Button>}
+          />
+          {row.reception.status === "captura" ? (
+            <Button size="sm" variant="outline" asChild>
+              <Link to={`/recepcion/nueva/${row.reception.id}`}>
+                {t("receptions.continue")}
+              </Link>
+            </Button>
+          ) : (
+            <Button size="sm" variant="ghost" onClick={() => setSelected(row)}>
+              <Eye /> {t("common.view")}
+            </Button>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -524,22 +530,29 @@ const Recepciones = () => {
             key: "actions",
             header: t("common.actions"),
             align: "right",
-            cell: (row) =>
-              row.reception.status === "captura" ? (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => navigate(`/recepcion/nueva/${row.reception.id}`)}
-                >
-                  <PencilLine />
-                  {t("receptions.continue")}
-                </Button>
-              ) : (
-                <Button size="sm" variant="ghost" onClick={() => setSelected(row)}>
-                  <Eye />
-                  {t("common.view")}
-                </Button>
-              ),
+            cell: (row) => (
+              <div className="flex items-center justify-end gap-1">
+                <ReceptionSupplierDialog
+                  reception={db.receptions.find((item) => item.id === row.reception.id) ?? row.reception}
+                  suppliers={suppliers}
+                  trigger={
+                    <Button size="sm" variant="outline" title="Agregar o editar proveedor">
+                      <PencilLine className="h-4 w-4" /> Proveedor
+                    </Button>
+                  }
+                />
+                {row.reception.status === "captura" ? (
+                  <Button size="sm" variant="outline"
+                    onClick={() => navigate(`/recepcion/nueva/${row.reception.id}`)}>
+                    {t("receptions.continue")}
+                  </Button>
+                ) : (
+                  <Button size="sm" variant="ghost" onClick={() => setSelected(row)}>
+                    <Eye /> {t("common.view")}
+                  </Button>
+                )}
+              </div>
+            ),
           },
         ]}
       />
@@ -556,6 +569,18 @@ const Recepciones = () => {
           </SheetHeader>
 
           <div className="mt-5 space-y-3 pr-6">
+            {selected ? (
+              <div className="rounded-lg border bg-muted/30 p-3">
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Proveedor</p>
+                <p className="mt-1 font-medium">
+                  {supplierName(db.receptions.find((item) => item.id === selected.reception.id)?.supplierId)
+                    ?? "Sin proveedor registrado"}
+                </p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Los seriales de esta recepción consultan automáticamente este proveedor.
+                </p>
+              </div>
+            ) : null}
             {selected?.reception.notes ? (
               <p className="rounded-md bg-muted/60 p-3 text-sm text-muted-foreground">
                 {selected.reception.notes}
