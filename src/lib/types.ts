@@ -201,6 +201,7 @@ export interface Product {
 export interface Reception {
   id: string;
   code: string;
+  supplierId?: string;
   reference?: string;
   status: ReceptionStatus;
   receivedAt: string;
