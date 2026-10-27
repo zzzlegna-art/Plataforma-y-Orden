@@ -1587,7 +1587,7 @@ export const normalizeCatalogPdfText = (value: string): string =>
       "\u2077": "7", "\u2078": "8", "\u2079": "9",
     })[digit] ?? digit)
     // Signos no representables en Helvetica: no activar UTF-16 para la línea entera.
-    .replace(/[^\u0000-\u00FF]/gu, "?");
+    .split("").map((char) => char.charCodeAt(0) > 255 ? "?" : char).join("");
 
 /** Divide incluso palabras/cadenas anómalas que jsPDF deje demasiado largas.
  * Cada línea se mide con la fuente activa; nunca invade el ancho de su columna.
