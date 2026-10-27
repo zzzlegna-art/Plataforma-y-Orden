@@ -58,6 +58,13 @@ const Harness = () => {
       <div data-testid="ready">{String(app.ready)}</div>
       <div data-testid="run-error">{runError}</div>
       <div data-testid="products">{app.db.products.map((product) => product.name).join(",")}</div>
+      <div data-testid="receptions">{app.db.receptions.map((item) => item.status).join(",")}</div>
+      <button onClick={() => {
+        void app.run((db) => {
+          db.receptions[0].status = "confirmada";
+        }, { deferOptimistic: true }).catch((error: unknown) =>
+          setRunError(error instanceof Error ? error.message : String(error)));
+      }}>Confirmar sin adelantar</button>
       <button onClick={() => {
         void app.run((db) => {
           db.products.push({
@@ -74,6 +81,55 @@ const Harness = () => {
 afterEach(() => {
   cleanup();
   vi.clearAllMocks();
+});
+
+describe("AppProvider · confirmación sin estado optimista de recepción", () => {
+  const iniciar = (db = emptyDb()) => {
+    db.receptions.push({
+      id: "reception-1350", code: "REC-00001", status: "captura",
+      receivedAt: "2026-10-27T08:00:00.000Z", createdBy: "user-1",
+      createdAt: "2026-10-27T08:00:00.000Z",
+    });
+    mocks.onAuthStateChange.mockReturnValue({ data: { subscription: { unsubscribe: vi.fn() } } });
+    mocks.getSession.mockResolvedValue({ data: { session } });
+    mocks.leerPerfil.mockResolvedValue(perfil);
+    mocks.consultarPerfilSesion.mockResolvedValue(perfil);
+    mocks.suscribirCambios.mockReturnValue(vi.fn());
+    mocks.setAuth.mockResolvedValue(undefined);
+    mocks.signOut.mockResolvedValue({ error: null });
+    mocks.pullDb.mockResolvedValue(db);
+    return db;
+  };
+
+  it("mantiene la captura mientras el servidor confirma y actualiza solo tras el éxito", async () => {
+    iniciar();
+    let resolver!: (value: unknown) => void;
+    mocks.pushDb.mockImplementation(() => new Promise((resolve) => { resolver = resolve; }));
+    render(<AppProvider><Harness /></AppProvider>);
+    await waitFor(() => expect(screen.getByTestId("receptions").textContent).toBe("captura"));
+
+    fireEvent.click(screen.getByRole("button", { name: "Confirmar sin adelantar" }));
+    await waitFor(() => expect(mocks.pushDb).toHaveBeenCalledTimes(1));
+    expect(screen.getByTestId("receptions").textContent).toBe("captura");
+
+    resolver(undefined);
+    await waitFor(() => expect(screen.getByTestId("receptions").textContent).toBe("confirmada"));
+  });
+
+  it("al fallar el servidor no muestra confirmación fantasma ni retira la captura", async () => {
+    const inicial = iniciar();
+    mocks.pushDb.mockRejectedValue(new Error("canceling statement due to statement timeout"));
+    const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    render(<AppProvider><Harness /></AppProvider>);
+    await waitFor(() => expect(screen.getByTestId("receptions").textContent).toBe("captura"));
+
+    fireEvent.click(screen.getByRole("button", { name: "Confirmar sin adelantar" }));
+    await waitFor(() => expect(mocks.pushDb).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(screen.getByTestId("run-error").textContent).toContain("errors.saveFailed"));
+    expect(screen.getByTestId("receptions").textContent).toBe("captura");
+    expect(inicial.receptions[0].status).toBe("captura");
+    consoleSpy.mockRestore();
+  });
 });
 
 describe("AppProvider · recuperación de resincronización", () => {
