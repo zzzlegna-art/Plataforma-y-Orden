@@ -547,6 +547,7 @@ export type Database = {
           received_at: string
           reference: string | null
           status: string
+          supplier_id: string | null
         }
         Insert: {
           code: string
@@ -558,6 +559,7 @@ export type Database = {
           received_at?: string
           reference?: string | null
           status?: string
+          supplier_id?: string | null
         }
         Update: {
           code?: string
@@ -569,6 +571,7 @@ export type Database = {
           received_at?: string
           reference?: string | null
           status?: string
+          supplier_id?: string | null
         }
         Relationships: []
       }
@@ -857,6 +860,48 @@ export type Database = {
         ]
       }
     }
+      suppliers: {
+        Row: {
+          id: string
+          name: string
+          tax_id: string | null
+          contact_name: string | null
+          phone: string | null
+          email: string | null
+          address: string | null
+          notes: string | null
+          is_active: boolean
+          created_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          name: string
+          tax_id?: string | null
+          contact_name?: string | null
+          phone?: string | null
+          email?: string | null
+          address?: string | null
+          notes?: string | null
+          is_active?: boolean
+          created_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          name?: string
+          tax_id?: string | null
+          contact_name?: string | null
+          phone?: string | null
+          email?: string | null
+          address?: string | null
+          notes?: string | null
+          is_active?: boolean
+          created_at?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
     Views: {
       [_ in never]: never
     }
