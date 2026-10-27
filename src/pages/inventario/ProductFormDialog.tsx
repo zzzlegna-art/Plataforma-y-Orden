@@ -24,7 +24,7 @@ import { useApp } from "@/hooks/use-app";
 import { useRunAction } from "@/hooks/use-run-action";
 import { useStore } from "@/hooks/use-store";
 import { supabase } from "@/integrations/supabase/client";
-import { createProduct, generarSkuProducto, updateProduct } from "@/lib/actions/catalogs";
+import { createProduct, generarSkuAlEditar, generarSkuProducto, updateProduct } from "@/lib/actions/catalogs";
 import {
   clearProductFormDraft,
   EMPTY_PRODUCT_FORM,
@@ -75,7 +75,7 @@ export const ProductFormDialog = ({
   const [form, setForm] = useState(EMPTY_PRODUCT_FORM);
   const [technicalSpecs, setTechnicalSpecs] = useState<ProductTechnicalSpecs>({});
   const [saving, setSaving] = useState(false);
-  const [skuManual, setSkuManual] = useState(Boolean(product));
+  const [skuManual, setSkuManual] = useState(false);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(product?.imageUrl ?? null);
   const [removeImage, setRemoveImage] = useState(false);
@@ -104,14 +104,19 @@ export const ProductFormDialog = ({
     if (draft) {
       setForm(draft.form);
       setTechnicalSpecs(draft.technicalSpecs);
-      setSkuManual(draft.skuManual);
+      // Borradores antiguos marcaban toda edición como manual aunque nadie hubiera escrito la SKU.
+      // Solo conservar ese bloqueo cuando la SKU realmente difiere de la original.
+      const skuWasManuallyEdited = draft.skuManual &&
+        (!currentProduct || draft.form.sku.trim().toUpperCase() !== currentProduct.sku.trim().toUpperCase());
+      setSkuManual(skuWasManuallyEdited);
       setRemoveImage(draft.removeImage);
       setImagePreview(draft.removeImage ? null : currentProduct?.imageUrl ?? null);
       setDraftRestored(true);
       return;
     }
 
-    setSkuManual(Boolean(currentProduct));
+    // Editar una referencia también inicia en modo automático, sin modificarla hasta cambiar nombre o tipo.
+    setSkuManual(false);
     setTechnicalSpecs(currentProduct?.technicalSpecs ?? {});
     setForm(
       currentProduct
@@ -304,7 +309,22 @@ export const ProductFormDialog = ({
                 setForm({ ...form, sku: event.target.value.toUpperCase() });
               }}
             />
-            <p className="text-xs text-muted-foreground">{t("product.skuHint")}</p>
+            <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+              <p className="text-xs text-muted-foreground">{t("product.skuHint")}</p>
+              <button
+                type="button"
+                className="text-xs font-medium text-primary underline-offset-2 hover:underline focus-visible:rounded focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary"
+                onClick={() => {
+                  setSkuManual(false);
+                  setForm((current) => ({
+                    ...current,
+                    sku: generarSkuProducto(db, current.name, product?.id, undefined, current.categoria),
+                  }));
+                }}
+              >
+                {t("product.regenerateSku")}
+              </button>
+            </div>
           </div>
           <div className="space-y-2">
             <Label htmlFor="name">{t("product.name")}</Label>
@@ -317,7 +337,7 @@ export const ProductFormDialog = ({
                 setForm((current) => ({
                   ...current,
                   name,
-                  ...(!product && !skuManual ? { sku: generarSkuProducto(db, name, undefined, undefined, current.categoria) } : {}),
+                  ...(!skuManual ? { sku: generarSkuAlEditar(db, name, current.categoria, product) } : {}),
                 }));
               }}
             />
@@ -329,9 +349,9 @@ export const ProductFormDialog = ({
               onChange={(value) => setForm((current) => ({
                 ...current,
                 categoria: value,
-                // Un cambio de tipo recalcula solo una SKU automática aún no editada.
-                ...(!product && !skuManual ? {
-                  sku: generarSkuProducto(db, current.name, undefined, undefined, value),
+                // El código se actualiza también en edición, salvo que el usuario lo haya escrito manualmente.
+                ...(!skuManual ? {
+                  sku: generarSkuAlEditar(db, current.name, value, product),
                 } : {}),
               }))}
               emptyLabel={t("common.none")}
