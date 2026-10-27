@@ -1663,6 +1663,25 @@ const loadCatalogImageData = async (url?: string): Promise<string | null> => {
 
 
 
+/** Geometría única para evitar que SKU, descripción y características se solapen. */
+export const posicionesFichaCatalogo = (
+  titleLines: number,
+  metadataLines: number,
+  descriptionLines: number,
+) => {
+  const titleBaseline = 12;
+  const metadataBaseline = titleBaseline + titleLines * 15 + 4;
+  const descriptionBaseline = metadataBaseline + metadataLines * 10.8 +
+    (descriptionLines ? 5 : 0);
+  const introEndY = metadataBaseline + metadataLines * 10.8 +
+    (descriptionLines ? 5 + descriptionLines * 10.8 : 0);
+  return {
+    titleBaseline, metadataBaseline, descriptionBaseline, introEndY,
+    featuresLabelY: introEndY + 8,
+    firstFeatureY: introEndY + 22,
+  };
+};
+
 /**
  * Catálogo comercial: la foto y las primeras especificaciones comparten una
  * fila. El resto fluye a todo el ancho, con tarjetas de altura dinámica.
@@ -1709,13 +1728,9 @@ export const exportProductCatalogPdf = async ({
     const descriptionLines = product.description?.trim()
       ? splitCatalogLines(doc, normalizeCatalogText(product.description), detailWidth, 2)
       : [];
-    // Coordenadas basadas en las mismas líneas que se imprimen abajo. Antes
-    // faltaba el margen inicial de 12 pt y el título caía sobre el SKU.
-    const introEndY = 12 + nameLines.length * 15 + 4 +
-      metadataLines.length * 10.8 +
-      (descriptionLines.length ? 5 + descriptionLines.length * 10.8 : 0);
-    const featuresLabelY = introEndY + 8;
-    const firstFeatureY = featuresLabelY + 14;
+    const { introEndY, featuresLabelY, firstFeatureY } = posicionesFichaCatalogo(
+      nameLines.length, metadataLines.length, descriptionLines.length,
+    );
     doc.setFontSize(8.6);
     const specs = product.features ?? [];
     const safeSpecText = (feature: ProductCatalogFeature) =>
