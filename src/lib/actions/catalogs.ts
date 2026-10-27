@@ -8,9 +8,17 @@ import { isSameText, requireNumber, requirePermission, requireText } from "./gua
 /**
  * SKU corta: modelo abreviado + almacenamiento cuando aparece en el nombre.
  * Ejemplos: "iPhone 13 128 GB" -> "IP13-128", "iPhone 14 Pro Max 256GB" -> "IP14PM-256",
- * "Samsung Galaxy S24 Ultra 256 GB" -> "S24U-256". El IMEI sigue identificando cada unidad.
+ * "Samsung Galaxy S24 Ultra 256 GB" -> "S24U-256". Los repuestos usan
+ * "BAT-IP13", "PAN-IP13" o "BAT-IP13-CF/SF" sin chocar con el modelo completo.
+ * Las SKU históricas y los códigos manuales no se modifican. El IMEI identifica cada unidad.
  */
-export const generarSkuProducto = (db: Db, name: string, ignoreId?: string, reservedSkus: ReadonlySet<string> = new Set()): string => {
+export const generarSkuProducto = (
+  db: Db,
+  name: string,
+  ignoreId?: string,
+  reservedSkus: ReadonlySet<string> = new Set(),
+  categoria?: ProductCategory,
+): string => {
   const normalizado = name
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
@@ -66,7 +74,34 @@ export const generarSkuProducto = (db: Db, name: string, ignoreId?: string, rese
     modelo = (iniciales + (conModelo ?? "")).slice(0, 8) || palabras[0]?.slice(0, 4) || "PROD";
   }
 
-  const base = (modelo + (capacidad ? "-" + capacidad : "")).slice(0, 12);
+  // Mantener las SKU de celulares, tablets, relojes y audífonos como ya estaban.
+  // Los repuestos llevan un prefijo por pieza, nunca la SKU del teléfono completo.
+  const tipoNormalizado = (categoria ?? "").normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "").toLowerCase();
+  let base = (modelo + (capacidad ? "-" + capacidad : "")).slice(0, 12);
+
+  if (tipoNormalizado === "repuesto") {
+    const parte =
+      /\b(BATERIA|PILA)\b/.test(normalizado) ? "BAT" :
+      /\b(PANTALLA|DISPLAY|MODULO)\b/.test(normalizado) ? "PAN" :
+      /\b(CAMARA|CAMARAS)\b/.test(normalizado) ? "CAM" :
+      /\b(TAPA|CARCASA)\b/.test(normalizado) ? "TAP" :
+      /\b(CARGADOR|CARGA)\b/.test(normalizado) ? "CAR" :
+      /\b(FLEX)\b/.test(normalizado) ? "FLE" :
+      /\b(CONECTOR|PUERTO)\b/.test(normalizado) ? "CON" :
+      /\b(ALTAVOZ|PARLANTE|BUZZER)\b/.test(normalizado) ? "ALT" :
+      /\b(MICROFONO)\b/.test(normalizado) ? "MIC" : "REP";
+    const flex = /\bSIN\s+FLEX\b/.test(normalizado) ? "-SF" :
+      /\bCON\s+FLEX\b/.test(normalizado) ? "-CF" : "";
+    // La capacidad en GB de un iPhone NO forma parte del código de su batería.
+    // La diferencia con/sin flex sí lo hace.
+    base = parte + "-" + modelo.slice(0, 14) + flex;
+  } else if (tipoNormalizado && !["celular", "tablet", "reloj", "audifono"].includes(tipoNormalizado)) {
+    // Los tipos añadidos desde Administración también tienen una familia propia.
+    const prefijo = tipoNormalizado.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 4) || "OTR";
+    base = prefijo + "-" + base;
+  }
+
   const taken = (sku: string) =>
     reservedSkus.has(sku.trim().toUpperCase()) ||
     db.products.some((product) => product.id !== ignoreId && product.sku.trim().toUpperCase() === sku);
@@ -327,7 +362,7 @@ export interface ProductInput {
 export const createProduct = (db: Db, actor: Actor, input: ProductInput): Product => {
   requirePermission(actor, "inventory.manage");
   const name = requireText(input.name, "errors.productNameRequired");
-  const sku = (input.sku?.trim().toUpperCase() || generarSkuProducto(db, name)).slice(0, 40);
+  const sku = (input.sku?.trim().toUpperCase() || generarSkuProducto(db, name, undefined, undefined, input.categoria)).slice(0, 40);
   if (db.products.some((product) => product.sku.trim().toUpperCase() === sku)) {
     throw new DomainError("errors.skuDuplicated");
   }
@@ -370,7 +405,7 @@ export const updateProduct = (
   if (!product) throw new DomainError("errors.notFound");
   const categoriaAnterior = product.categoria;
   const name = requireText(input.name, "errors.productNameRequired");
-  const sku = (input.sku?.trim().toUpperCase() || generarSkuProducto(db, name, product.id)).slice(0, 40);
+  const sku = (input.sku?.trim().toUpperCase() || generarSkuProducto(db, name, product.id, undefined, input.categoria ?? product.categoria)).slice(0, 40);
   if (
     db.products.some(
       (item) => item.id !== product.id && item.sku.trim().toUpperCase() === sku,
