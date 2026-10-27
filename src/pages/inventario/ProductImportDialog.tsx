@@ -144,7 +144,7 @@ export const ProductImportDialog = ({ trigger }: { trigger: React.ReactNode }) =
 
       const sku = row.sku
         ? normalizeSku(row.sku)
-        : generarSkuProducto(db, row.name, undefined, seenSkus);
+        : generarSkuProducto(db, row.name, undefined, seenSkus, categoria);
       if (existingSkus.has(sku) || seenSkus.has(sku)) {
         return { row, status: "duplicate", reason: t("productImport.duplicateSku", { sku }) };
       }
