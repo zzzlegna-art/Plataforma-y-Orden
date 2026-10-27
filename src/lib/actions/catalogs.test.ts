@@ -126,6 +126,8 @@ describe("SKU corta automática", () => {
     expect(generarSkuProducto(db, "Pantalla iPhone 13", undefined, undefined, "repuesto")).toBe("PAN-IP13");
     expect(generarSkuProducto(db, "Cámara iPhone 13", undefined, undefined, "repuesto")).toBe("CAM-IP13");
     expect(generarSkuProducto(db, "Batería iPhone 13 128 GB", undefined, undefined, "repuesto")).toBe("BAT-IP13");
+    expect(generarSkuProducto(db, "Batería de iPhone 12/12 Pro", undefined, undefined, "repuesto")).toBe("BAT-IP12-12P");
+    expect(generarSkuProducto(db, "Batería iPhone 12 y 12 Pro", undefined, undefined, "repuesto")).toBe("BAT-IP12-12P");
     expect(generarSkuProducto(db, "Batería iPhone 13 flex", undefined, undefined, "repuesto")).toBe("BAT-IP13-CF");
     expect(generarSkuProducto(db, "Batería iPhone 13 no flex", undefined, undefined, "repuesto")).toBe("BAT-IP13-SF");
     expect(generarSkuProducto(db, "Flex de carga iPhone 13", undefined, undefined, "repuesto")).toBe("FLE-IP13");
