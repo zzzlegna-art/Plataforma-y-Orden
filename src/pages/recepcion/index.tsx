@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   Download,
@@ -67,7 +67,7 @@ const Recepciones = () => {
       .catch((error: unknown) => console.warn("No se pudieron consultar proveedores", error));
     return () => { active = false; };
   }, []);
-  const supplierName = (id?: string) => suppliers.find((supplier) => supplier.id === id)?.name;
+  const supplierName = useCallback((id?: string) => suppliers.find((supplier) => supplier.id === id)?.name, [suppliers]);
   const [params, setParams] = useSearchParams();
   // Enlace desde el historial de un serial: ?ver=<recepción>&serial=<serial a resaltar>.
   const verId = params.get("ver");
@@ -123,7 +123,7 @@ const Recepciones = () => {
         row.serials.some((serial) => serial.toLowerCase().includes(needle));
       return matchesStatus && matchesSearch;
     });
-  }, [db, search, status, suppliers]);
+  }, [db, search, status, supplierName]);
 
   // Selección manual de recepciones para exportar exactamente las que se elijan (igual que
   // la selección de seriales para imprimir etiquetas: checkbox por fila + "elegir visibles").
