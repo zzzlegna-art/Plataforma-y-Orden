@@ -117,6 +117,25 @@ export const generarSkuProducto = (
   return base + "-" + counter;
 };
 
+/** 
+ * SKU sugerida mientras se edita una referencia. Si nombre y tipo siguen
+ * iguales, mantiene la SKU histórica (incluidas SKU escritas manualmente).
+ * Al cambiar cualquiera de ellos, usa el generador global excluyendo el
+ * propio producto del control de duplicados.
+ */
+export const generarSkuAlEditar = (
+  db: Db,
+  name: string,
+  categoria: ProductCategory | undefined,
+  original?: Pick<Product, "id" | "name" | "sku" | "categoria">,
+): string => {
+  if (original && original.name.trim() === name.trim() &&
+      (original.categoria ?? "") === (categoria ?? "")) {
+    return original.sku;
+  }
+  return generarSkuProducto(db, name, original?.id, undefined, categoria);
+};
+
 /**
  * Un identificador estable ("key") a partir del nombre: en minúsculas, sin espacios ni
  * acentos, para guardar en Product.categoria (por ejemplo "Parlantes bluetooth" -> "parlantes
