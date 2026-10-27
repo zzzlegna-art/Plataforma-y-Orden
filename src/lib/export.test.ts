@@ -144,6 +144,35 @@ describe("documentos comerciales de pedido", () => {
     expect(pdfText).toContain("Página 1 de 1");
   });
 
+  it("presenta una sola vez el número de factura y únicamente cuatro datos comerciales", () => {
+    const doc = exportSalesInvoicePdf({
+      ...input,
+      customer: { ...input.customer, name: "Oscar Fedecell", taxId: "" },
+      orderDate: "27 de oct de 2026",
+      deliveryDate: "27 de oct de 2026",
+      lines: [{
+        reference: "PAN-SUN-IP13", product: "Display Sunlong iPhone 13",
+        condition: "No aplica", quantity: 20, unitPrice: 135000, subtotal: 2700000,
+      }],
+    });
+    const pdf = doc.output();
+    expect(doc.getNumberOfPages()).toBe(1);
+    expect((pdf.match(/FAC-PED-261025-002/g) ?? [])).toHaveLength(1);
+    expect(pdf).toContain("FACTURA COMERCIAL");
+    expect(pdf).toContain("FECHA DE EMISIÓN");
+    expect(pdf).toContain("NIT / IDENTIFICACIÓN");
+    expect(pdf).toContain("EMISOR");
+    expect(pdf).toContain("CLIENTE");
+    expect(pdf).toContain("Oscar Fedecell");
+    expect(pdf).toContain("No registrado");
+    expect(pdf).toContain("PAN-SUN-IP13");
+    expect(pdf).toContain("Display Sunlong iPhone 13");
+    expect(pdf).toContain("2.700.000");
+    expect(pdf).not.toContain("(PEDIDO)");
+    expect(pdf).not.toContain("(DOCUMENTO)");
+    expect(pdf).toContain("TOTAL COMERCIAL");
+  });
+
   it("conserva los precios y el total en facturas extensas con varias páginas y logo oficial", () => {
     const doc = exportSalesInvoicePdf({
       ...input,
