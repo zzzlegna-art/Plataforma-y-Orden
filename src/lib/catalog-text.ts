@@ -8,7 +8,7 @@ const CATALOG_SPACED_WORDS = [
   "cámaras", "capacidad", "Cellular", "celular", "compatibilidad", "compatible", "cambiar",
   "conectividad", "conector", "conexión", "conexiones", "con", "CPU", "devolución",
   "de", "del", "desde", "diseño", "Dual", "eSIM", "en", "Engine", "estéreo", "frontal", "frecuencia",
-  "G", "generación", "GPU", "grabación", "gran", "hasta", "inalámbrica", "inalámbrico", "LTE",
+  "G", "generación", "GPU", "GPS", "grabación", "gran", "hasta", "inalámbrica", "inalámbrico", "LTE", "OLED",
   "incluye", "iPad", "iPhone", "la", "las", "Lightning", "los", "más", "memoria",
   "micrófono", "menos", "MP", "nano", "NFC", "Neural", "no", "núcleos", "o", "operativo", "puede", "RAM", "regional", "ROM", "SIM",
   "pantalla", "para", "Pencil", "por", "procesador", "puerto", "rápida", "red",
