@@ -230,6 +230,58 @@ describe("identidad de exportaciones", () => {
   });
 });
 
+describe("fichas técnicas de relojes", () => {
+  it("repara conectividad con letras separadas y conserva acrónimos", () => {
+    const raw = "C o n e c t i v i d a d: W i F i 4, B l u e t o o t h 5 . 3; N F C; G P S o G P S + C e l l u l a r s e g ú n v a r i a n t e";
+    const clean = normalizeCatalogText(raw);
+    expect(clean).toContain("Conectividad:");
+    expect(clean).toContain("Wi-Fi 4");
+    expect(clean).toContain("Bluetooth 5.3");
+    expect(clean).toContain("GPS o GPS");
+    expect(clean).toContain("Cellular según variante");
+    expect(clean).not.toMatch(/(?:[A-Za-z] ){4,}[A-Za-z]/);
+  });
+
+  it("ubica dos relojes con características extensas en una misma página A4", async () => {
+    Object.defineProperty(URL, "createObjectURL", { configurable: true, value: () => "blob:watches-catalog-test" });
+    Object.defineProperty(URL, "revokeObjectURL", { configurable: true, value: () => undefined });
+    const makeFeatures = () => [
+      { label: "Almacenamiento", value: "64 GB" },
+      { label: "Pantalla", value: "Pantalla Retina OLED siempre activa, 42 mm, resolución 374 x 446 px" },
+      { label: "Procesador", value: "Apple S10 de doble núcleo y Neural Engine de 4 núcleos" },
+      { label: "Resistencia", value: "Resistencia al agua hasta 50 m; protección contra polvo IP6X" },
+      { label: "C o n e c t i v i d a d", value: "W i F i 4, B l u e t o o t h 5 . 3; N F C; G P S o G P S + C e l l u l a r s e g ú n v a r i a n t e" },
+      { label: "Compatibilidad", value: "iPhone 11 o posterior con iOS 26 o posterior" },
+      { label: "Sensores", value: "Frecuencia cardíaca eléctrica y óptica, oxígeno en sangre, temperatura, brújula, altímetro, acelerómetro, giroscopio, luz ambiental, profundímetro y temperatura del agua" },
+    ];
+    const doc = await exportProductCatalogPdf({
+      title: "Catálogo de productos",
+      subtitle: "2 registros",
+      filename: "catalogo-relojes.pdf",
+      products: [
+        { name: "Watch Serie 11 - 42", sku: "WASE11-42", brand: "Apple", category: "Relojes", features: makeFeatures() },
+        { name: "Watch Serie 11 - 46", sku: "WASE11-46", brand: "Apple", category: "Relojes", features: makeFeatures() },
+      ],
+      includePrice: false,
+      includeStock: false,
+      labels: {
+        image: "Imagen", openImage: "Abrir imagen", product: "Producto",
+        reference: "SKU", brand: "Marca", category: "Categoría",
+        description: "Descripción", features: "Características del equipo",
+        price: "Precio", stock: "Existencias", noDescription: "Sin descripción",
+        noFeatures: "Sin características", imageUnavailable: "Sin imagen",
+        moreFeatures: (count) => "+" + count + " características",
+      },
+    });
+    expect(doc.getNumberOfPages()).toBe(1);
+    const pdf = doc.output();
+    expect(pdf).toContain("WASE11-42");
+    expect(pdf).toContain("WASE11-46");
+    expect(pdf).toContain("Sensores");
+    expect(pdf).toContain("Conectividad");
+  });
+});
+
 describe("ajuste seguro de texto técnico en PDF", () => {
   it("no permite que conectividad y otros textos largos sobresalgan de la tarjeta", () => {
     const doc = new jsPDF({ unit: "pt", format: "a4" });
