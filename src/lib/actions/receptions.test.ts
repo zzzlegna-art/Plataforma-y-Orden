@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { DomainError, emptyDb } from "../db";
 import type { Actor, Product, Unit } from "../types";
-import { addReceptionItem, confirmReception, createReception, updateReception } from "./receptions";
+import { addReceptionItem, confirmReception, createReception, updateReception, updateReceptionSupplier } from "./receptions";
 
 const actor: Actor = { id: "admin-test", email: "admin@example.test", fullName: "Prueba", role: "admin" };
 const producto: Product = {
@@ -47,6 +47,63 @@ describe("proveedor registrado en una recepción", () => {
     const reception = createReception(db, actor, { reference: "Antigua" });
     expect(reception.supplierId).toBeUndefined();
     expect(reception.reference).toBe("Antigua");
+  });
+});
+
+describe("corrección retrospectiva del proveedor", () => {
+  it("asocia 1.350 seriales a un proveedor después de confirmar sin tocar stock ni movimientos", () => {
+    const db = emptyDb();
+    db.products.push(producto);
+    const reception = createReception(db, actor, { reference: "REM-4471" });
+    for (let i = 0; i < 1350; i++) {
+      db.receptionItems.push({
+        id: "item-" + i, receptionId: reception.id, productId: producto.id,
+        serial: "SR-" + i, condition: "nuevo", createdAt: "2026-10-27T10:00:00Z",
+      });
+    }
+    confirmReception(db, actor, { id: reception.id });
+    const unitsBefore = JSON.stringify(db.units);
+    const movementsBefore = JSON.stringify(db.movements);
+    const auditBefore = db.auditLogs.length;
+
+    const updated = updateReceptionSupplier(db, actor, {
+      id: reception.id, supplierId: "proveedor-nuevo",
+    });
+    expect(updated.status).toBe("confirmada");
+    expect(updated.supplierId).toBe("proveedor-nuevo");
+    expect(db.units.filter((unit) => unit.receptionId === reception.id)).toHaveLength(1350);
+    expect(JSON.stringify(db.units)).toBe(unitsBefore);
+    expect(JSON.stringify(db.movements)).toBe(movementsBefore);
+    expect(db.auditLogs).toHaveLength(auditBefore + 1);
+    expect(db.auditLogs.at(-1)).toEqual(expect.objectContaining({
+      entity: "reception", action: "update", entityId: reception.id,
+    }));
+
+    updateReceptionSupplier(db, actor, { id: reception.id, supplierId: "proveedor-otro" });
+    expect(updated.supplierId).toBe("proveedor-otro");
+    updateReceptionSupplier(db, actor, { id: reception.id, supplierId: "" });
+    expect(updated.supplierId).toBeUndefined();
+    expect(updated.reference).toBe("REM-4471");
+    expect(db.movements).toHaveLength(1350);
+  });
+
+  it("también funciona antes de confirmar y no genera auditorías al repetir el mismo proveedor", () => {
+    const db = emptyDb();
+    const reception = createReception(db, actor, {});
+    const after = updateReceptionSupplier(db, actor, { id: reception.id, supplierId: "proveedor-1" });
+    const auditCount = db.auditLogs.length;
+    updateReceptionSupplier(db, actor, { id: reception.id, supplierId: "proveedor-1" });
+    expect(db.auditLogs).toHaveLength(auditCount);
+    expect(after.status).toBe("captura");
+  });
+
+  it("mantiene el bloqueo para intentar modificar una recepción descartada", () => {
+    const db = emptyDb();
+    const reception = createReception(db, actor, {});
+    reception.status = "descartada";
+    expect(() => updateReceptionSupplier(db, actor, {
+      id: reception.id, supplierId: "proveedor-1",
+    })).toThrowError(DomainError);
   });
 });
 
