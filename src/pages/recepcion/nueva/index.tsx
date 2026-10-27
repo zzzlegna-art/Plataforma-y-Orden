@@ -71,6 +71,7 @@ const NuevaRecepcion = () => {
   const [receivedAt, setReceivedAt] = useState(todayIso());
   const [notes, setNotes] = useState("");
   const [saving, setSaving] = useState(false);
+  const [totalConfirmando, setTotalConfirmando] = useState(0);
   const [busy, setBusy] = useState(false);
   const [ultimoSerialAgregado, setUltimoSerialAgregado] = useState("");
   const busyRef = useRef(false);
@@ -354,13 +355,17 @@ const NuevaRecepcion = () => {
   const handleConfirm = () =>
     runExclusivo(async () => {
       if (!receptionId || procesandoColaRef.current) return;
+      setTotalConfirmando(items.length);
       setSaving(true);
-      const result = await runAction(
-        (db2, actor) => confirmReception(db2, actor, { id: receptionId }),
-        { success: "receptions.confirmed" },
-      );
-      setSaving(false);
-      if (result) navigate("/recepcion");
+      try {
+        const result = await runAction(
+          (db2, actor) => confirmReception(db2, actor, { id: receptionId }),
+          { success: "receptions.confirmed", deferOptimistic: true, key: `confirmar-${receptionId}` },
+        );
+        if (result) navigate("/recepcion");
+      } finally {
+        setSaving(false);
+      }
     });
 
   const handleDiscard = () =>
@@ -395,11 +400,12 @@ const NuevaRecepcion = () => {
       />
       <Button
         type="button"
+        loading={saving}
         disabled={items.length === 0 || saving || busy || procesandoColaRef.current || pendientes > 0}
         onClick={() => void handleConfirm()}
       >
-        <Check />
-        {t("receptions.confirm")}
+        {!saving ? <Check /> : null}
+        {saving ? t("receptions.confirmingUnits", { count: totalConfirmando.toLocaleString("es-CO") }) : t("receptions.confirm")}
       </Button>
     </>
   );
