@@ -9,6 +9,11 @@ import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 
 vi.mock("@/lib/backend", () => ({}));
+vi.mock("@/lib/suppliers", () => ({
+  listSuppliers: vi.fn().mockResolvedValue([]),
+  saveSupplier: vi.fn(),
+  setSupplierActive: vi.fn(),
+}));
 const mocks = vi.hoisted(() => ({ toastError: vi.fn() }));
 vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: mocks.toastError, warning: vi.fn() } }));
 
