@@ -317,6 +317,91 @@ describe("ajuste seguro de texto técnico en PDF", () => {
   });
 });
 
+describe("catálogo PDF con fichas como la referencia AirPods", () => {
+  it("mantiene foto a la izquierda y todas las características a la derecha sin resumir", async () => {
+    Object.defineProperty(URL, "createObjectURL", { configurable: true, value: () => "blob:airpods-pdf-test" });
+    Object.defineProperty(URL, "revokeObjectURL", { configurable: true, value: () => undefined });
+    const doc = await exportProductCatalogPdf({
+      title: "Catálogo de productos",
+      subtitle: "3 registros",
+      filename: "airpods-catalogo-test.pdf",
+      products: Array.from({ length: 3 }, (_, i) => ({
+        name: "Airpods 4 " + (i + 1),
+        sku: "AI4-" + (i + 1),
+        brand: "Apple",
+        category: "Audífonos",
+        features: [
+          { label: "Procesador", value: "Chip H2 para audífonos" },
+          { label: "Resistencia", value: "IP54: resistente al polvo, agua y sudor" },
+          { label: "Conectividad", value: "Bluetooth 5.3" },
+          { label: "Compatibilidad", value: "iPhone, iPad, Mac, Apple Watch y Apple TV compatibles; Bluetooth en otros equipos con funciones limitadas" },
+          { label: "Autonomía", value: "Hasta 5 horas por carga; hasta 30 horas con el estuche USB-C" },
+          { label: "Sensores", value: "2 micrófonos beamforming, micrófono interno, sensor óptico de uso, acelerómetros de movimiento y voz, sensor de fuerza" },
+          { label: "Aislación de sonido", value: "Sin cancelación activa de ruido, aislamiento pasivo" },
+        ],
+      })),
+      includePrice: false,
+      includeStock: false,
+      labels: {
+        image: "Imagen", openImage: "Abrir imagen", product: "Producto",
+        reference: "SKU", brand: "Marca", category: "Categoría",
+        description: "Descripción", features: "Características del equipo",
+        price: "Precio", stock: "Existencias", noDescription: "Sin descripción",
+        noFeatures: "Sin características", imageUnavailable: "Sin imagen",
+        moreFeatures: (count) => "+" + count + " características",
+      },
+    });
+    expect(doc.getNumberOfPages()).toBe(1);
+    const pdf = doc.output();
+    expect(pdf).toContain("Airpods 4");
+    expect(pdf).toContain("AI4-1");
+    expect(pdf).toContain("AI4-3");
+    expect(pdf).toContain("Bluetooth 5.3");
+    expect(pdf).toContain("Aislación de sonido");
+    expect(pdf).not.toContain("características más");
+  });
+
+  it("continúa una ficha muy extensa en otra hoja sin perder la última especificación", async () => {
+    Object.defineProperty(URL, "createObjectURL", { configurable: true, value: () => "blob:catalogo-largo" });
+    Object.defineProperty(URL, "revokeObjectURL", { configurable: true, value: () => undefined });
+    const doc = await exportProductCatalogPdf({
+      title: "Catálogo de productos",
+      subtitle: "1 registro",
+      filename: "catalogo-largo.pdf",
+      products: [{
+        name: "Equipo con especificaciones extensas",
+        sku: "EXT-001",
+        brand: "Apple",
+        category: "Accesorios",
+        features: [
+          ...Array.from({ length: 70 }, (_, index) => ({
+            label: "Detalle " + index,
+            value: "Referencia técnica detallada con capacidad y compatibilidad",
+          })),
+          { label: "Característica final", value: "Comprobado" },
+        ],
+      }],
+      includePrice: true,
+      includeStock: true,
+      labels: {
+        image: "Imagen", openImage: "Abrir imagen", product: "Producto",
+        reference: "SKU", brand: "Marca", category: "Categoría",
+        description: "Descripción", features: "Características del equipo",
+        price: "Precio", stock: "Existencias", noDescription: "Sin descripción",
+        noFeatures: "Sin características", imageUnavailable: "Sin imagen",
+        moreFeatures: (count) => "+" + count + " características",
+      },
+    });
+    expect(doc.getNumberOfPages()).toBeGreaterThan(1);
+    const pdf = doc.output();
+    expect(pdf).toContain("Detalle 0");
+    expect(pdf).toContain("Detalle 69");
+    expect(pdf).toContain("Característica final");
+    expect(pdf).toContain("Existencias");
+    expect(pdf).toContain("Precio");
+  });
+});
+
 describe("catálogo PDF legible", () => {
   const originalCreateObjectURL = URL.createObjectURL;
   const originalRevokeObjectURL = URL.revokeObjectURL;
