@@ -1,5 +1,6 @@
 import {
   Building2,
+  Truck,
   ClipboardList,
   LayoutDashboard,
   PackagePlus,
@@ -61,6 +62,12 @@ export const NAV_ITEMS: NavItem[] = [
     labelKey: "nav.customers",
     icon: Building2,
     permission: "customers.manage",
+  },
+  {
+    to: "/proveedores",
+    labelKey: "nav.suppliers",
+    icon: Truck,
+    permission: "receptions.manage",
   },
   {
     to: "/garantias",
