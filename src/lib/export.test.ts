@@ -248,6 +248,45 @@ describe("catálogo PDF legible", () => {
     }
   });
 
+  it("coloca varias fichas compactas en una página sin desperdiciar espacio bajo la foto", async () => {
+    Object.defineProperty(URL, "createObjectURL", { configurable: true, value: () => "blob:catalog-compact-test" });
+    Object.defineProperty(URL, "revokeObjectURL", { configurable: true, value: () => undefined });
+    const doc = await exportProductCatalogPdf({
+      title: "Catálogo de productos",
+      subtitle: "3 registros",
+      filename: "catalogo-compacto.pdf",
+      products: Array.from({ length: 3 }, (_, index) => ({
+        name: "iPad A16 128 GB " + (index + 1),
+        sku: "A16-128-" + index,
+        brand: "Apple",
+        category: "Tablets",
+        features: [
+          { label: "Almacenamiento", value: "128 GB" },
+          { label: "Memoria RAM", value: "6 GB" },
+          { label: "Procesador", value: "Apple A16" },
+          { label: "Conectividad", value: "Wi-Fi 6 y Bluetooth 5.3" },
+          { label: "Compatibilidad", value: "Apple Pencil USB-C" },
+        ],
+      })),
+      includePrice: false,
+      includeStock: false,
+      labels: {
+        image: "Imagen", openImage: "Abrir imagen", product: "Producto",
+        reference: "SKU", brand: "Marca", category: "Categoría",
+        description: "Descripción", features: "Características del equipo",
+        price: "Precio", stock: "Existencias", noDescription: "Sin descripción",
+        noFeatures: "Sin características", imageUnavailable: "Sin imagen",
+        moreFeatures: (count) => "+" + count + " características",
+      },
+    });
+    expect(doc.getNumberOfPages()).toBe(1);
+    const pdf = doc.output();
+    expect(pdf).toContain("A16-128-0");
+    expect(pdf).toContain("A16-128-2");
+    expect(pdf).toContain("Almacenamiento");
+    expect(pdf).toContain("Compatibilidad");
+  });
+
   it("conserva datos y reparte fichas con varias características entre páginas", async () => {
     Object.defineProperty(URL, "createObjectURL", { configurable: true, value: () => "blob:catalog-pdf-test" });
     Object.defineProperty(URL, "revokeObjectURL", { configurable: true, value: () => undefined });
