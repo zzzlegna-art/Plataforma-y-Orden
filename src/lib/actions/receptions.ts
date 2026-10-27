@@ -78,6 +78,35 @@ export const updateReception = (
   return reception;
 };
 
+/**
+ * Corrige el proveedor de una recepción ya confirmada o en captura.
+ * No reabre ni re-confirma la recepción; el vínculo entre cada serial y su
+ * proveedor se deduce desde la recepción de entrada. Registrar la corrección
+ * de forma auditable evita reescribir miles de unidades y sus movimientos.
+ */
+export const updateReceptionSupplier = (
+  db: Db,
+  actor: Actor,
+  input: { id: string; supplierId?: string },
+): Reception => {
+  requirePermission(actor, "receptions.manage");
+  const reception = findReception(db, input.id);
+  if (reception.status !== "captura" && reception.status !== "confirmada") {
+    throw new DomainError("errors.receptionNotEditable");
+  }
+  const previous = reception.supplierId;
+  const next = input.supplierId?.trim() || undefined;
+  if (previous === next) return reception;
+  reception.supplierId = next;
+  logAudit(db, actor, {
+    action: "update",
+    entity: "reception",
+    entityId: reception.id,
+    details: `${reception.code} · proveedor: ${previous ?? "sin asignar"} → ${next ?? "sin asignar"}`,
+  });
+  return reception;
+};
+
 /** Siguiente serial interno para repuestos: REP-0001, REP-0002, … */
 const nextRepuestoSecuencial = (db: Db) => {
   const seriales = [
