@@ -95,14 +95,27 @@ const partBrand = (normal: string, marca = "") => {
     if (pattern.test(normal)) return code;
   }
   const n = normalize(marca);
-  // Apple o Samsung es el fabricante del teléfono compatible, no
-  // necesariamente el fabricante del display/batería.
-  if (!n || ["APPLE", "SAMSUNG", "XIAOMI", "MOTOROLA", "GOOGLE"].includes(n)) return "";
-  return brands.find(([pattern]) => pattern.test(n))?.[1] ??
-    n.replace(/\s/g, "").slice(0, 5);
+  // Apple/Samsung es fabricante del equipo compatible, no necesariamente del repuesto.
+  if (n && !["APPLE", "SAMSUNG", "XIAOMI", "MOTOROLA", "GOOGLE"].includes(n)) {
+    return brands.find(([pattern]) => pattern.test(n))?.[1] ??
+      n.replace(/\s/g, "").slice(0, 5);
+  }
+  // Si mañana llega un nuevo fabricante de displays, detectarlo también en
+  // el nombre sin necesitar publicar una nueva lista manual de marcas.
+  const beforeDevice = normal.split(/\b(?:IPHONE|GALAXY|SAMSUNG|IPAD|WATCH|PIXEL|REDMI)\b/)[0];
+  const excluded = new Set([
+    "BATERIA", "BATERIAS", "PILA", "DISPLAY", "DISPAY", "PANTALLA", "MODULO",
+    "TACTIL", "DE", "DEL", "PARA", "CON", "SIN", "NO", "FLEX", "CAMARA",
+    "TAPA", "CARCASA", "CARGA", "CARGADOR", "CONECTOR", "PUERTO", "MICROFONO",
+    "INCELL", "OLED", "LCD", "REPUESTO", "ORIGINAL", "GENERICA", "GENERICO",
+    "Y", "EN", "AL", "ALTAVOZ", "PARLANTE", "BUZZER",
+  ]);
+  const brandToken = beforeDevice.split(" ").find((token) =>
+    token && !excluded.has(token) && /^[A-Z][A-Z0-9]{1,}$/.test(token));
+  return brandToken ? brandToken.slice(0, 5) : "";
 };
 
-const genericTokens = (normal: string, categoria: string, modelo = "") => {
+const genericTokens = (normal: string, categoria: string, modelo = "", skipNumbers = false) => {
   const forbidden = new Set([
     "DE", "DEL", "LA", "EL", "PARA", "CON", "SIN", "Y", "EN",
     "GB", "TB", "TA", "MB", "APPLE", "SAMSUNG", "GALAXY",
@@ -114,9 +127,10 @@ const genericTokens = (normal: string, categoria: string, modelo = "") => {
   categoria.split(/[^A-Z0-9]+/).forEach((token) => forbidden.add(token));
   if (modelo) forbidden.add(modelo);
   const tokens = normal.split(" ").filter((token) => !forbidden.has(token) &&
-    !/^\d+(?:GB|TB|TA|MB)?$/.test(token) &&
+    !/^\d+(?:GB|TB|TA|MB)$/.test(token) &&
+    !(skipNumbers && /^\d+$/.test(token)) &&
     !["SLIM", "PRO", "LITE", "OLED"].includes(token));
-  return tokens.slice(0, modelo ? 3 : 4).join("").slice(0, 18);
+  return tokens.join("").slice(0, 18);
 };
 
 /** SKU base sin sufijo de colisión, máximo 35 caracteres. */
@@ -153,10 +167,13 @@ export const skuBaseReferencia = ({ name, categoria, marca }: SkuDescriptor): st
   }
 
   const family = familyCodes[tipo.toLowerCase()] ?? (tipo.replace(/[^A-Z0-9]/g, "").slice(0, 10) || "OTR");
-  const suffix = /\bSLIM\b/.test(n) ? "SL" : /\bPRO\b/.test(n) && !device.endsWith("P") ? "PRO" :
+  const suffix = /\bSLIM\b/.test(n) ? "SL" :
+    /\bPRO\b/.test(n) && !device.endsWith("P") ? "PRO" :
+    /\bDIGITAL\b/.test(n) ? "DIG" :
+    /\b(DISCO|DISC)\b/.test(n) ? "DISC" :
     family === "JUE" ? (n.match(/\b(\d{1,2})$/)?.[1] ?? "") : "";
   const generic = ["CONS", "GAM"].includes(family)
-    ? "" : genericTokens(n, tipo, device);
+    ? "" : genericTokens(n, tipo, device, family === "JUE");
   const brand = marca && !n.includes(normalize(marca))
     ? normalize(marca).replace(/\s/g, "").slice(0, 8)
     : "";
