@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { DomainError, emptyDb } from "../db";
 import type { Actor, Product, Unit } from "../types";
-import { addReceptionItem, confirmReception, createReception } from "./receptions";
+import { addReceptionItem, confirmReception, createReception, updateReception } from "./receptions";
 
 const actor: Actor = { id: "admin-test", email: "admin@example.test", fullName: "Prueba", role: "admin" };
 const producto: Product = {
@@ -24,6 +24,30 @@ const entrada = (id: string, serial = "SERIAL-12345"): Unit => ({
   status: "en_bodega",
   receivedAt: "2026-01-01T00:00:00.000Z",
   createdBy: actor.id,
+});
+
+describe("proveedor registrado en una recepción", () => {
+  it("asigna el proveedor elegido al crear y editar sin confundirlo con la referencia", () => {
+    const db = emptyDb();
+    const reception = createReception(db, actor, {
+      supplierId: "proveedor-uno", reference: "REM-4471",
+    });
+    expect(reception.supplierId).toBe("proveedor-uno");
+    expect(reception.reference).toBe("REM-4471");
+
+    const updated = updateReception(db, actor, {
+      id: reception.id, supplierId: "proveedor-dos", reference: "REM-4471",
+    });
+    expect(updated.supplierId).toBe("proveedor-dos");
+    expect(updated.reference).toBe("REM-4471");
+  });
+
+  it("permite mantener una recepción anterior sin proveedor", () => {
+    const db = emptyDb();
+    const reception = createReception(db, actor, { reference: "Antigua" });
+    expect(reception.supplierId).toBeUndefined();
+    expect(reception.reference).toBe("Antigua");
+  });
 });
 
 describe("confirmación de recepciones grandes", () => {
