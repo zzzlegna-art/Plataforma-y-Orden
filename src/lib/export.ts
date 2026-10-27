@@ -1687,6 +1687,13 @@ export const posicionesFichaCatalogo = (
  * fila. El resto fluye a todo el ancho, con tarjetas de altura dinámica.
  * Las líneas se miden con la fuente realmente utilizada antes de dibujarlas.
  */
+
+/**
+ * Catálogo compacto. Cada referencia comparte una única tarjeta: fotografía
+ * a la izquierda; nombre, SKU y características completas a la derecha.
+ * Sin paneles interiores, sin texto encima de otros campos y sin truncar
+ * las características: las fichas excepcionales continúan en otra página.
+ */
 export const exportProductCatalogPdf = async ({
   title, subtitle, filename, products, includePrice, includeStock, labels, onProgress,
 }: ProductCatalogExportOptions) => {
@@ -1696,93 +1703,58 @@ export const exportProductCatalogPdf = async ({
   const pageH = doc.internal.pageSize.getHeight();
   const margin = 24;
   const padding = 12;
-  const gap = 10;
+  const gap = 9;
+  const imageBox = 100;
+  const imageSize = 92;
   const cardWidth = pageW - margin * 2;
-  const imageBoxSize = 94;
-  const imageSize = 86;
   const imageX = margin + padding;
-  const detailX = imageX + imageBoxSize + 15;
+  const detailX = imageX + imageBox + 16;
   const detailWidth = pageW - margin - padding - detailX;
-  const sideTextX = detailX + 7;
-  const sideTextWidth = detailWidth - 7;
-  const fullTextX = margin + padding + 13;
-  const fullTextWidth = cardWidth - 2 * padding - 26;
-  const footerHeight = includePrice || includeStock ? 27 : 0;
+  const featureTextX = detailX + 7;
+  const featureWidth = detailWidth - 7;
+  const footerHeight = includePrice || includeStock ? 28 : 0;
+  const lineHeight = 11.5;
+  const rowGap = 2.3;
   const bottom = pageH - FOOTER_SPACE;
-  const maxCardHeight = bottom - CONTENT_TOP;
-  const detailLineHeight = 11.6;
+  const pageCapacity = bottom - CONTENT_TOP;
   const drawHeader = () => dibujarEncabezado(doc, title, subtitle, margin);
 
+  // Se mide cada línea con el tamaño y la familia tipográfica que se imprimirá.
   const layouts = products.map((product) => {
     doc.setFont("helvetica", "bold");
     doc.setFontSize(12.2);
     const nameLines = splitCatalogLines(doc, normalizeCatalogText(product.name), detailWidth, 2);
     doc.setFont("helvetica", "normal");
-    doc.setFontSize(8.4);
+    doc.setFontSize(8.5);
     const metadata = [
       labels.reference + ": " + normalizeCatalogText(product.sku || "—"),
       product.brand ? labels.brand + ": " + normalizeCatalogText(product.brand) : null,
       product.category ? labels.category + ": " + normalizeCatalogText(product.category) : null,
     ].filter(Boolean).join("  ·  ");
-    const metadataLines = splitCatalogLines(doc, metadata, detailWidth, 2);
+    const metadataLines = splitCatalogLines(doc, metadata, detailWidth, 3);
     const descriptionLines = product.description?.trim()
-      ? splitCatalogLines(doc, normalizeCatalogText(product.description), detailWidth, 2)
+      ? splitCatalogLines(doc, normalizeCatalogText(product.description), detailWidth, 3)
       : [];
-    const { titleBaseline, metadataBaseline, descriptionBaseline,
-      introEndY, featuresLabelY, firstFeatureY } = posicionesFichaCatalogo(
+    const geometry = posicionesFichaCatalogo(
       nameLines.length, metadataLines.length, descriptionLines.length,
     );
-    doc.setFontSize(8.6);
-    const specs = product.features ?? [];
-    const safeSpecText = (feature: ProductCatalogFeature) =>
-      normalizeCatalogText(feature.label) + ": " + normalizeCatalogText(feature.value);
-    const sideRows = specs.length
-      ? specs.map((feature) => splitCatalogLines(doc, safeSpecText(feature), sideTextWidth, 12))
-      : [splitCatalogLines(doc, labels.noFeatures, sideTextWidth, 4)];
-    const fullRows = specs.length
-      ? specs.map((feature) => splitCatalogLines(doc, safeSpecText(feature), fullTextWidth, 12))
-      : [splitCatalogLines(doc, labels.noFeatures, fullTextWidth, 4)];
 
-    // Hasta la altura inferior de la fotografía, sin invadirla.
-    // Cada posición es un baseline real. Solo aparecen características junto
-    // a la foto si caben por completo y no pisan los metadatos.
-    const sideLastBaseline = imageBoxSize - 8;
-    let nextFeatureY = firstFeatureY;
-    let sideCount = 0;
-    for (const lines of sideRows) {
-      const lastLineY = nextFeatureY + (lines.length - 1) * detailLineHeight;
-      if (lastLineY > sideLastBaseline) break;
-      nextFeatureY += lines.length * detailLineHeight + 2;
-      sideCount++;
-    }
-    const visibleSide = sideRows.slice(0, sideCount);
-    const remaining = fullRows.slice(sideCount);
-    const heroHeight = Math.max(imageBoxSize, introEndY + 7);
-    // Si ninguna característica cabe junto a la foto, el título se dibuja
-    // exclusivamente en el panel inferior; nunca queda encima del SKU.
-    const bottomHasTitle = sideCount === 0;
-    const bottomHeadingHeight = bottomHasTitle ? 19 : 0;
-    const maxBottomHeight = maxCardHeight - (padding * 2 + heroHeight + 7 + footerHeight);
-    const bottomRows: string[][] = [];
-    let remainingHeight = 0;
-    for (const lines of remaining) {
-      const rowH = lines.length * detailLineHeight + 2;
-      if (remainingHeight + rowH + 18 + bottomHeadingHeight > maxBottomHeight) break;
-      bottomRows.push(lines);
-      remainingHeight += rowH;
-    }
-    const omitted = remaining.length - bottomRows.length;
-    const bottomPanelHeight = bottomRows.length || omitted
-      ? bottomHeadingHeight + 13 + remainingHeight + (omitted ? 14 : 0) + 5
-      : 0;
-    const cardHeight = padding * 2 + heroHeight +
-      (bottomPanelHeight ? 7 + bottomPanelHeight : 0) + footerHeight;
-    return {
-      product, nameLines, metadataLines, descriptionLines, titleBaseline,
-      metadataBaseline, descriptionBaseline, featuresLabelY,
-      firstFeatureY, heroHeight, bottomHasTitle, visibleSide, bottomRows,
-      omitted, bottomPanelHeight, cardHeight,
-    };
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8.8);
+    const features = (product.features?.length ? product.features : [
+      { label: "", value: labels.noFeatures },
+    ]).map((feature) => {
+      const featureText = feature.label
+        ? normalizeCatalogText(feature.label) + ": " + normalizeCatalogText(feature.value)
+        : normalizeCatalogText(feature.value);
+      // Nunca omitir una especificación técnica por un límite de líneas.
+      return splitCatalogLines(doc, featureText, featureWidth, 10000);
+    });
+    const rowsHeight = features.reduce((height, lines) =>
+      height + lines.length * lineHeight + rowGap, 0);
+    const fullHeight = padding * 2 +
+      Math.max(imageBox, geometry.firstFeatureY + rowsHeight + 4) + footerHeight;
+    return { product, nameLines, metadataLines, descriptionLines, geometry, features, fullHeight };
   });
 
   onProgress?.({ phase: "images", completed: 0, total: products.length, percent: 8 });
@@ -1798,133 +1770,169 @@ export const exportProductCatalogPdf = async ({
     });
   }
 
-  const drawSpecRows = (rows: string[][], x: number, width: number, y: number) => {
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(8.6);
-    for (const lines of rows) {
-      doc.setFillColor(CYAN_DARK[0], CYAN_DARK[1], CYAN_DARK[2]);
-      doc.circle(x - 6, y - 3, 1.15, "F");
-      doc.setTextColor(TEXT[0], TEXT[1], TEXT[2]);
-      // La segunda medida protege también frente a texto Unicode largo.
-      const safeLines = lines.flatMap((line) => splitCatalogLines(doc, line, width, 12));
-      doc.text(safeLines, x, y, { lineHeightFactor: 1.32, maxWidth: width });
-      y += safeLines.length * detailLineHeight + 2;
-    }
-    return y;
-  };
-
+  doc.setLineWidth(0.65);
   onProgress?.({ phase: "rendering", completed: 0, total: layouts.length, percent: 58 });
   drawHeader();
   let cardY = CONTENT_TOP;
+
   for (let index = 0; index < layouts.length; index += 1) {
     const layout = layouts[index];
-    if (cardY > CONTENT_TOP && cardY + layout.cardHeight > bottom) {
+    // Si toda la ficha cabe en una página, nunca dividirla por la mitad.
+    if (cardY > CONTENT_TOP && cardY + layout.fullHeight > bottom &&
+      layout.fullHeight <= pageCapacity) {
       doc.addPage();
       drawHeader();
       cardY = CONTENT_TOP;
     }
-    const {
-      product, nameLines, metadataLines, descriptionLines, titleBaseline,
-      metadataBaseline, descriptionBaseline, featuresLabelY,
-      firstFeatureY, heroHeight, bottomHasTitle, visibleSide, bottomRows,
-      noFeatures, omitted, bottomPanelHeight, cardHeight,
-    } = layout;
-    doc.setFillColor(255, 255, 255);
-    doc.setDrawColor(BORDER[0], BORDER[1], BORDER[2]);
-    doc.setLineWidth(0.65);
-    doc.roundedRect(margin, cardY, cardWidth, cardHeight, 7, 7, "FD");
-    doc.setFillColor(CYAN[0], CYAN[1], CYAN[2]);
-    doc.roundedRect(margin + 1, cardY + 13, 3, 24, 1, 1, "F");
 
-    const imageY = cardY + padding;
-    doc.setFillColor(CYAN_PALE[0], CYAN_PALE[1], CYAN_PALE[2]);
-    doc.setDrawColor(BORDER[0], BORDER[1], BORDER[2]);
-    doc.roundedRect(imageX, imageY, imageBoxSize, imageBoxSize, 5, 5, "FD");
-    const imageData = imageDataUrls[index] ?? null;
-    if (imageData) {
-      doc.addImage(imageData, "JPEG",
-        imageX + (imageBoxSize - imageSize) / 2,
-        imageY + (imageBoxSize - imageSize) / 2,
-        imageSize, imageSize);
-    } else {
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(7.8);
-      doc.setTextColor(MUTED[0], MUTED[1], MUTED[2]);
-      doc.text(splitCatalogLines(doc, labels.imageUnavailable, imageBoxSize - 15, 2),
-        imageX + imageBoxSize / 2, imageY + imageBoxSize / 2, { align: "center" });
-    }
-
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(12.2);
-    doc.setTextColor(NAVY[0], NAVY[1], NAVY[2]);
-    doc.text(nameLines, detailX, cardY + padding + titleBaseline, { lineHeightFactor: 1.19 });
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(8.4);
-    doc.setTextColor(MUTED[0], MUTED[1], MUTED[2]);
-    doc.text(metadataLines, detailX, cardY + padding + metadataBaseline, { lineHeightFactor: 1.28 });
-    if (descriptionLines.length) {
-      doc.setTextColor(TEXT[0], TEXT[1], TEXT[2]);
-      doc.text(descriptionLines, detailX, cardY + padding + descriptionBaseline, { lineHeightFactor: 1.25 });
-    }
-    if (visibleSide.length) {
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(8.4);
-      doc.setTextColor(CYAN_DARK[0], CYAN_DARK[1], CYAN_DARK[2]);
-      doc.text(splitCatalogLines(doc, labels.features.toUpperCase(), detailWidth, 1),
-        detailX, cardY + padding + featuresLabelY);
-      drawSpecRows(visibleSide, sideTextX, sideTextWidth, cardY + padding + firstFeatureY);
-    }
-
-    let cardContentBottom = imageY + heroHeight;
-    if (bottomPanelHeight) {
-      const panelY = cardContentBottom + 7;
-      const panelX = margin + padding;
-      const panelWidth = cardWidth - padding * 2;
-      doc.setFillColor(CYAN_PALE[0], CYAN_PALE[1], CYAN_PALE[2]);
-      doc.roundedRect(panelX, panelY, panelWidth, bottomPanelHeight, 5, 5, "F");
-      if (bottomHasTitle) {
-        doc.setFont("helvetica", "bold");
-        doc.setFontSize(8.4);
-        doc.setTextColor(CYAN_DARK[0], CYAN_DARK[1], CYAN_DARK[2]);
-        doc.text(splitCatalogLines(doc, labels.features.toUpperCase(), fullTextWidth, 1),
-          fullTextX, panelY + 13);
+    let featureIndex = 0;
+    let featureLineIndex = 0;
+    while (featureIndex < layout.features.length) {
+      // Al comienzo de una página nueva queda espacio para título, SKU y una fila.
+      const minContent = Math.max(imageBox, layout.geometry.firstFeatureY + lineHeight + rowGap + 4);
+      const minCard = padding * 2 + minContent + footerHeight;
+      if (cardY > CONTENT_TOP && cardY + minCard > bottom) {
+        doc.addPage();
+        drawHeader();
+        cardY = CONTENT_TOP;
       }
-      const lastY = drawSpecRows(bottomRows, fullTextX, fullTextWidth,
-        panelY + 13 + (bottomHasTitle ? 19 : 0));
-      if (omitted) {
-        doc.setFont("helvetica", "italic");
-        doc.setFontSize(8);
-        doc.setTextColor(MUTED[0], MUTED[1], MUTED[2]);
-        doc.text(splitCatalogLines(doc, labels.moreFeatures(omitted), fullTextWidth, 1),
-          fullTextX, lastY + 1);
-      }
-      cardContentBottom = panelY + bottomPanelHeight;
-    }
 
-    if (includePrice || includeStock) {
-      const footerY = cardContentBottom + 18;
+      const availableContent = bottom - cardY - padding * 2 - footerHeight;
+      const availableRows = Math.max(0, availableContent - layout.geometry.firstFeatureY - 4);
+      const fragments: { lines: string[]; bullet: boolean }[] = [];
+      let usedRows = 0;
+
+      while (featureIndex < layout.features.length) {
+        const row = layout.features[featureIndex];
+        const remainingLines = row.slice(featureLineIndex);
+        const remainingSpace = availableRows - usedRows;
+        const canTake = Math.floor((remainingSpace - rowGap + 0.001) / lineHeight);
+        if (canTake <= 0) break;
+        const chunk = remainingLines.slice(0, canTake);
+        fragments.push({ lines: chunk, bullet: featureLineIndex === 0 });
+        usedRows += chunk.length * lineHeight + rowGap;
+        featureLineIndex += chunk.length;
+        if (featureLineIndex < row.length) break;
+        featureIndex++;
+        featureLineIndex = 0;
+      }
+
+      if (!fragments.length) {
+        // Protección contra bucles si una referencia es excepcionalmente larga.
+        // El tamaño normal A4 siempre permite varias líneas, pero mantenemos
+        // este caso seguro ante posibles cambios futuros del encabezado.
+        if (cardY > CONTENT_TOP) {
+          doc.addPage();
+          drawHeader();
+          cardY = CONTENT_TOP;
+          continue;
+        }
+        throw new Error("La ficha del catálogo supera el área imprimible.");
+      }
+
+      const isLastFragment = featureIndex >= layout.features.length;
+      const contentHeight = Math.max(imageBox, layout.geometry.firstFeatureY + usedRows + 4);
+      const currentFooter = isLastFragment ? footerHeight : 0;
+      const cardHeight = padding * 2 + contentHeight + currentFooter;
+      const { product, nameLines, metadataLines, descriptionLines, geometry } = layout;
+
+      doc.setFillColor(255, 255, 255);
       doc.setDrawColor(BORDER[0], BORDER[1], BORDER[2]);
-      doc.line(margin + padding, footerY - 12, pageW - margin - padding, footerY - 12);
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(9.5);
-      doc.setTextColor(NAVY[0], NAVY[1], NAVY[2]);
-      if (includePrice) {
-        doc.text(splitCatalogLines(doc,
-          labels.price + ": " + (product.price || "—"), cardWidth * (includeStock ? 0.55 : 0.88), 1),
-          margin + padding, footerY);
+      doc.setLineWidth(0.65);
+      doc.roundedRect(margin, cardY, cardWidth, cardHeight, 7, 7, "FD");
+      doc.setFillColor(CYAN[0], CYAN[1], CYAN[2]);
+      doc.roundedRect(margin + 1, cardY + 12, 3, 25, 1, 1, "F");
+
+      const imageY = cardY + padding;
+      doc.setFillColor(CYAN_PALE[0], CYAN_PALE[1], CYAN_PALE[2]);
+      doc.setDrawColor(BORDER[0], BORDER[1], BORDER[2]);
+      doc.roundedRect(imageX, imageY, imageBox, imageBox, 5, 5, "FD");
+      const imageData = imageDataUrls[index] ?? null;
+      if (imageData) {
+        doc.addImage(imageData, "JPEG",
+          imageX + (imageBox - imageSize) / 2,
+          imageY + (imageBox - imageSize) / 2,
+          imageSize, imageSize);
+      } else {
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(7.8);
+        doc.setTextColor(MUTED[0], MUTED[1], MUTED[2]);
+        doc.text(splitCatalogLines(doc, labels.imageUnavailable, imageBox - 14, 2),
+          imageX + imageBox / 2, imageY + imageBox / 2, { align: "center" });
       }
-      if (includeStock) {
-        doc.text(labels.stock + ": " + (product.stock ?? 0),
-          pageW - margin - padding, footerY, { align: "right" });
+
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(12.2);
+      doc.setTextColor(NAVY[0], NAVY[1], NAVY[2]);
+      doc.text(nameLines, detailX, cardY + padding + geometry.titleBaseline,
+        { lineHeightFactor: 1.19 });
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(8.5);
+      doc.setTextColor(MUTED[0], MUTED[1], MUTED[2]);
+      doc.text(metadataLines, detailX, cardY + padding + geometry.metadataBaseline,
+        { lineHeightFactor: 1.27 });
+      if (descriptionLines.length) {
+        doc.setTextColor(TEXT[0], TEXT[1], TEXT[2]);
+        doc.text(descriptionLines, detailX, cardY + padding + geometry.descriptionBaseline,
+          { lineHeightFactor: 1.23 });
+      }
+
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(9);
+      doc.setTextColor(CYAN_DARK[0], CYAN_DARK[1], CYAN_DARK[2]);
+      const featureHeading = labels.features;
+      doc.text(splitCatalogLines(doc, featureHeading, detailWidth, 1),
+        detailX, cardY + padding + geometry.featuresLabelY);
+
+      let rowY = cardY + padding + geometry.firstFeatureY;
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(8.8);
+      doc.setTextColor(TEXT[0], TEXT[1], TEXT[2]);
+      for (const fragment of fragments) {
+        if (fragment.bullet) {
+          doc.setFillColor(CYAN_DARK[0], CYAN_DARK[1], CYAN_DARK[2]);
+          doc.circle(featureTextX - 6, rowY - 3, 1.15, "F");
+        }
+        // El ancho del texto ya fue medido con esta misma fuente.
+        doc.text(fragment.lines, featureTextX, rowY, {
+          lineHeightFactor: 1.3, maxWidth: featureWidth,
+        });
+        rowY += fragment.lines.length * lineHeight + rowGap;
+      }
+
+      if (isLastFragment && footerHeight) {
+        const footerY = cardY + cardHeight - padding - 6;
+        doc.setDrawColor(BORDER[0], BORDER[1], BORDER[2]);
+        doc.line(margin + padding, footerY - 14, pageW - margin - padding, footerY - 14);
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(9.5);
+        doc.setTextColor(NAVY[0], NAVY[1], NAVY[2]);
+        if (includePrice) {
+          const price = labels.price + ": " + (product.price || "—");
+          doc.text(splitCatalogLines(doc, price, cardWidth * (includeStock ? 0.55 : 0.88), 1),
+            margin + padding, footerY);
+        }
+        if (includeStock) {
+          doc.text(labels.stock + ": " + (product.stock ?? 0),
+            pageW - margin - padding, footerY, { align: "right" });
+        }
+      }
+
+      cardY += cardHeight + gap;
+      if (!isLastFragment) {
+        doc.addPage();
+        drawHeader();
+        cardY = CONTENT_TOP;
       }
     }
-    cardY += cardHeight + gap;
+
     onProgress?.({
       phase: "rendering", completed: index + 1, total: layouts.length,
       percent: 58 + Math.round(((index + 1) / Math.max(1, layouts.length)) * 36),
     });
     await new Promise<void>((resolve) => window.setTimeout(resolve, 0));
   }
+
   dibujarPies(doc, title, margin);
   onProgress?.({ phase: "saving", completed: layouts.length, total: layouts.length, percent: 96 });
   await new Promise<void>((resolve) => window.setTimeout(resolve, 0));
