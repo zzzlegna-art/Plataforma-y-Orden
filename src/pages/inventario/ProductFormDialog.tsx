@@ -33,7 +33,6 @@ import {
   writeProductFormDraft,
   type ProductFormDraft,
 } from "@/lib/product-form-draft";
-import { normalizeCatalogText } from "@/lib/catalog-text";
 import { getProductImageExtension, validateProductImageFile } from "@/lib/product-image";
 import { getProductTechnicalSpecFieldsForCategory, getProductTechnicalSpecsForCategory } from "@/lib/product-specs";
 import { etiquetaTipoProducto, tiposProductoOrdenados } from "@/lib/products";
