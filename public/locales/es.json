@@ -422,6 +422,7 @@
   "receptions.units": "Unidades",
   "receptions.continue": "Continuar captura",
   "receptions.confirm": "Confirmar recepción",
+  "receptions.confirmingUnits": "Confirmando {{count}} unidades...",
   "receptions.confirmed": "Recepción confirmada",
   "receptions.confirmedAt": "Confirmada el {{date}}",
   "receptions.discard": "Descartar",
