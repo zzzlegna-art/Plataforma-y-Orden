@@ -9,19 +9,19 @@ type ProductThumbnailProps = {
   className?: string;
 };
 
-// Fotos oficiales de referencia para modelos que pueden existir en garantías históricas
-// sin una URL de imagen guardada en el catálogo.
+// Fotos opcionales en garantías históricas; exclusivamente para nombres exactos de teléfonos,
+// nunca para repuestos como "Display iPhone 13 Pro Max", baterías o flex.
 const REFERENCE_IMAGE_FALLBACKS = [
   {
-    pattern: /\biphone\s*16\s*pro\s*max\b/i,
+    pattern: /^(?:apple\s+)?iphone\s*16\s*pro\s*max(?:\s+\d+\s*(?:gb|tb))?$/i,
     src: "https://store.storeimages.cdn-apple.com/4982/as-images.apple.com/is/iphone-16-pro-max-naturaltitanium-select?wid=5120&hei=2880&fmt=png-alpha",
   },
   {
-    pattern: /\biphone\s*16\s*pro\b/i,
+    pattern: /^(?:apple\s+)?iphone\s*16\s*pro(?:\s+\d+\s*(?:gb|tb))?$/i,
     src: "https://store.storeimages.cdn-apple.com/4982/as-images.apple.com/is/iphone-16-pro-deserttitanium-select?wid=5120&hei=2880&fmt=png-alpha",
   },
   {
-    pattern: /\biphone\s*13\s*pro\s*max\b/i,
+    pattern: /^(?:apple\s+)?iphone\s*13\s*pro\s*max(?:\s+\d+\s*(?:gb|tb))?$/i,
     src: "https://store.storeimages.cdn-apple.com/4982/as-images.apple.com/is/iphone-13-pro-max-gold-select?wid=940&hei=1112&fmt=png-alpha",
   },
 ] as const;
@@ -38,7 +38,8 @@ export const getProductReferenceImageFallback = (reference: string): string | un
 
 /**
  * Miniatura consistente para referencias de inventario.
- * Prioriza la imagen del catálogo y usa una foto de referencia conocida si falta.
+ * Prioriza la imagen explícita; solo un nombre exacto de teléfono puede recibir
+ * la fotografía histórica de respaldo, nunca una referencia de repuestos.
  */
 export const ProductThumbnail = ({
   src,
