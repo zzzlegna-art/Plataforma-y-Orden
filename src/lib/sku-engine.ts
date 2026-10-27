@@ -153,7 +153,8 @@ export const skuBaseReferencia = ({ name, categoria, marca }: SkuDescriptor): st
   }
 
   const family = familyCodes[tipo.toLowerCase()] ?? (tipo.replace(/[^A-Z0-9]/g, "").slice(0, 10) || "OTR");
-  const suffix = /\bSLIM\b/.test(n) ? "SL" : /\bPRO\b/.test(n) && !device.endsWith("P") ? "PRO" : "";
+  const suffix = /\bSLIM\b/.test(n) ? "SL" : /\bPRO\b/.test(n) && !device.endsWith("P") ? "PRO" :
+    family === "JUE" ? (n.match(/\b(\d{1,2})$/)?.[1] ?? "") : "";
   const generic = ["CONS", "GAM"].includes(family)
     ? "" : genericTokens(n, tipo, device);
   const brand = marca && !n.includes(normalize(marca))
