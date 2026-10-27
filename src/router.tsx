@@ -4,7 +4,6 @@ import { RequireAuth, RequirePermission } from "./components/auth/require-auth";
 import { AppLayout } from "./components/layout/app-layout";
 import Administracion from "./pages/administracion";
 import Clientes from "./pages/clientes";
-import Proveedores from "./pages/proveedores";
 import Garantias from "./pages/garantias";
 import GarantiaDetalle from "./pages/garantias/detalle";
 import Inventario from "./pages/inventario";
@@ -113,8 +112,12 @@ export const routers = [
           },
           {
             path: "proveedores",
-            name: "proveedores",
-            element: <RequirePermission permission="receptions.manage"><Proveedores /></RequirePermission>,
+            name: "proveedores-legacy",
+            element: (
+              <RequirePermission permission="receptions.manage">
+                <Navigate to="/administracion?tab=suppliers" replace />
+              </RequirePermission>
+            ),
           },
           {
             path: "garantias",
@@ -130,7 +133,7 @@ export const routers = [
             path: "administracion",
             name: "administracion",
             element: (
-              <RequirePermission permission="users.manage">
+              <RequirePermission permission="receptions.manage">
                 <Administracion />
               </RequirePermission>
             ),
