@@ -1728,7 +1728,8 @@ export const exportProductCatalogPdf = async ({
     const descriptionLines = product.description?.trim()
       ? splitCatalogLines(doc, normalizeCatalogText(product.description), detailWidth, 2)
       : [];
-    const { introEndY, featuresLabelY, firstFeatureY } = posicionesFichaCatalogo(
+    const { titleBaseline, metadataBaseline, descriptionBaseline,
+      introEndY, featuresLabelY, firstFeatureY } = posicionesFichaCatalogo(
       nameLines.length, metadataLines.length, descriptionLines.length,
     );
     doc.setFontSize(8.6);
@@ -1777,7 +1778,8 @@ export const exportProductCatalogPdf = async ({
     const cardHeight = padding * 2 + heroHeight +
       (bottomPanelHeight ? 7 + bottomPanelHeight : 0) + footerHeight;
     return {
-      product, nameLines, metadataLines, descriptionLines, featuresLabelY,
+      product, nameLines, metadataLines, descriptionLines, titleBaseline,
+      metadataBaseline, descriptionBaseline, featuresLabelY,
       firstFeatureY, heroHeight, bottomHasTitle, visibleSide, bottomRows,
       omitted, bottomPanelHeight, cardHeight,
     };
@@ -1822,7 +1824,8 @@ export const exportProductCatalogPdf = async ({
       cardY = CONTENT_TOP;
     }
     const {
-      product, nameLines, metadataLines, descriptionLines, featuresLabelY,
+      product, nameLines, metadataLines, descriptionLines, titleBaseline,
+      metadataBaseline, descriptionBaseline, featuresLabelY,
       firstFeatureY, heroHeight, bottomHasTitle, visibleSide, bottomRows,
       noFeatures, omitted, bottomPanelHeight, cardHeight,
     } = layout;
@@ -1851,21 +1854,17 @@ export const exportProductCatalogPdf = async ({
         imageX + imageBoxSize / 2, imageY + imageBoxSize / 2, { align: "center" });
     }
 
-    let y = cardY + padding + 12;
     doc.setFont("helvetica", "bold");
     doc.setFontSize(12.2);
     doc.setTextColor(NAVY[0], NAVY[1], NAVY[2]);
-    doc.text(nameLines, detailX, y, { lineHeightFactor: 1.19 });
-    y += nameLines.length * 15 + 4;
+    doc.text(nameLines, detailX, cardY + padding + titleBaseline, { lineHeightFactor: 1.19 });
     doc.setFont("helvetica", "normal");
     doc.setFontSize(8.4);
     doc.setTextColor(MUTED[0], MUTED[1], MUTED[2]);
-    doc.text(metadataLines, detailX, y, { lineHeightFactor: 1.28 });
-    y += metadataLines.length * 10.8;
+    doc.text(metadataLines, detailX, cardY + padding + metadataBaseline, { lineHeightFactor: 1.28 });
     if (descriptionLines.length) {
-      y += 5;
       doc.setTextColor(TEXT[0], TEXT[1], TEXT[2]);
-      doc.text(descriptionLines, detailX, y, { lineHeightFactor: 1.25 });
+      doc.text(descriptionLines, detailX, cardY + padding + descriptionBaseline, { lineHeightFactor: 1.25 });
     }
     if (visibleSide.length) {
       doc.setFont("helvetica", "bold");
