@@ -1683,12 +1683,6 @@ export const posicionesFichaCatalogo = (
 };
 
 /**
- * Catálogo comercial: la foto y las primeras especificaciones comparten una
- * fila. El resto fluye a todo el ancho, con tarjetas de altura dinámica.
- * Las líneas se miden con la fuente realmente utilizada antes de dibujarlas.
- */
-
-/**
  * Catálogo compacto. Cada referencia comparte una única tarjeta: fotografía
  * a la izquierda; nombre, SKU y características completas a la derecha.
  * Sin paneles interiores, sin texto encima de otros campos y sin truncar
