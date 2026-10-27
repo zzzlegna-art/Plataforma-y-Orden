@@ -59,7 +59,7 @@ export const subtituloDocumentoSinMarcaDuplicada = (subtitle: string): string =>
  * izquierda; título y subtítulo alineados a la derecha, como un bloque centrado.
  * Adapta el espacio disponible a páginas A4 verticales y horizontales.
  */
-const dibujarEncabezado = (doc: jsPDF, title: string, subtitle: string, margin = 24) => {
+export const dibujarEncabezado = (doc: jsPDF, title: string, subtitle: string, margin = 24) => {
   const pageW = doc.internal.pageSize.getWidth();
   const headerInnerW = pageW - margin * 2;
   const logoWidth = Math.min(200, headerInnerW * 0.36);
