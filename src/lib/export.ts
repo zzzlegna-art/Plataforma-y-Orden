@@ -572,7 +572,8 @@ export const exportSalesInvoicePdf = (input: SalesDocumentInput) => {
       4: { cellWidth: width * 0.18, halign: "right" },
       5: { cellWidth: width * 0.19, halign: "right", fontStyle: "bold" },
     },
-    didDrawPage: header,
+    // La portada ya tiene su encabezado; autoTable solo lo repite en páginas adicionales.
+    didDrawPage: (data) => { if (data.pageNumber > 1) header(); },
   });
 
   let y = ((doc as jsPDF & { lastAutoTable?: { finalY: number } }).lastAutoTable?.finalY ?? tableY) + 20;
