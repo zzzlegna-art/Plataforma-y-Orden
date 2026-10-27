@@ -4,6 +4,7 @@ import { RequireAuth, RequirePermission } from "./components/auth/require-auth";
 import { AppLayout } from "./components/layout/app-layout";
 import Administracion from "./pages/administracion";
 import Clientes from "./pages/clientes";
+import Proveedores from "./pages/proveedores";
 import Garantias from "./pages/garantias";
 import GarantiaDetalle from "./pages/garantias/detalle";
 import Inventario from "./pages/inventario";
@@ -109,6 +110,11 @@ export const routers = [
             path: "clientes",
             name: "clientes",
             element: <Clientes />,
+          },
+          {
+            path: "proveedores",
+            name: "proveedores",
+            element: <RequirePermission permission="receptions.manage"><Proveedores /></RequirePermission>,
           },
           {
             path: "garantias",
