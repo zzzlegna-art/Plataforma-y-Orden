@@ -16,6 +16,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { ProductSpecificationField, PRODUCT_TECHNICAL_TEXT_LIMIT, PRODUCT_CUSTOM_SPEC_NAME_LIMIT } from "./ProductSpecificationField";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
@@ -37,6 +38,11 @@ import { getProductImageExtension, validateProductImageFile } from "@/lib/produc
 import { getProductTechnicalSpecFieldsForCategory, getProductTechnicalSpecsForCategory } from "@/lib/product-specs";
 import { etiquetaTipoProducto, tiposProductoOrdenados } from "@/lib/products";
 import type { Product, ProductCategory, ProductTechnicalSpecs } from "@/lib/types";
+
+/** Breves en una línea; campos descriptivos expandibles para fichas largas. */
+const SHORT_TECHNICAL_FIELDS = new Set([
+  "storage", "ram", "color", "weight", "refreshRate", "screenResolution", "power", "caseSize",
+]);
 
 const PRODUCT_IMAGE_BUCKET = "product-images";
 
@@ -444,15 +450,20 @@ export const ProductFormDialog = ({
                 {technicalFields.map((field) => (
                   <div key={field.key} className="space-y-1.5">
                     <Label htmlFor={`technical-${field.key}`}>{t(field.labelKey)}</Label>
-                    <Input
+                    <ProductSpecificationField
                       id={`technical-${field.key}`}
-                      value={normalizeCatalogText(technicalSpecs[field.key] ?? "")}
+                      value={technicalSpecs[field.key] ?? ""}
                       placeholder={field.placeholder}
-                      maxLength={120}
-                      onChange={(event) =>
-                        setTechnicalSpecs((current) => ({ ...current, [field.key]: event.target.value }))
+                      multiline={!SHORT_TECHNICAL_FIELDS.has(field.key)}
+                      onValueChange={(value) =>
+                        setTechnicalSpecs((current) => ({ ...current, [field.key]: value }))
                       }
                     />
+                    {(technicalSpecs[field.key]?.length ?? 0) >= 800 ? (
+                      <p className="text-right text-xs text-muted-foreground">
+                        {technicalSpecs[field.key]?.length ?? 0} / {PRODUCT_TECHNICAL_TEXT_LIMIT}
+                      </p>
+                    ) : null}
                   </div>
                 ))}
               </div>
@@ -496,8 +507,8 @@ export const ProductFormDialog = ({
                       <Label htmlFor={`custom-spec-name-${customField.id}`}>{t("product.customSpecName")}</Label>
                       <Input
                         id={`custom-spec-name-${customField.id}`}
-                        value={normalizeCatalogText(customField.name)}
-                        maxLength={80}
+                        value={customField.name}
+                        maxLength={PRODUCT_CUSTOM_SPEC_NAME_LIMIT}
                         placeholder={t("product.customSpecNamePlaceholder")}
                         onChange={(event) =>
                           setTechnicalSpecs((current) => ({
@@ -511,16 +522,16 @@ export const ProductFormDialog = ({
                     </div>
                     <div className="space-y-1.5">
                       <Label htmlFor={`custom-spec-value-${customField.id}`}>{t("product.customSpecValue")}</Label>
-                      <Input
+                      <ProductSpecificationField
                         id={`custom-spec-value-${customField.id}`}
-                        value={normalizeCatalogText(customField.value)}
-                        maxLength={120}
+                        value={customField.value}
+                        multiline
                         placeholder={t("product.customSpecValuePlaceholder")}
-                        onChange={(event) =>
+                        onValueChange={(value) =>
                           setTechnicalSpecs((current) => ({
                             ...current,
                             customFields: (current.customFields ?? []).map((item) =>
-                              item.id === customField.id ? { ...item, value: event.target.value } : item,
+                              item.id === customField.id ? { ...item, value } : item,
                             ),
                           }))
                         }
