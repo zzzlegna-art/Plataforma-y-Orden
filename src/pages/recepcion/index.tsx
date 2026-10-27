@@ -48,6 +48,7 @@ import {
 import { formatDate, formatDateTime, todayIso } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { getReceptionRows, type ReceptionRow } from "@/lib/selectors";
+import { listSuppliers, type Supplier } from "@/lib/suppliers";
 
 const STATUS_OPTIONS = ["", "captura", "confirmada"] as const;
 
@@ -59,6 +60,14 @@ const Recepciones = () => {
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<string>("");
   const [selected, setSelected] = useState<ReceptionRow | null>(null);
+  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
+  useEffect(() => {
+    let active = true;
+    void listSuppliers().then((items) => { if (active) setSuppliers(items); })
+      .catch((error: unknown) => console.warn("No se pudieron consultar proveedores", error));
+    return () => { active = false; };
+  }, []);
+  const supplierName = (id?: string) => suppliers.find((supplier) => supplier.id === id)?.name;
   const [params, setParams] = useSearchParams();
   // Enlace desde el historial de un serial: ?ver=<recepción>&serial=<serial a resaltar>.
   const verId = params.get("ver");
@@ -105,6 +114,7 @@ const Recepciones = () => {
         !needle ||
         row.reception.code.toLowerCase().includes(needle) ||
         (row.reception.reference ?? "").toLowerCase().includes(needle) ||
+        (supplierName(row.reception.supplierId) ?? "").toLowerCase().includes(needle) ||
         row.products.some(
           (product) =>
             product.name.toLowerCase().includes(needle) ||
@@ -113,7 +123,7 @@ const Recepciones = () => {
         row.serials.some((serial) => serial.toLowerCase().includes(needle));
       return matchesStatus && matchesSearch;
     });
-  }, [db, search, status]);
+  }, [db, search, status, suppliers]);
 
   // Selección manual de recepciones para exportar exactamente las que se elijan (igual que
   // la selección de seriales para imprimir etiquetas: checkbox por fila + "elegir visibles").
@@ -176,6 +186,7 @@ const Recepciones = () => {
       t("receptions.code"),
       t("common.date"),
       t("receptions.reference"),
+      "Proveedor",
       t("receptions.productsColumn"),
       t("receptions.units"),
       t("common.status"),
@@ -184,6 +195,7 @@ const Recepciones = () => {
       row.reception.code,
       formatDate(row.reception.receivedAt),
       row.reception.reference ?? "—",
+      supplierName(row.reception.supplierId) ?? "—",
       productSummary(row) || "—",
       row.units.length,
       t(`receptionStatus.${row.reception.status}`),
@@ -302,6 +314,7 @@ const Recepciones = () => {
                 <p className="truncate text-sm">{productSummary(row) || "—"}</p>
               </div>
               <p className="truncate text-xs text-muted-foreground">
+                {supplierName(row.reception.supplierId) ? `${supplierName(row.reception.supplierId)} · ` : ""}
                 {row.reception.reference ? `${row.reception.reference} · ` : ""}
                 {formatDate(row.reception.receivedAt)}
               </p>
@@ -476,6 +489,9 @@ const Recepciones = () => {
                 >
                   {productSummary(row) || "—"}
                 </p>
+                {supplierName(row.reception.supplierId) ? (
+                  <p className="text-xs text-primary">Proveedor: {supplierName(row.reception.supplierId)}</p>
+                ) : null}
                 {row.reception.reference ? (
                   <p className="text-xs text-muted-foreground">{row.reception.reference}</p>
                 ) : null}
