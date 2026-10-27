@@ -317,7 +317,7 @@ export const ProductFormDialog = ({
                 setForm((current) => ({
                   ...current,
                   name,
-                  ...(!product && !skuManual ? { sku: generarSkuProducto(db, name) } : {}),
+                  ...(!product && !skuManual ? { sku: generarSkuProducto(db, name, undefined, undefined, current.categoria) } : {}),
                 }));
               }}
             />
@@ -326,7 +326,14 @@ export const ProductFormDialog = ({
             <Label>{t("product.type")}</Label>
             <OptionSelect
               value={form.categoria}
-              onChange={(value) => setForm({ ...form, categoria: value })}
+              onChange={(value) => setForm((current) => ({
+                ...current,
+                categoria: value,
+                // Un cambio de tipo recalcula solo una SKU automática aún no editada.
+                ...(!product && !skuManual ? {
+                  sku: generarSkuProducto(db, current.name, undefined, undefined, value),
+                } : {}),
+              }))}
               emptyLabel={t("common.none")}
               options={tiposProductoOrdenados(db).map((tipo) => ({
                 value: tipo.key,
