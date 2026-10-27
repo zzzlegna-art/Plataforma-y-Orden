@@ -91,8 +91,9 @@ export const generarSkuProducto = (
       /\b(CARGADOR|CARGA)\b/.test(normalizado) ? "CAR" :
       /\b(ALTAVOZ|PARLANTE|BUZZER)\b/.test(normalizado) ? "ALT" :
       /\b(MICROFONO)\b/.test(normalizado) ? "MIC" : "REP";
-    const flex = /\b(SIN|NO)\s+FLEX\b/.test(normalizado) ? "-SF" :
-      /\bFLEX\b/.test(normalizado) ? "-CF" : "";
+    const flex = parte === "BAT"
+      ? (/\b(SIN|NO)\s+FLEX\b/.test(normalizado) ? "-SF" : /\bFLEX\b/.test(normalizado) ? "-CF" : "")
+      : "";
     // La capacidad en GB de un iPhone NO forma parte del código de su batería.
     // La diferencia con/sin flex sí lo hace.
     base = parte + "-" + modelo.slice(0, 14) + flex;
