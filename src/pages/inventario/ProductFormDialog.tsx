@@ -82,6 +82,7 @@ export const ProductFormDialog = ({
   const [imageError, setImageError] = useState("");
   const imageInputRef = useRef<HTMLInputElement>(null);
   const productRef = useRef(product);
+  const dbRef = useRef(db);
   const skipDraftSaveRef = useRef(false);
   const draftKey = getProductFormDraftKey(product?.id, user?.id);
   const [draftRestored, setDraftRestored] = useState(false);
@@ -89,6 +90,10 @@ export const ProductFormDialog = ({
   useEffect(() => {
     productRef.current = product;
   }, [product]);
+
+  useEffect(() => {
+    dbRef.current = db;
+  }, [db]);
 
   useEffect(() => {
     if (!open) return;
@@ -102,12 +107,17 @@ export const ProductFormDialog = ({
 
     const draft = readProductFormDraft(draftKey);
     if (draft) {
-      setForm(draft.form);
-      setTechnicalSpecs(draft.technicalSpecs);
       // Borradores antiguos marcaban toda edición como manual aunque nadie hubiera escrito la SKU.
       // Solo conservar ese bloqueo cuando la SKU realmente difiere de la original.
       const skuWasManuallyEdited = draft.skuManual &&
         (!currentProduct || draft.form.sku.trim().toUpperCase() !== currentProduct.sku.trim().toUpperCase());
+      setForm({
+        ...draft.form,
+        ...(!skuWasManuallyEdited ? {
+          sku: generarSkuAlEditar(dbRef.current, draft.form.name, draft.form.categoria, currentProduct),
+        } : {}),
+      });
+      setTechnicalSpecs(draft.technicalSpecs);
       setSkuManual(skuWasManuallyEdited);
       setRemoveImage(draft.removeImage);
       setImagePreview(draft.removeImage ? null : currentProduct?.imageUrl ?? null);
