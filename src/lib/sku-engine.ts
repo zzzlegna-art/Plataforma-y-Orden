@@ -114,7 +114,8 @@ const genericTokens = (normal: string, categoria: string, modelo = "") => {
   categoria.split(/[^A-Z0-9]+/).forEach((token) => forbidden.add(token));
   if (modelo) forbidden.add(modelo);
   const tokens = normal.split(" ").filter((token) => !forbidden.has(token) &&
-    !/^\d+(?:GB|TB|MB)$/.test(token));
+    !/^\d+(?:GB|TB|TA|MB)?$/.test(token) &&
+    !["SLIM", "PRO", "LITE", "OLED"].includes(token));
   return tokens.slice(0, modelo ? 3 : 4).join("").slice(0, 18);
 };
 
@@ -153,7 +154,8 @@ export const skuBaseReferencia = ({ name, categoria, marca }: SkuDescriptor): st
 
   const family = familyCodes[tipo.toLowerCase()] ?? (tipo.replace(/[^A-Z0-9]/g, "").slice(0, 10) || "OTR");
   const suffix = /\bSLIM\b/.test(n) ? "SL" : /\bPRO\b/.test(n) && !device.endsWith("P") ? "PRO" : "";
-  const generic = genericTokens(n, tipo, device);
+  const generic = ["CONS", "GAM"].includes(family)
+    ? "" : genericTokens(n, tipo, device);
   const brand = marca && !n.includes(normalize(marca))
     ? normalize(marca).replace(/\s/g, "").slice(0, 8)
     : "";
