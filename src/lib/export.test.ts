@@ -1,8 +1,9 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { strFromU8, unzipSync } from "fflate";
+import { jsPDF } from "jspdf";
 
-import { exportCompanyName, exportExcel, exportOrderSerialRelationPdf, exportPedidosHistorialExcel, exportProductCatalogExcel, exportProductCatalogPdf, exportSalesInvoicePdf, normalizeCatalogText, tituloDocumentoSinMarcaDuplicada } from "./export";
+import { dibujarEncabezado, subtituloDocumentoSinMarcaDuplicada, exportCompanyName, exportExcel, exportOrderSerialRelationPdf, exportPedidosHistorialExcel, exportProductCatalogExcel, exportProductCatalogPdf, exportSalesInvoicePdf, normalizeCatalogText, tituloDocumentoSinMarcaDuplicada } from "./export";
 
 const ONE_PIXEL_JPEG =
   "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCAABAAEDASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwD6pooooA//2Q==";
@@ -164,6 +165,51 @@ describe("documentos comerciales de pedido", () => {
     expect(text).toContain("/Subtype /Image");
     expect((text.match(/NEXORA/g) ?? []).length).toBeGreaterThanOrEqual(doc.getNumberOfPages());
     expect(text).toContain(`Página 1 de ${doc.getNumberOfPages()}`);
+  });
+});
+
+describe("membrete común de PDF", () => {
+  it.each(["portrait", "landscape"] as const)(
+    "centra el PNG y alinea título y fecha a la derecha en A4 %s",
+    (orientation) => {
+      const doc = new jsPDF({ orientation, unit: "pt", format: "a4" });
+      const textSpy = vi.spyOn(doc, "text");
+      const imageSpy = vi.spyOn(doc, "addImage");
+      dibujarEncabezado(
+        doc,
+        "Catálogo de productos — Nexora",
+        "NEXORA · Generado el 26 oct 2026, 07:31 p.m. · 1 registro",
+      );
+
+      const logoCall = imageSpy.mock.calls[0];
+      expect(logoCall?.[1]).toBe("PNG");
+      const logoY = Number(logoCall?.[3]);
+      const logoHeight = Number(logoCall?.[5]);
+      expect(logoY).toBeCloseTo((82 - logoHeight) / 2, 3);
+
+      const titleCall = textSpy.mock.calls.find(
+        (args) => Array.isArray(args[0]) && args[0].join(" ").includes("Catálogo de productos"),
+      );
+      const subtitleCall = textSpy.mock.calls.find(
+        (args) => Array.isArray(args[0]) && args[0].join(" ").includes("Generado el 26 oct"),
+      );
+      expect(titleCall).toBeDefined();
+      expect(subtitleCall).toBeDefined();
+      expect(titleCall?.[1]).toBeCloseTo(doc.internal.pageSize.getWidth() - 24, 2);
+      expect(subtitleCall?.[1]).toBeCloseTo(doc.internal.pageSize.getWidth() - 24, 2);
+      expect(titleCall?.[3]).toEqual(expect.objectContaining({ align: "right" }));
+      expect(subtitleCall?.[3]).toEqual(expect.objectContaining({ align: "right" }));
+      expect((titleCall?.[0] as string[]).join(" ")).not.toContain("Nexora");
+      expect((subtitleCall?.[0] as string[]).join(" ")).not.toContain("NEXORA");
+      expect(Number(titleCall?.[2])).toBeGreaterThan(logoY);
+      expect(Number(subtitleCall?.[2])).toBeLessThan(82);
+    },
+  );
+
+  it("solo retira la marca del subtítulo cuando se repite al comienzo", () => {
+    expect(subtituloDocumentoSinMarcaDuplicada("NEXORA · Generado el 26 oct")).toBe("Generado el 26 oct");
+    expect(subtituloDocumentoSinMarcaDuplicada("Nexora — Pedido 123")).toBe("Pedido 123");
+    expect(subtituloDocumentoSinMarcaDuplicada("Empresa del Norte · Pedido 123")).toBe("Empresa del Norte · Pedido 123");
   });
 });
 
