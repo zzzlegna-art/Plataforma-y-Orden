@@ -616,6 +616,26 @@ export const getUnitOrigen = (db: Db, unit: Unit) => {
   return { reception, order, customer, warranties };
 };
 
+/**
+ * Historial de recepciones de una unidad. El proveedor siempre se consulta en
+ * la recepción, no se copia en cada serial: una corrección posterior se refleja
+ * automáticamente sin actualizar miles de filas.
+ * Incluye ingresos antiguos si la unidad fue liberada y recibida nuevamente.
+ */
+export const getUnitSupplierReceptions = (db: Db, unit: Unit): Reception[] => {
+  const ids = new Set<string>();
+  for (const movement of db.movements) {
+    if (movement.unitId === unit.id && movement.type === "entrada" &&
+        movement.referenceType === "recepcion" && movement.referenceId) {
+      ids.add(movement.referenceId);
+    }
+  }
+  if (unit.receptionId) ids.add(unit.receptionId);
+  return db.receptions
+    .filter((reception) => ids.has(reception.id))
+    .sort((a, b) => a.receivedAt.localeCompare(b.receivedAt));
+};
+
 /** Línea de tiempo completa de una unidad (movimientos + eventos de garantía). */
 export const getUnitTimeline = (db: Db, unitId: string): UnitTimelineItem[] => {
   const items: UnitTimelineItem[] = [];
