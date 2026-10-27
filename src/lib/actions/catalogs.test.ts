@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { DomainError, emptyDb } from "../db";
 import type { Actor, Db } from "../types";
-import { createProduct, createProductType, deleteProductType, generarSkuProducto, updateProduct, updateProductType } from "./catalogs";
+import { createProduct, createProductType, deleteProductType, generarSkuAlEditar, generarSkuProducto, updateProduct, updateProductType } from "./catalogs";
 
 const admin: Actor = { id: "u1", email: "a@x.com", fullName: "Admin", role: "admin" };
 const bodeguero: Actor = { id: "u2", email: "b@x.com", fullName: "Bodeguero", role: "bodeguero" };
@@ -104,6 +104,72 @@ describe("deleteProductType", () => {
       price: 1, cost: 1, minStock: 0, isActive: true, createdAt: now, updatedAt: now,
     });
     expect(() => deleteProductType(db, admin, { id: tipo.id })).toThrow(DomainError);
+  });
+});
+
+describe("actualización automática de SKU al editar referencias", () => {
+  it("conserva el código histórico mientras nombre y tipo no cambien", () => {
+    const db = emptyDb();
+    const original = createProduct(db, admin, {
+      sku: "CODIGO-ANTIGUO", name: "iPhone 13 128 GB",
+      categoria: "celular", price: 1, cost: 1, minStock: 0,
+    });
+    expect(generarSkuAlEditar(db, original.name, original.categoria, original)).toBe("CODIGO-ANTIGUO");
+    expect(generarSkuAlEditar(db, "iPhone 13 128 GB  ", original.categoria, original))
+      .toBe("CODIGO-ANTIGUO");
+  });
+
+  it("actualiza el modelo y capacidad en edición excluyendo el propio producto", () => {
+    const db = emptyDb();
+    const original = createProduct(db, admin, {
+      sku: "IP13-128", name: "iPhone 13 128 GB",
+      categoria: "celular", price: 1, cost: 1, minStock: 0,
+    });
+    expect(generarSkuAlEditar(db, "iPhone 14 Pro Max 256 GB", "celular", original)).toBe("IP14PM-256");
+    expect(generarSkuAlEditar(db, "iPhone 13 128 GB", "celular", original)).toBe("IP13-128");
+  });
+
+  it("recalcula una SKU de batería al editar el nombre y al cambiar el tipo", () => {
+    const db = emptyDb();
+    const battery = createProduct(db, admin, {
+      sku: "IP13", name: "Batería iPhone 13",
+      categoria: "repuesto", price: 1, cost: 1, minStock: 0,
+    });
+    expect(generarSkuAlEditar(db, "Batería iPhone 13 Pro Max con flex", "repuesto", battery))
+      .toBe("BAT-IP13PM-CF");
+    expect(generarSkuAlEditar(db, battery.name, "celular", battery)).toBe("IP13");
+    expect(generarSkuAlEditar(db, battery.name, battery.categoria, battery)).toBe("IP13");
+  });
+
+  it("evita SKU ocupadas al renombrar sin alterar otros registros", () => {
+    const db = emptyDb();
+    const original = createProduct(db, admin, {
+      sku: "BAT-IP11", name: "Batería iPhone 11",
+      categoria: "repuesto", price: 1, cost: 1, minStock: 0,
+    });
+    const other = createProduct(db, admin, {
+      sku: "BAT-IP13PM-CF", name: "Batería iPhone 13 Pro Max con flex",
+      categoria: "repuesto", price: 1, cost: 1, minStock: 0,
+    });
+    expect(generarSkuAlEditar(db, other.name, "repuesto", original)).toBe("BAT-IP13PM-CF-2");
+    expect(db.products.find((item) => item.id === other.id)?.sku).toBe("BAT-IP13PM-CF");
+    expect(db.products.find((item) => item.id === original.id)?.sku).toBe("BAT-IP11");
+  });
+
+  it("se guarda la SKU generada solo al confirmar la edición y conserva el ID", () => {
+    const db = emptyDb();
+    const original = createProduct(db, admin, {
+      sku: "IP11", name: "Batería iPhone 11",
+      categoria: "repuesto", price: 1, cost: 1, minStock: 0,
+    });
+    const sku = generarSkuAlEditar(db, "Batería iPhone 11 sin flex", "repuesto", original);
+    expect(original.sku).toBe("IP11"); // Solo previsualización hasta Guardar.
+    const updated = updateProduct(db, admin, {
+      id: original.id, sku, name: "Batería iPhone 11 sin flex",
+      categoria: "repuesto", price: 1, cost: 1, minStock: 0,
+    });
+    expect(updated.id).toBe(original.id);
+    expect(updated.sku).toBe("BAT-IP11-SF");
   });
 });
 
