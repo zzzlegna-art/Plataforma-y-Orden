@@ -2,7 +2,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { strFromU8, unzipSync } from "fflate";
 
-import { exportCompanyName, exportExcel, exportOrderSerialRelationPdf, exportPedidosHistorialExcel, exportProductCatalogExcel, exportSalesInvoicePdf, normalizeCatalogText, tituloDocumentoSinMarcaDuplicada } from "./export";
+import { exportCompanyName, exportExcel, exportOrderSerialRelationPdf, exportPedidosHistorialExcel, exportProductCatalogExcel, exportProductCatalogPdf, exportSalesInvoicePdf, normalizeCatalogText, tituloDocumentoSinMarcaDuplicada } from "./export";
 
 const ONE_PIXEL_JPEG =
   "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCAABAAEDASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwD6pooooA//2Q==";
@@ -184,6 +184,66 @@ describe("identidad de exportaciones", () => {
   });
 });
 
+describe("catálogo PDF legible", () => {
+  const originalCreateObjectURL = URL.createObjectURL;
+  const originalRevokeObjectURL = URL.revokeObjectURL;
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    if (originalCreateObjectURL) {
+      Object.defineProperty(URL, "createObjectURL", { configurable: true, value: originalCreateObjectURL });
+    } else {
+      Reflect.deleteProperty(URL, "createObjectURL");
+    }
+    if (originalRevokeObjectURL) {
+      Object.defineProperty(URL, "revokeObjectURL", { configurable: true, value: originalRevokeObjectURL });
+    } else {
+      Reflect.deleteProperty(URL, "revokeObjectURL");
+    }
+  });
+
+  it("conserva datos y reparte fichas con varias características entre páginas", async () => {
+    Object.defineProperty(URL, "createObjectURL", { configurable: true, value: () => "blob:catalog-pdf-test" });
+    Object.defineProperty(URL, "revokeObjectURL", { configurable: true, value: () => undefined });
+    const doc = await exportProductCatalogPdf({
+      title: "Catálogo de productos — Nexora",
+      subtitle: "10 registros",
+      filename: "catalogo-test.pdf",
+      products: Array.from({ length: 10 }, (_, i) => ({
+        name: "Tablet para prueba " + (i + 1),
+        sku: "SKU-PRUEBA-" + (i + 1),
+        brand: "Apple",
+        category: "Tablets",
+        description: "Equipo con pantalla brillante y conectividad de última generación.",
+        price: "$1.000.000",
+        stock: 5,
+        features: Array.from({ length: 8 }, (_, j) => ({
+          label: "Característica " + (j + 1),
+          value: "Detalle técnico completo de referencia y compatibilidad para la ficha comercial.",
+        })),
+      })),
+      includePrice: true,
+      includeStock: true,
+      labels: {
+        image: "Imagen", openImage: "Abrir imagen", product: "Producto",
+        reference: "SKU", brand: "Marca", category: "Categoría",
+        description: "Descripción", features: "Características técnicas",
+        price: "Precio", stock: "Existencias", noDescription: "Sin descripción",
+        noFeatures: "Sin características", imageUnavailable: "Sin imagen",
+        moreFeatures: (count) => "+" + count + " características",
+      },
+    });
+
+    expect(doc.getNumberOfPages()).toBeGreaterThan(1);
+    const pdf = doc.output();
+    expect(pdf).toContain("SKU-PRUEBA-1");
+    expect(pdf).toContain("SKU-PRUEBA-10");
+    expect(pdf).toContain("Catálogo de productos");
+    expect(pdf).toContain("Página 1 de " + doc.getNumberOfPages());
+    expect(pdf).toContain("/Subtype /Image");
+  });
+});
+
 describe("normalización de texto del catálogo", () => {
   it("repara letras separadas sin pegar las palabras de conectividad", () => {
     expect(normalizeCatalogText(
@@ -336,7 +396,8 @@ describe("exportExcel con miniaturas", () => {
         brand: "Nexora",
         category: "Accesorios",
         imageUrl,
-        features: [{ label: "Color", value: "Negro" }],
+        description: "Descripción completa del producto",
+        features: [{ label: "Color", value: "Negro" }, { label: "Memoria", value: "128 GB" }],
       }],
       includePrice: true,
       includeStock: true,
@@ -365,6 +426,8 @@ describe("exportExcel con miniaturas", () => {
       .map(([, bytes]) => strFromU8(bytes))
       .join("");
     expect(workbookContent).toContain("Producto de prueba");
+    expect(workbookContent).toContain("Descripción completa del producto");
+    expect(workbookContent).toContain("Memoria: 128 GB");
     expect(workbookContent).toContain("Abrir imagen");
     expect(workbookContent).toContain(imageUrl);
   });
