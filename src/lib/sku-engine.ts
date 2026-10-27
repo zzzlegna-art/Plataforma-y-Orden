@@ -88,7 +88,7 @@ const partCode = (normal: string): string =>
 const partBrand = (normal: string, marca = "") => {
   const brands: Array<[RegExp, string]> = [
     [/\bSUNLONG\b/, "SUN"], [/\bJK\b/, "JK"], [/\bOEM\b/, "OEM"],
-    [/\bORIGINAL\b/, "ORI"], [/\bGENERICO|GENERICA\b/, "GEN"],
+    [/\bORIGINAL\b/, "ORI"], [/\b(GENERICO|GENERICA)\b/, "GEN"],
     [/\bFOXCONN\b/, "FOX"], [/\bBOE\b/, "BOE"],
   ];
   for (const [pattern, code] of brands) {
@@ -151,7 +151,7 @@ export const skuBaseReferencia = ({ name, categoria, marca }: SkuDescriptor): st
     return compact([((words.filter(x=>x!==numbered).slice(0,2).map(x=>x.slice(0,2)).join("") + (numbered ?? "")) || "PROD").slice(0, 12), cap]);
   }
 
-  const family = familyCodes[tipo.toLowerCase()] ?? tipo.replace(/[^A-Z0-9]/g, "").slice(0, 10) || "OTR";
+  const family = familyCodes[tipo.toLowerCase()] ?? (tipo.replace(/[^A-Z0-9]/g, "").slice(0, 10) || "OTR");
   const suffix = /\bSLIM\b/.test(n) ? "SL" : /\bPRO\b/.test(n) && !device.endsWith("P") ? "PRO" : "";
   const generic = genericTokens(n, tipo, device);
   const brand = marca && !n.includes(normalize(marca))
