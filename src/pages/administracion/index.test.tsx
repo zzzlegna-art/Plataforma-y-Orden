@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 
 let isAdmin = false;
@@ -47,13 +48,13 @@ describe("Administración unifica el directorio de proveedores", () => {
     expect(screen.queryByText("Bitácora privada")).toBeNull();
   });
 
-  it("un administrador puede abrir proveedores mediante enlace y volver a catálogos", () => {
+  it("un administrador puede abrir proveedores mediante enlace y volver a catálogos", async () => {
     isAdmin = true;
     render(<MemoryRouter initialEntries={["/administracion?tab=suppliers"]}><Administracion /></MemoryRouter>);
     expect(screen.getByRole("tab", { name: "admin.tabSuppliers" }).getAttribute("data-state")).toBe("active");
     expect(screen.getByText("Directorio real de proveedores")).toBeTruthy();
     expect(screen.getByRole("tab", { name: "admin.tabUsers" })).toBeTruthy();
-    fireEvent.click(screen.getByRole("tab", { name: "admin.tabCatalogs" }));
+    await userEvent.setup().click(screen.getByRole("tab", { name: "admin.tabCatalogs" }));
     expect(screen.getByRole("tab", { name: "admin.tabCatalogs" }).getAttribute("data-state")).toBe("active");
     expect(screen.getByText("Panel de catálogos")).toBeTruthy();
   });
