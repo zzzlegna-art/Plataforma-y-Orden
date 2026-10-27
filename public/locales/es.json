@@ -806,6 +806,7 @@
   "admin.subtitle": "Usuarios, catálogos, auditoría y datos del sistema.",
   "admin.tabUsers": "Usuarios",
   "admin.tabCatalogs": "Catálogos",
+  "admin.tabSuppliers": "Proveedores",
   "admin.tabAudit": "Auditoría",
   "admin.tabData": "Datos",
   "user.title": "Usuario",
