@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { strFromU8, unzipSync } from "fflate";
 import { jsPDF } from "jspdf";
 
-import { dibujarEncabezado, subtituloDocumentoSinMarcaDuplicada, exportCompanyName, exportExcel, exportOrderSerialRelationPdf, exportPedidosHistorialExcel, exportProductCatalogExcel, exportProductCatalogPdf, exportSalesInvoicePdf, normalizeCatalogText, tituloDocumentoSinMarcaDuplicada, splitCatalogLines, posicionesFichaCatalogo } from "./export";
+import { dibujarEncabezado, subtituloDocumentoSinMarcaDuplicada, exportCompanyName, exportExcel, exportOrderSerialRelationPdf, exportPedidosHistorialExcel, exportProductCatalogExcel, exportProductCatalogPdf, exportSalesInvoicePdf, normalizeCatalogText, tituloDocumentoSinMarcaDuplicada, splitCatalogLines, posicionesFichaCatalogo, normalizeCatalogFeatureLabel } from "./export";
 
 const ONE_PIXEL_JPEG =
   "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCAABAAEDASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwD6pooooA//2Q==";
@@ -243,7 +243,7 @@ describe("geometría de fichas del catálogo", () => {
     expect(p.metadataBaseline - lastNameBaseline).toBeGreaterThan(12);
     expect(p.featuresLabelY - lastMetaBaseline).toBeGreaterThan(12);
     expect(p.featuresLabelY - lastDescriptionBaseline).toBeGreaterThan(12);
-    expect(p.firstFeatureY - p.featuresLabelY).toBeCloseTo(14, 5);
+    expect(p.firstFeatureY - p.featuresLabelY).toBeCloseTo(13, 5);
     expect(p.introEndY).toBeLessThan(p.featuresLabelY);
   });
 });
@@ -314,6 +314,51 @@ describe("ajuste seguro de texto técnico en PDF", () => {
     expect(lines.length).toBeGreaterThan(1);
     expect(lines.length).toBeLessThanOrEqual(8);
     lines.forEach((line) => expect(doc.getTextWidth(line)).toBeLessThanOrEqual(maxWidth + 0.01));
+  });
+});
+
+describe("catálogo PDF compacto para lotes", () => {
+  it("normaliza las etiquetas con letras sueltas sin cambiar las siglas", () => {
+    expect(normalizeCatalogFeatureLabel("C o n e c t i v i d a d")).toBe("Conectividad");
+    expect(normalizeCatalogFeatureLabel("C o m p a t i b i l i d a d")).toBe("Compatibilidad");
+    expect(normalizeCatalogFeatureLabel("Memoria RAM")).toBe("Memoria RAM");
+  });
+
+  it("permite cuatro referencias breves por página sin omitir sus detalles", async () => {
+    const doc = await exportProductCatalogPdf({
+      title: "Catálogo de productos",
+      subtitle: "4 registros",
+      filename: "catalogo-compacto-cuatro.pdf",
+      products: Array.from({ length: 4 }, (_, i) => ({
+        name: "iPhone de prueba " + (i + 1),
+        sku: "IPH-" + (i + 1),
+        brand: "Apple",
+        category: "Celulares",
+        features: [
+          { label: "Almacenamiento", value: "128 GB" },
+          { label: "RAM", value: "4 GB" },
+          { label: "Procesador", value: "Apple A14" },
+          { label: "Cámaras", value: "12 MP" },
+          { label: "Conectividad", value: "5G, Wi-Fi 6, Bluetooth 5.0" },
+          { label: "Compatibilidad", value: "nano SIM + eSIM" },
+        ],
+      })),
+      includePrice: false,
+      includeStock: false,
+      labels: {
+        image: "Imagen", openImage: "Abrir imagen", product: "Producto",
+        reference: "SKU", brand: "Marca", category: "Categoría",
+        description: "Descripción", features: "Características del equipo",
+        price: "Precio", stock: "Existencias", noDescription: "Sin descripción",
+        noFeatures: "Sin características", imageUnavailable: "Sin imagen",
+        moreFeatures: (count) => "+" + count + " características",
+      },
+    });
+    expect(doc.getNumberOfPages()).toBe(1);
+    const pdf = doc.output();
+    expect(pdf).toContain("IPH-1");
+    expect(pdf).toContain("IPH-4");
+    expect(pdf).toContain("Conectividad");
   });
 });
 
