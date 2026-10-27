@@ -1662,6 +1662,12 @@ const loadCatalogImageData = async (url?: string): Promise<string | null> => {
  */
 
 
+
+/**
+ * Catálogo comercial: la foto y las primeras especificaciones comparten una
+ * fila. El resto fluye a todo el ancho, con tarjetas de altura dinámica.
+ * Las líneas se miden con la fuente realmente utilizada antes de dibujarlas.
+ */
 export const exportProductCatalogPdf = async ({
   title, subtitle, filename, products, includePrice, includeStock, labels, onProgress,
 }: ProductCatalogExportOptions) => {
@@ -1670,77 +1676,81 @@ export const exportProductCatalogPdf = async ({
   const pageW = doc.internal.pageSize.getWidth();
   const pageH = doc.internal.pageSize.getHeight();
   const margin = 24;
+  const padding = 12;
+  const gap = 10;
   const cardWidth = pageW - margin * 2;
-  const pad = 10;
-  const gap = 7;
-  const imageBoxSize = 88;
-  const imageSize = 82;
-  const imageX = margin + pad;
-  const textX = imageX + imageBoxSize + 12;
-  const textWidth = pageW - margin - pad - textX;
-  const specsX = textX + 9;
-  const specsWidth = textWidth - 18;
+  const imageBoxSize = 94;
+  const imageSize = 86;
+  const imageX = margin + padding;
+  const detailX = imageX + imageBoxSize + 15;
+  const detailWidth = pageW - margin - padding - detailX;
+  const sideTextX = detailX + 7;
+  const sideTextWidth = detailWidth - 7;
+  const fullTextX = margin + padding + 13;
+  const fullTextWidth = cardWidth - 2 * padding - 26;
+  const footerHeight = includePrice || includeStock ? 27 : 0;
   const bottom = pageH - FOOTER_SPACE;
   const maxCardHeight = bottom - CONTENT_TOP;
+  const detailLineHeight = 11.6;
   const drawHeader = () => dibujarEncabezado(doc, title, subtitle, margin);
-  const rowHeight = (lines: string[]) => lines.length * 10.5 + 1.5;
 
-  // Contenido a la derecha de la foto, en lugar de un bloque debajo.
-  // Cada ficha usa únicamente la altura exigida por su columna más alta.
   const layouts = products.map((product) => {
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(11.8);
-    const nameLines = splitCatalogLines(doc, normalizeCatalogText(product.name), textWidth, 2);
-
+    doc.setFontSize(12.2);
+    const nameLines = splitCatalogLines(doc, normalizeCatalogText(product.name), detailWidth, 2);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8.4);
     const metadata = [
       labels.reference + ": " + normalizeCatalogText(product.sku || "—"),
       product.brand ? labels.brand + ": " + normalizeCatalogText(product.brand) : null,
       product.category ? labels.category + ": " + normalizeCatalogText(product.category) : null,
     ].filter(Boolean).join("  ·  ");
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(8.3);
-    const metadataLines = splitCatalogLines(doc, metadata, textWidth, 3);
-    doc.setFontSize(8.6);
+    const metadataLines = splitCatalogLines(doc, metadata, detailWidth, 2);
     const descriptionLines = product.description?.trim()
-      ? splitCatalogLines(doc, normalizeCatalogText(product.description), textWidth, 3)
+      ? splitCatalogLines(doc, normalizeCatalogText(product.description), detailWidth, 2)
       : [];
-    const introHeight = 10 + nameLines.length * 13.5 + 2 +
-      metadataLines.length * 10 +
-      (descriptionLines.length ? 5 + descriptionLines.length * 10.5 : 0);
+    const introHeight = nameLines.length * 15 + 4 + metadataLines.length * 10.8 +
+      (descriptionLines.length ? 5 + descriptionLines.length * 10.8 : 0);
+    doc.setFontSize(8.6);
+    const specs = product.features ?? [];
+    const safeSpecText = (feature: ProductCatalogFeature) =>
+      normalizeCatalogText(feature.label) + ": " + normalizeCatalogText(feature.value);
+    const sideRows = specs.map((feature) =>
+      splitCatalogLines(doc, safeSpecText(feature), sideTextWidth, 12));
+    const fullRows = specs.map((feature) =>
+      splitCatalogLines(doc, safeSpecText(feature), fullTextWidth, 12));
+    const noFeatures = splitCatalogLines(doc, labels.noFeatures, sideTextWidth, 4);
 
-    doc.setFontSize(8.5);
-    const featureRows = (product.features ?? []).map((feature) =>
-      splitCatalogLines(doc, normalizeCatalogText(feature.label) + ": " +
-        normalizeCatalogText(feature.value), specsWidth, 6),
-    );
-    const noFeaturesLines = splitCatalogLines(doc, labels.noFeatures, specsWidth, 2);
-    const footerHeight = includePrice || includeStock ? 27 : 0;
-    const specsGap = 4;
-    const specsFrame = 29; // Título y márgenes del panel compacto.
-    const maxFeaturesHeight = maxCardHeight - pad * 2 - footerHeight -
-      introHeight - specsGap - specsFrame;
-    const visibleFeatures: string[][] = [];
-    let linesHeight = 0;
-
-    for (const lines of featureRows) {
-      const nextHeight = rowHeight(lines);
-      const needsMoreLabel = featureRows.length > visibleFeatures.length + 1;
-      if (linesHeight + nextHeight + (needsMoreLabel ? 16 : 0) > maxFeaturesHeight) break;
-      visibleFeatures.push(lines);
-      linesHeight += nextHeight;
+    // Hasta la altura inferior de la fotografía, sin invadirla.
+    const sideRoom = Math.max(0, imageBoxSize - introHeight - 19);
+    let sideUsed = 0;
+    let sideCount = 0;
+    for (const lines of sideRows) {
+      const next = lines.length * detailLineHeight + 2;
+      if (sideUsed + next > sideRoom) break;
+      sideUsed += next;
+      sideCount++;
     }
-    const omittedFeatures = featureRows.length - visibleFeatures.length;
-    const contentRows = visibleFeatures.length ? visibleFeatures : [noFeaturesLines];
-    const specRowsHeight = contentRows.reduce((sum, lines) => sum + rowHeight(lines), 0);
-    const specsHeight = 24 + specRowsHeight + (omittedFeatures ? 13 : 0) + 5;
-    const contentHeight = introHeight + specsGap + specsHeight;
-    const mainHeight = Math.max(imageBoxSize, contentHeight);
-    const cardHeight = pad * 2 + mainHeight + footerHeight;
-
+    const visibleSide = sideRows.slice(0, sideCount);
+    const remaining = fullRows.slice(sideCount);
+    const maxBottomHeight = maxCardHeight - (padding * 2 + imageBoxSize + 7 + footerHeight);
+    const bottomRows: string[][] = [];
+    let remainingHeight = 0;
+    for (const lines of remaining) {
+      const rowH = lines.length * detailLineHeight + 2;
+      if (remainingHeight + rowH + 18 > maxBottomHeight) break;
+      bottomRows.push(lines);
+      remainingHeight += rowH;
+    }
+    const omitted = remaining.length - bottomRows.length;
+    const bottomPanelHeight = bottomRows.length || omitted
+      ? 13 + remainingHeight + (omitted ? 14 : 0) + 5
+      : 0;
+    const cardHeight = padding * 2 + imageBoxSize +
+      (bottomPanelHeight ? 7 + bottomPanelHeight : 0) + footerHeight;
     return {
       product, nameLines, metadataLines, descriptionLines, introHeight,
-      visibleFeatures, noFeaturesLines, omittedFeatures, specsHeight, mainHeight,
-      cardHeight,
+      visibleSide, bottomRows, noFeatures, omitted, bottomPanelHeight, cardHeight,
     };
   });
 
@@ -1757,6 +1767,21 @@ export const exportProductCatalogPdf = async ({
     });
   }
 
+  const drawSpecRows = (rows: string[][], x: number, width: number, y: number) => {
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8.6);
+    for (const lines of rows) {
+      doc.setFillColor(CYAN_DARK[0], CYAN_DARK[1], CYAN_DARK[2]);
+      doc.circle(x - 6, y - 3, 1.15, "F");
+      doc.setTextColor(TEXT[0], TEXT[1], TEXT[2]);
+      // La segunda medida protege también frente a texto Unicode largo.
+      const safeLines = lines.flatMap((line) => splitCatalogLines(doc, line, width, 12));
+      doc.text(safeLines, x, y, { lineHeightFactor: 1.32, maxWidth: width });
+      y += safeLines.length * detailLineHeight + 2;
+    }
+    return y;
+  };
+
   onProgress?.({ phase: "rendering", completed: 0, total: layouts.length, percent: 58 });
   drawHeader();
   let cardY = CONTENT_TOP;
@@ -1769,22 +1794,19 @@ export const exportProductCatalogPdf = async ({
     }
     const {
       product, nameLines, metadataLines, descriptionLines, introHeight,
-      visibleFeatures, noFeaturesLines, omittedFeatures, specsHeight, mainHeight,
-      cardHeight,
+      visibleSide, bottomRows, noFeatures, omitted, bottomPanelHeight, cardHeight,
     } = layout;
-
     doc.setFillColor(255, 255, 255);
     doc.setDrawColor(BORDER[0], BORDER[1], BORDER[2]);
-    doc.setLineWidth(0.8);
+    doc.setLineWidth(0.65);
     doc.roundedRect(margin, cardY, cardWidth, cardHeight, 7, 7, "FD");
     doc.setFillColor(CYAN[0], CYAN[1], CYAN[2]);
-    doc.roundedRect(margin + 1, cardY + 12, 3, 26, 1, 1, "F");
+    doc.roundedRect(margin + 1, cardY + 13, 3, 24, 1, 1, "F");
 
-    // Imagen alineada con el nombre. La ficha crece únicamente si el texto lo requiere.
-    const imageY = cardY + pad;
+    const imageY = cardY + padding;
     doc.setFillColor(CYAN_PALE[0], CYAN_PALE[1], CYAN_PALE[2]);
     doc.setDrawColor(BORDER[0], BORDER[1], BORDER[2]);
-    doc.roundedRect(imageX, imageY, imageBoxSize, imageBoxSize, 6, 6, "FD");
+    doc.roundedRect(imageX, imageY, imageBoxSize, imageBoxSize, 5, 5, "FD");
     const imageData = imageDataUrls[index] ?? null;
     if (imageData) {
       doc.addImage(imageData, "JPEG",
@@ -1795,71 +1817,72 @@ export const exportProductCatalogPdf = async ({
       doc.setFont("helvetica", "normal");
       doc.setFontSize(7.8);
       doc.setTextColor(MUTED[0], MUTED[1], MUTED[2]);
-      doc.text(splitCatalogLines(doc, labels.imageUnavailable, imageBoxSize - 16, 2),
+      doc.text(splitCatalogLines(doc, labels.imageUnavailable, imageBoxSize - 15, 2),
         imageX + imageBoxSize / 2, imageY + imageBoxSize / 2, { align: "center" });
     }
 
-    let cursorY = cardY + pad + 11;
+    let y = cardY + padding + 12;
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(11.8);
+    doc.setFontSize(12.2);
     doc.setTextColor(NAVY[0], NAVY[1], NAVY[2]);
-    doc.text(nameLines, textX, cursorY, { lineHeightFactor: 1.18 });
-    cursorY += nameLines.length * 13.5 + 2;
+    doc.text(nameLines, detailX, y, { lineHeightFactor: 1.19 });
+    y += nameLines.length * 15 + 4;
     doc.setFont("helvetica", "normal");
-    doc.setFontSize(8.3);
+    doc.setFontSize(8.4);
     doc.setTextColor(MUTED[0], MUTED[1], MUTED[2]);
-    doc.text(metadataLines, textX, cursorY, { lineHeightFactor: 1.28 });
-    cursorY += metadataLines.length * 10;
+    doc.text(metadataLines, detailX, y, { lineHeightFactor: 1.28 });
+    y += metadataLines.length * 10.8;
     if (descriptionLines.length) {
-      cursorY += 5;
-      doc.setFontSize(8.6);
+      y += 5;
       doc.setTextColor(TEXT[0], TEXT[1], TEXT[2]);
-      doc.text(descriptionLines, textX, cursorY, { lineHeightFactor: 1.3 });
+      doc.text(descriptionLines, detailX, y, { lineHeightFactor: 1.25 });
+    }
+    if (product.features.length) {
+      const featuresLabelY = cardY + padding + introHeight + 2;
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(8.4);
+      doc.setTextColor(CYAN_DARK[0], CYAN_DARK[1], CYAN_DARK[2]);
+      doc.text(splitCatalogLines(doc, labels.features.toUpperCase(), detailWidth, 1),
+        detailX, featuresLabelY);
+      drawSpecRows(visibleSide, sideTextX, sideTextWidth, featuresLabelY + 14);
+    } else {
+      drawSpecRows([noFeatures], sideTextX, sideTextWidth,
+        cardY + padding + introHeight + 12);
     }
 
-    // Especificaciones directamente al lado del producto, debajo del nombre y SKU.
-    const specsY = cardY + pad + introHeight + 4;
-    doc.setFillColor(CYAN_PALE[0], CYAN_PALE[1], CYAN_PALE[2]);
-    doc.roundedRect(textX, specsY, textWidth, specsHeight, 5, 5, "F");
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(8.6);
-    doc.setTextColor(CYAN_DARK[0], CYAN_DARK[1], CYAN_DARK[2]);
-    doc.text(splitCatalogLines(doc, labels.features.toUpperCase(), specsWidth, 1), specsX, specsY + 13);
-
-    cursorY = specsY + 24;
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(8.5);
-    doc.setTextColor(TEXT[0], TEXT[1], TEXT[2]);
-    const rows = visibleFeatures.length ? visibleFeatures : [noFeaturesLines];
-    rows.forEach((lines) => {
-      doc.setFillColor(CYAN_DARK[0], CYAN_DARK[1], CYAN_DARK[2]);
-      doc.circle(specsX - 5.5, cursorY - 3, 1.15, "F");
-      doc.text(lines, specsX, cursorY, { lineHeightFactor: 1.24 });
-      cursorY += rowHeight(lines);
-    });
-    if (omittedFeatures > 0) {
-      doc.setFont("helvetica", "italic");
-      doc.setFontSize(8);
-      doc.setTextColor(MUTED[0], MUTED[1], MUTED[2]);
-      doc.text(splitCatalogLines(doc, labels.moreFeatures(omittedFeatures), specsWidth, 1),
-        specsX, cursorY + 2);
+    let cardContentBottom = imageY + imageBoxSize;
+    if (bottomPanelHeight) {
+      const panelY = cardContentBottom + 7;
+      const panelX = margin + padding;
+      const panelWidth = cardWidth - padding * 2;
+      doc.setFillColor(CYAN_PALE[0], CYAN_PALE[1], CYAN_PALE[2]);
+      doc.roundedRect(panelX, panelY, panelWidth, bottomPanelHeight, 5, 5, "F");
+      const lastY = drawSpecRows(bottomRows, fullTextX, fullTextWidth, panelY + 13);
+      if (omitted) {
+        doc.setFont("helvetica", "italic");
+        doc.setFontSize(8);
+        doc.setTextColor(MUTED[0], MUTED[1], MUTED[2]);
+        doc.text(splitCatalogLines(doc, labels.moreFeatures(omitted), fullTextWidth, 1),
+          fullTextX, lastY + 1);
+      }
+      cardContentBottom = panelY + bottomPanelHeight;
     }
 
     if (includePrice || includeStock) {
-      const footerY = cardY + pad + mainHeight + 18;
+      const footerY = cardContentBottom + 18;
       doc.setDrawColor(BORDER[0], BORDER[1], BORDER[2]);
-      doc.line(margin + pad, footerY - 12, pageW - margin - pad, footerY - 14);
+      doc.line(margin + padding, footerY - 12, pageW - margin - padding, footerY - 12);
       doc.setFont("helvetica", "bold");
-      doc.setFontSize(9.7);
+      doc.setFontSize(9.5);
       doc.setTextColor(NAVY[0], NAVY[1], NAVY[2]);
       if (includePrice) {
-        const price = labels.price + ": " + (product.price || "—");
-        doc.text(splitCatalogLines(doc, price, cardWidth * (includeStock ? 0.55 : 0.88), 1),
-          margin + pad, footerY);
+        doc.text(splitCatalogLines(doc,
+          labels.price + ": " + (product.price || "—"), cardWidth * (includeStock ? 0.55 : 0.88), 1),
+          margin + padding, footerY);
       }
       if (includeStock) {
         doc.text(labels.stock + ": " + (product.stock ?? 0),
-          pageW - margin - pad, footerY, { align: "right" });
+          pageW - margin - padding, footerY, { align: "right" });
       }
     }
     cardY += cardHeight + gap;
