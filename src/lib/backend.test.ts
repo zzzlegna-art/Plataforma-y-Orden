@@ -224,6 +224,52 @@ describe("recepción de 1.350 seriales sin guardados parciales", () => {
   });
 });
 
+describe("persistencia del proveedor elegido en recepción", () => {
+  it("incluye supplier_id en altas y modificaciones sin perder la referencia", () => {
+    const previo = emptyDb();
+    const siguiente = cloneDb(previo);
+    siguiente.receptions.push({
+      id: "recepcion-1",
+      code: "REC-00001",
+      supplierId: "proveedor-1",
+      reference: "REM-4471",
+      status: "captura",
+      receivedAt: ahora,
+      createdBy: "staff-1",
+      createdAt: ahora,
+    });
+    const alta = calcularPasos(previo, siguiente).find((step) => step.tabla === "bodega_receptions");
+    expect(alta?.op).toBe("upsert");
+    if (alta?.op === "upsert") {
+      expect(alta.filas[0]).toEqual(expect.objectContaining({
+        supplier_id: "proveedor-1",
+        reference: "REM-4471",
+      }));
+    }
+
+    const modificado = cloneDb(siguiente);
+    modificado.receptions[0].supplierId = "proveedor-2";
+    const cambio = calcularPasos(siguiente, modificado).find((step) => step.tabla === "bodega_receptions");
+    expect(cambio?.op).toBe("upsert");
+    if (cambio?.op === "upsert") {
+      expect(cambio.filas[0].supplier_id).toBe("proveedor-2");
+      expect(cambio.esperados?.[0].supplier_id).toBe("proveedor-1");
+    }
+  });
+
+  it("mantiene compatibilidad con recepciones antiguas sin proveedor", () => {
+    const previo = emptyDb();
+    const nuevo = cloneDb(previo);
+    nuevo.receptions.push({
+      id: "recepcion-antigua", code: "REC-00002", status: "captura",
+      receivedAt: ahora, createdBy: "staff-1", createdAt: ahora,
+    });
+    const result = calcularPasos(previo, nuevo).find((step) => step.tabla === "bodega_receptions");
+    expect(result?.op).toBe("upsert");
+    if (result?.op === "upsert") expect(result.filas[0].supplier_id).toBeNull();
+  });
+});
+
 describe("calcularPasos", () => {
   it("serializa la entidad de tipo de producto con el identificador SQL normalizado", () => {
     const previo = emptyDb();
