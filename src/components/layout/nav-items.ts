@@ -1,6 +1,5 @@
 import {
   Building2,
-  Truck,
   ClipboardList,
   LayoutDashboard,
   PackagePlus,
@@ -64,12 +63,6 @@ export const NAV_ITEMS: NavItem[] = [
     permission: "customers.manage",
   },
   {
-    to: "/proveedores",
-    labelKey: "nav.suppliers",
-    icon: Truck,
-    permission: "receptions.manage",
-  },
-  {
     to: "/garantias",
     labelKey: "nav.warranties",
     icon: ShieldCheck,
@@ -80,6 +73,6 @@ export const NAV_ITEMS: NavItem[] = [
     to: "/administracion",
     labelKey: "nav.admin",
     icon: Settings,
-    permission: "users.manage",
+    permission: "receptions.manage",
   },
 ];
