@@ -16,6 +16,8 @@ describe("SKU escalables para Nexora", () => {
       .toBe("PAN-IP13PM-OLED");
     expect(skuBaseReferencia({ name: "Display iPhone 13", categoria: "repuesto", marca: "Sunlong" }))
       .toBe("PAN-SUN-IP13");
+    expect(skuBaseReferencia({ name: "Display ZYTech iPhone 13 Pro Max", categoria: "repuesto" }))
+      .toBe("PAN-ZYTEC-IP13PM");
   });
 
   it("conserva información crítica sobre batería, flex y modelo", () => {
@@ -51,12 +53,18 @@ describe("SKU escalables para Nexora", () => {
       .toBe("CONS-PS5-SL-1T");
     expect(skuBaseReferencia({ name: "PlayStation 5 Pro 2 TB", categoria: "consola" }))
       .toBe("CONS-PS5-PRO-2T");
+    expect(skuBaseReferencia({ name: "PlayStation 5 Digital 1 TB", categoria: "consola" }))
+      .toBe("CONS-PS5-DIG-1T");
     expect(skuBaseReferencia({ name: "Juego PS5 Spider Man 2", categoria: "videojuego" }))
       .toBe("JUE-PS5-SPIDERMAN-2");
     expect(skuBaseReferencia({ name: "Juego PS5 God of War Ragnarok", categoria: "videojuego" }))
       .not.toBe(skuBaseReferencia({ name: "Juego PS5 Spider Man 2", categoria: "videojuego" }));
     expect(skuBaseReferencia({ name: "Parlante JBL Go 4", categoria: "parlante" }))
       .toMatch(/^PARLANTE-/);
+    expect(skuBaseReferencia({ name: "Parlante JBL Go 4", categoria: "parlante" }))
+      .not.toBe(skuBaseReferencia({ name: "Parlante JBL Go 5", categoria: "parlante" }));
+    expect(skuBaseReferencia({ name: "Juego PS5 God of War Ragnarok", categoria: "videojuego" }))
+      .not.toBe(skuBaseReferencia({ name: "Juego PS5 God of War Valhalla", categoria: "videojuego" }));
     expect(skuBaseReferencia({ name: "Mouse Logitech G502", categoria: "periferico" }))
       .toMatch(/^PERIFERICO-/);
   });
