@@ -447,146 +447,155 @@ const formatDocumentMoney = (amount: number, currency: string) => {
   }
 };
 
-const drawSalesMetadata = (
-  doc: jsPDF,
-  input: SalesDocumentInput,
-  margin: number,
-  top: number,
-  width: number,
-  documentNumber: string,
-) => {
-  const company = exportCompanyName(input.companyName);
-  const customer = input.customer;
-  const entries = [
-    { label: "EMISOR", value: company },
-    { label: "CLIENTE", value: customer.name || "Consumidor / cliente sin nombre" },
-    { label: "NIT / IDENTIFICACIÓN", value: customer.taxId || "No registrado" },
-    { label: "PEDIDO", value: input.orderCode },
-    { label: "DOCUMENTO", value: documentNumber },
-    { label: "FECHA", value: input.deliveryDate || input.orderDate },
-  ];
-  const columns = 3;
-  const gap = 8;
-  const cellW = (width - gap * (columns - 1)) / columns;
-  const cellH = 42;
-  entries.forEach((entry, index) => {
-    const col = index % columns;
-    const row = Math.floor(index / columns);
-    const x = margin + col * (cellW + gap);
-    const y = top + row * (cellH + gap);
-    doc.setFillColor(CYAN_PALE[0], CYAN_PALE[1], CYAN_PALE[2]);
-    doc.setDrawColor(BORDER[0], BORDER[1], BORDER[2]);
-    doc.roundedRect(x, y, cellW, cellH, 4, 4, "FD");
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(6.5);
-    doc.setTextColor(MUTED[0], MUTED[1], MUTED[2]);
-    doc.text(entry.label, x + 8, y + 13);
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(8.5);
-    doc.setTextColor(NAVY[0], NAVY[1], NAVY[2]);
-    const value = doc.splitTextToSize(entry.value, cellW - 16) as string[];
-    doc.text(value.slice(0, 2), x + 8, y + 27);
-  });
-  return top + 2 * (cellH + gap) - gap;
+/** Diseño de factura exclusivo: el número aparece solo en el encabezado. */
+const drawPremiumInvoiceHeader = (doc: jsPDF, number: string, margin: number) => {
+  const w = doc.internal.pageSize.getWidth();
+  const h = 94;
+  const logoW = 200, logoH = logoW * (128 / 556), divider = w - margin - 196;
+  doc.setFillColor(...NAVY); doc.rect(0, 0, w, h, "F");
+  // Geometría sutil de marca, inspirada en la muestra.
+  doc.setFillColor(12, 52, 83);
+  doc.triangle(w - 148, 3, w, 3, w - 45, 77, "F");
+  doc.setFillColor(12, 72, 111);
+  doc.triangle(w - 91, 3, w - 34, 3, w - 49, 41, "F");
+  doc.setFillColor(CYAN[0], CYAN[1], CYAN[2]);
+  doc.rect(0, 0, w, 3, "F"); doc.rect(0, h - 2, w, 2, "F");
+  doc.addImage(PDF_LOGO, "PNG", margin, (h - logoH) / 2, logoW, logoH, undefined, "FAST");
+
+  doc.setFont("helvetica", "bold"); doc.setFontSize(17);
+  doc.setTextColor(255, 255, 255);
+  doc.text("FACTURA COMERCIAL", divider - 18, h / 2 + 5, { align: "right" });
+  doc.setDrawColor(...CYAN); doc.setLineWidth(1);
+  doc.line(divider, 27, divider, 68);
+  doc.setFontSize(11); doc.setTextColor(...CYAN);
+  doc.text("Nº", divider + 13, h / 2 + 5);
+  doc.setTextColor(255, 255, 255);
+  let size = 11;
+  const maxW = w - margin - divider - 35;
+  while (doc.getTextWidth(number) > maxW && size > 7) {
+    size -= 0.5; doc.setFontSize(size);
+  }
+  doc.text(number, w - margin, h / 2 + 5, { align: "right" });
 };
 
-/** Genera la factura comercial del pedido en PDF. */
+/** Cuatro datos en una sola banda: no repetir PED ni FAC en el cuerpo. */
+const drawPremiumInvoiceMetadata = (doc: jsPDF, input: SalesDocumentInput, margin: number, top: number, width: number) => {
+  const values = [
+    { label: "EMISOR", value: exportCompanyName(input.companyName), icon: 0 },
+    { label: "CLIENTE", value: input.customer.name || "Consumidor / cliente sin nombre", icon: 1 },
+    { label: "NIT / IDENTIFICACIÓN", value: input.customer.taxId || "No registrado", icon: 2 },
+    { label: "FECHA DE EMISIÓN", value: input.deliveryDate || input.orderDate, icon: 3 },
+  ];
+  const h = 70, cellW = width / 4;
+  doc.setFillColor(...CYAN_PALE); doc.setDrawColor(...BORDER); doc.setLineWidth(0.7);
+  doc.roundedRect(margin, top, width, h, 6, 6, "FD");
+  values.forEach((entry, i) => {
+    const x = margin + i * cellW, ix = x + 12, iy = top + 18;
+    if (i) { doc.setDrawColor(...BORDER); doc.line(x, top + 14, x, top + h - 14); }
+    doc.setFillColor(221, 246, 252); doc.roundedRect(ix, iy, 32, 32, 6, 6, "F");
+    doc.setDrawColor(0, 126, 172); doc.setLineWidth(1.4);
+    if (entry.icon === 0) {
+      doc.rect(ix + 9, iy + 7, 14, 20);
+      doc.line(ix + 16, iy + 7, ix + 16, iy + 27);
+      doc.line(ix + 9, iy + 14, ix + 23, iy + 14);
+      doc.line(ix + 9, iy + 21, ix + 23, iy + 21);
+    } else if (entry.icon === 1) {
+      doc.circle(ix + 16, iy + 10, 4); doc.roundedRect(ix + 8, iy + 18, 16, 9, 4, 4);
+    } else if (entry.icon === 2) {
+      doc.roundedRect(ix + 8, iy + 6, 16, 21, 2, 2);
+      doc.circle(ix + 16, iy + 13, 2); doc.line(ix + 12, iy + 20, ix + 20, iy + 20);
+    } else {
+      doc.roundedRect(ix + 7, iy + 8, 18, 19, 2, 2);
+      doc.line(ix + 7, iy + 14, ix + 25, iy + 14);
+      doc.line(ix + 12, iy + 5, ix + 12, iy + 11);
+      doc.line(ix + 20, iy + 5, ix + 20, iy + 11);
+    }
+    const left = x + 54, available = cellW - 65;
+    doc.setFont("helvetica", "normal"); doc.setFontSize(7.1);
+    doc.setTextColor(...MUTED); doc.text(entry.label, left, top + 28);
+    doc.setFont("helvetica", "bold"); doc.setFontSize(9.7);
+    doc.setTextColor(...NAVY);
+    const lines = splitCatalogLines(doc, entry.value, available, 2);
+    doc.text(lines, left, top + 44, { lineHeightFactor: 1.15 });
+  });
+  return top + h;
+};
+
+/** Genera la factura comercial premium sin repetir identificadores. */
 export const exportSalesInvoicePdf = (input: SalesDocumentInput) => {
   const doc = new jsPDF({ orientation: "landscape", unit: "pt", format: "a4" });
-  const pageW = doc.internal.pageSize.getWidth();
-  const pageH = doc.internal.pageSize.getHeight();
-  const margin = 28;
-  const width = pageW - margin * 2;
-  const company = exportCompanyName(input.companyName);
-  const documentNumber = `FAC-${input.orderCode}`;
-  const title = `FACTURA COMERCIAL · ${documentNumber}`;
-  const subtitle = `${company} · Pedido ${input.orderCode}`;
-  const drawHeader = () => dibujarEncabezado(doc, title, subtitle, margin);
-  drawHeader();
+  const w = doc.internal.pageSize.getWidth(), h = doc.internal.pageSize.getHeight();
+  const margin = 28, width = w - margin * 2, headerH = 94;
+  const documentNumber = "FAC-" + input.orderCode;
+  const header = () => drawPremiumInvoiceHeader(doc, documentNumber, margin);
+  header();
 
-  const metaBottom = drawSalesMetadata(doc, input, margin, CONTENT_TOP, width, documentNumber);
-  const customerDetails = [
-    input.customer.address ? `Dirección: ${input.customer.address}` : "",
-    input.customer.phone ? `Teléfono: ${input.customer.phone}` : "",
-    input.customer.email ? `Correo: ${input.customer.email}` : "",
-  ].filter(Boolean).join(" · ");
-  let tableStart = metaBottom + 14;
-  if (customerDetails) {
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(7.8);
-    doc.setTextColor(TEXT[0], TEXT[1], TEXT[2]);
-    const detailLines = doc.splitTextToSize(customerDetails, width) as string[];
-    doc.text(detailLines, margin, metaBottom + 14, { lineHeightFactor: 1.2 });
-    tableStart = metaBottom + 20 + detailLines.length * 10;
+  const metaBottom = drawPremiumInvoiceMetadata(doc, input, margin, headerH + 18, width);
+  const contact = [
+    input.customer.address ? "Dirección: " + input.customer.address : "",
+    input.customer.phone ? "Teléfono: " + input.customer.phone : "",
+    input.customer.email ? "Correo: " + input.customer.email : "",
+  ].filter(Boolean).join("  ·  ");
+  let tableY = metaBottom + 20;
+  if (contact) {
+    doc.setFont("helvetica", "normal"); doc.setFontSize(7.6); doc.setTextColor(...MUTED);
+    const lines = splitCatalogLines(doc, contact, width, 2);
+    doc.text(lines, margin + 2, metaBottom + 13, { lineHeightFactor: 1.2 });
+    tableY = metaBottom + 17 + lines.length * 10;
   }
   autoTable(doc, {
-    startY: tableStart,
-    margin: { top: CONTENT_TOP, left: margin, right: margin, bottom: FOOTER_SPACE + 20 },
+    startY: tableY,
+    margin: { top: headerH + 20, left: margin, right: margin, bottom: FOOTER_SPACE + 18 },
     head: [["Referencia", "Producto", "Condición", "Cantidad", "Precio unitario", "Subtotal"]],
     body: input.lines.map((line) => [
-      line.reference,
-      line.product,
-      line.condition || "—",
-      line.quantity,
-      formatDocumentMoney(line.unitPrice, input.currency),
+      line.reference, line.product, line.condition || "No aplica",
+      line.quantity, formatDocumentMoney(line.unitPrice, input.currency),
       formatDocumentMoney(line.subtotal, input.currency),
     ]),
-    showHead: "everyPage",
-    rowPageBreak: "avoid",
+    showHead: "everyPage", rowPageBreak: "avoid",
     styles: {
-      font: "helvetica",
-      fontSize: 7.5,
-      cellPadding: { top: 6, bottom: 6, left: 6, right: 6 },
-      textColor: TEXT,
-      lineColor: BORDER,
-      lineWidth: 0.45,
-      valign: "middle",
-      overflow: "linebreak",
+      font: "helvetica", fontSize: 8.1,
+      cellPadding: { top: 10, bottom: 10, left: 9, right: 9 },
+      textColor: NAVY, lineColor: BORDER, lineWidth: 0.45,
+      valign: "middle", overflow: "linebreak",
     },
-    headStyles: { fillColor: NAVY, textColor: [255, 255, 255], lineColor: CYAN, lineWidth: 0.8, fontStyle: "bold" },
+    headStyles: {
+      fillColor: NAVY, textColor: [255, 255, 255], lineColor: BORDER,
+      lineWidth: 0.45, fontStyle: "bold", fontSize: 8.7,
+    },
     alternateRowStyles: { fillColor: CYAN_PALE },
     columnStyles: {
-      0: { cellWidth: width * 0.13, fontStyle: "bold", textColor: CYAN_DARK },
-      1: { cellWidth: width * 0.25 },
-      2: { cellWidth: width * 0.12 },
-      3: { cellWidth: width * 0.08, halign: "center" },
-      4: { cellWidth: width * 0.21, halign: "right" },
-      5: { cellWidth: width * 0.21, halign: "right" },
+      0: { cellWidth: width * 0.14, fontStyle: "bold", textColor: CYAN_DARK },
+      1: { cellWidth: width * 0.26 },
+      2: { cellWidth: width * 0.13 },
+      3: { cellWidth: width * 0.10, halign: "center", fontStyle: "bold" },
+      4: { cellWidth: width * 0.18, halign: "right" },
+      5: { cellWidth: width * 0.19, halign: "right", fontStyle: "bold" },
     },
-    didDrawPage: () => drawHeader(),
+    didDrawPage: header,
   });
 
-  let y = ((doc as jsPDF & { lastAutoTable?: { finalY: number } }).lastAutoTable?.finalY ?? tableStart) + 18;
-  const totalBoxH = 62;
-  if (y + totalBoxH + 10 > pageH - FOOTER_SPACE) {
-    doc.addPage();
-    drawHeader();
-    y = CONTENT_TOP + 13;
+  let y = ((doc as jsPDF & { lastAutoTable?: { finalY: number } }).lastAutoTable?.finalY ?? tableY) + 20;
+  const boxH = 72;
+  if (y + boxH + 12 > h - FOOTER_SPACE) {
+    doc.addPage(); header(); y = headerH + 25;
   }
-
   const total = input.lines.reduce((sum, line) => sum + line.subtotal, 0);
-  const boxW = 265;
-  const boxX = pageW - margin - boxW;
-  doc.setFillColor(CYAN_PALE[0], CYAN_PALE[1], CYAN_PALE[2]);
-  doc.setDrawColor(BORDER[0], BORDER[1], BORDER[2]);
-  doc.roundedRect(boxX, y, boxW, totalBoxH, 6, 6, "FD");
-  doc.setFillColor(CYAN[0], CYAN[1], CYAN[2]);
-  doc.roundedRect(boxX, y, 4, totalBoxH, 2, 2, "F");
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(8.5);
-  doc.setTextColor(MUTED[0], MUTED[1], MUTED[2]);
-  doc.text("TOTAL COMERCIAL", boxX + 15, y + 20);
-  const displayTotal = formatDocumentMoney(total, input.currency);
-  doc.setFont("helvetica", "bold");
-  let size = 17;
-  doc.setFontSize(size);
-  while (doc.getTextWidth(displayTotal) > boxW - 30 && size > 10) {
-    size -= 1;
-    doc.setFontSize(size);
+  const boxW = 315, boxX = w - margin - boxW;
+  doc.setFillColor(...CYAN_PALE); doc.setDrawColor(...BORDER); doc.setLineWidth(0.7);
+  doc.roundedRect(boxX, y, boxW, boxH, 6, 6, "FD");
+  doc.setFillColor(...CYAN); doc.roundedRect(boxX, y, 5, boxH, 2, 2, "F");
+  doc.setFont("helvetica", "bold"); doc.setFontSize(10); doc.setTextColor(...MUTED);
+  doc.text("TOTAL COMERCIAL", boxX + 20, y + 28);
+  const formattedTotal = formatDocumentMoney(total, input.currency);
+  let totalFont = 18; doc.setFontSize(totalFont);
+  while (doc.getTextWidth(formattedTotal) > boxW - 40 && totalFont > 10) {
+    totalFont -= 0.5; doc.setFontSize(totalFont);
   }
-  doc.setTextColor(NAVY[0], NAVY[1], NAVY[2]);
-  doc.text(displayTotal, boxX + boxW - 15, y + 45, { align: "right" });
-  dibujarPies(doc, `Factura comercial · ${input.orderCode}`, margin);
+  doc.setTextColor(...NAVY);
+  doc.text(formattedTotal, boxX + boxW - 18, y + 52, { align: "right" });
+  // Pie limpio: sin número de pedido, fecha ni documento duplicados.
+  dibujarPies(doc, "Factura comercial", margin);
   doc.save(input.filename);
   return doc;
 };
