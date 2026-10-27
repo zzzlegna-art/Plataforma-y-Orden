@@ -32,6 +32,8 @@ import { errorDeSerialCelular, esCodigoInterno, generarCodigoInterno } from "@/l
 import { esProductoRepuesto, etiquetaTipoProducto, tiposProductoOrdenados } from "@/lib/products";
 import type { Product, ProductCategory, UnitCondition } from "@/lib/types";
 import { ReceptionItemChip } from "./ReceptionItemChip";
+import { SupplierFormDialog } from "@/pages/proveedores/SupplierFormDialog";
+import { listSuppliers, type Supplier } from "@/lib/suppliers";
 
 /**
  * Captura de una recepción: se elige producto y condición y cada lectura agrega
@@ -68,6 +70,9 @@ const NuevaRecepcion = () => {
   const [cost, setCost] = useState("");
   const [repuestoQty, setRepuestoQty] = useState("1");
   const [reference, setReference] = useState("");
+  const [supplierId, setSupplierId] = useState("");
+  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
+  const [suppliersLoading, setSuppliersLoading] = useState(true);
   const [receivedAt, setReceivedAt] = useState(todayIso());
   const [notes, setNotes] = useState("");
   const [saving, setSaving] = useState(false);
@@ -94,9 +99,23 @@ const NuevaRecepcion = () => {
   useEffect(() => {
     if (!reception) return;
     setReference(reception.reference ?? "");
+    setSupplierId(reception.supplierId ?? "");
     setReceivedAt(reception.receivedAt.slice(0, 10));
     setNotes(reception.notes ?? "");
   }, [reception?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Los proveedores se cargan del directorio real: clientes y proveedores no se mezclan.
+  useEffect(() => {
+    let active = true;
+    void listSuppliers().then((results) => {
+      if (active) setSuppliers(results);
+    }).catch((error: unknown) => {
+      if (active) toast.error(error instanceof Error ? error.message : "No se pudieron cargar los proveedores");
+    }).finally(() => {
+      if (active) setSuppliersLoading(false);
+    });
+    return () => { active = false; };
+  }, []);
 
   const items = useMemo(
     () => db.receptionItems.filter((item) => item.receptionId === receptionId),
@@ -126,11 +145,12 @@ const NuevaRecepcion = () => {
     if (!sigueVisible) setProductId("");
   };
 
-  const persistHeader = async () => {
+  const persistHeader = async (selectedSupplierId = supplierId) => {
     if (!receptionId || procesandoColaRef.current) return;
     await runAction((db2, actor) =>
       updateReception(db2, actor, {
         id: receptionId,
+        supplierId: selectedSupplierId,
         reference,
         receivedAt: `${receivedAt}T09:00:00.000Z`,
         notes,
@@ -186,6 +206,7 @@ const NuevaRecepcion = () => {
       if (!targetId) {
         const created = await runAction((db2, actor) =>
           createReception(db2, actor, {
+            supplierId,
             reference,
             receivedAt: `${receivedAt}T09:00:00.000Z`,
             notes,
@@ -327,6 +348,7 @@ const NuevaRecepcion = () => {
       if (!targetId) {
         const created = await runAction((db2, actor) =>
           createReception(db2, actor, {
+            supplierId,
             reference,
             receivedAt: `${receivedAt}T09:00:00.000Z`,
             notes,
@@ -482,6 +504,49 @@ const NuevaRecepcion = () => {
               </IconoSeccion>
               {t("receptions.headerTitle")}
             </h3>
+            <div className="space-y-2">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <Label htmlFor="reception-supplier">Proveedor</Label>
+                {!confirmed ? (
+                  <SupplierFormDialog
+                    onSaved={(created) => {
+                      setSuppliers((current) =>
+                        [...current.filter((item) => item.id !== created.id), created]
+                          .sort((a, b) => a.name.localeCompare(b.name)));
+                      setSupplierId(created.id);
+                      if (receptionId) void persistHeader(created.id);
+                    }}
+                    trigger={
+                      <Button type="button" size="sm" variant="outline" disabled={saving || busy}>
+                        <Plus className="h-3.5 w-3.5" /> Crear proveedor
+                      </Button>
+                    }
+                  />
+                ) : null}
+              </div>
+              <select
+                id="reception-supplier"
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"
+                value={supplierId}
+                disabled={confirmed || saving || busy || suppliersLoading}
+                onChange={(event) => {
+                  const next = event.target.value;
+                  setSupplierId(next);
+                  if (receptionId) void persistHeader(next);
+                }}
+              >
+                <option value="">{suppliersLoading ? "Cargando proveedores..." : "Selecciona un proveedor (opcional)"}</option>
+                {suppliers.filter((provider) => provider.isActive || provider.id === supplierId)
+                  .map((provider) => (
+                    <option key={provider.id} value={provider.id}>
+                      {provider.name}{provider.isActive ? "" : " (inactivo)"}
+                    </option>
+                  ))}
+              </select>
+              <p className="text-xs text-muted-foreground">
+                El proveedor seleccionado quedará guardado con esta recepción. Puedes crear uno sin salir de aquí.
+              </p>
+            </div>
             <div className="space-y-2">
               <Label htmlFor="reference">{t("receptions.reference")}</Label>
               <Input
