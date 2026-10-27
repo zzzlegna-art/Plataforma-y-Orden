@@ -44,6 +44,8 @@ export const useRunAction = () => {
          * se ignora y se devuelve la misma promesa. No usar en acciones que sí deben repetirse
          * (como escanear dos seriales seguidos). */
         key?: string;
+        /** Mantener la captura visible hasta que la base confirme el guardado. */
+        deferOptimistic?: boolean;
       },
     ): Promise<T | null> => {
       const clave = options?.key;
@@ -54,7 +56,7 @@ export const useRunAction = () => {
       setEnCurso((n) => n + 1);
       const ejecutarUna = async (): Promise<T | null> => {
         try {
-          const result = await run(action);
+          const result = options?.deferOptimistic ? await run(action, { deferOptimistic: true }) : await run(action);
           if (options?.success) {
             toast.success(t(options.success, options.successParams), {
               icon: options.weighty ? <DrawnCheckIcon /> : undefined,
