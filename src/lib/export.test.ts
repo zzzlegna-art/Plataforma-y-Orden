@@ -243,7 +243,7 @@ describe("geometría de fichas del catálogo", () => {
     expect(p.metadataBaseline - lastNameBaseline).toBeGreaterThan(12);
     expect(p.featuresLabelY - lastMetaBaseline).toBeGreaterThan(12);
     expect(p.featuresLabelY - lastDescriptionBaseline).toBeGreaterThan(12);
-    expect(p.firstFeatureY - p.featuresLabelY).toBeGreaterThanOrEqual(14);
+    expect(p.firstFeatureY - p.featuresLabelY).toBeCloseTo(14, 5);
     expect(p.introEndY).toBeLessThan(p.featuresLabelY);
   });
 });
