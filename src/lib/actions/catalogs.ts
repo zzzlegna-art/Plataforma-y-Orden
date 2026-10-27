@@ -2,138 +2,25 @@
 
 import { createId, DomainError, logAudit, nowIso } from "../db";
 import { getProductTechnicalSpecsForCategory } from "../product-specs";
+import { skuBaseReferencia } from "../sku-engine";
 import type { Actor, Brand, Category, Db, Product, ProductCategory, ProductTechnicalSpecs, ProductType, TipoRepuesto } from "../types";
 import { isSameText, requireNumber, requirePermission, requireText } from "./guards";
 
-/**
- * SKU corta: modelo abreviado + almacenamiento cuando aparece en el nombre.
- * Ejemplos: "iPhone 13 128 GB" -> "IP13-128", "iPhone 14 Pro Max 256GB" -> "IP14PM-256",
- * "Samsung Galaxy S24 Ultra 256 GB" -> "S24U-256". Los repuestos usan
- * "BAT-IP13", "PAN-IP13" o "BAT-IP13-CF/SF" sin chocar con el modelo completo.
- * Las SKU históricas y los códigos manuales no se modifican. El IMEI identifica cada unidad.
- */
-export const generarSkuProducto = (
-  db: Db,
-  name: string,
-  ignoreId?: string,
-  reservedSkus: ReadonlySet<string> = new Set(),
-  categoria?: ProductCategory,
-): string => {
-  const normalizado = name
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toUpperCase()
-    .replace(/[^A-Z0-9]+/g, " ")
-    .trim();
-  if (!normalizado) return "";
-
-  const capacidadMatch = normalizado.match(/\b(\d{1,4})\s*(GB|TB|MB)\b/);
-  const capacidad = capacidadMatch
-    ? capacidadMatch[1] + (capacidadMatch[2] === "TB" ? "T" : capacidadMatch[2] === "MB" ? "M" : "")
-    : "";
-  let modelo = "";
-
-  const iphone = normalizado.match(/\bIPHONE\s*(SE|\d{1,2})\b/);
-  if (iphone) {
-    modelo = "IP" + iphone[1];
-    if (/\bPRO\b/.test(normalizado)) modelo += /\bMAX\b/.test(normalizado) ? "PM" : "P";
-    else if (/\bMAX\b/.test(normalizado)) modelo += "M";
-    else if (/\bPLUS\b/.test(normalizado)) modelo += "PL";
-    else if (/\bMINI\b/.test(normalizado)) modelo += "MN";
-    else if (/\bAIR\b/.test(normalizado)) modelo += "A";
-  } else {
-    const galaxyZ = normalizado.match(/\bZ\s*(FOLD|FLIP)\s*(\d)\b/);
-    const galaxyS = normalizado.match(/\bS\s*(\d{1,2})\b/);
-    const galaxyA = normalizado.match(/\bA\s*(\d{1,2})\b/);
-    const pixel = normalizado.match(/\bPIXEL\s*(\d{1,2})\b/);
-    const redmiNote = normalizado.match(/\bNOTE\s*(\d{1,2})\b/);
-    if (galaxyZ) modelo = "Z" + (galaxyZ[1] === "FOLD" ? "F" : "FL") + galaxyZ[2];
-    else if (galaxyS) {
-      modelo = "S" + galaxyS[1];
-      if (/\bULTRA\b/.test(normalizado)) modelo += "U";
-      else if (/\bFE\b/.test(normalizado)) modelo += "FE";
-      else if (/\bPLUS\b/.test(normalizado)) modelo += "P";
-    } else if (galaxyA) modelo = "A" + galaxyA[1];
-    else if (pixel) {
-      modelo = "PX" + pixel[1];
-      if (/\bPRO\b/.test(normalizado)) modelo += "P";
-      if (/\bXL\b/.test(normalizado)) modelo += "XL";
-    } else if (redmiNote) {
-      modelo = "RN" + redmiNote[1];
-      if (/\bPRO\b/.test(normalizado)) modelo += "P";
-    }
-  }
-
-  if (!modelo) {
-    const sinCapacidad = normalizado.replace(/\b\d{1,4}\s*(GB|TB|MB)\b/g, " ");
-    const palabras = sinCapacidad.split(/\s+/).filter((palabra) =>
-      palabra && !["APPLE", "SAMSUNG", "GALAXY", "XIAOMI", "REDMI", "GOOGLE", "HUAWEI", "MOTOROLA", "OPPO", "VIVO", "REALME", "ONEPLUS"].includes(palabra)
-    );
-    const conModelo = palabras.find((palabra) => /\d/.test(palabra));
-    const iniciales = palabras.filter((palabra) => palabra !== conModelo).slice(0, 2).map((palabra) => palabra.slice(0, 2)).join("");
-    modelo = (iniciales + (conModelo ?? "")).slice(0, 8) || palabras[0]?.slice(0, 4) || "PROD";
-  }
-
-  // Mantener las SKU de celulares, tablets, relojes y audífonos como ya estaban.
-  // Los repuestos llevan un prefijo por pieza, nunca la SKU del teléfono completo.
-  const tipoNormalizado = (categoria ?? "").normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "").toLowerCase();
-  let base = (modelo + (capacidad ? "-" + capacidad : "")).slice(0, 12);
-
-  if (tipoNormalizado === "repuesto") {
-    const parte =
-      /\b(BATERIA|BATERIAS|PILA|BAT)\b/.test(normalizado) ? "BAT" :
-      /\b(PANTALLA|DISPLAY|MODULO|TACTIL)\b/.test(normalizado) ? "PAN" :
-      /\b(CAMARA|CAMARAS)\b/.test(normalizado) ? "CAM" :
-      /\b(TAPA|CARCASA)\b/.test(normalizado) ? "TAP" :
-      /\b(FLEX)\b/.test(normalizado) ? "FLE" :
-      /\b(CONECTOR|PUERTO)\b/.test(normalizado) ? "CON" :
-      /\b(CARGADOR|CARGA)\b/.test(normalizado) ? "CAR" :
-      /\b(ALTAVOZ|PARLANTE|BUZZER)\b/.test(normalizado) ? "ALT" :
-      /\b(MICROFONO)\b/.test(normalizado) ? "MIC" : "REP";
-    const flex = parte === "BAT"
-      ? (/\b(SIN|NO)\s+FLEX\b/.test(normalizado) ? "-SF" : /\bFLEX\b/.test(normalizado) ? "-CF" : "")
-      : "";
-    // La capacidad en GB de un iPhone NO forma parte del código de su batería.
-    // La diferencia con/sin flex sí lo hace.
-    const dobleIphone = normalizado.match(/\bIPHONE\s*(\d{1,2})\s+(?:Y\s+)?\1\s+PRO(?:\s+MAX)?\b/);
-    const modeloRepuesto = dobleIphone
-      ? "IP" + dobleIphone[1] + "-" + dobleIphone[1] + (/PRO\s+MAX\b/.test(dobleIphone[0]) ? "PM" : "P")
-      : modelo;
-    base = parte + "-" + modeloRepuesto.slice(0, 14) + flex;
-  } else if (tipoNormalizado && !["celular", "tablet", "reloj", "audifono"].includes(tipoNormalizado)) {
-    // Los tipos añadidos desde Administración también tienen una familia propia.
-    const prefijo = tipoNormalizado.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 10) || "OTR";
-    base = prefijo + "-" + base;
-  }
-
-  const taken = (sku: string) =>
-    reservedSkus.has(sku.trim().toUpperCase()) ||
-    db.products.some((product) => product.id !== ignoreId && product.sku.trim().toUpperCase() === sku);
-  if (!taken(base)) return base;
-
-  let counter = 2;
-  while (taken(base + "-" + counter)) counter += 1;
-  return base + "-" + counter;
-};
-
-/** 
- * SKU sugerida mientras se edita una referencia. Si nombre y tipo siguen
- * iguales, mantiene la SKU histórica (incluidas SKU escritas manualmente).
- * Al cambiar cualquiera de ellos, usa el generador global excluyendo el
- * propio producto del control de duplicados.
- */
+/** SKU comercial, por categoría, tipo de repuesto, fabricante y modelo. Las colisiones reciben sufijo. */
 export const generarSkuAlEditar = (
   db: Db,
   name: string,
   categoria: ProductCategory | undefined,
-  original?: Pick<Product, "id" | "name" | "sku" | "categoria">,
+  original?: Pick<Product, "id" | "name" | "sku" | "categoria" | "brandId">,
+  brandId?: string,
 ): string => {
   if (original && original.name.trim() === name.trim() &&
-      (original.categoria ?? "") === (categoria ?? "")) {
+      (original.categoria ?? "") === (categoria ?? "") &&
+      (original.brandId ?? "") === (brandId ?? original.brandId ?? "")) {
     return original.sku;
   }
-  return generarSkuProducto(db, name, original?.id, undefined, categoria);
+  const marca = db.brands.find((brand) => brand.id === brandId)?.name;
+  return generarSkuProducto(db, name, original?.id, undefined, categoria, marca);
 };
 
 /**
@@ -386,7 +273,7 @@ export interface ProductInput {
 export const createProduct = (db: Db, actor: Actor, input: ProductInput): Product => {
   requirePermission(actor, "inventory.manage");
   const name = requireText(input.name, "errors.productNameRequired");
-  const sku = (input.sku?.trim().toUpperCase() || generarSkuProducto(db, name, undefined, undefined, input.categoria)).slice(0, 40);
+  const sku = (input.sku?.trim().toUpperCase() || generarSkuProducto(db, name, undefined, undefined, input.categoria, db.brands.find((brand) => brand.id === input.brandId)?.name)).slice(0, 40);
   if (db.products.some((product) => product.sku.trim().toUpperCase() === sku)) {
     throw new DomainError("errors.skuDuplicated");
   }
@@ -429,7 +316,7 @@ export const updateProduct = (
   if (!product) throw new DomainError("errors.notFound");
   const categoriaAnterior = product.categoria;
   const name = requireText(input.name, "errors.productNameRequired");
-  const sku = (input.sku?.trim().toUpperCase() || generarSkuProducto(db, name, product.id, undefined, input.categoria ?? product.categoria)).slice(0, 40);
+  const sku = (input.sku?.trim().toUpperCase() || generarSkuProducto(db, name, product.id, undefined, input.categoria ?? product.categoria, db.brands.find((brand) => brand.id === input.brandId)?.name)).slice(0, 40);
   if (
     db.products.some(
       (item) => item.id !== product.id && item.sku.trim().toUpperCase() === sku,
