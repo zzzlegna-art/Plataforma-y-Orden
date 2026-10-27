@@ -75,7 +75,7 @@ describe("Recepción · escribir a mano un código interno (no solo con el botó
     const user = userEvent.setup();
     render(<I18nextProvider i18n={i18n}><Almacen /></I18nextProvider>);
 
-    await user.click(screen.getByRole("combobox"));
+    await user.click(screen.getAllByRole("combobox").find((element) => element.tagName === "BUTTON")!);
     await user.click(await screen.findByText("Apple iPhone 13 128 GB"));
 
     await user.type(screen.getByPlaceholderText("Serial nuevo"), "000000001234567");
@@ -89,7 +89,7 @@ describe("Recepción · escribir a mano un código interno (no solo con el botó
     const user = userEvent.setup();
     render(<I18nextProvider i18n={i18n}><Almacen /></I18nextProvider>);
 
-    await user.click(screen.getByRole("combobox"));
+    await user.click(screen.getAllByRole("combobox").find((element) => element.tagName === "BUTTON")!);
     await user.click(await screen.findByText("Apple iPhone 13 128 GB"));
 
     await user.type(screen.getByPlaceholderText("Serial nuevo"), "123456789012345"); // 15 dígitos pero dígito de control inválido
