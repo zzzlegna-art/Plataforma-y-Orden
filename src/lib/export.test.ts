@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { strFromU8, unzipSync } from "fflate";
 import { jsPDF } from "jspdf";
 
-import { dibujarEncabezado, subtituloDocumentoSinMarcaDuplicada, exportCompanyName, exportExcel, exportOrderSerialRelationPdf, exportPedidosHistorialExcel, exportProductCatalogExcel, exportProductCatalogPdf, exportSalesInvoicePdf, normalizeCatalogText, tituloDocumentoSinMarcaDuplicada, splitCatalogLines, posicionesFichaCatalogo, normalizeCatalogFeatureLabel } from "./export";
+import { dibujarEncabezado, subtituloDocumentoSinMarcaDuplicada, exportCompanyName, exportExcel, exportOrderSerialRelationPdf, exportPedidosHistorialExcel, exportProductCatalogExcel, exportProductCatalogPdf, exportSalesInvoicePdf, normalizeCatalogText, tituloDocumentoSinMarcaDuplicada, splitCatalogLines, posicionesFichaCatalogo, normalizeCatalogFeatureLabel, normalizeCatalogPdfText } from "./export";
 
 const ONE_PIXEL_JPEG =
   "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCAABAAEDASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwD6pooooA//2Q==";
@@ -298,6 +298,75 @@ describe("fichas técnicas de relojes", () => {
     expect(pdf).toContain("WASE11-46");
     expect(pdf).toContain("Sensores");
     expect(pdf).toContain("Conectividad");
+  });
+});
+
+describe("codificación de textos técnicos en PDF del inventario", () => {
+  const WATCH_CONNECTIVITY = "Wi\u2011Fi 4, Bluetooth 5.3, NFC; GPS o GPS + Cellular según variante.";
+  const PHONE_CONNECTIVITY = "5G, Wi\u2011Fi 6, Bluetooth 5.0, NFC, Lightning";
+
+  it("reemplaza solo para PDF el guion inseparable que separaba las letras", () => {
+    expect(normalizeCatalogPdfText("Conectividad: " + WATCH_CONNECTIVITY))
+      .toBe("Conectividad: Wi-Fi 4, Bluetooth 5.3, NFC; GPS o GPS + Cellular según variante.");
+    expect(normalizeCatalogPdfText(PHONE_CONNECTIVITY))
+      .toBe("5G, Wi-Fi 6, Bluetooth 5.0, NFC, Lightning");
+    expect(normalizeCatalogPdfText("SpO\u2082 y pantalla 374 \u00D7 446 px"))
+      .toBe("SpO2 y pantalla 374 × 446 px");
+    expect(normalizeCatalogPdfText("eSIM / Bluetooth")).toBe("eSIM / Bluetooth");
+  });
+
+  it.each([
+    ["reloj", "Conectividad: " + WATCH_CONNECTIVITY],
+    ["celular", "Conectividad: " + PHONE_CONNECTIVITY],
+    ["especificación larga", "Conectividad: " + WATCH_CONNECTIVITY.repeat(7)],
+    ["texto sin espacios", "Conectividad: " + "MUYLARGASINESESPACIOS".repeat(25)],
+  ])("envuelve %s sin superar el ancho ni enviar Unicode incompatible a Helvetica", (_label, value) => {
+    const doc = new jsPDF({ unit: "pt", format: "a4" });
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8.5);
+    const maxWidth = 380;
+    const lines = splitCatalogLines(doc, value, maxWidth, 10000);
+    expect(lines.length).toBeGreaterThan(0);
+    expect(lines.join("")).not.toContain("\u2011");
+    for (const line of lines) {
+      expect([...line].every((char) => (char.codePointAt(0) ?? 0) <= 255)).toBe(true);
+      expect(doc.getTextWidth(line)).toBeLessThanOrEqual(maxWidth + 0.05);
+    }
+    // Prueba también el motor que realmente serializa el PDF.
+    doc.text(lines, 100, 200, { lineHeightFactor: 1.24 });
+    expect(doc.output()).toContain("Conectividad");
+  });
+
+  it("exporta relojes y celulares con Wi-Fi Unicode sin desbordar ni alterar sus datos", async () => {
+    const items = [
+      { name: "Watch Serie 11 - 42", sku: "WASE11-42", brand: "Apple", category: "Relojes",
+        features: [
+          { label: "Almacenamiento", value: "64 GB" },
+          { label: "Conectividad", value: WATCH_CONNECTIVITY },
+          { label: "Sensores", value: "Frecuencia cardíaca, oxígeno en sangre y brújula" },
+        ] },
+      { name: "iPhone 12 128 GB", sku: "IP12-128", brand: "Apple", category: "Celulares",
+        features: [{ label: "Conectividad", value: PHONE_CONNECTIVITY }] },
+    ];
+    const doc = await exportProductCatalogPdf({
+      title: "Catálogo de productos", subtitle: "2 registros",
+      filename: "catalogo-regresion-wifi.pdf",
+      products: items, includePrice: false, includeStock: false,
+      labels: {
+        image: "Imagen", openImage: "Abrir imagen", product: "Producto",
+        reference: "SKU", brand: "Marca", category: "Categoría",
+        description: "Descripción", features: "Características del equipo",
+        price: "Precio", stock: "Existencias", noDescription: "Sin descripción",
+        noFeatures: "Sin características", imageUnavailable: "Sin imagen",
+        moreFeatures: (count) => "+" + count + " características",
+      },
+    });
+    const pdf = doc.output();
+    expect(pdf).toContain("Wi-Fi 4");
+    expect(pdf).toContain("Wi-Fi 6");
+    expect(pdf).toContain("WASE11-42");
+    expect(pdf).toContain("IP12-128");
+    expect(items[0].features[1].value).toContain("\u2011"); // Sin modificar el inventario.
   });
 });
 
