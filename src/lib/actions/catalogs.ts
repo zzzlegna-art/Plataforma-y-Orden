@@ -7,6 +7,27 @@ import type { Actor, Brand, Category, Db, Product, ProductCategory, ProductTechn
 import { isSameText, requireNumber, requirePermission, requireText } from "./guards";
 
 /** SKU comercial, por categoría, tipo de repuesto, fabricante y modelo. Las colisiones reciben sufijo. */
+export const generarSkuProducto = (
+  db: Db,
+  name: string,
+  ignoreId?: string,
+  reservedSkus: ReadonlySet<string> = new Set(),
+  categoria?: ProductCategory,
+  marca?: string,
+): string => {
+  const base = skuBaseReferencia({ name, categoria, marca });
+  if (!base) return "";
+  const taken = (sku: string) =>
+    reservedSkus.has(sku.toUpperCase()) ||
+    db.products.some((product) =>
+      product.id !== ignoreId && product.sku.trim().toUpperCase() === sku.toUpperCase(),
+    );
+  if (!taken(base)) return base;
+  let counter = 2;
+  while (taken(base.slice(0, 35) + "-" + counter)) counter++;
+  return base.slice(0, 35) + "-" + counter;
+};
+
 export const generarSkuAlEditar = (
   db: Db,
   name: string,
