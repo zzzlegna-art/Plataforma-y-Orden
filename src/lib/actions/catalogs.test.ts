@@ -116,6 +116,74 @@ describe("SKU corta automática", () => {
     expect(generarSkuProducto(db, "Samsung Galaxy A55 128GB")).toBe("A55-128");
   });
 
+  it("distingue los repuestos del equipo completo y distingue baterías con/sin flex", () => {
+    const db = emptyDb();
+    expect(generarSkuProducto(db, "iPhone 13 128 GB", undefined, undefined, "celular")).toBe("IP13-128");
+    expect(generarSkuProducto(db, "Batería iPhone 13", undefined, undefined, "repuesto")).toBe("BAT-IP13");
+    expect(generarSkuProducto(db, "Batería de iPhone 11 Pro Max con flex", undefined, undefined, "repuesto")).toBe("BAT-IP11PM-CF");
+    expect(generarSkuProducto(db, "Bateria iPhone 11 Pro Max sin flex", undefined, undefined, "repuesto")).toBe("BAT-IP11PM-SF");
+    expect(generarSkuProducto(db, "Display iPhone 13", undefined, undefined, "repuesto")).toBe("PAN-IP13");
+    expect(generarSkuProducto(db, "Pantalla iPhone 13", undefined, undefined, "repuesto")).toBe("PAN-IP13");
+    expect(generarSkuProducto(db, "Cámara iPhone 13", undefined, undefined, "repuesto")).toBe("CAM-IP13");
+    expect(generarSkuProducto(db, "Batería iPhone 13 128 GB", undefined, undefined, "repuesto")).toBe("BAT-IP13");
+  });
+
+  it("mantiene las familias de tablets, relojes y audífonos y separa tipos administrables", () => {
+    const db = emptyDb();
+    for (const categoria of ["tablet", "reloj", "audifono"] as const) {
+      const name = categoria === "tablet" ? "iPad A16 128 GB" :
+        categoria === "reloj" ? "Watch Serie 11 - 46" : "AirPods 4";
+      expect(generarSkuProducto(db, name, undefined, undefined, categoria))
+        .toBe(generarSkuProducto(db, name));
+    }
+    expect(generarSkuProducto(db, "Parlante JBL Go 4", undefined, undefined, "parlante"))
+      .toMatch(/^PARL-/);
+  });
+
+  it("crea un celular y su batería con SKU distintas aunque compartan modelo", () => {
+    const db = emptyDb();
+    const phone = createProduct(db, admin, {
+      name: "iPhone 13 128 GB", categoria: "celular", price: 1, cost: 1, minStock: 0,
+    });
+    const battery = createProduct(db, admin, {
+      name: "Batería iPhone 13", categoria: "repuesto", price: 1, cost: 1, minStock: 0,
+    });
+    const batteryAgain = createProduct(db, admin, {
+      name: "Batería iPhone 13", categoria: "repuesto", price: 1, cost: 1, minStock: 0,
+    });
+    expect(phone.sku).toBe("IP13-128");
+    expect(battery.sku).toBe("BAT-IP13");
+    expect(batteryAgain.sku).toBe("BAT-IP13-2");
+    expect(() => createProduct(db, admin, {
+      name: "Otra batería", categoria: "repuesto", sku: "bat-ip13", price: 1, cost: 1, minStock: 0,
+    })).toThrow(DomainError);
+  });
+
+  it("respeta SKU históricas y manuales al editar y no modifica los demás productos", () => {
+    const db = emptyDb();
+    const antiguo = createProduct(db, admin, {
+      name: "Batería iPhone 11", sku: "IP11", categoria: "repuesto", price: 1, cost: 1, minStock: 0,
+    });
+    const edited = updateProduct(db, admin, {
+      id: antiguo.id, name: "Batería iPhone 11 sin flex", sku: antiguo.sku,
+      categoria: "repuesto", price: 1, cost: 1, minStock: 0,
+    });
+    expect(edited.sku).toBe("IP11");
+    expect(generarSkuProducto(db, "Batería iPhone 11 sin flex", undefined, undefined, "repuesto"))
+      .toBe("BAT-IP11-SF");
+  });
+
+  it("comprueba colisiones al generar repuestos tanto en la base como en reservas", () => {
+    const db = emptyDb();
+    const reserved = new Set(["BAT-IP13", "BAT-IP13-2"]);
+    expect(generarSkuProducto(db, "Batería iPhone 13", undefined, reserved, "repuesto")).toBe("BAT-IP13-3");
+    db.products.push({
+      id: "old-battery", sku: " BAT-IP13 ", name: "Batería de prueba",
+      price: 1, cost: 1, minStock: 0, isActive: true, createdAt: now, updatedAt: now,
+    });
+    expect(generarSkuProducto(db, "Batería iPhone 13", undefined, undefined, "repuesto")).toBe("BAT-IP13-2");
+  });
+
   it("trata los SKU existentes con espacios externos como duplicados al crear", () => {
     const db = emptyDb();
     db.products.push({
