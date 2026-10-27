@@ -75,7 +75,7 @@ describe("corrección retrospectiva del proveedor", () => {
     expect(JSON.stringify(db.units)).toBe(unitsBefore);
     expect(JSON.stringify(db.movements)).toBe(movementsBefore);
     expect(db.auditLogs).toHaveLength(auditBefore + 1);
-    expect(db.auditLogs.at(-1)).toEqual(expect.objectContaining({
+    expect(db.auditLogs[0]).toEqual(expect.objectContaining({
       entity: "reception", action: "update", entityId: reception.id,
     }));
 
