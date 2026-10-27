@@ -1,8 +1,8 @@
 // @vitest-environment jsdom
 import { useState } from "react";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, cleanup } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 
 import { ProductSpecificationField, PRODUCT_TECHNICAL_TEXT_LIMIT } from "./ProductSpecificationField";
 
@@ -20,6 +20,7 @@ const ControlledSpecification = ({ multiline = false }: { multiline?: boolean })
 };
 
 describe("edición de características técnicas en inventario", () => {
+  afterEach(cleanup);
   it("permite pulsar espacio sin eliminarlo al final de la palabra", async () => {
     const user = userEvent.setup();
     render(<ControlledSpecification />);
