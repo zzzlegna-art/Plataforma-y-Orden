@@ -82,23 +82,23 @@ export const generarSkuProducto = (
 
   if (tipoNormalizado === "repuesto") {
     const parte =
-      /\b(BATERIA|PILA)\b/.test(normalizado) ? "BAT" :
-      /\b(PANTALLA|DISPLAY|MODULO)\b/.test(normalizado) ? "PAN" :
+      /\b(BATERIA|BATERIAS|PILA|BAT)\b/.test(normalizado) ? "BAT" :
+      /\b(PANTALLA|DISPLAY|MODULO|TACTIL)\b/.test(normalizado) ? "PAN" :
       /\b(CAMARA|CAMARAS)\b/.test(normalizado) ? "CAM" :
       /\b(TAPA|CARCASA)\b/.test(normalizado) ? "TAP" :
-      /\b(CARGADOR|CARGA)\b/.test(normalizado) ? "CAR" :
       /\b(FLEX)\b/.test(normalizado) ? "FLE" :
       /\b(CONECTOR|PUERTO)\b/.test(normalizado) ? "CON" :
+      /\b(CARGADOR|CARGA)\b/.test(normalizado) ? "CAR" :
       /\b(ALTAVOZ|PARLANTE|BUZZER)\b/.test(normalizado) ? "ALT" :
       /\b(MICROFONO)\b/.test(normalizado) ? "MIC" : "REP";
-    const flex = /\bSIN\s+FLEX\b/.test(normalizado) ? "-SF" :
-      /\bCON\s+FLEX\b/.test(normalizado) ? "-CF" : "";
+    const flex = /\b(SIN|NO)\s+FLEX\b/.test(normalizado) ? "-SF" :
+      /\bFLEX\b/.test(normalizado) ? "-CF" : "";
     // La capacidad en GB de un iPhone NO forma parte del código de su batería.
     // La diferencia con/sin flex sí lo hace.
     base = parte + "-" + modelo.slice(0, 14) + flex;
   } else if (tipoNormalizado && !["celular", "tablet", "reloj", "audifono"].includes(tipoNormalizado)) {
     // Los tipos añadidos desde Administración también tienen una familia propia.
-    const prefijo = tipoNormalizado.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 4) || "OTR";
+    const prefijo = tipoNormalizado.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 10) || "OTR";
     base = prefijo + "-" + base;
   }
 
