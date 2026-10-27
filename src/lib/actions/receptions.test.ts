@@ -26,6 +26,48 @@ const entrada = (id: string, serial = "SERIAL-12345"): Unit => ({
   createdBy: actor.id,
 });
 
+describe("confirmación de recepciones grandes", () => {
+  it("confirma 1.350 repuestos, genera una unidad y un movimiento por pieza, sin perder capturas", () => {
+    const db = emptyDb();
+    const repuesto: Product = { ...producto, id: "bateria-xr", name: "Batería iPhone XR sin flex", categoria: "repuesto" };
+    db.products.push(repuesto);
+    const reception = createReception(db, actor, {});
+    for (let i = 0; i < 1350; i++) {
+      db.receptionItems.push({
+        id: "item-" + i, receptionId: reception.id, productId: repuesto.id,
+        serial: "REP-" + String(i + 1).padStart(4, "0"), condition: "nuevo",
+        createdAt: "2026-10-27T08:00:00Z",
+      });
+    }
+    const confirmed = confirmReception(db, actor, { id: reception.id });
+    expect(confirmed.status).toBe("confirmada");
+    expect(db.receptionItems).toHaveLength(0);
+    expect(db.units).toHaveLength(1350);
+    expect(new Set(db.units.map((unit) => unit.serial)).size).toBe(1350);
+    expect(db.movements.filter((movement) => movement.referenceId === reception.id)).toHaveLength(1350);
+    expect(db.auditLogs.filter((event) => event.entityId === reception.id)).toHaveLength(1);
+  });
+
+  it("rechaza un serial repetido en un lote grande antes de crear una sola unidad", () => {
+    const db = emptyDb();
+    db.products.push(producto);
+    const reception = createReception(db, actor, {});
+    for (let i = 0; i < 1350; i++) {
+      db.receptionItems.push({
+        id: "item-" + i, receptionId: reception.id, productId: producto.id,
+        serial: i === 1349 ? "SERIAL-0002" : "SERIAL-" + String(i + 1).padStart(4, "0"),
+        condition: "nuevo", createdAt: "2026-10-27T08:00:00Z",
+      });
+    }
+    expect(() => confirmReception(db, actor, { id: reception.id }))
+      .toThrowError(DomainError);
+    expect(db.units).toHaveLength(0);
+    expect(db.movements).toHaveLength(0);
+    expect(reception.status).toBe("captura");
+    expect(db.receptionItems).toHaveLength(1350);
+  });
+});
+
 describe("protección de seriales en recepción", () => {
   it("no permite repetir un serial dentro de la misma recepción", () => {
     const db = emptyDb();
