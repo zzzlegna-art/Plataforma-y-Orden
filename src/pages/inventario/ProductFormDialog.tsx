@@ -114,7 +114,7 @@ export const ProductFormDialog = ({
       setForm({
         ...draft.form,
         ...(!skuWasManuallyEdited ? {
-          sku: generarSkuAlEditar(dbRef.current, draft.form.name, draft.form.categoria, currentProduct),
+          sku: generarSkuAlEditar(dbRef.current, draft.form.name, draft.form.categoria, currentProduct, draft.form.brandId),
         } : {}),
       });
       setTechnicalSpecs(draft.technicalSpecs);
@@ -328,7 +328,7 @@ export const ProductFormDialog = ({
                   setSkuManual(false);
                   setForm((current) => ({
                     ...current,
-                    sku: generarSkuProducto(db, current.name, product?.id, undefined, current.categoria),
+                    sku: generarSkuProducto(db, current.name, product?.id, undefined, current.categoria, db.brands.find((brand) => brand.id === current.brandId)?.name),
                   }));
                 }}
               >
@@ -347,7 +347,7 @@ export const ProductFormDialog = ({
                 setForm((current) => ({
                   ...current,
                   name,
-                  ...(!skuManual ? { sku: generarSkuAlEditar(db, name, current.categoria, product) } : {}),
+                  ...(!skuManual ? { sku: generarSkuAlEditar(db, name, current.categoria, product, current.brandId) } : {}),
                 }));
               }}
             />
@@ -361,7 +361,7 @@ export const ProductFormDialog = ({
                 categoria: value,
                 // El código se actualiza también en edición, salvo que el usuario lo haya escrito manualmente.
                 ...(!skuManual ? {
-                  sku: generarSkuAlEditar(db, current.name, value, product),
+                  sku: generarSkuAlEditar(db, current.name, value, product, current.brandId),
                 } : {}),
               }))}
               emptyLabel={t("common.none")}
