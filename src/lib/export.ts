@@ -1669,16 +1669,16 @@ export const posicionesFichaCatalogo = (
   metadataLines: number,
   descriptionLines: number,
 ) => {
-  const titleBaseline = 12;
-  const metadataBaseline = titleBaseline + titleLines * 15 + 4;
-  const descriptionBaseline = metadataBaseline + metadataLines * 10.8 +
-    (descriptionLines ? 5 : 0);
-  const introEndY = metadataBaseline + metadataLines * 10.8 +
-    (descriptionLines ? 5 + descriptionLines * 10.8 : 0);
+  const titleBaseline = 11;
+  const metadataBaseline = titleBaseline + titleLines * 14.2 + 3;
+  const descriptionBaseline = metadataBaseline + metadataLines * 10.3 +
+    (descriptionLines ? 4 : 0);
+  const introEndY = metadataBaseline + metadataLines * 10.3 +
+    (descriptionLines ? 4 + descriptionLines * 10.3 : 0);
   return {
     titleBaseline, metadataBaseline, descriptionBaseline, introEndY,
-    featuresLabelY: introEndY + 8,
-    firstFeatureY: introEndY + 22,
+    featuresLabelY: introEndY + 7,
+    firstFeatureY: introEndY + 20,
   };
 };
 
@@ -1688,6 +1688,20 @@ export const posicionesFichaCatalogo = (
  * Sin paneles interiores, sin texto encima de otros campos y sin truncar
  * las características: las fichas excepcionales continúan en otra página.
  */
+/** Corrige etiquetas técnicas con letras separadas sin alterar productos almacenados. */
+export const normalizeCatalogFeatureLabel = (label: string): string => {
+  const normalized = normalizeCatalogText(label);
+  const key = label.normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-zA-Z]/g, "").toLowerCase();
+  const names: Record<string, string> = {
+    conectividad: "Conectividad",
+    compatibilidad: "Compatibilidad",
+    almacenamiento: "Almacenamiento",
+    procesador: "Procesador",
+  };
+  return names[key] ?? normalized;
+};
+
 export const exportProductCatalogPdf = async ({
   title, subtitle, filename, products, includePrice, includeStock, labels, onProgress,
 }: ProductCatalogExportOptions) => {
@@ -1696,19 +1710,19 @@ export const exportProductCatalogPdf = async ({
   const pageW = doc.internal.pageSize.getWidth();
   const pageH = doc.internal.pageSize.getHeight();
   const margin = 24;
-  const padding = 12;
-  const gap = 9;
-  const imageBox = 100;
-  const imageSize = 92;
+  const padding = 9;
+  const gap = 7;
+  const imageBox = 86;
+  const imageSize = 78;
   const cardWidth = pageW - margin * 2;
   const imageX = margin + padding;
-  const detailX = imageX + imageBox + 16;
+  const detailX = imageX + imageBox + 13;
   const detailWidth = pageW - margin - padding - detailX;
   const featureTextX = detailX + 7;
   const featureWidth = detailWidth - 7;
   const footerHeight = includePrice || includeStock ? 28 : 0;
-  const lineHeight = 11.5;
-  const rowGap = 2.3;
+  const lineHeight = 10.5;
+  const rowGap = 1.3;
   const bottom = pageH - FOOTER_SPACE;
   const pageCapacity = bottom - CONTENT_TOP;
   const drawHeader = () => dibujarEncabezado(doc, title, subtitle, margin);
@@ -1716,10 +1730,10 @@ export const exportProductCatalogPdf = async ({
   // Se mide cada línea con el tamaño y la familia tipográfica que se imprimirá.
   const layouts = products.map((product) => {
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(12.2);
+    doc.setFontSize(11.8);
     const nameLines = splitCatalogLines(doc, normalizeCatalogText(product.name), detailWidth, 2);
     doc.setFont("helvetica", "normal");
-    doc.setFontSize(8.5);
+    doc.setFontSize(8.2);
     const metadata = [
       labels.reference + ": " + normalizeCatalogText(product.sku || "—"),
       product.brand ? labels.brand + ": " + normalizeCatalogText(product.brand) : null,
@@ -1734,12 +1748,12 @@ export const exportProductCatalogPdf = async ({
     );
 
     doc.setFont("helvetica", "normal");
-    doc.setFontSize(8.8);
+    doc.setFontSize(8.5);
     const features = (product.features?.length ? product.features : [
       { label: "", value: labels.noFeatures },
     ]).map((feature) => {
       const featureText = feature.label
-        ? normalizeCatalogText(feature.label) + ": " + normalizeCatalogText(feature.value)
+        ? normalizeCatalogFeatureLabel(feature.label) + ": " + normalizeCatalogText(feature.value)
         : normalizeCatalogText(feature.value);
       // Nunca omitir una especificación técnica por un límite de líneas.
       return splitCatalogLines(doc, featureText, featureWidth, 10000);
@@ -1837,7 +1851,8 @@ export const exportProductCatalogPdf = async ({
       doc.setFillColor(CYAN[0], CYAN[1], CYAN[2]);
       doc.roundedRect(margin + 1, cardY + 12, 3, 25, 1, 1, "F");
 
-      const imageY = cardY + padding;
+      // Centrar la fotografía respecto al contenido de la ficha, no al nombre.
+      const imageY = cardY + padding + (contentHeight - imageBox) / 2;
       doc.setFillColor(CYAN_PALE[0], CYAN_PALE[1], CYAN_PALE[2]);
       doc.setDrawColor(BORDER[0], BORDER[1], BORDER[2]);
       doc.roundedRect(imageX, imageY, imageBox, imageBox, 5, 5, "FD");
@@ -1856,12 +1871,12 @@ export const exportProductCatalogPdf = async ({
       }
 
       doc.setFont("helvetica", "bold");
-      doc.setFontSize(12.2);
+      doc.setFontSize(11.8);
       doc.setTextColor(NAVY[0], NAVY[1], NAVY[2]);
       doc.text(nameLines, detailX, cardY + padding + geometry.titleBaseline,
         { lineHeightFactor: 1.19 });
       doc.setFont("helvetica", "normal");
-      doc.setFontSize(8.5);
+      doc.setFontSize(8.2);
       doc.setTextColor(MUTED[0], MUTED[1], MUTED[2]);
       doc.text(metadataLines, detailX, cardY + padding + geometry.metadataBaseline,
         { lineHeightFactor: 1.27 });
@@ -1872,7 +1887,7 @@ export const exportProductCatalogPdf = async ({
       }
 
       doc.setFont("helvetica", "bold");
-      doc.setFontSize(9);
+      doc.setFontSize(8.4);
       doc.setTextColor(CYAN_DARK[0], CYAN_DARK[1], CYAN_DARK[2]);
       const featureHeading = labels.features;
       doc.text(splitCatalogLines(doc, featureHeading, detailWidth, 1),
@@ -1880,7 +1895,7 @@ export const exportProductCatalogPdf = async ({
 
       let rowY = cardY + padding + geometry.firstFeatureY;
       doc.setFont("helvetica", "normal");
-      doc.setFontSize(8.8);
+      doc.setFontSize(8.5);
       doc.setTextColor(TEXT[0], TEXT[1], TEXT[2]);
       for (const fragment of fragments) {
         if (fragment.bullet) {
@@ -1888,8 +1903,10 @@ export const exportProductCatalogPdf = async ({
           doc.circle(featureTextX - 6, rowY - 3, 1.15, "F");
         }
         // El ancho del texto ya fue medido con esta misma fuente.
+        // El texto ya fue medido: no aplicar un segundo ajuste de jsPDF
+        // que podría provocar espaciado irregular entre letras.
         doc.text(fragment.lines, featureTextX, rowY, {
-          lineHeightFactor: 1.3, maxWidth: featureWidth,
+          lineHeightFactor: 1.24,
         });
         rowY += fragment.lines.length * lineHeight + rowGap;
       }
