@@ -332,6 +332,7 @@ const ESPECIFICACIONES: Spec<unknown>[] = [
     aFila: (r) => ({
       id: r.id,
       code: r.code,
+      supplier_id: nulo(r.supplierId),
       reference: nulo(r.reference),
       status: r.status,
       received_at: r.receivedAt,
@@ -343,6 +344,7 @@ const ESPECIFICACIONES: Spec<unknown>[] = [
     desdeFila: (f) => ({
       id: String(f.id),
       code: texto(f.code) ?? "REC",
+      supplierId: texto(f.supplier_id) ?? undefined,
       reference: texto(f.reference) ?? undefined,
       status: (texto(f.status) as Reception["status"]) ?? "captura",
       receivedAt: fecha(f.received_at),
