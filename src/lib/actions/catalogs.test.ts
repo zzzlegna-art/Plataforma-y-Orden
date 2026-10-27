@@ -126,6 +126,10 @@ describe("SKU corta automática", () => {
     expect(generarSkuProducto(db, "Pantalla iPhone 13", undefined, undefined, "repuesto")).toBe("PAN-IP13");
     expect(generarSkuProducto(db, "Cámara iPhone 13", undefined, undefined, "repuesto")).toBe("CAM-IP13");
     expect(generarSkuProducto(db, "Batería iPhone 13 128 GB", undefined, undefined, "repuesto")).toBe("BAT-IP13");
+    expect(generarSkuProducto(db, "Batería iPhone 13 flex", undefined, undefined, "repuesto")).toBe("BAT-IP13-CF");
+    expect(generarSkuProducto(db, "Batería iPhone 13 no flex", undefined, undefined, "repuesto")).toBe("BAT-IP13-SF");
+    expect(generarSkuProducto(db, "Flex de carga iPhone 13", undefined, undefined, "repuesto")).toBe("FLE-IP13");
+    expect(generarSkuProducto(db, "Conector de carga iPhone 13", undefined, undefined, "repuesto")).toBe("CON-IP13");
   });
 
   it("mantiene las familias de tablets, relojes y audífonos y separa tipos administrables", () => {
@@ -137,7 +141,9 @@ describe("SKU corta automática", () => {
         .toBe(generarSkuProducto(db, name));
     }
     expect(generarSkuProducto(db, "Parlante JBL Go 4", undefined, undefined, "parlante"))
-      .toMatch(/^PARL-/);
+      .toMatch(/^PARLANTE-/);
+    expect(generarSkuProducto(db, "Parlante JBL Go 4", undefined, undefined, "parlantes"))
+      .toMatch(/^PARLANTES-/);
   });
 
   it("crea un celular y su batería con SKU distintas aunque compartan modelo", () => {
