@@ -41,7 +41,6 @@ import { Link, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 
 import { DataTable } from "@/components/shared/data-table";
-import { getProductReferenceImageFallback } from "@/components/shared/product-thumbnail";
 import { ExportDialog } from "@/components/shared/export-dialog";
 import { PageHeader } from "@/components/shared/page-header";
 import { SearchField } from "@/components/shared/search-field";
@@ -242,17 +241,12 @@ const ProductThumbnail = ({
 }) => {
   const { t } = useTranslation();
   const [imageFailed, setImageFailed] = useState(false);
-  const [referenceImageFailed, setReferenceImageFailed] = useState(false);
   useEffect(() => {
     setImageFailed(false);
-    setReferenceImageFailed(false);
-  }, [product.imageUrl, product.name]);
-  const referenceImageUrl = getProductReferenceImageFallback(product.name);
-  const imageUrl = product.imageUrl && !imageFailed
-    ? product.imageUrl
-    : referenceImageUrl && !referenceImageFailed
-      ? referenceImageUrl
-      : undefined;
+  }, [product.imageUrl]);
+  // Solo mostrar fotografías asignadas explícitamente a esta referencia.
+  // No deducir fotos de celulares a partir del nombre de pantallas o repuestos.
+  const imageUrl = product.imageUrl && !imageFailed ? product.imageUrl : undefined;
 
   const Icon =
     product.categoria === "celular"
@@ -306,10 +300,7 @@ const ProductThumbnail = ({
               alt={product.name}
               loading="lazy"
               decoding="async"
-              onError={() => {
-                if (product.imageUrl && !imageFailed) setImageFailed(true);
-                else setReferenceImageFailed(true);
-              }}
+              onError={() => setImageFailed(true)}
               className="absolute inset-0 z-10 h-full w-full object-contain p-1.5"
             />
             <span className="absolute bottom-1 right-1 z-20 rounded-lg bg-black/65 p-1.5 text-white opacity-0 shadow-sm transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100">
