@@ -4,6 +4,7 @@ import type { Actor, Role, Db } from "@/lib/types";
 
 export type RunAction = <T>(
   action: (db: Db, actor: Actor) => T | Promise<T>,
+  options?: { deferOptimistic?: boolean },
 ) => Promise<T>;
 
 export interface AppValue {
