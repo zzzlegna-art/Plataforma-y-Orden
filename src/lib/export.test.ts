@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { strFromU8, unzipSync } from "fflate";
 import { jsPDF } from "jspdf";
 
-import { dibujarEncabezado, subtituloDocumentoSinMarcaDuplicada, exportCompanyName, exportExcel, exportOrderSerialRelationPdf, exportPedidosHistorialExcel, exportProductCatalogExcel, exportProductCatalogPdf, exportSalesInvoicePdf, normalizeCatalogText, tituloDocumentoSinMarcaDuplicada, splitCatalogLines } from "./export";
+import { dibujarEncabezado, subtituloDocumentoSinMarcaDuplicada, exportCompanyName, exportExcel, exportOrderSerialRelationPdf, exportPedidosHistorialExcel, exportProductCatalogExcel, exportProductCatalogPdf, exportSalesInvoicePdf, normalizeCatalogText, tituloDocumentoSinMarcaDuplicada, splitCatalogLines, posicionesFichaCatalogo } from "./export";
 
 const ONE_PIXEL_JPEG =
   "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCAABAAEDASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwD6pooooA//2Q==";
@@ -227,6 +227,24 @@ describe("identidad de exportaciones", () => {
     expect(exportCompanyName("My Company")).toBe("NEXORA");
     expect(exportCompanyName("")).toBe("NEXORA");
     expect(exportCompanyName("Tecnología del Norte")).toBe("Tecnología del Norte");
+  });
+});
+
+describe("geometría de fichas del catálogo", () => {
+  it.each([
+    [1, 1, 0], [1, 2, 0], [2, 2, 2], [2, 1, 1],
+  ] as const)("nunca coloca características encima de nombre, SKU o descripción (%i/%i/%i)", (titles, metadata, descriptions) => {
+    const p = posicionesFichaCatalogo(titles, metadata, descriptions);
+    const lastNameBaseline = p.titleBaseline + (titles - 1) * 15;
+    const lastMetaBaseline = p.metadataBaseline + (metadata - 1) * 10.8;
+    const lastDescriptionBaseline = descriptions
+      ? p.descriptionBaseline + (descriptions - 1) * 10.8
+      : lastMetaBaseline;
+    expect(p.metadataBaseline - lastNameBaseline).toBeGreaterThan(12);
+    expect(p.featuresLabelY - lastMetaBaseline).toBeGreaterThan(12);
+    expect(p.featuresLabelY - lastDescriptionBaseline).toBeGreaterThan(12);
+    expect(p.firstFeatureY - p.featuresLabelY).toBeGreaterThanOrEqual(14);
+    expect(p.introEndY).toBeLessThan(p.featuresLabelY);
   });
 });
 
