@@ -96,7 +96,11 @@ export const generarSkuProducto = (
       : "";
     // La capacidad en GB de un iPhone NO forma parte del código de su batería.
     // La diferencia con/sin flex sí lo hace.
-    base = parte + "-" + modelo.slice(0, 14) + flex;
+    const dobleIphone = normalizado.match(/\bIPHONE\s*(\d{1,2})\s+(?:Y\s+)?\1\s+PRO(?:\s+MAX)?\b/);
+    const modeloRepuesto = dobleIphone
+      ? "IP" + dobleIphone[1] + "-" + dobleIphone[1] + (/PRO\s+MAX\b/.test(dobleIphone[0]) ? "PM" : "P")
+      : modelo;
+    base = parte + "-" + modeloRepuesto.slice(0, 14) + flex;
   } else if (tipoNormalizado && !["celular", "tablet", "reloj", "audifono"].includes(tipoNormalizado)) {
     // Los tipos añadidos desde Administración también tienen una familia propia.
     const prefijo = tipoNormalizado.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 10) || "OTR";
