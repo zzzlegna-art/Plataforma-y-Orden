@@ -43,11 +43,13 @@ import {
   buscarSerialPrevio,
   findUnitBySerial,
   getUnitOrigen,
+  getUnitSupplierReceptions,
   getUnitTimeline,
   rutaDeRecepcion,
   unitLocation,
 } from "@/lib/selectors";
 import type { Unit } from "@/lib/types";
+import { listSuppliers, type Supplier } from "@/lib/suppliers";
 
 const exportarCsv = (serial: string, fechaIngreso: string, rows: ReturnType<typeof getUnitTimeline>) => {
   const header = `Serial;${serial}\nIngreso;${fechaIngreso}\nFecha;Tipo;Descripcion;Usuario\n`;
@@ -109,6 +111,18 @@ const HistorialSerial = ({ embedded = false }: { embedded?: boolean }) => {
   // Recepción, venta, cliente y garantías del equipo (cada una se puede abrir desde aquí).
   const origen = useMemo(() => (unit ? getUnitOrigen(db, unit) : undefined), [db, unit]);
   const reception = origen?.reception;
+  const sourceReceptions = useMemo(() => unit ? getUnitSupplierReceptions(db, unit) : [], [db, unit]);
+  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
+  const hasSupplier = sourceReceptions.some((entry) => Boolean(entry.supplierId));
+  useEffect(() => {
+    if (!hasSupplier) return;
+    let active = true;
+    void listSuppliers().then((entries) => { if (active) setSuppliers(entries); })
+      .catch((error: unknown) => console.warn("No se pudo consultar el proveedor del serial", error));
+    return () => { active = false; };
+  }, [hasSupplier]);
+  const supplierName = (supplierId?: string) =>
+    suppliers.find((supplier) => supplier.id === supplierId)?.name;
   const order = origen?.order;
   const customer = origen?.customer;
   const warranties = unit
@@ -369,6 +383,29 @@ const HistorialSerial = ({ embedded = false }: { embedded?: boolean }) => {
                 </p>
               </div>
             </div>
+
+            {sourceReceptions.length > 0 ? (
+              <div className="mt-3 rounded-lg border bg-primary/5 p-3">
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  Procedencia · Proveedor
+                </p>
+                <div className="mt-2 space-y-2">
+                  {sourceReceptions.map((receipt) => (
+                    <div key={receipt.id} className="flex flex-wrap items-center justify-between gap-2 text-sm">
+                      <CodeLink to={rutaDeRecepcion(receipt, unit?.serial)}>{receipt.code}</CodeLink>
+                      <span className="font-medium">
+                        {receipt.supplierId
+                          ? (supplierName(receipt.supplierId) ?? "Proveedor registrado (nombre no disponible)")
+                          : "Sin proveedor asignado"}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+                <p className="mt-2 text-xs text-muted-foreground">
+                  Este dato se actualiza automáticamente cuando corriges el proveedor de la recepción.
+                </p>
+              </div>
+            ) : null}
 
             {order ? (
               <div className="mt-3 rounded-md bg-muted/50 px-3 py-2 text-sm">
