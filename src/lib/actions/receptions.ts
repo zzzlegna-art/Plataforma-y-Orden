@@ -42,7 +42,7 @@ export const receptionItems = (db: Db, receptionId: string) =>
 export const createReception = (
   db: Db,
   actor: Actor,
-  input: { reference?: string; receivedAt?: string; notes?: string },
+  input: { supplierId?: string; reference?: string; receivedAt?: string; notes?: string },
 ): Reception => {
   requirePermission(actor, "receptions.manage");
   const reception: Reception = {
@@ -51,6 +51,7 @@ export const createReception = (
       db.receptions.map((item) => item.code),
       "REC",
     ),
+    supplierId: input.supplierId?.trim() || undefined,
     reference: input.reference?.trim() || undefined,
     status: "captura",
     receivedAt: input.receivedAt || nowIso(),
@@ -65,11 +66,12 @@ export const createReception = (
 export const updateReception = (
   db: Db,
   actor: Actor,
-  input: { id: string; reference?: string; receivedAt?: string; notes?: string },
+  input: { id: string; supplierId?: string; reference?: string; receivedAt?: string; notes?: string },
 ) => {
   requirePermission(actor, "receptions.manage");
   const reception = findReception(db, input.id);
   assertEditable(reception);
+  reception.supplierId = input.supplierId?.trim() || undefined;
   reception.reference = input.reference?.trim() || undefined;
   reception.receivedAt = input.receivedAt || reception.receivedAt;
   reception.notes = input.notes?.trim() || undefined;
