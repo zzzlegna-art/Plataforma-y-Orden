@@ -11,7 +11,7 @@ import {
 import type { Actor, Db, Reception, ReceptionItem, Unit, UnitCondition } from "../types";
 import { errorDeSerialCelular, normalizarImei } from "../imei";
 import { esProductoRepuesto } from "../products";
-import { isSameText, requirePermission, requireText } from "./guards";
+import { isSameText, normalizeText, requirePermission, requireText } from "./guards";
 
 const findReception = (db: Db, id: string) => {
   const reception = db.receptions.find((item) => item.id === id);
@@ -244,24 +244,31 @@ export const confirmReception = (
   const items = receptionItems(db, reception.id);
   if (items.length === 0) throw new DomainError("errors.receptionEmpty");
 
-  const serials = items.map((item) => item.serial);
-  const duplicated = serials.find(
-    (serial, index) =>
-      serials.findIndex((other) => isSameText(other, serial)) !== index,
-  );
-  if (duplicated) {
-    throw new DomainError("errors.serialDuplicateInReception");
+  // Confirmar 1.000+ unidades debe ser O(n), no buscar todo el inventario
+  // por cada serial. Las claves mantienen la misma comparación que isSameText.
+  const serialesVistos = new Set<string>();
+  const unidadesActivas = new Map<string, Unit>();
+  const unidadesLiberadas = new Map<string, Unit>();
+  for (const unit of db.units) {
+    const key = normalizeText(unit.serial);
+    if (unit.status === "liberado") unidadesLiberadas.set(key, unit);
+    else unidadesActivas.set(key, unit);
   }
-  const alreadyInStock = items.find((item) => unitActivaPorSerial(db, item.serial));
-  if (alreadyInStock) {
-    throw new DomainError("errors.serialAlreadyInStock", {
-      serial: alreadyInStock.serial,
-    });
+  for (const item of items) {
+    const key = normalizeText(item.serial);
+    if (serialesVistos.has(key)) {
+      throw new DomainError("errors.serialDuplicateInReception");
+    }
+    serialesVistos.add(key);
+    const activa = unidadesActivas.get(key);
+    if (activa) {
+      throw new DomainError("errors.serialAlreadyInStock", { serial: activa.serial });
+    }
   }
 
   const confirmedAt = nowIso();
   items.forEach((item) => {
-    const liberada = unitLiberadaPorSerial(db, item.serial);
+    const liberada = unidadesLiberadas.get(normalizeText(item.serial));
     if (liberada) {
       // Reingreso: se reactiva la unidad existente conservando su historial.
       liberada.productId = item.productId;
