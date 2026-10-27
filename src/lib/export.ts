@@ -1803,6 +1803,7 @@ export const exportProductCatalogPdf = async ({
   await new Promise<void>((resolve) => window.setTimeout(resolve, 0));
   doc.save(filename);
   onProgress?.({ phase: "complete", completed: layouts.length, total: layouts.length, percent: 100 });
+  return doc;
 };
 
 /**
