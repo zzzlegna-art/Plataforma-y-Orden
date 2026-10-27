@@ -381,7 +381,7 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
   }, [aplicarDb, liberarBloqueo]);
 
   const run: AppValue["run"] = useCallback(
-    async (action) => {
+    async (action, options) => {
       if (!dbRef.current) throw new DomainError("errors.notReady");
       const actor = userRef.current;
       if (!actor) throw new DomainError("errors.notAuthenticated");
@@ -400,6 +400,9 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
         let actual!: Db;
         let borrador!: Db;
         let resultado!: Awaited<ReturnType<typeof action>>;
+        // Recepciones grandes no deben desaparecer de la pantalla ANTES
+        // de que la base confirme sus 1.350 unidades.
+        let liberarDespuesDeGuardar = false;
         try {
           const base = dbRef.current;
           if (!base) throw new DomainError("errors.notReady");
@@ -408,13 +411,17 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
           // La acción valida el negocio aquí mismo; si falla, no se toca nada.
           resultado = await action(borrador, actor);
 
-          // Optimista: la pantalla responde al instante y el guardado sigue detrás.
-          aplicarDb(borrador);
-          versionRef.current += 1;
+          // Para recepciones de muchas unidades, esperar la confirmación real
+          // del servidor antes de retirar las capturas o mostrar "confirmada".
+          liberarDespuesDeGuardar = options?.deferOptimistic === true;
+          if (!liberarDespuesDeGuardar) {
+            aplicarDb(borrador);
+            versionRef.current += 1;
+          }
           guardadosRef.current += 1;
           bloqueosRef.current += 1;
         } finally {
-          soltarTurno();
+          if (!liberarDespuesDeGuardar) soltarTurno();
         }
 
         let fallo: DomainError | null = null;
@@ -432,6 +439,18 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
                   detalle: detalleTecnico(error instanceof Error ? error.message : String(error)),
                 });
         } finally {
+          if (liberarDespuesDeGuardar) {
+            try {
+              if (!fallo) {
+                aplicarDb(borrador);
+                versionRef.current += 1;
+              }
+            } finally {
+              // Mientras se confirmaba, no se permitieron acciones basadas
+              // en una foto de inventario que todavía no estaba confirmada.
+              soltarTurno();
+            }
+          }
           guardadosRef.current -= 1;
           versionRef.current += 1;
           if (fallo) refrescoPendienteRef.current = true;
