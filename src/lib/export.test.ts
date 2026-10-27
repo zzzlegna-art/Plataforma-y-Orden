@@ -235,6 +235,7 @@ describe("fichas técnicas de relojes", () => {
     const raw = "C o n e c t i v i d a d: W i F i 4, B l u e t o o t h 5 . 3; N F C; G P S o G P S + C e l l u l a r s e g ú n v a r i a n t e";
     const clean = normalizeCatalogText(raw);
     expect(clean).toContain("Conectividad:");
+    expect(normalizeCatalogText("C\u200D o\u200D n\u200D e\u200D c\u200D t\u200D i\u200D v\u200D i\u200D d\u200D a\u200D d")).toBe("Conectividad");
     expect(clean).toContain("Wi-Fi 4");
     expect(clean).toContain("Bluetooth 5.3");
     expect(clean).toContain("GPS o GPS");
