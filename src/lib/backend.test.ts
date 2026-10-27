@@ -158,6 +158,72 @@ describe("consultarPerfilSesion", () => {
   });
 });
 
+describe("recepción de 1.350 seriales sin guardados parciales", () => {
+  const fixture = () => {
+    const previo = emptyDb();
+    previo.receptions.push({
+      id: "r-1350", code: "REC-00001", status: "captura",
+      receivedAt: ahora, createdBy: "u1", createdAt: ahora,
+    });
+    for (let i = 0; i < 1350; i++) {
+      previo.receptionItems.push({
+        id: "ri-" + i, receptionId: "r-1350", productId: "p1",
+        serial: "REP-" + String(i + 1).padStart(4, "0"), condition: "nuevo",
+        createdAt: ahora,
+      });
+    }
+    const siguiente = cloneDb(previo);
+    siguiente.receptions[0].status = "confirmada";
+    siguiente.receptions[0].confirmedAt = ahora;
+    siguiente.receptionItems = [];
+    for (let i = 0; i < 1350; i++) {
+      siguiente.units.push({
+        id: "u-" + i, productId: "p1",
+        serial: "REP-" + String(i + 1).padStart(4, "0"),
+        condition: "nuevo", status: "en_bodega", receptionId: "r-1350",
+        receivedAt: ahora, createdBy: "u1",
+      });
+      siguiente.movements.push({
+        id: "m-" + i, productId: "p1", unitId: "u-" + i, type: "entrada",
+        quantity: 1, referenceType: "recepcion", referenceId: "r-1350",
+        createdBy: "u1", createdAt: ahora,
+      });
+    }
+    return { previo, siguiente };
+  };
+
+  it("envía todo en UNA transacción sin dividir los lotes de unidades", async () => {
+    const { previo, siguiente } = fixture();
+    mocks.rpc.mockResolvedValue({ data: { ok: true }, error: null });
+    await pushDb(previo, siguiente);
+    expect(mocks.rpc).toHaveBeenCalledTimes(1);
+    const [funcion, params] = mocks.rpc.mock.calls[0];
+    expect(funcion).toBe("nexora_guardar_con_version");
+    const pasos = params.p_cambios.pasos as Array<{
+      op: string; tabla: string; filas?: unknown[]; nuevos?: string[];
+      ids?: string[]; esperados?: unknown[];
+    }>;
+    expect(pasos.find((p) => p.tabla === "bodega_units")?.filas).toHaveLength(1350);
+    expect(pasos.find((p) => p.tabla === "bodega_units")?.nuevos).toHaveLength(1350);
+    expect(pasos.find((p) => p.tabla === "bodega_movements")?.filas).toHaveLength(1350);
+    expect(pasos.find((p) => p.tabla === "bodega_reception_items")?.ids).toHaveLength(1350);
+    expect(pasos.find((p) => p.tabla === "bodega_reception_items")?.esperados).toHaveLength(1350);
+    expect(pasos.find((p) => p.tabla === "bodega_receptions")?.filas).toHaveLength(1);
+  });
+
+  it("si el servidor rechaza el lote no realiza guardados por tabla", async () => {
+    const { previo, siguiente } = fixture();
+    mocks.rpc.mockResolvedValue({
+      data: null, error: { code: "57014", message: "canceling statement due to statement timeout" },
+    });
+    await expect(pushDb(previo, siguiente)).rejects.toBeInstanceOf(DomainError);
+    expect(mocks.rpc).toHaveBeenCalledTimes(1);
+    expect(mocks.registro).toEqual([]);
+    expect(previo.receptions[0].status).toBe("captura");
+    expect(previo.receptionItems).toHaveLength(1350);
+  });
+});
+
 describe("calcularPasos", () => {
   it("serializa la entidad de tipo de producto con el identificador SQL normalizado", () => {
     const previo = emptyDb();
