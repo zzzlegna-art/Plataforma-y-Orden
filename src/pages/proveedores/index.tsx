@@ -8,7 +8,7 @@ import { listSuppliers, setSupplierActive, type Supplier } from "@/lib/suppliers
 import { SupplierFormDialog } from "./SupplierFormDialog";
 
 /** Directorio de los proveedores que surten las recepciones de mercancía. */
-const Proveedores = () => {
+const Proveedores = ({ embedded = false }: { embedded?: boolean }) => {
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -48,16 +48,31 @@ const Proveedores = () => {
 
   return (
     <div className="space-y-5">
-      <PageHeader
-        title="Proveedores"
-        description="Registra y administra quienes suministran los productos que recibes en Nexora."
-        actions={
+      {embedded ? (
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="space-y-1">
+            <h2 className="text-lg font-semibold">Directorio de proveedores</h2>
+            <p className="text-sm text-muted-foreground">
+              Gestiona las empresas y personas que abastecen tus recepciones.
+            </p>
+          </div>
           <SupplierFormDialog
             onSaved={() => void refresh()}
             trigger={<Button><Plus className="h-4 w-4" /> Nuevo proveedor</Button>}
           />
-        }
-      />
+        </div>
+      ) : (
+        <PageHeader
+          title="Proveedores"
+          description="Registra y administra quienes suministran los productos que recibes en Nexora."
+          actions={
+            <SupplierFormDialog
+              onSaved={() => void refresh()}
+              trigger={<Button><Plus className="h-4 w-4" /> Nuevo proveedor</Button>}
+            />
+          }
+        />
+      )}
 
       <div className="flex flex-wrap items-center gap-3 rounded-xl border bg-card p-4">
         <div className="relative min-w-[190px] flex-1">
