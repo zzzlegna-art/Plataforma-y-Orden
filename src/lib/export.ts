@@ -1560,13 +1560,44 @@ export interface ProductCatalogExportOptions {
   onProgress?: (progress: CatalogExportProgress) => void;
 }
 
+/**
+ * jsPDF con la fuente estándar Helvetica no codifica correctamente ciertos
+ * signos Unicode (por ejemplo Wi‑Fi con guion inseparable U+2011).
+ * Una sola letra fuera de WinAnsi puede hacer que jsPDF emita toda la línea
+ * como UTF-16, mientras el cálculo del ancho usa otra métrica. Resultado:
+ * texto espaciado y desbordado del recuadro, incluso con valores correctos
+ * en inventario. Este adaptador SOLO afecta el texto impreso, nunca el dato.
+ */
+export const normalizeCatalogPdfText = (value: string): string =>
+  value
+    .normalize("NFC")
+    .replace(/[\u2010-\u2015\u2212\uFE58\uFE63\uFF0D]/g, "-")
+    .replace(/[\u2018\u2019\u201A\u201B\u2032]/g, "'")
+    .replace(/[\u201C\u201D\u201E\u201F\u2033]/g, '"')
+    .replace(/\u2026/g, "...")
+    .replace(/[\u2022\u2043]/g, "-")
+    .replace(/\u2264/g, "<=")
+    .replace(/\u2265/g, ">=")
+    .replace(/\u2192/g, "->")
+    .replace(/\u00A0|\u202F/g, " ")
+    .replace(/[\u2080-\u2089]/g, (digit) => String(digit.charCodeAt(0) - 0x2080))
+    .replace(/[\u2070\u00B9\u00B2\u00B3\u2074-\u2079]/g, (digit) => ({
+      "\u2070": "0", "\u00B9": "1", "\u00B2": "2", "\u00B3": "3",
+      "\u2074": "4", "\u2075": "5", "\u2076": "6",
+      "\u2077": "7", "\u2078": "8", "\u2079": "9",
+    })[digit] ?? digit)
+    // Signos no representables en Helvetica: no activar UTF-16 para la línea entera.
+    .replace(/[^\u0000-\u00FF]/gu, "?");
+
 /** Divide incluso palabras/cadenas anómalas que jsPDF deje demasiado largas.
  * Cada línea se mide con la fuente activa; nunca invade el ancho de su columna.
  * Solo los textos resumidos llevan elipsis, no las fichas técnicas completas.
  */
 export const splitCatalogLines = (doc: jsPDF, text: string, width: number, maxLines: number): string[] => {
   const safeWidth = Math.max(16, width);
-  const initial = doc.splitTextToSize(text, safeWidth) as string[];
+  // Medición y dibujo deben recibir EXACTAMENTE los mismos caracteres WinAnsi.
+  const printable = normalizeCatalogPdfText(text);
+  const initial = doc.splitTextToSize(printable, safeWidth) as string[];
   const wrapped: string[] = [];
   for (const raw of initial) {
     if (!raw) { wrapped.push(""); continue; }
@@ -1584,10 +1615,10 @@ export const splitCatalogLines = (doc: jsPDF, text: string, width: number, maxLi
   if (wrapped.length <= maxLines) return wrapped;
   const visible = wrapped.slice(0, maxLines);
   let last = visible[visible.length - 1] ?? "";
-  while (last.length && doc.getTextWidth(last + "…") > safeWidth) {
+  while (last.length && doc.getTextWidth(last + "...") > safeWidth) {
     last = last.slice(0, -1);
   }
-  visible[visible.length - 1] = last + "…";
+  visible[visible.length - 1] = last + "...";
   return visible;
 };
 
