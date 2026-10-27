@@ -388,7 +388,13 @@ export const ProductFormDialog = ({
             <Label>{t("product.brand")}</Label>
             <OptionSelect
               value={form.brandId}
-              onChange={(value) => setForm({ ...form, brandId: value })}
+              onChange={(value) => setForm((current) => ({
+                ...current,
+                brandId: value,
+                ...(!skuManual ? {
+                  sku: generarSkuAlEditar(db, current.name, current.categoria, product, value),
+                } : {}),
+              }))}
               emptyLabel={t("common.none")}
               options={db.brands.map((brand) => ({ value: brand.id, label: brand.name }))}
             />
