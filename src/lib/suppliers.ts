@@ -1,5 +1,7 @@
 /** Directorio de proveedores de compra: separado de los clientes de venta. */
-import { supabase } from "@/integrations/supabase/client";
+// Importar el cliente solo al consultar/guardar: evita inicializar credenciales
+// al abrir formularios en pruebas y mantiene el módulo de interfaz independiente.
+const getClient = async () => (await import("@/integrations/supabase/client")).supabase;
 
 export interface Supplier {
   id: string;
@@ -35,7 +37,8 @@ const read = (row: SupplierRow): Supplier => ({
 });
 
 export const listSuppliers = async (): Promise<Supplier[]> => {
-  const { data, error } = await supabase.from("suppliers").select("*").order("name");
+  const client = await getClient();
+  const { data, error } = await client.from("suppliers").select("*").order("name");
   if (error) throw new Error(error.message);
   return (data ?? []).map(read);
 };
@@ -50,9 +53,10 @@ export const saveSupplier = async (input: SupplierInput, id?: string): Promise<S
     address: clean(input.address), notes: clean(input.notes),
     is_active: input.isActive, updated_at: new Date().toISOString(),
   };
+  const client = await getClient();
   const query = id
-    ? supabase.from("suppliers").update(payload).eq("id", id)
-    : supabase.from("suppliers").insert(payload);
+    ? client.from("suppliers").update(payload).eq("id", id)
+    : client.from("suppliers").insert(payload);
   const { data, error } = await query.select("*").single();
   if (error) throw new Error(error.message);
   return read(data);
