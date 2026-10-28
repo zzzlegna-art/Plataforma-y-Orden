@@ -66,7 +66,7 @@ export const StatCard = ({
             "font-tabular min-w-0 font-extrabold leading-none",
             monetaryValue ? "max-w-full break-words tracking-tight" : "text-3xl",
           )}
-          style={monetaryValue ? { fontSize: "clamp(1rem, 6.4cqw, 1.875rem)" } : undefined}
+          style={monetaryValue ? { fontSize: "clamp(1rem, 8.5cqw, 1.875rem)" } : undefined}
         >{value}</p>
         {trend ? (
           <span className={cn("inline-flex items-center gap-1 rounded-full px-2 py-1 text-xs font-semibold", TREND_CLASSES[trendTone])}>
