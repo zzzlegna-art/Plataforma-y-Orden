@@ -127,8 +127,8 @@ export const SupplierQualityChart = ({ suppliers }: { suppliers: Supplier[] }) =
                   />
                   <Bar dataKey={metric} maxBarSize={22} radius={[0, 5, 5, 0]}
                     onClick={(bar) => {
-                      const row = bar as DisplayRow;
-                      if (row.supplierId) setSelectedId(row.supplierId);
+                      const row = (bar as { payload?: DisplayRow }).payload;
+                      if (row?.supplierId) setSelectedId(row.supplierId);
                     }}>
                     {displayed.map((row) => (
                       <Cell key={row.supplierId}
