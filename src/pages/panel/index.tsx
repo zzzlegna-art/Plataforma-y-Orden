@@ -3,7 +3,6 @@ import { useTranslation } from "react-i18next";
 import {
   ArrowRight,
   Search,
-  ScanBarcode,
   Sparkles,
   Activity,
   Boxes,
@@ -40,7 +39,6 @@ import { StatCard } from "@/components/shared/stat-card";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
-import { usePermissions } from "@/hooks/use-permissions";
 import { useStore } from "@/hooks/use-store";
 import { formatCurrency, formatNumber } from "@/lib/format";
 import { crearCsv } from "@/lib/csv";
@@ -69,7 +67,6 @@ import {
 const Panel = () => {
   const { t } = useTranslation();
   const { db } = useStore();
-  const { can } = usePermissions();
   const data = useMemo(() => getDashboard(db), [db]);
   const receivedTrend = (() => {
     const current = data.kpis.receivedThisMonth;
@@ -347,17 +344,6 @@ const Panel = () => {
           </div>
         </DialogContent>
       </Dialog>
-
-      <section className="nx-actions-section">
-        <div className="nx-section-heading"><div className="nx-section-icon"><Sparkles className="h-5 w-5" /></div><div><h2>Acciones rápidas</h2><p>Las tareas que más utilizas, siempre a un clic.</p></div></div>
-        <div className="nx-action-grid">
-          {can("receptions.manage") && <Link className="nx-action-tile" to="/recepcion/nueva"><span className="nx-action-icon"><PackagePlus /></span><span><strong>Nueva recepción</strong><small>Registrar mercancía</small></span><ArrowRight className="nx-action-arrow" /></Link>}
-          {can("orders.manage") && <Link className="nx-action-tile" to="/pedidos"><span className="nx-action-icon nx-action-blue"><ClipboardList /></span><span><strong>Gestionar pedidos</strong><small>Ventas y despachos</small></span><ArrowRight className="nx-action-arrow" /></Link>}
-          <Link className="nx-action-tile" to="/seriales"><span className="nx-action-icon nx-action-purple"><ScanBarcode /></span><span><strong>Buscar serial</strong><small>Consultar IMEI</small></span><ArrowRight className="nx-action-arrow" /></Link>
-          <Link className="nx-action-tile" to="/clientes"><span className="nx-action-icon"><Users /></span><span><strong>Gestionar clientes</strong><small>Directorio comercial</small></span><ArrowRight className="nx-action-arrow" /></Link>
-          <Link className="nx-action-tile" to="/garantias"><span className="nx-action-icon nx-action-gold"><ShieldCheck /></span><span><strong>Revisar garantías</strong><small>Seguimiento de casos</small></span><ArrowRight className="nx-action-arrow" /></Link>
-        </div>
-      </section>
 
       {garantiaMasAntigua && (
         <div
