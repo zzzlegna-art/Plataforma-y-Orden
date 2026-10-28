@@ -180,7 +180,13 @@ export const SupplierQualityChart = ({ suppliers }: { suppliers: Supplier[] }) =
             <tbody>
               {report.rows.map((row) => (
                 <tr key={row.supplierId} className="border-t hover:bg-muted/20">
-                  <td className="px-3 py-2 font-medium">{row.name}</td>
+                  <td className="px-3 py-2 font-medium">
+                    <button type="button" aria-pressed={chosen?.supplierId === row.supplierId}
+                      onClick={() => setSelectedId(row.supplierId)}
+                      className="text-left hover:text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                      {row.name}
+                    </button>
+                  </td>
                   <td className="px-3 py-2 text-right tabular-nums">{number.format(row.received)}</td>
                   <td className="px-3 py-2 text-right tabular-nums">{number.format(row.affected)}</td>
                   <td className="px-3 py-2 text-right tabular-nums">{number.format(row.cases)}</td>
