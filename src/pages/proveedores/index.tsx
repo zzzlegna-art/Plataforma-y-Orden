@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { PageHeader } from "@/components/shared/page-header";
 import { listSuppliers, setSupplierActive, type Supplier } from "@/lib/suppliers";
 import { SupplierFormDialog } from "./SupplierFormDialog";
+import { SupplierQualityChart } from "./SupplierQualityChart";
 
 /** Directorio de los proveedores que surten las recepciones de mercancía. */
 const Proveedores = ({ embedded = false }: { embedded?: boolean }) => {
@@ -73,6 +74,8 @@ const Proveedores = ({ embedded = false }: { embedded?: boolean }) => {
           }
         />
       )}
+
+      {!loading && suppliers.length > 0 ? <SupplierQualityChart suppliers={suppliers} /> : null}
 
       <div className="flex flex-wrap items-center gap-3 rounded-xl border bg-card p-4">
         <div className="relative min-w-[190px] flex-1">
