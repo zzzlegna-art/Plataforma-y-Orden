@@ -259,7 +259,7 @@ const Panel = () => {
           >
             <StatCard label={t("dashboard.lowStock")} value={<AnimatedNumber value={data.kpis.lowStockProducts} formatter={formatNumber} />} hint={t("dashboard.lowStockHint")} icon={TriangleAlert} tone={data.kpis.lowStockProducts > 0 ? "warning" : "success"} premium />
           </button>
-          <StatCard label={t("dashboard.inventoryValue")} value={<AnimatedNumber value={data.kpis.inventoryValue} formatter={(value) => formatCurrency(value).replace(/,00$/, "")} />} hint={t("dashboard.inventoryValueHint")} icon={Coins} tone="primary" monetaryValue premium />
+          <StatCard label={t("dashboard.inventoryValue")} value={<AnimatedNumber value={data.kpis.inventoryValue} formatter={formatCurrency} />} hint={t("dashboard.inventoryValueHint")} icon={Coins} tone="primary" monetaryValue premium />
         </div>
         <div className="mt-4 grid gap-4 sm:grid-cols-2">
           <Link to="/pedidos" className="nx-wide-stat">
