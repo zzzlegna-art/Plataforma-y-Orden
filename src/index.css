@@ -953,17 +953,19 @@ body {
 }
 .nx-dashboard-premium .nx-premium-stat-numbers {
   margin-top: .25rem;
+  min-height: 1.85rem;
+  align-items: baseline;
   gap: .45rem .7rem;
 }
 .nx-dashboard-premium .nx-premium-stat-value {
-  font-size: clamp(1.75rem, 2.15vw, 2.25rem);
+  font-size: clamp(1.35rem, 1.55vw, 1.5rem);
   font-weight: 830;
   line-height: 1.07;
   letter-spacing: -.058em;
 }
 .nx-dashboard-premium .nx-premium-stat-value--money {
   max-width: 100%;
-  font-size: clamp(1.05rem, 6.6cqw, 1.8rem);
+  font-size: clamp(1.35rem, 1.55vw, 1.5rem);
   letter-spacing: -.075em;
   white-space: nowrap;
 }
@@ -1026,7 +1028,7 @@ body {
   line-height: 1.35;
 }
 .nx-dashboard-premium .nx-wide-value {
-  font-size: clamp(1.75rem, 1.95vw, 2.15rem);
+  font-size: clamp(1.35rem, 1.55vw, 1.5rem);
   font-weight: 830;
   line-height: 1.1;
 }
@@ -1106,7 +1108,7 @@ body {
 .nx-dashboard-premium .nx-action-tile:nth-child(5) .nx-action-arrow { color: #d99400; background: #fff5d9; }
 @media(max-width: 1090px) {
   .nx-dashboard-premium .nx-premium-stat-card { padding: 17px; }
-  .nx-dashboard-premium .nx-premium-stat-value--money { font-size: clamp(1.05rem, 6.3cqw, 1.35rem); }
+  .nx-dashboard-premium .nx-premium-stat-value--money { font-size: clamp(1.35rem, 1.55vw, 1.5rem); }
   .nx-dashboard-premium .nx-action-tile { padding: 9px; }
   .nx-dashboard-premium .nx-action-tile strong { font-size: .72rem; }
   .nx-dashboard-premium .nx-action-tile small { font-size: .66rem; }
@@ -1117,8 +1119,8 @@ body {
 @media(max-width: 640px) {
   .nx-dashboard-premium .nx-premium-stat-card { min-height: 194px; padding: 19px; }
   .nx-dashboard-premium .nx-premium-stat-label { font-size: .8rem; }
-  .nx-dashboard-premium .nx-premium-stat-value { font-size: 1.875rem; }
-  .nx-dashboard-premium .nx-premium-stat-value--money { font-size: clamp(1rem, 5.5vw, 1.25rem); }
+  .nx-dashboard-premium .nx-premium-stat-value { font-size: 1.35rem; }
+  .nx-dashboard-premium .nx-premium-stat-value--money { font-size: 1.35rem; }
   .nx-dashboard-premium .nx-action-grid { grid-template-columns: 1fr; }
   .nx-dashboard-premium .nx-action-tile { min-height: 76px; padding: 12px; }
   .nx-dashboard-premium .nx-action-tile strong { font-size: .84rem; }
