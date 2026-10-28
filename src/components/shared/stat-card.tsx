@@ -64,7 +64,7 @@ export const StatCard = ({
         <p
           className={cn(
             "font-tabular min-w-0 font-extrabold leading-none",
-            monetaryValue ? "max-w-full whitespace-nowrap tracking-tight" : "text-3xl",
+            monetaryValue ? "max-w-full break-words tracking-tight" : "text-3xl",
           )}
           style={monetaryValue ? { fontSize: "clamp(1rem, 6.4cqw, 1.875rem)" } : undefined}
         >{value}</p>
@@ -81,7 +81,7 @@ export const StatCard = ({
           </span>
         ) : null}
       </div>
-      {hint ? <p className="mt-3 max-w-[calc(100%-3.5rem)] text-xs leading-5 text-muted-foreground">{hint}</p> : null}
+      {hint ? <p className="mt-3 max-w-[calc(100%_-_3.5rem)] text-xs leading-5 text-muted-foreground">{hint}</p> : null}
     </div>
 
     <div className="pointer-events-none absolute inset-y-5 right-5 flex flex-col items-end justify-between">
