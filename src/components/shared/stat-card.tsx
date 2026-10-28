@@ -75,8 +75,8 @@ export const StatCard = ({
     <div className="nx-premium-stat-footer">
       {hint ? <p className="nx-premium-stat-hint">{hint}</p> : <span />}
       <div className="nx-premium-stat-bars" aria-hidden="true">
-        {[22, 35, 48, 62].map((height, index) => (
-          <span key={height} style={{ height: `${height}px`, opacity: 0.35 + index * 0.18 }} />
+        {[1, 2, 3, 4].map((item, index) => (
+          <span key={item} style={{ opacity: 0.35 + index * 0.18 }} />
         ))}
       </div>
     </div>
