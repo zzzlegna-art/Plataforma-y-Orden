@@ -476,6 +476,7 @@
   "order.finalize": "Finalizar pedido",
   "order.confirmPreparation": "Confirmar preparación",
   "order.confirmSale": "Confirmar venta y despacho",
+  "order.prepared": "Pedido preparado correctamente",
   "order.preparedNote": "Preparación confirmada. Las unidades están reservadas, pero siguen en inventario hasta confirmar la venta.",
   "order.dispatched": "Pedido despachado",
   "order.cancelled": "Pedido cancelado",
