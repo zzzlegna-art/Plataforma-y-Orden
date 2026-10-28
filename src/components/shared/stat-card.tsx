@@ -53,19 +53,21 @@ export const StatCard = ({
   <div
     className={cn(
       "group relative overflow-hidden nx-stat-card rounded-2xl border border-border/60 bg-card p-5 shadow-[0_18px_45px_-25px_rgba(15,23,42,.20)] transition hover:-translate-y-1",
-      monetaryValue && "[@container-type:inline-size]",
+      monetaryValue && "min-w-0",
       className,
     )}
+    style={monetaryValue ? { containerType: "inline-size" } : undefined}
   >
-    <div className={cn("relative z-10 min-w-0", !monetaryValue && "pr-14")}>
-      <p className={cn("nx-stat-label text-xs font-semibold uppercase tracking-wide text-muted-foreground", monetaryValue && "pr-14")}>{label}</p>
-      <div className={cn("flex min-w-0 items-center gap-2", monetaryValue ? "mt-7" : "mt-4")}>
-        <p className={cn(
-          "font-tabular min-w-0 font-extrabold leading-none",
-          monetaryValue
-            ? "max-w-full break-words text-lg tracking-tight text-[clamp(1rem,7.2cqw,1.875rem)]"
-            : "text-3xl",
-        )}>{value}</p>
+    <div className="relative z-10 min-w-0">
+      <p className="nx-stat-label min-h-10 pr-14 text-xs font-semibold uppercase tracking-wide text-muted-foreground">{label}</p>
+      <div className="mt-4 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-2">
+        <p
+          className={cn(
+            "font-tabular min-w-0 font-extrabold leading-none",
+            monetaryValue ? "max-w-full whitespace-nowrap tracking-tight" : "text-3xl",
+          )}
+          style={monetaryValue ? { fontSize: "clamp(1rem, 6.4cqw, 1.875rem)" } : undefined}
+        >{value}</p>
         {trend ? (
           <span className={cn("inline-flex items-center gap-1 rounded-full px-2 py-1 text-xs font-semibold", TREND_CLASSES[trendTone])}>
             {trendTone === "negative" ? (
@@ -79,7 +81,7 @@ export const StatCard = ({
           </span>
         ) : null}
       </div>
-      {hint ? <p className={cn("mt-3 max-w-[28ch] text-xs leading-5 text-muted-foreground", monetaryValue && "pr-12")}>{hint}</p> : null}
+      {hint ? <p className="mt-3 max-w-[calc(100%-3.5rem)] text-xs leading-5 text-muted-foreground">{hint}</p> : null}
     </div>
 
     <div className="pointer-events-none absolute inset-y-5 right-5 flex flex-col items-end justify-between">
