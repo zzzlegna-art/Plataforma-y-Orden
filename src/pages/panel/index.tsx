@@ -216,7 +216,7 @@ const Panel = () => {
   const operationalChartTotal = operationalChartData.reduce((total, item) => total + item.value, 0);
 
   return (
-    <div className="space-y-8 stagger">
+    <div className="space-y-8 stagger nx-dashboard-premium">
       <div className="nx-dashboard-heading">
         <div>
           <div className="nx-eyebrow"><Sparkles className="h-3.5 w-3.5" /> CENTRO DE OPERACIONES</div>
@@ -249,17 +249,17 @@ const Panel = () => {
 
       <section className="nx-kpi-section">
         <div className="grid gap-4 sm:grid-cols-2 2xl:grid-cols-4">
-          <StatCard label={t("dashboard.available")} value={<AnimatedNumber value={data.kpis.available} formatter={formatNumber} />} hint={t("dashboard.availableHint")} icon={Boxes} tone="success" />
-          <StatCard label={t("dashboard.receivedThisMonth")} value={<AnimatedNumber value={data.kpis.receivedThisMonth} formatter={formatNumber} />} hint={`${t("dashboard.receivedHint")} · ${t("dashboard.comparisonPeriod")}`} icon={PackagePlus} tone="info" trend={receivedTrend.label} trendTone={receivedTrend.tone} />
+          <StatCard label={t("dashboard.available")} value={<AnimatedNumber value={data.kpis.available} formatter={formatNumber} />} hint={t("dashboard.availableHint")} icon={Boxes} tone="success" premium />
+          <StatCard label={t("dashboard.receivedThisMonth")} value={<AnimatedNumber value={data.kpis.receivedThisMonth} formatter={formatNumber} />} hint={`${t("dashboard.receivedHint")} · ${t("dashboard.comparisonPeriod")}`} icon={PackagePlus} tone="info" trend={receivedTrend.label} trendTone={receivedTrend.tone} premium />
           <button
             type="button"
             onClick={() => setStockDialogOpen(true)}
             aria-label="Ver detalle de productos con stock bajo"
-            className="block w-full rounded-2xl text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 [&_.nx-stat-card]:h-full [&_.nx-stat-card]:cursor-pointer [&_.nx-stat-card]:hover:border-primary/40"
+            className="block w-full rounded-2xl text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 [&_.nx-premium-stat-card]:h-full [&_.nx-premium-stat-card]:cursor-pointer [&_.nx-premium-stat-card]:hover:border-primary/40"
           >
-            <StatCard label={t("dashboard.lowStock")} value={<AnimatedNumber value={data.kpis.lowStockProducts} formatter={formatNumber} />} hint={t("dashboard.lowStockHint")} icon={TriangleAlert} tone={data.kpis.lowStockProducts > 0 ? "warning" : "success"} />
+            <StatCard label={t("dashboard.lowStock")} value={<AnimatedNumber value={data.kpis.lowStockProducts} formatter={formatNumber} />} hint={t("dashboard.lowStockHint")} icon={TriangleAlert} tone={data.kpis.lowStockProducts > 0 ? "warning" : "success"} premium />
           </button>
-          <StatCard label={t("dashboard.inventoryValue")} value={<AnimatedNumber value={data.kpis.inventoryValue} formatter={formatCurrency} />} hint={t("dashboard.inventoryValueHint")} icon={Coins} tone="primary" monetaryValue />
+          <StatCard label={t("dashboard.inventoryValue")} value={<AnimatedNumber value={data.kpis.inventoryValue} formatter={(value) => formatCurrency(value).replace(/,00$/, "")} />} hint={t("dashboard.inventoryValueHint")} icon={Coins} tone="primary" monetaryValue premium />
         </div>
         <div className="mt-4 grid gap-4 sm:grid-cols-2">
           <Link to="/pedidos" className="nx-wide-stat">
