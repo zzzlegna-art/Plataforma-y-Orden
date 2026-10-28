@@ -39,6 +39,7 @@ export const StatCard = ({
   trend,
   trendTone = "positive",
   monetaryValue = false,
+  premium = false,
 }: {
   label: string;
   value: ReactNode;
@@ -49,7 +50,38 @@ export const StatCard = ({
   trend?: string;
   trendTone?: TrendTone;
   monetaryValue?: boolean;
-}) => (
+  premium?: boolean;
+}) => premium ? (
+  <article className={cn("nx-premium-stat-card", `nx-premium-stat-card--${tone}`, className)}>
+    <div className="nx-premium-stat-top">
+      <p className="nx-premium-stat-label">{label}</p>
+      {Icon ? (
+        <span className="nx-premium-stat-icon" aria-hidden="true">
+          <Icon />
+        </span>
+      ) : null}
+    </div>
+    <div className="nx-premium-stat-numbers">
+      <p className={cn("nx-premium-stat-value", monetaryValue && "nx-premium-stat-value--money")}>
+        {value}
+      </p>
+      {trend ? (
+        <span className={cn("nx-premium-stat-trend", `nx-premium-stat-trend--${trendTone}`)}>
+          {trendTone === "negative" ? <TrendingDown /> : trendTone === "neutral" ? <Minus /> : <TrendingUp />}
+          {trend}
+        </span>
+      ) : null}
+    </div>
+    <div className="nx-premium-stat-footer">
+      {hint ? <p className="nx-premium-stat-hint">{hint}</p> : <span />}
+      <div className="nx-premium-stat-bars" aria-hidden="true">
+        {[22, 35, 48, 62].map((height, index) => (
+          <span key={height} style={{ height: `${height}px`, opacity: 0.35 + index * 0.18 }} />
+        ))}
+      </div>
+    </div>
+  </article>
+) : (
   <div
     className={cn(
       "group relative overflow-hidden nx-stat-card rounded-2xl border border-border/60 bg-card p-5 shadow-[0_18px_45px_-25px_rgba(15,23,42,.20)] transition hover:-translate-y-1",
