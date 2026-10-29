@@ -73,7 +73,7 @@ export const Topbar = ({ onOpenMenu }: { onOpenMenu: () => void }) => {
           : t("common.appName");
 
   return (
-    <header className="nx-app-topbar safe-top sticky top-0 z-30 flex min-h-16 items-center gap-3 border-b border-border/70 bg-card/90 px-5 shadow-[0_8px_30px_-24px_rgba(16,31,32,.45)] backdrop-blur-xl lg:min-h-[66px] lg:px-8">
+    <header className={`nx-app-topbar safe-top sticky top-0 z-30 flex min-h-16 items-center gap-3 border-b border-border/70 bg-card/90 px-5 shadow-[0_8px_30px_-24px_rgba(16,31,32,.45)] backdrop-blur-xl lg:min-h-[66px] lg:px-8 ${location.pathname === "/panel" ? "nx-app-topbar--panel" : ""}`}>
       <Button
         variant="ghost"
         size="icon"
@@ -91,12 +91,12 @@ export const Topbar = ({ onOpenMenu }: { onOpenMenu: () => void }) => {
         </div>
       </div>
 
-      <Button type="button" variant="outline" size="sm" className="gap-2" onClick={() => setSearchOpen(true)} aria-label="Buscar en Nexora"><Search className="h-4 w-4" /><span className="hidden sm:inline">Buscar</span></Button>
+      <Button type="button" variant="outline" size="sm" className={location.pathname === "/panel" ? "nx-dashboard-search-pill gap-2" : "gap-2"} onClick={() => setSearchOpen(true)} aria-label="Buscar en Nexora"><Search className="h-4 w-4" /><span className="hidden sm:inline">Buscar</span></Button>
       <ThemeToggle />
 
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="ghost" size="icon" className="h-11 w-11" aria-label={user?.fullName ?? t("auth.user")}>
+          <Button variant="ghost" size="icon" className={location.pathname === "/panel" ? "nx-dashboard-user-avatar h-11 w-11" : "h-11 w-11"} aria-label={user?.fullName ?? t("auth.user")}>
             <UserRound />
           </Button>
         </DropdownMenuTrigger>
