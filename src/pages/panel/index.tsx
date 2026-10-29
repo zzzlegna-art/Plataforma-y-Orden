@@ -400,10 +400,13 @@ const Panel = () => {
 
       {/* 3 · Rendimiento: clasificaciones y últimas unidades, sin perder acciones. */}
       <section className="nx-dashboard-block nx-dashboard-block--performance space-y-4" aria-label="Rendimiento de inventario">
-      <div className="mb-4 flex items-center justify-between">
-        <div>
-          <h2 className="text-lg font-semibold">Rendimiento de inventario</h2>
-          <p className="text-sm text-muted-foreground">Productos y clientes con mayor movimiento.</p>
+      <div className="nx-dashboard-performance-heading flex flex-wrap items-center justify-between gap-3">
+        <div className="nx-warranty-section__title">
+          <span className="nx-warranty-section__accent" aria-hidden="true" />
+          <div>
+            <h2>Rendimiento de inventario</h2>
+            <p>Productos y clientes con mayor movimiento.</p>
+          </div>
         </div>
       </div>
       <div className="nx-ranking-grid grid grid-cols-1 gap-5 lg:grid-cols-2">
