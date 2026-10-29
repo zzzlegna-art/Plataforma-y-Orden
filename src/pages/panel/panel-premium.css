@@ -801,3 +801,19 @@ html.dark .nx-dashboard-showcase.nx-dashboard-premium .nx-warranty-section .roun
     min-height:190px;
   }
 }
+
+/* Reference-matched dashboard, scoped only to Panel; business logic untouched. */
+.nx-dashboard-showcase.nx-dashboard-premium .nx-kpi-section>.grid:first-child{grid-template-columns:repeat(4,minmax(0,1fr));gap:clamp(12px,1.15vw,19px)}
+.nx-dashboard-showcase.nx-dashboard-premium .nx-kpi-section .nx-premium-stat-card{min-height:246px;padding:clamp(17px,1.6vw,25px);border-radius:22px}
+.nx-dashboard-showcase.nx-dashboard-premium .nx-kpi-section .nx-premium-stat-top{align-items:flex-start;gap:8px;min-height:75px}
+.nx-dashboard-showcase.nx-dashboard-premium .nx-kpi-section .nx-premium-stat-label{font-size:clamp(.74rem,.85vw,.89rem);line-height:1.45;letter-spacing:.04em}
+.nx-dashboard-showcase.nx-dashboard-premium .nx-kpi-section .nx-premium-stat-icon{width:clamp(46px,3.7vw,60px);height:clamp(46px,3.7vw,60px);flex-shrink:0}
+.nx-dashboard-showcase.nx-dashboard-premium .nx-kpi-section .nx-premium-stat-value{font-size:clamp(1.45rem,1.85vw,2.05rem);line-height:1.14;letter-spacing:-.045em}
+.nx-dashboard-showcase.nx-dashboard-premium .nx-kpi-section .nx-premium-stat-value--money{font-size:clamp(1.02rem,1.37vw,1.75rem);letter-spacing:-.055em;white-space:normal;overflow-wrap:anywhere}
+.nx-dashboard-showcase.nx-dashboard-premium .nx-kpi-section .nx-premium-stat-footer{margin-top:13px;padding-right:38px}
+.nx-dashboard-showcase.nx-dashboard-premium .nx-kpi-section .nx-premium-stat-hint{font-size:clamp(.77rem,.84vw,.9rem);line-height:1.5}
+.nx-dashboard-showcase.nx-dashboard-premium .nx-kpi-section .nx-wide-stat{min-height:142px}
+.nx-dashboard-showcase.nx-dashboard-premium .nx-kpi-section .nx-wide-icon{width:64px;height:64px;border-radius:17px}
+.nx-dashboard-showcase.nx-dashboard-premium .nx-kpi-section .nx-wide-value{font-size:clamp(1.65rem,2vw,2rem)}
+@media(max-width:1250px){.nx-dashboard-showcase.nx-dashboard-premium .nx-kpi-section>.grid:first-child{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:480px){.nx-dashboard-showcase.nx-dashboard-premium .nx-kpi-section>.grid:first-child{grid-template-columns:minmax(0,1fr)}}
