@@ -318,13 +318,13 @@ const Pedidos = () => {
       </div>
 
       <Dialog open={exportOpen} onOpenChange={setExportOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>{t("export.button")}</DialogTitle>
+        <DialogContent className="nx-premium-export-dialog sm:max-w-lg">
+          <DialogHeader className="nx-premium-export-heading">
+            <DialogTitle><span className="nx-premium-export-icon"><Download className="h-5 w-5" /></span>{t("export.button")}</DialogTitle>
             <DialogDescription>{t("export.choose")}</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-2">
-            <label className="flex cursor-pointer items-start gap-3 rounded-md border p-3 transition-colors hover:bg-muted/50">
+            <label className="nx-premium-export-scope flex cursor-pointer items-start gap-3 rounded-md border p-3 transition-colors hover:bg-muted/50">
               <Checkbox
                 checked={soloFiltrado}
                 onCheckedChange={(value) => setSoloFiltrado(Boolean(value))}
@@ -338,7 +338,7 @@ const Pedidos = () => {
               </span>
             </label>
 
-            <div className="grid grid-cols-2 gap-2">
+            <div className="nx-premium-export-formats grid grid-cols-2 gap-3">
               <Button type="button" variant="outline" onClick={() => exportar("pdf")}>
                 <FileText />
                 {t("export.pdf")}
