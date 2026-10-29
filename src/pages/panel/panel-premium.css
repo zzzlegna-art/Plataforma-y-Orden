@@ -396,3 +396,187 @@
     width: 100%;
   }
 }
+
+
+/*
+ * Sincronización del tema del Panel: next-themes alterna html.dark.
+ * Los KPI globales todavía traen colores de una maqueta clara; estos tokens
+ * los sustituyen únicamente dentro del dashboard, sin afectar la barra lateral.
+ * Tanto light como dark comparten geometría, estados y jerarquía.
+ */
+.nx-dashboard-showcase.nx-dashboard-premium {
+  --nx-panel-surface: hsl(var(--card));
+  --nx-panel-text: hsl(var(--foreground));
+  --nx-panel-muted: hsl(var(--muted-foreground));
+  --nx-panel-outline: hsl(var(--border) / .85);
+  --nx-panel-shadow: 0 15px 38px -29px rgb(17 54 91 / 27%);
+  --nx-panel-card-base: #ffffff;
+  --nx-panel-chart-surface: hsl(var(--card) / .96);
+  --nx-panel-card-gloss: rgb(255 255 255 / 25%);
+}
+html.dark .nx-dashboard-showcase.nx-dashboard-premium {
+  --nx-panel-surface: hsl(var(--card));
+  --nx-panel-text: hsl(var(--foreground));
+  --nx-panel-muted: hsl(var(--muted-foreground));
+  --nx-panel-outline: hsl(var(--border) / .9);
+  --nx-panel-shadow: 0 19px 38px -27px rgb(0 0 0 / 70%);
+  --nx-panel-card-base: hsl(var(--card));
+  --nx-panel-chart-surface: hsl(var(--card) / .96);
+  --nx-panel-card-gloss: rgb(255 255 255 / 4%);
+}
+
+/* Resumen: los mismos cuatro KPI y dos tarjetas horizontales en ambos temas. */
+.nx-dashboard-showcase.nx-dashboard-premium .nx-kpi-section .nx-premium-stat-card {
+  color: var(--nx-panel-text);
+  border-color: var(--nx-panel-outline);
+  background:
+    radial-gradient(ellipse 75% 82% at 108% 110%, var(--nx-glow) 8%, transparent 78%),
+    linear-gradient(135deg, var(--nx-panel-card-base) 34%, var(--nx-soft) 175%);
+  box-shadow: var(--nx-panel-shadow);
+}
+.nx-dashboard-showcase.nx-dashboard-premium .nx-kpi-section .nx-premium-stat-label,
+.nx-dashboard-showcase.nx-dashboard-premium .nx-kpi-section .nx-premium-stat-hint {
+  color: var(--nx-panel-muted);
+}
+.nx-dashboard-showcase.nx-dashboard-premium .nx-kpi-section .nx-premium-stat-value {
+  color: var(--nx-panel-text);
+}
+.nx-dashboard-showcase.nx-dashboard-premium .nx-kpi-section .nx-wide-stat {
+  color: var(--nx-panel-text);
+  border-color: var(--nx-panel-outline);
+  background: linear-gradient(140deg, var(--nx-panel-card-base), hsl(var(--secondary) / .65));
+  box-shadow: var(--nx-panel-shadow);
+}
+.nx-dashboard-showcase.nx-dashboard-premium .nx-kpi-section .nx-wide-label,
+.nx-dashboard-showcase.nx-dashboard-premium .nx-kpi-section .nx-wide-hint {
+  color: var(--nx-panel-muted);
+}
+.nx-dashboard-showcase.nx-dashboard-premium .nx-kpi-section .nx-wide-value {
+  color: var(--nx-panel-text);
+}
+.nx-dashboard-showcase.nx-dashboard-premium .nx-kpi-section .nx-wide-stat:hover {
+  border-color: hsl(var(--primary) / .5);
+}
+.nx-dashboard-showcase.nx-dashboard-premium .nx-kpi-section .nx-wide-stat > svg {
+  background: hsl(var(--info) / .11);
+  color: hsl(var(--info));
+}
+
+/* Tendencias con contraste independiente del fondo del KPI. */
+.nx-dashboard-showcase.nx-dashboard-premium .nx-premium-stat-trend {
+  background: hsl(var(--success) / .12);
+  color: hsl(var(--success));
+}
+.nx-dashboard-showcase.nx-dashboard-premium .nx-premium-stat-trend--negative {
+  background: hsl(var(--destructive) / .13);
+  color: hsl(var(--destructive));
+}
+.nx-dashboard-showcase.nx-dashboard-premium .nx-premium-stat-trend--neutral {
+  background: hsl(var(--muted));
+  color: hsl(var(--muted-foreground));
+}
+
+/* La paleta oscura ajusta las luces internas, no invierte solo el texto. */
+html.dark .nx-dashboard-showcase.nx-dashboard-premium .nx-premium-stat-card {
+  --nx-soft: hsl(213 42% 18%);
+  --nx-glow: rgb(14 165 233 / 11%);
+  box-shadow: var(--nx-panel-shadow);
+}
+html.dark .nx-dashboard-showcase.nx-dashboard-premium .nx-premium-stat-card--success {
+  --nx-soft: hsl(169 42% 15%);
+  --nx-glow: rgb(21 205 169 / 14%);
+  --nx-icon-bg: #103f39;
+  --nx-icon-ink: #6af2c7;
+}
+html.dark .nx-dashboard-showcase.nx-dashboard-premium .nx-premium-stat-card--info {
+  --nx-soft: hsl(212 46% 18%);
+  --nx-glow: rgb(73 150 249 / 16%);
+  --nx-icon-bg: #183c63;
+  --nx-icon-ink: #99caff;
+}
+html.dark .nx-dashboard-showcase.nx-dashboard-premium .nx-premium-stat-card--warning {
+  --nx-soft: hsl(32 35% 17%);
+  --nx-glow: rgb(245 166 47 / 13%);
+  --nx-icon-bg: #50391b;
+  --nx-icon-ink: #ffd085;
+}
+html.dark .nx-dashboard-showcase.nx-dashboard-premium .nx-premium-stat-card--primary {
+  --nx-soft: hsl(128 31% 16%);
+  --nx-glow: rgb(130 207 71 / 12%);
+  --nx-icon-bg: #28452b;
+  --nx-icon-ink: #bdf393;
+}
+html.dark .nx-dashboard-showcase.nx-dashboard-premium .nx-kpi-section .nx-wide-icon {
+  background: hsl(var(--primary) / .13);
+  color: hsl(var(--primary));
+}
+html.dark .nx-dashboard-showcase.nx-dashboard-premium .nx-kpi-section .nx-wide-icon-blue {
+  background: hsl(var(--info) / .13);
+  color: hsl(var(--info));
+}
+
+/* Garantías: superficies con contraste igual de legible en los dos temas. */
+.nx-dashboard-showcase.nx-dashboard-premium .nx-warranty-kpi {
+  color: var(--nx-panel-text);
+  border-color: var(--nx-panel-outline);
+  background: linear-gradient(127deg, var(--nx-panel-card-base) 48%, var(--nx-kpi-wash) 175%);
+  box-shadow: var(--nx-panel-shadow), inset 0 1px 0 var(--nx-panel-card-gloss);
+}
+.nx-dashboard-showcase.nx-dashboard-premium .nx-warranty-kpi__title {
+  color: var(--nx-panel-text);
+}
+.nx-dashboard-showcase.nx-dashboard-premium .nx-warranty-kpi__description {
+  color: var(--nx-panel-muted);
+}
+.nx-dashboard-showcase.nx-dashboard-premium .nx-warranty-empty {
+  border-color: var(--nx-panel-outline);
+  background: var(--nx-panel-chart-surface);
+  color: var(--nx-panel-muted);
+}
+html.dark .nx-dashboard-showcase.nx-dashboard-premium .nx-warranty-kpi--critical {
+  --nx-kpi-wash: #3d1f31;
+  --nx-kpi-tone: #ff8296;
+  --nx-kpi-icon: #5a2637;
+}
+html.dark .nx-dashboard-showcase.nx-dashboard-premium .nx-warranty-kpi--stalled {
+  --nx-kpi-wash: #45341e;
+  --nx-kpi-tone: #ffbc64;
+  --nx-kpi-icon: #523819;
+}
+html.dark .nx-dashboard-showcase.nx-dashboard-premium .nx-warranty-kpi--pending {
+  --nx-kpi-wash: #103f50;
+  --nx-kpi-tone: #48d6f0;
+  --nx-kpi-icon: #0d4958;
+}
+html.dark .nx-dashboard-showcase.nx-dashboard-premium .nx-warranty-kpi--service {
+  --nx-kpi-wash: #233857;
+  --nx-kpi-tone: #a8cfff;
+  --nx-kpi-icon: #243c67;
+}
+html.dark .nx-dashboard-showcase.nx-dashboard-premium .nx-warranty-empty,
+html.dark .nx-dashboard-showcase.nx-dashboard-premium .nx-warranty-section .rounded-\[20px\] {
+  background: hsl(var(--card) / .8);
+  color: hsl(var(--foreground));
+}
+
+/* Gráficas, controles y rankings siempre usan el mismo esquema activo. */
+.nx-dashboard-showcase.nx-dashboard-premium .nx-analytics-card,
+.nx-dashboard-showcase.nx-dashboard-premium .nx-ranking-card,
+.nx-dashboard-showcase.nx-dashboard-premium .nx-operation-card,
+.nx-dashboard-showcase.nx-dashboard-premium .nx-dashboard-report-filters {
+  color: var(--nx-panel-text);
+  border-color: var(--nx-panel-outline);
+  background: var(--nx-panel-chart-surface);
+  box-shadow: var(--nx-panel-shadow);
+}
+.nx-dashboard-showcase.nx-dashboard-premium .nx-analytics-range {
+  color: var(--nx-panel-text);
+  background: var(--nx-panel-surface);
+  border-color: var(--nx-panel-outline);
+}
+.nx-dashboard-showcase.nx-dashboard-premium .nx-dashboard-block--summary .nx-live-pill {
+  color: var(--nx-panel-text);
+}
+.nx-dashboard-showcase.nx-dashboard-premium .nx-dashboard-block--performance .nx-ranking-card .bg-background\/70 {
+  background: hsl(var(--background) / .7);
+}
