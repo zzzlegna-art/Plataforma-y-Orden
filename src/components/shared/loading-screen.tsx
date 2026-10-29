@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { BrandSpinner } from "@/components/shared/brand-spinner";
 import "./loading-screen-premium.css";
 
 /**
@@ -25,7 +24,7 @@ export const LoadingScreen = ({ message }: { message: string }) => {
         <div className="nx-loading-premium__mark" aria-hidden="true">
           <span className="nx-loading-premium__halo" />
           <span className="nx-loading-premium__ring" />
-          <BrandSpinner className="!h-28 !w-28 [&>span]:hidden" />
+          <img src="/branding/nexora-symbol.webp" width={76} height={76} alt="" draggable={false} className="nx-loading-premium__logo" />
         </div>
         <div>
           <p className="nx-loading-premium__title">{message}</p>
