@@ -235,109 +235,69 @@ const Panel = () => {
 
   return (
     <div className="space-y-7 stagger nx-dashboard-premium nx-dashboard-showcase">
-      <section className="nx-warranty-section space-y-4" aria-labelledby="warranty-priorities-heading">
-        <div className="nx-warranty-section__heading">
-          <div className="nx-warranty-section__title">
-            <span className="nx-warranty-section__accent" aria-hidden="true" />
-            <div>
-              <h2 id="warranty-priorities-heading">Prioridades de garantías</h2>
-              <p>Casos que requieren seguimiento, ordenados por tiempo sin movimiento.</p>
-            </div>
-          </div>
-          <Link to="/garantias" className="nx-manage-warranties">
-            Gestionar garantías <ArrowRight className="h-4 w-4" />
+      {/* 1 · Resumen de la operación: indicadores y accesos principales. */}
+      <section className="nx-dashboard-block nx-dashboard-block--summary space-y-5" aria-label="Resumen de la operación">
+      <div className="nx-dashboard-heading nx-dashboard-summary-heading">
+        <div>
+          <div className="nx-eyebrow"><Sparkles className="h-3.5 w-3.5" /> CENTRO DE OPERACIONES</div>
+          <PageHeader title="Resumen de la operación" description="Indicadores actuales de inventario, pedidos y garantías." />
+        </div>
+        <span className="nx-live-pill"><span className="nx-live-dot" /> Información de tu operación</span>
+      </div>
+
+      <section className="nx-kpi-section">
+        <div className="grid min-w-0 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <StatCard label={t("dashboard.available")} value={<AnimatedNumber value={data.kpis.available} formatter={formatNumber} />} hint={t("dashboard.availableHint")} icon={Boxes} tone="success" premium />
+          <StatCard label={t("dashboard.receivedThisMonth")} value={<AnimatedNumber value={data.kpis.receivedThisMonth} formatter={formatNumber} />} hint={`${t("dashboard.receivedHint")} · ${t("dashboard.comparisonPeriod")}`} icon={PackagePlus} tone="info" trend={receivedTrend.label} trendTone={receivedTrend.tone} premium />
+          <button
+            type="button"
+            onClick={() => setStockDialogOpen(true)}
+            aria-label="Ver detalle de productos con stock bajo"
+            className="block w-full rounded-2xl text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 [&_.nx-premium-stat-card]:h-full [&_.nx-premium-stat-card]:cursor-pointer [&_.nx-premium-stat-card]:hover:border-primary/40"
+          >
+            <StatCard label={t("dashboard.lowStock")} value={<AnimatedNumber value={data.kpis.lowStockProducts} formatter={formatNumber} />} hint={t("dashboard.lowStockHint")} icon={TriangleAlert} tone={data.kpis.lowStockProducts > 0 ? "warning" : "success"} premium />
+          </button>
+          <StatCard label={t("dashboard.inventoryValue")} value={<AnimatedNumber value={data.kpis.inventoryValue} formatter={formatCurrency} />} hint={t("dashboard.inventoryValueHint")} icon={Coins} tone="primary" monetaryValue premium />
+        </div>
+        <div className="mt-4 grid gap-4 sm:grid-cols-2">
+          <Link to="/pedidos" className="nx-wide-stat">
+            <div className="nx-wide-icon"><ClipboardList className="h-6 w-6" /></div>
+            <div className="min-w-0 flex-1"><p className="nx-wide-label">{t("dashboard.openOrders")}</p><p className="nx-wide-value"><AnimatedNumber value={data.kpis.openOrders} formatter={formatNumber} /></p><p className="nx-wide-hint">{t("dashboard.openOrdersHint")}</p></div>
+            <ArrowRight className="h-5 w-5 text-muted-foreground" />
+          </Link>
+          <Link to="/garantias" className="nx-wide-stat">
+            <div className="nx-wide-icon nx-wide-icon-blue"><ShieldCheck className="h-6 w-6" /></div>
+            <div className="min-w-0 flex-1"><p className="nx-wide-label">{t("dashboard.openWarranties")}</p><p className="nx-wide-value"><AnimatedNumber value={data.kpis.openWarranties} formatter={formatNumber} /></p><p className="nx-wide-hint">{data.kpis.staleWarranties > 0 ? t("dashboard.openWarrantiesStale", { count: data.kpis.staleWarranties, days: DIAS_GARANTIA_ESTANCADA }) : t("dashboard.openWarrantiesHint")}</p></div>
+            <ArrowRight className="h-5 w-5 text-muted-foreground" />
           </Link>
         </div>
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          {[
-            { title: "Críticas", count: prioridadesGarantia.criticas.length, description: "15 días o más sin movimiento", tone: "critical", Icon: TriangleAlert },
-            { title: "Estancadas", count: prioridadesGarantia.estancadas.length, description: "De 7 a 14 días sin movimiento", tone: "stalled", Icon: Clock3 },
-            { title: "Pendientes de entrega", count: prioridadesGarantia.listas.length, description: "Reenvío pendiente", tone: "pending", Icon: Truck },
-            { title: "En servicio técnico", count: prioridadesGarantia.tecnico.length, description: "Equipos con el técnico", tone: "service", Icon: Wrench },
-          ].map(({ title, count, description, tone, Icon }) => (
-            <div key={title} className={`nx-warranty-kpi nx-warranty-kpi--${tone}`}>
-              <span className="nx-warranty-kpi__icon" aria-hidden="true"><Icon className="h-6 w-6" /></span>
-              <div className="nx-warranty-kpi__text">
-                <h3 className="nx-warranty-kpi__title">{title}</h3>
-                <p className="nx-warranty-kpi__value tabular-nums">{count}</p>
-                <p className="nx-warranty-kpi__description">{description}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-        {data.openWarranties.length === 0 ? (
-          <div className="nx-warranty-empty" role="status">
-            <span className="nx-warranty-empty__icon" aria-hidden="true"><Inbox className="h-4 w-4" /></span>
-            No hay garantías abiertas que requieran seguimiento.
-          </div>
-        ) : (
-          <div className="overflow-hidden rounded-[20px] border bg-card shadow-sm">
-            <div className="flex items-center justify-between gap-2 border-b bg-muted/20 px-5 py-4">
-              <h3 className="text-sm font-semibold">Casos para revisar</h3>
-              <span className="text-xs text-muted-foreground">Hasta 6 casos con mayor antigüedad</span>
-            </div>
-            <div className="divide-y">
-              {data.openWarranties.slice(0, 6).map((view) => {
-                const days = diasSinMovimiento(view);
-                return (
-                  <Link key={view.warranty.id} to={`/garantias/${view.warranty.id}`}
-                    className="flex flex-wrap items-center justify-between gap-3 px-5 py-3 transition-colors hover:bg-muted/40">
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-semibold">{view.warranty.code}</p>
-                      <p className="truncate text-xs text-muted-foreground">
-                        {view.product?.name ?? view.warranty.referenciaManual ?? "Referencia no registrada"} · {view.unit?.serial ?? view.warranty.imeiManual ?? "Sin serial"}
-                      </p>
-                    </div>
-                    <div className="flex shrink-0 items-center gap-2">
-                      <WarrantyStatusBadge status={view.warranty.status} />
-                      <span className={cn("rounded-full px-2 py-1 text-xs font-semibold tabular-nums",
-                        days >= DIAS_GARANTIA_CRITICA ? "bg-destructive/10 text-destructive" :
-                        days >= DIAS_GARANTIA_ESTANCADA ? "bg-amber-100 text-amber-700" : "bg-muted text-muted-foreground")}>
-                        {days} d sin movimiento
-                      </span>
-                      <ArrowRight className="h-4 w-4 text-muted-foreground" />
-                    </div>
-                  </Link>
-                );
-              })}
-            </div>
-          </div>
-        )}
       </section>
 
-      {garantiaMasAntigua && (
-        <div
-          role="alert"
-          className={cn(
-            "flex flex-wrap items-center gap-3 rounded-lg border px-4 py-3",
-            diasMasAntigua >= DIAS_GARANTIA_CRITICA
-              ? "border-destructive/40 bg-destructive/10"
-              : "border-warning/40 bg-warning/10",
-          )}
-        >
-          <TriangleAlert
-            className={cn(
-              "h-5 w-5 shrink-0",
-              diasMasAntigua >= DIAS_GARANTIA_CRITICA ? "text-destructive" : "text-warning",
-            )}
-          />
-          <div className="min-w-0 flex-1">
-            <p className="text-sm font-medium">
-              {t("dashboard.staleWarrantiesTitle", { count: data.staleWarranties.length })}
-            </p>
-            <p className="text-xs text-muted-foreground">
-              {t("dashboard.staleWarrantiesBody", {
-                days: DIAS_GARANTIA_ESTANCADA,
-                code: garantiaMasAntigua.warranty.code,
-                oldest: diasMasAntigua,
-              })}
-            </p>
-          </div>
-          <Button variant="outline" size="sm" asChild>
-            <Link to="/garantias">{t("dashboard.staleWarrantiesView")}</Link>
+      <section className="nx-hero-strip">
+        <div className="nx-hero-icon"><Activity className="h-5 w-5" /></div>
+        <div className="min-w-0 flex-1">
+          <p className="font-semibold">Bienvenido a Nexora Smart Operations</p>
+          <p className="mt-1 text-xs opacity-80">Consulta tus indicadores y accede a las operaciones de tu bodega desde un solo lugar.</p>
+        </div>
+        <Link to="/seriales" className="nx-hero-link">Consultar seriales <ArrowRight className="h-4 w-4" /></Link>
+      </section>
+
+      </section>
+
+      {/* 2 · Movimiento y estado de operaciones: el período también controla exportaciones. */}
+      <section className="nx-dashboard-block nx-dashboard-block--movement space-y-4" aria-label="Movimiento de inventario">
+      <div className="flex flex-wrap items-end gap-3 nx-dashboard-report-filters rounded-xl border bg-card p-4">
+        <div><label htmlFor="reporte-desde" className="block text-xs text-muted-foreground">Reporte desde</label><input id="reporte-desde" type="date" value={reporteDesde} max={reporteHasta} onChange={(e) => { setReporteDesde(e.target.value); setMovementPreset("custom"); }} className="mt-1 rounded-md border bg-background px-3 py-2 text-sm" /></div>
+        <div><label htmlFor="reporte-hasta" className="block text-xs text-muted-foreground">Hasta</label><input id="reporte-hasta" type="date" value={reporteHasta} min={reporteDesde} onChange={(e) => { setReporteHasta(e.target.value); setMovementPreset("custom"); }} className="mt-1 rounded-md border bg-background px-3 py-2 text-sm" /></div>
+        <div className="flex flex-wrap gap-2">
+          <Button type="button" disabled={reporteDesde > reporteHasta} onClick={exportarReporteOperativoExcel}>
+            <FileSpreadsheet className="mr-2 h-4 w-4" />Exportar a Excel (.xlsx)
+          </Button>
+          <Button type="button" variant="outline" disabled={reporteDesde > reporteHasta} onClick={exportarReporteOperativo}>
+            <Download className="mr-2 h-4 w-4" />Exportar CSV
           </Button>
         </div>
-      )}
+      </div>
 
       <div className="nx-dashboard-analytics">
         <section className="nx-analytics-card" aria-labelledby="inventory-movement-heading">
@@ -436,137 +396,10 @@ const Panel = () => {
         </section>
       </div>
 
-      <div className="nx-dashboard-heading nx-dashboard-secondary-heading">
-        <div>
-          <div className="nx-eyebrow"><Sparkles className="h-3.5 w-3.5" /> CENTRO DE OPERACIONES</div>
-          <PageHeader title="Resumen de la operación" description="Más indicadores, rankings e informes de tu inventario." />
-        </div>
-        <span className="nx-live-pill"><span className="nx-live-dot" /> Información de tu operación</span>
-      </div>
-
-      <section className="nx-kpi-section">
-        <div className="grid min-w-0 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <StatCard label={t("dashboard.available")} value={<AnimatedNumber value={data.kpis.available} formatter={formatNumber} />} hint={t("dashboard.availableHint")} icon={Boxes} tone="success" premium />
-          <StatCard label={t("dashboard.receivedThisMonth")} value={<AnimatedNumber value={data.kpis.receivedThisMonth} formatter={formatNumber} />} hint={`${t("dashboard.receivedHint")} · ${t("dashboard.comparisonPeriod")}`} icon={PackagePlus} tone="info" trend={receivedTrend.label} trendTone={receivedTrend.tone} premium />
-          <button
-            type="button"
-            onClick={() => setStockDialogOpen(true)}
-            aria-label="Ver detalle de productos con stock bajo"
-            className="block w-full rounded-2xl text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 [&_.nx-premium-stat-card]:h-full [&_.nx-premium-stat-card]:cursor-pointer [&_.nx-premium-stat-card]:hover:border-primary/40"
-          >
-            <StatCard label={t("dashboard.lowStock")} value={<AnimatedNumber value={data.kpis.lowStockProducts} formatter={formatNumber} />} hint={t("dashboard.lowStockHint")} icon={TriangleAlert} tone={data.kpis.lowStockProducts > 0 ? "warning" : "success"} premium />
-          </button>
-          <StatCard label={t("dashboard.inventoryValue")} value={<AnimatedNumber value={data.kpis.inventoryValue} formatter={formatCurrency} />} hint={t("dashboard.inventoryValueHint")} icon={Coins} tone="primary" monetaryValue premium />
-        </div>
-        <div className="mt-4 grid gap-4 sm:grid-cols-2">
-          <Link to="/pedidos" className="nx-wide-stat">
-            <div className="nx-wide-icon"><ClipboardList className="h-6 w-6" /></div>
-            <div className="min-w-0 flex-1"><p className="nx-wide-label">{t("dashboard.openOrders")}</p><p className="nx-wide-value"><AnimatedNumber value={data.kpis.openOrders} formatter={formatNumber} /></p><p className="nx-wide-hint">{t("dashboard.openOrdersHint")}</p></div>
-            <ArrowRight className="h-5 w-5 text-muted-foreground" />
-          </Link>
-          <Link to="/garantias" className="nx-wide-stat">
-            <div className="nx-wide-icon nx-wide-icon-blue"><ShieldCheck className="h-6 w-6" /></div>
-            <div className="min-w-0 flex-1"><p className="nx-wide-label">{t("dashboard.openWarranties")}</p><p className="nx-wide-value"><AnimatedNumber value={data.kpis.openWarranties} formatter={formatNumber} /></p><p className="nx-wide-hint">{data.kpis.staleWarranties > 0 ? t("dashboard.openWarrantiesStale", { count: data.kpis.staleWarranties, days: DIAS_GARANTIA_ESTANCADA }) : t("dashboard.openWarrantiesHint")}</p></div>
-            <ArrowRight className="h-5 w-5 text-muted-foreground" />
-          </Link>
-        </div>
       </section>
 
-      <section className="nx-hero-strip">
-        <div className="nx-hero-icon"><Activity className="h-5 w-5" /></div>
-        <div className="min-w-0 flex-1">
-          <p className="font-semibold">Bienvenido a Nexora Smart Operations</p>
-          <p className="mt-1 text-xs opacity-80">Consulta tus indicadores y accede a las operaciones de tu bodega desde un solo lugar.</p>
-        </div>
-        <Link to="/seriales" className="nx-hero-link">Consultar seriales <ArrowRight className="h-4 w-4" /></Link>
-      </section>
-
-      <div className="flex flex-wrap items-end gap-3 nx-dashboard-report-filters rounded-xl border bg-card p-4">
-        <div><label htmlFor="reporte-desde" className="block text-xs text-muted-foreground">Reporte desde</label><input id="reporte-desde" type="date" value={reporteDesde} max={reporteHasta} onChange={(e) => { setReporteDesde(e.target.value); setMovementPreset("custom"); }} className="mt-1 rounded-md border bg-background px-3 py-2 text-sm" /></div>
-        <div><label htmlFor="reporte-hasta" className="block text-xs text-muted-foreground">Hasta</label><input id="reporte-hasta" type="date" value={reporteHasta} min={reporteDesde} onChange={(e) => { setReporteHasta(e.target.value); setMovementPreset("custom"); }} className="mt-1 rounded-md border bg-background px-3 py-2 text-sm" /></div>
-        <div className="flex flex-wrap gap-2">
-          <Button type="button" disabled={reporteDesde > reporteHasta} onClick={exportarReporteOperativoExcel}>
-            <FileSpreadsheet className="mr-2 h-4 w-4" />Exportar a Excel (.xlsx)
-          </Button>
-          <Button type="button" variant="outline" disabled={reporteDesde > reporteHasta} onClick={exportarReporteOperativo}>
-            <Download className="mr-2 h-4 w-4" />Exportar CSV
-          </Button>
-        </div>
-      </div>
-
-      <Dialog open={stockDialogOpen} onOpenChange={setStockDialogOpen}>
-        <DialogContent className="max-h-[92dvh] w-[calc(100%-1.5rem)] max-w-5xl gap-0 overflow-hidden p-0">
-          <DialogHeader className="border-b px-5 pb-4 pt-5 pr-12 sm:px-6 sm:pt-6">
-            <div className="mb-2 flex items-center gap-2">
-              <span className="rounded-lg bg-amber-100 p-2 text-amber-700"><TriangleAlert className="h-5 w-5" /></span>
-              <span className="rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground">{data.kpis.lowStockProducts} referencias con alerta</span>
-            </div>
-            <DialogTitle>Productos con stock bajo</DialogTitle>
-            <DialogDescription>Consulta por categoría y condición. Cada fila muestra las unidades disponibles y el mínimo correspondiente.</DialogDescription>
-          </DialogHeader>
-          <div className="flex flex-wrap items-center gap-3 border-b px-5 py-4 sm:px-6">
-            <div className="relative min-w-[180px] flex-1">
-              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <input aria-label="Buscar referencia o SKU" placeholder="Buscar referencia o SKU..." value={stockBusqueda} onChange={(event) => setStockBusqueda(event.target.value)} className="h-10 w-full rounded-lg border border-input bg-background pl-9 pr-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-primary/30" />
-            </div>
-            <select aria-label="Filtrar categoría" value={stockCategoria} onChange={(event) => setStockCategoria(event.target.value)} className="h-10 min-w-[150px] rounded-lg border border-input bg-background px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-primary/30">
-              <option value="todos">Todas las categorías</option>
-              {categoriasStockBajo.map((categoria) => <option key={categoria} value={categoria}>{tiposProducto.get(categoria) ?? (categoria === "otros" ? "Otros" : categoria)}</option>)}
-            </select>
-            <span className="text-xs text-muted-foreground">{filasStockVisibles.length} resultados</span>
-          </div>
-          <div className="max-h-[54dvh] overflow-auto -mr-5 px-5 py-4 pr-5 sm:-mr-6 sm:px-6 sm:pr-6">
-            {filasStockVisibles.length === 0 ? (
-              <div className="rounded-xl border border-dashed px-4 py-10 text-center">
-                <ShieldCheck className="mx-auto mb-2 h-8 w-8 text-emerald-600" />
-                <p className="font-medium">{filasStockBajo.length ? "No hay coincidencias" : "No hay productos con stock bajo"}</p>
-                <p className="mt-1 text-sm text-muted-foreground">{filasStockBajo.length ? "Prueba con otra referencia o categoría." : "El inventario no presenta alertas de stock."}</p>
-                {filasStockBajo.length > 0 ? <Button type="button" variant="outline" size="sm" className="mt-3" onClick={() => { setStockBusqueda(""); setStockCategoria("todos"); }}>Limpiar filtros</Button> : null}
-              </div>
-            ) : (
-              <div className="overflow-x-auto rounded-xl border">
-                <table className="w-full min-w-[700px] text-left text-sm">
-                  <thead className="sticky top-0 z-10 bg-muted/90 text-xs text-muted-foreground">
-                    <tr>
-                      <th className="px-4 py-3 font-semibold">Referencia</th>
-                      <th className="px-4 py-3 font-semibold">Categoría</th>
-                      <th className="px-4 py-3 font-semibold">Condición</th>
-                      <th className="px-4 py-3 text-center font-semibold">Disponible</th>
-                      <th className="px-4 py-3 text-center font-semibold">Mínimo</th>
-                      <th className="px-4 py-3 text-center font-semibold">Faltan</th>
-                      <th className="px-4 py-3 text-right font-semibold">Detalle</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y">
-                    {filasStockVisibles.map(({ row, disponible, condicion, minimo }) => (
-                      <tr key={`${row.product.id}-${condicion}`} className="transition-colors hover:bg-muted/40">
-                        <td className="max-w-[250px] px-4 py-3">
-                          <p className="truncate font-medium" title={row.product.name}>{row.product.name}</p>
-                          <p className="mt-0.5 truncate text-xs text-muted-foreground">{row.product.sku}</p>
-                        </td>
-                        <td className="px-4 py-3 text-muted-foreground">{tiposProducto.get(row.product.categoria || "") ?? row.product.categoria ?? "Otros"}</td>
-                        <td className="px-4 py-3">{condicion}</td>
-                        <td className="px-4 py-3 text-center"><span className={cn("inline-flex min-w-9 justify-center rounded-full px-2 py-1 text-xs font-semibold", disponible === 0 ? "bg-red-100 text-red-700" : "bg-amber-100 text-amber-700")}>{disponible}</span></td>
-                        <td className="px-4 py-3 text-center tabular-nums">{minimo}</td>
-                        <td className="px-4 py-3 text-center font-semibold tabular-nums">{Math.max(0, minimo - disponible)}</td>
-                        <td className="px-4 py-3 text-right"><Link to={`/inventario/${row.product.id}`} onClick={() => setStockDialogOpen(false)} className="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline">Ver <ArrowRight className="h-3.5 w-3.5" /></Link></td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
-          <div className="flex flex-wrap items-center justify-between gap-3 border-t px-5 py-4 sm:px-6">
-            <Button type="button" onClick={exportarStockFiltrado} disabled={filasStockVisibles.length === 0} className="gap-2">
-              <Download className="h-4 w-4" />
-              Exportar filtrados ({filasStockVisibles.length})
-            </Button>
-            <Button variant="outline" asChild><Link to="/inventario" onClick={() => setStockDialogOpen(false)}>Ver inventario completo <ArrowRight className="ml-2 h-4 w-4" /></Link></Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-
+      {/* 3 · Rendimiento: clasificaciones y últimas unidades, sin perder acciones. */}
+      <section className="nx-dashboard-block nx-dashboard-block--performance space-y-4" aria-label="Rendimiento de inventario">
       <div className="mb-4 flex items-center justify-between">
         <div>
           <h2 className="text-lg font-semibold">Rendimiento de inventario</h2>
@@ -680,6 +513,190 @@ const Panel = () => {
           })}
         </ul>
       </section>
+
+      </section>
+
+      {/* 4 · Seguimiento de garantías con alertas y casos pendientes. */}
+      <section className="nx-dashboard-block nx-dashboard-block--warranties space-y-4" aria-label="Prioridades de garantías">
+      <section className="nx-warranty-section space-y-4" aria-labelledby="warranty-priorities-heading">
+        <div className="nx-warranty-section__heading">
+          <div className="nx-warranty-section__title">
+            <span className="nx-warranty-section__accent" aria-hidden="true" />
+            <div>
+              <h2 id="warranty-priorities-heading">Prioridades de garantías</h2>
+              <p>Casos que requieren seguimiento, ordenados por tiempo sin movimiento.</p>
+            </div>
+          </div>
+          <Link to="/garantias" className="nx-manage-warranties">
+            Gestionar garantías <ArrowRight className="h-4 w-4" />
+          </Link>
+        </div>
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          {[
+            { title: "Críticas", count: prioridadesGarantia.criticas.length, description: "15 días o más sin movimiento", tone: "critical", Icon: TriangleAlert },
+            { title: "Estancadas", count: prioridadesGarantia.estancadas.length, description: "De 7 a 14 días sin movimiento", tone: "stalled", Icon: Clock3 },
+            { title: "Pendientes de entrega", count: prioridadesGarantia.listas.length, description: "Reenvío pendiente", tone: "pending", Icon: Truck },
+            { title: "En servicio técnico", count: prioridadesGarantia.tecnico.length, description: "Equipos con el técnico", tone: "service", Icon: Wrench },
+          ].map(({ title, count, description, tone, Icon }) => (
+            <div key={title} className={`nx-warranty-kpi nx-warranty-kpi--${tone}`}>
+              <span className="nx-warranty-kpi__icon" aria-hidden="true"><Icon className="h-6 w-6" /></span>
+              <div className="nx-warranty-kpi__text">
+                <h3 className="nx-warranty-kpi__title">{title}</h3>
+                <p className="nx-warranty-kpi__value tabular-nums">{count}</p>
+                <p className="nx-warranty-kpi__description">{description}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+        {data.openWarranties.length === 0 ? (
+          <div className="nx-warranty-empty" role="status">
+            <span className="nx-warranty-empty__icon" aria-hidden="true"><Inbox className="h-4 w-4" /></span>
+            No hay garantías abiertas que requieran seguimiento.
+          </div>
+        ) : (
+          <div className="overflow-hidden rounded-[20px] border bg-card shadow-sm">
+            <div className="flex items-center justify-between gap-2 border-b bg-muted/20 px-5 py-4">
+              <h3 className="text-sm font-semibold">Casos para revisar</h3>
+              <span className="text-xs text-muted-foreground">Hasta 6 casos con mayor antigüedad</span>
+            </div>
+            <div className="divide-y">
+              {data.openWarranties.slice(0, 6).map((view) => {
+                const days = diasSinMovimiento(view);
+                return (
+                  <Link key={view.warranty.id} to={`/garantias/${view.warranty.id}`}
+                    className="flex flex-wrap items-center justify-between gap-3 px-5 py-3 transition-colors hover:bg-muted/40">
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-semibold">{view.warranty.code}</p>
+                      <p className="truncate text-xs text-muted-foreground">
+                        {view.product?.name ?? view.warranty.referenciaManual ?? "Referencia no registrada"} · {view.unit?.serial ?? view.warranty.imeiManual ?? "Sin serial"}
+                      </p>
+                    </div>
+                    <div className="flex shrink-0 items-center gap-2">
+                      <WarrantyStatusBadge status={view.warranty.status} />
+                      <span className={cn("rounded-full px-2 py-1 text-xs font-semibold tabular-nums",
+                        days >= DIAS_GARANTIA_CRITICA ? "bg-destructive/10 text-destructive" :
+                        days >= DIAS_GARANTIA_ESTANCADA ? "bg-amber-100 text-amber-700" : "bg-muted text-muted-foreground")}>
+                        {days} d sin movimiento
+                      </span>
+                      <ArrowRight className="h-4 w-4 text-muted-foreground" />
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        )}
+      </section>
+
+      {garantiaMasAntigua && (
+        <div
+          role="alert"
+          className={cn(
+            "flex flex-wrap items-center gap-3 rounded-lg border px-4 py-3",
+            diasMasAntigua >= DIAS_GARANTIA_CRITICA
+              ? "border-destructive/40 bg-destructive/10"
+              : "border-warning/40 bg-warning/10",
+          )}
+        >
+          <TriangleAlert
+            className={cn(
+              "h-5 w-5 shrink-0",
+              diasMasAntigua >= DIAS_GARANTIA_CRITICA ? "text-destructive" : "text-warning",
+            )}
+          />
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-medium">
+              {t("dashboard.staleWarrantiesTitle", { count: data.staleWarranties.length })}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              {t("dashboard.staleWarrantiesBody", {
+                days: DIAS_GARANTIA_ESTANCADA,
+                code: garantiaMasAntigua.warranty.code,
+                oldest: diasMasAntigua,
+              })}
+            </p>
+          </div>
+          <Button variant="outline" size="sm" asChild>
+            <Link to="/garantias">{t("dashboard.staleWarrantiesView")}</Link>
+          </Button>
+        </div>
+      )}
+
+      </section>
+
+      {/* El diálogo conserva los mismos controles; fuera del flujo visual de las secciones. */}
+      <Dialog open={stockDialogOpen} onOpenChange={setStockDialogOpen}>
+        <DialogContent className="max-h-[92dvh] w-[calc(100%-1.5rem)] max-w-5xl gap-0 overflow-hidden p-0">
+          <DialogHeader className="border-b px-5 pb-4 pt-5 pr-12 sm:px-6 sm:pt-6">
+            <div className="mb-2 flex items-center gap-2">
+              <span className="rounded-lg bg-amber-100 p-2 text-amber-700"><TriangleAlert className="h-5 w-5" /></span>
+              <span className="rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground">{data.kpis.lowStockProducts} referencias con alerta</span>
+            </div>
+            <DialogTitle>Productos con stock bajo</DialogTitle>
+            <DialogDescription>Consulta por categoría y condición. Cada fila muestra las unidades disponibles y el mínimo correspondiente.</DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-wrap items-center gap-3 border-b px-5 py-4 sm:px-6">
+            <div className="relative min-w-[180px] flex-1">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <input aria-label="Buscar referencia o SKU" placeholder="Buscar referencia o SKU..." value={stockBusqueda} onChange={(event) => setStockBusqueda(event.target.value)} className="h-10 w-full rounded-lg border border-input bg-background pl-9 pr-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-primary/30" />
+            </div>
+            <select aria-label="Filtrar categoría" value={stockCategoria} onChange={(event) => setStockCategoria(event.target.value)} className="h-10 min-w-[150px] rounded-lg border border-input bg-background px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-primary/30">
+              <option value="todos">Todas las categorías</option>
+              {categoriasStockBajo.map((categoria) => <option key={categoria} value={categoria}>{tiposProducto.get(categoria) ?? (categoria === "otros" ? "Otros" : categoria)}</option>)}
+            </select>
+            <span className="text-xs text-muted-foreground">{filasStockVisibles.length} resultados</span>
+          </div>
+          <div className="max-h-[54dvh] overflow-auto -mr-5 px-5 py-4 pr-5 sm:-mr-6 sm:px-6 sm:pr-6">
+            {filasStockVisibles.length === 0 ? (
+              <div className="rounded-xl border border-dashed px-4 py-10 text-center">
+                <ShieldCheck className="mx-auto mb-2 h-8 w-8 text-emerald-600" />
+                <p className="font-medium">{filasStockBajo.length ? "No hay coincidencias" : "No hay productos con stock bajo"}</p>
+                <p className="mt-1 text-sm text-muted-foreground">{filasStockBajo.length ? "Prueba con otra referencia o categoría." : "El inventario no presenta alertas de stock."}</p>
+                {filasStockBajo.length > 0 ? <Button type="button" variant="outline" size="sm" className="mt-3" onClick={() => { setStockBusqueda(""); setStockCategoria("todos"); }}>Limpiar filtros</Button> : null}
+              </div>
+            ) : (
+              <div className="overflow-x-auto rounded-xl border">
+                <table className="w-full min-w-[700px] text-left text-sm">
+                  <thead className="sticky top-0 z-10 bg-muted/90 text-xs text-muted-foreground">
+                    <tr>
+                      <th className="px-4 py-3 font-semibold">Referencia</th>
+                      <th className="px-4 py-3 font-semibold">Categoría</th>
+                      <th className="px-4 py-3 font-semibold">Condición</th>
+                      <th className="px-4 py-3 text-center font-semibold">Disponible</th>
+                      <th className="px-4 py-3 text-center font-semibold">Mínimo</th>
+                      <th className="px-4 py-3 text-center font-semibold">Faltan</th>
+                      <th className="px-4 py-3 text-right font-semibold">Detalle</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y">
+                    {filasStockVisibles.map(({ row, disponible, condicion, minimo }) => (
+                      <tr key={`${row.product.id}-${condicion}`} className="transition-colors hover:bg-muted/40">
+                        <td className="max-w-[250px] px-4 py-3">
+                          <p className="truncate font-medium" title={row.product.name}>{row.product.name}</p>
+                          <p className="mt-0.5 truncate text-xs text-muted-foreground">{row.product.sku}</p>
+                        </td>
+                        <td className="px-4 py-3 text-muted-foreground">{tiposProducto.get(row.product.categoria || "") ?? row.product.categoria ?? "Otros"}</td>
+                        <td className="px-4 py-3">{condicion}</td>
+                        <td className="px-4 py-3 text-center"><span className={cn("inline-flex min-w-9 justify-center rounded-full px-2 py-1 text-xs font-semibold", disponible === 0 ? "bg-red-100 text-red-700" : "bg-amber-100 text-amber-700")}>{disponible}</span></td>
+                        <td className="px-4 py-3 text-center tabular-nums">{minimo}</td>
+                        <td className="px-4 py-3 text-center font-semibold tabular-nums">{Math.max(0, minimo - disponible)}</td>
+                        <td className="px-4 py-3 text-right"><Link to={`/inventario/${row.product.id}`} onClick={() => setStockDialogOpen(false)} className="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline">Ver <ArrowRight className="h-3.5 w-3.5" /></Link></td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+          <div className="flex flex-wrap items-center justify-between gap-3 border-t px-5 py-4 sm:px-6">
+            <Button type="button" onClick={exportarStockFiltrado} disabled={filasStockVisibles.length === 0} className="gap-2">
+              <Download className="h-4 w-4" />
+              Exportar filtrados ({filasStockVisibles.length})
+            </Button>
+            <Button variant="outline" asChild><Link to="/inventario" onClick={() => setStockDialogOpen(false)}>Ver inventario completo <ArrowRight className="ml-2 h-4 w-4" /></Link></Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
     </div>
   );
