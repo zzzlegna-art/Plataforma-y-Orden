@@ -348,7 +348,7 @@ const Recepciones = () => {
       </div>
       <div className="flex items-center justify-between">
         <span className="text-xs text-muted-foreground">
-          {t("receptions.unitCount", { count: row.units.length })}
+          {t("receptions.unitCount", { count: row.reception.status === "confirmada" ? row.units.length : row.serials.length })}
         </span>
         <div className="flex flex-wrap gap-1">
           <ReceptionSupplierDialog
