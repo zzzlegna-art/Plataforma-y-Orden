@@ -310,7 +310,7 @@ const Panel = () => {
               </div>
             </div>
             <div className="nx-analytics-controls">
-              <span className="nx-analytics-legend"><span className="nx-analytics-dot bg-cyan-500" /> Entradas</span>
+              <span className="nx-analytics-legend"><span className="nx-analytics-dot bg-primary" /> Entradas</span>
               <span className="nx-analytics-legend"><span className="nx-analytics-dot bg-violet-500" /> Salidas</span>
               <select className="nx-analytics-range" value={movementPreset}
                 aria-label="Período del gráfico de inventario"
@@ -643,7 +643,7 @@ const Panel = () => {
         <DialogContent className="max-h-[92dvh] w-[calc(100%-1.5rem)] max-w-5xl gap-0 overflow-hidden p-0">
           <DialogHeader className="border-b px-5 pb-4 pt-5 pr-12 sm:px-6 sm:pt-6">
             <div className="mb-2 flex items-center gap-2">
-              <span className="rounded-lg bg-amber-100 p-2 text-amber-700"><TriangleAlert className="h-5 w-5" /></span>
+              <span className="rounded-lg bg-warning/12 p-2 text-warning"><TriangleAlert className="h-5 w-5" /></span>
               <span className="rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground">{data.kpis.lowStockProducts} referencias con alerta</span>
             </div>
             <DialogTitle>Productos con stock bajo</DialogTitle>
@@ -663,7 +663,7 @@ const Panel = () => {
           <div className="max-h-[54dvh] overflow-auto -mr-5 px-5 py-4 pr-5 sm:-mr-6 sm:px-6 sm:pr-6">
             {filasStockVisibles.length === 0 ? (
               <div className="rounded-xl border border-dashed px-4 py-10 text-center">
-                <ShieldCheck className="mx-auto mb-2 h-8 w-8 text-emerald-600" />
+                <ShieldCheck className="mx-auto mb-2 h-8 w-8 text-success" />
                 <p className="font-medium">{filasStockBajo.length ? "No hay coincidencias" : "No hay productos con stock bajo"}</p>
                 <p className="mt-1 text-sm text-muted-foreground">{filasStockBajo.length ? "Prueba con otra referencia o categoría." : "El inventario no presenta alertas de stock."}</p>
                 {filasStockBajo.length > 0 ? <Button type="button" variant="outline" size="sm" className="mt-3" onClick={() => { setStockBusqueda(""); setStockCategoria("todos"); }}>Limpiar filtros</Button> : null}
@@ -691,7 +691,7 @@ const Panel = () => {
                         </td>
                         <td className="px-4 py-3 text-muted-foreground">{tiposProducto.get(row.product.categoria || "") ?? row.product.categoria ?? "Otros"}</td>
                         <td className="px-4 py-3">{condicion}</td>
-                        <td className="px-4 py-3 text-center"><span className={cn("inline-flex min-w-9 justify-center rounded-full px-2 py-1 text-xs font-semibold", disponible === 0 ? "bg-red-100 text-red-700" : "bg-amber-100 text-amber-700")}>{disponible}</span></td>
+                        <td className="px-4 py-3 text-center"><span className={cn("inline-flex min-w-9 justify-center rounded-full px-2 py-1 text-xs font-semibold", disponible === 0 ? "bg-destructive/12 text-destructive" : "bg-warning/12 text-warning")}>{disponible}</span></td>
                         <td className="px-4 py-3 text-center tabular-nums">{minimo}</td>
                         <td className="px-4 py-3 text-center font-semibold tabular-nums">{Math.max(0, minimo - disponible)}</td>
                         <td className="px-4 py-3 text-right"><Link to={`/inventario/${row.product.id}`} onClick={() => setStockDialogOpen(false)} className="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline">Ver <ArrowRight className="h-3.5 w-3.5" /></Link></td>
