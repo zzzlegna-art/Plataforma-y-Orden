@@ -992,11 +992,11 @@ body {
   bottom: clamp(15px, 1.6vw, 28px);
   display: flex;
   align-items: flex-end;
-  gap: clamp(3px, .35vw, 7px);
-  height: clamp(40px, 4.6vw, 66px);
+  gap: 4px;
+  height: 34px;
 }
 .nx-dashboard-premium .nx-premium-stat-bars span {
-  width: clamp(5px, .55vw, 9px);
+  width: 4px;
   height: 100%;
   border-radius: 99px;
 }
@@ -1117,6 +1117,8 @@ body {
   .nx-dashboard-premium .nx-action-grid { grid-template-columns: repeat(3, minmax(0,1fr)); }
 }
 @media(max-width: 640px) {
+  .nx-dashboard-premium .nx-premium-stat-bars { height: 28px; gap: 3px; }
+  .nx-dashboard-premium .nx-premium-stat-bars span { width: 4px; }
   .nx-dashboard-premium .nx-premium-stat-card { min-height: 194px; padding: 19px; }
   .nx-dashboard-premium .nx-premium-stat-label { font-size: .8rem; }
   .nx-dashboard-premium .nx-premium-stat-value { font-size: 1.35rem; }
