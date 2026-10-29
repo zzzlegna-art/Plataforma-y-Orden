@@ -1,0 +1,190 @@
+/* Nexora dashboard / premium concept. Strictly scoped: never styles the left sidebar. */
+.nx-dashboard-showcase {
+  --nx-dashboard-ink: 218 63% 15%;
+  --nx-dashboard-cyan: 190 94% 43%;
+  position: relative;
+  isolation: isolate;
+  max-width: 1740px;
+  margin-inline: auto;
+  padding-bottom: 2.5rem;
+}
+.nx-dashboard-showcase::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  top: -1.75rem;
+  right: -2rem;
+  left: -2rem;
+  height: 48rem;
+  pointer-events: none;
+  background: radial-gradient(ellipse at 95% 6%, hsl(202 100% 89% / .46), transparent 54%),
+    radial-gradient(ellipse at 0% 45%, hsl(188 100% 89% / .35), transparent 52%);
+}
+.dark .nx-dashboard-showcase::before {
+  background: radial-gradient(ellipse at 96% 2%, hsl(198 89% 35% / .17), transparent 60%),
+    radial-gradient(ellipse at 0% 40%, hsl(186 100% 45% / .08), transparent 55%);
+}
+.nx-dashboard-showcase .nx-warranty-section { position: relative; }
+.nx-dashboard-showcase .nx-warranty-section__heading {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1rem;
+}
+.nx-dashboard-showcase .nx-warranty-section__title {
+  display: flex; align-items: flex-start; gap: .9rem; min-width: 0;
+}
+.nx-dashboard-showcase .nx-warranty-section__accent {
+  width: 5px; height: 44px; border-radius: 30px; flex: 0 0 auto;
+  background: linear-gradient(180deg, #23d8e4, #03a7d3);
+  box-shadow: 0 5px 16px #0bbbd62e;
+}
+.nx-dashboard-showcase .nx-warranty-section__title h2 {
+  color: hsl(var(--foreground)); font-size: clamp(1.3rem, 1.8vw, 1.6rem);
+  font-weight: 800; line-height: 1.25; letter-spacing: -.035em;
+}
+.nx-dashboard-showcase .nx-warranty-section__title p {
+  margin-top: .35rem; font-size: .83rem; line-height: 1.5; color: hsl(var(--muted-foreground));
+}
+.nx-dashboard-showcase .nx-manage-warranties {
+  display: inline-flex; align-items: center; gap: .75rem; min-height: 42px;
+  border: 1px solid #077ead; border-radius: 999px; padding: .65rem 1.15rem;
+  color: white; background: linear-gradient(107deg, #093d86, #006ba7 55%, #04a1bd);
+  box-shadow: 0 12px 25px -15px #086e9da8, inset 0 1px 0 #ffffff3d;
+  font-size: .8rem; font-weight: 700; transition: filter .18s, transform .18s;
+}
+.nx-dashboard-showcase .nx-manage-warranties:hover { filter: brightness(1.1); transform: translateY(-1px); }
+.nx-dashboard-showcase .nx-manage-warranties:focus-visible {
+  outline: 3px solid hsl(var(--ring) / .4); outline-offset: 2px;
+}
+.nx-dashboard-showcase .nx-warranty-kpi {
+  position: relative; display: flex; gap: 1rem; align-items: flex-start;
+  min-width: 0; min-height: 150px; overflow: hidden;
+  padding: 1.15rem; border: 1px solid hsl(var(--border) / .83);
+  border-radius: 20px; background: linear-gradient(130deg, hsl(var(--card)) 53%, var(--nx-kpi-wash));
+  box-shadow: 0 17px 37px -28px rgb(16 48 88 / 32%), inset 0 1px 0 #ffffff1c;
+}
+.nx-dashboard-showcase .nx-warranty-kpi::after {
+  content: ""; position: absolute; pointer-events: none;
+  right: -58px; bottom: -115px; width: 175px; height: 175px; border-radius: 50%;
+  background: var(--nx-kpi-wash); opacity: .55;
+}
+.nx-dashboard-showcase .nx-warranty-kpi--critical { --nx-kpi-wash: #fff0f1; --nx-kpi-tone: #dd2a41; --nx-kpi-icon: #ffebee; }
+.nx-dashboard-showcase .nx-warranty-kpi--stalled { --nx-kpi-wash: #fff8e8; --nx-kpi-tone: #d67b0a; --nx-kpi-icon: #fff3df; }
+.nx-dashboard-showcase .nx-warranty-kpi--pending { --nx-kpi-wash: #e7fbff; --nx-kpi-tone: #0497c5; --nx-kpi-icon: #def9fd; }
+.nx-dashboard-showcase .nx-warranty-kpi--service { --nx-kpi-wash: #f0f4ff; --nx-kpi-tone: #234a7d; --nx-kpi-icon: #ebf1ff; }
+.dark .nx-dashboard-showcase .nx-warranty-kpi {
+  --nx-kpi-wash: hsl(var(--primary) / .055);
+  border-color: hsl(var(--border)); background: linear-gradient(132deg, hsl(var(--card)), var(--nx-kpi-wash));
+}
+.dark .nx-dashboard-showcase .nx-warranty-kpi--critical { --nx-kpi-tone: #ff8091; --nx-kpi-icon: #67212c; }
+.dark .nx-dashboard-showcase .nx-warranty-kpi--stalled { --nx-kpi-tone: #ffb551; --nx-kpi-icon: #543d17; }
+.dark .nx-dashboard-showcase .nx-warranty-kpi--pending { --nx-kpi-tone: #42d7ed; --nx-kpi-icon: #094555; }
+.dark .nx-dashboard-showcase .nx-warranty-kpi--service { --nx-kpi-tone: #b8d7ff; --nx-kpi-icon: #223b65; }
+.nx-dashboard-showcase .nx-warranty-kpi__icon {
+  display: grid; width: 48px; height: 48px; flex: none; place-items: center;
+  color: var(--nx-kpi-tone); background: var(--nx-kpi-icon);
+  border-radius: 50%;
+}
+.nx-dashboard-showcase .nx-warranty-kpi__text { min-width: 0; position: relative; z-index: 1; }
+.nx-dashboard-showcase .nx-warranty-kpi__title { font-size: .8rem; font-weight: 700; line-height: 1.3; }
+.nx-dashboard-showcase .nx-warranty-kpi__value {
+  margin-top: .28rem; font-size: clamp(2rem, 2.8vw, 2.65rem);
+  font-weight: 800; line-height: 1.15; color: var(--nx-kpi-tone); letter-spacing: -.04em;
+}
+.nx-dashboard-showcase .nx-warranty-kpi__description {
+  margin-top: .25rem; color: hsl(var(--muted-foreground)); line-height: 1.45; font-size: .72rem;
+}
+.nx-dashboard-showcase .nx-warranty-empty {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: .85rem;
+  min-height: 76px; padding: 1.15rem;
+  border: 1px dashed hsl(var(--border)); border-radius: 18px;
+  color: hsl(var(--muted-foreground)); background: hsl(var(--card) / .58);
+  text-align: center; font-size: .8rem;
+}
+.nx-dashboard-showcase .nx-warranty-empty__icon {
+  width: 37px; height: 37px; border-radius: 50%;
+  display: grid; place-items: center; background: hsl(var(--muted)); color: hsl(var(--foreground) / .6);
+}
+.nx-dashboard-showcase .nx-dashboard-analytics {
+  display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); gap: .9rem;
+}
+.nx-dashboard-showcase .nx-analytics-card {
+  min-width: 0; overflow: hidden; padding: 1.2rem; border-radius: 20px;
+  border: 1px solid hsl(var(--border) / .85);
+  background: hsl(var(--card) / .96);
+  box-shadow: 0 18px 42px -28px rgb(16 48 88 / 27%);
+}
+.nx-dashboard-showcase .nx-analytics-header {
+  display: flex; align-items: flex-start; justify-content: space-between; gap: .8rem; flex-wrap: wrap;
+  margin-bottom: 1.2rem;
+}
+.nx-dashboard-showcase .nx-analytics-heading { display: flex; gap: .75rem; align-items: center; min-width: 0; }
+.nx-dashboard-showcase .nx-analytics-icon {
+  display: grid; place-items: center; width: 42px; height: 42px; flex: none;
+  color: #2172d1; border-radius: 50%; background: #e9f2ff;
+}
+.dark .nx-dashboard-showcase .nx-analytics-icon { color: #99c6ff; background: #223b60; }
+.nx-dashboard-showcase .nx-analytics-heading h2 {
+  color: hsl(var(--foreground)); font-weight: 800; font-size: .95rem; letter-spacing: -.025em;
+}
+.nx-dashboard-showcase .nx-analytics-heading p {
+  color: hsl(var(--muted-foreground)); font-size: .75rem; line-height: 1.5; margin-top: .15rem;
+}
+.nx-dashboard-showcase .nx-analytics-controls { display: flex; flex-wrap: wrap; align-items: center; gap: .7rem; }
+.nx-dashboard-showcase .nx-analytics-legend {
+  display: inline-flex; align-items: center; gap: .3rem; font-size: .69rem; color: hsl(var(--muted-foreground));
+}
+.nx-dashboard-showcase .nx-analytics-dot { width: 8px; height: 8px; flex: none; border-radius: 50%; }
+.nx-dashboard-showcase .nx-analytics-range {
+  max-width: 170px; padding: .55rem 1.7rem .55rem .7rem; appearance: auto;
+  border-radius: 10px; border: 1px solid hsl(var(--border));
+  background: hsl(var(--card)); font-size: .73rem; color: hsl(var(--foreground));
+}
+.nx-dashboard-showcase .nx-analytics-range:focus-visible { outline: 2px solid hsl(var(--ring)); outline-offset: 2px; }
+.nx-dashboard-showcase .nx-analytics-chart { width: 100%; height: 250px; }
+.nx-dashboard-showcase .nx-operations-chart-layout {
+  display: grid; grid-template-columns: minmax(145px, .9fr) minmax(0, 1.1fr);
+  gap: .7rem; align-items: center; min-height: 245px;
+}
+.nx-dashboard-showcase .nx-operations-donut { height: 218px; min-width: 0; position: relative; }
+.nx-dashboard-showcase .nx-operations-chart-center {
+  position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: center;
+  align-items: center; pointer-events: none; text-align: center;
+}
+.nx-dashboard-showcase .nx-operations-chart-center strong { font-size: .8rem; font-weight: 800; }
+.nx-dashboard-showcase .nx-operations-chart-center span { margin-top: .15rem; font-size: .68rem; color: hsl(var(--muted-foreground)); }
+.nx-dashboard-showcase .nx-operations-legend {
+  min-width: 0; display: grid; gap: .9rem; border-left: 1px solid hsl(var(--border) / .75);
+  padding-left: .9rem;
+}
+.nx-dashboard-showcase .nx-operations-legend__row {
+  display: flex; min-width: 0; gap: .55rem; align-items: center; font-size: .73rem;
+}
+.nx-dashboard-showcase .nx-operations-legend__row span:nth-child(2) {
+  min-width: 0; flex: 1; color: hsl(var(--muted-foreground));
+}
+.nx-dashboard-showcase .nx-operations-legend__row strong { margin-left: auto; white-space: nowrap; font-size: .79rem; }
+.nx-dashboard-showcase .nx-dashboard-secondary-heading {
+  border-top: 1px solid hsl(var(--border) / .65); padding-top: 1.2rem;
+}
+.nx-dashboard-showcase .nx-dashboard-secondary-heading h1 { font-size: 1.2rem; }
+.nx-dashboard-showcase .nx-dashboard-report-filters {
+  border-radius: 18px; background: hsl(var(--card) / .92);
+  box-shadow: 0 13px 31px -28px rgb(17 49 89 / .24);
+}
+@media(max-width: 1020px) {
+  .nx-dashboard-showcase .nx-dashboard-analytics { grid-template-columns: 1fr; }
+}
+@media(max-width: 540px) {
+  .nx-dashboard-showcase .nx-warranty-section__heading { align-items: stretch; }
+  .nx-dashboard-showcase .nx-warranty-section__heading > a { justify-content: center; width: 100%; }
+  .nx-dashboard-showcase .nx-warranty-kpi { min-height: 130px; padding: .85rem; gap: .7rem; }
+  .nx-dashboard-showcase .nx-warranty-kpi__icon { width: 38px; height: 38px; }
+  .nx-dashboard-showcase .nx-warranty-kpi__value { font-size: 2rem; }
+  .nx-dashboard-showcase .nx-analytics-card { padding: .85rem; }
+  .nx-dashboard-showcase .nx-analytics-chart { height: 220px; }
+  .nx-dashboard-showcase .nx-operations-chart-layout { grid-template-columns: 1fr; }
+  .nx-dashboard-showcase .nx-operations-legend { border: 0; padding: 0 .7rem .7rem; grid-template-columns: repeat(2,minmax(0,1fr)); }
+}
+@media(prefers-reduced-motion: reduce) {
+  .nx-dashboard-showcase .nx-manage-warranties { transition: none; }
+  .nx-dashboard-showcase .nx-manage-warranties:hover { transform: none; }
+}
