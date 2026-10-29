@@ -25,3 +25,11 @@
 .dark .nx-loading-premium__progress{background:#244659}
 @media(max-width:450px){.nx-loading-premium__card{padding:30px 22px 25px;border-radius:20px}.nx-loading-premium__mark{width:130px;height:130px}}
 @media(prefers-reduced-motion:reduce){.nx-loading-premium__ring,.nx-loading-premium__progress:before{animation:none}.nx-loading-premium__progress:before{width:45%}}
+
+/* Marca horizontal oficial: una sola animación de progreso, sin spinner duplicado. */
+.nx-loading-premium__identity{display:grid;place-items:center;width:min(100%,350px);min-height:114px;padding:16px 14px;border:1px solid #e4f0f9;border-radius:20px;background:radial-gradient(ellipse at 50% 50%,#fff,#f7fcff);box-shadow:0 15px 28px -27px rgba(6,76,132,.26)}
+.nx-loading-premium__brand-lockup{display:block;width:min(100%,320px);height:auto;max-height:94px;object-fit:contain;filter:drop-shadow(0 8px 12px rgba(0,55,107,.09))}
+.nx-loading-premium__card{gap:19px;width:min(100%,450px)}
+.nx-loading-premium__progress{height:5px}
+.dark .nx-loading-premium__identity{background:linear-gradient(145deg,#eaf8ff,#fff)}
+@media(max-width:450px){.nx-loading-premium__identity{min-height:95px;padding:13px}.nx-loading-premium__brand-lockup{max-height:80px}}
