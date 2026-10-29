@@ -116,7 +116,7 @@ describe("Recepciones premium · datos y acciones preservadas", () => {
   });
 
   it("aplica estilos locales sin tocar la barra lateral y soporta ambos temas", () => {
-    const css = readFileSync(new URL("./reception-premium.css", import.meta.url), "utf8");
+    const css = readFileSync("src/pages/recepcion/reception-premium.css", "utf8");
     expect(css).toContain(".nx-reception-hero");
     expect(css).toContain(".nx-reception-stat-grid");
     expect(css).toContain(".nx-reception-table");
