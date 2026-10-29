@@ -1,0 +1,25 @@
+/* Nexora premium Garantías — presentación aislada, sin cambios de lógica. */
+.nx-warranties-premium{--nxw-ink:#0d203e;--nxw-line:#d8e8f5;--nxw-teal:#00bfd0;--nxw-muted:#60758f}
+.nx-warranties-premium>.nx-page-header{padding:1.35rem 1.55rem;border:1px solid #cfe8f5;border-radius:21px;background:radial-gradient(ellipse at 76% 0%,rgba(99,218,238,.24),transparent 59%),linear-gradient(115deg,#fff 26%,#effbff);box-shadow:0 16px 35px -29px #104d86}
+.nx-warranties-premium>.nx-page-header h1{font-size:clamp(1.45rem,2vw,1.75rem)!important;line-height:1.2;letter-spacing:-.035em;color:var(--nxw-ink)}
+.nx-warranties-premium>.nx-page-header p{font-size:.88rem;color:var(--nxw-muted)}
+.nx-warranties-premium>.nx-warranty-stats{padding:1.05rem 1.25rem;border:1px solid var(--nxw-line);border-radius:19px;background:linear-gradient(112deg,#fff,#f9fdff);box-shadow:0 11px 30px -26px #164c7f}
+.nx-warranties-premium>.nx-warranty-stats h2{font-size:.94rem;font-weight:800;color:var(--nxw-ink)}
+.nx-warranties-premium>.nx-warranty-stats h2 svg{color:#00b9ce}
+.nx-warranties-premium>.nx-warranty-stats p{line-height:1.5}
+.nx-warranties-premium>.nx-warranty-stats button{min-height:39px;border-radius:13px;font-weight:700}
+.nx-warranties-premium>.nx-warranty-tabs{padding:.75rem;border:1px solid var(--nxw-line);border-radius:19px;background:linear-gradient(115deg,#fff,#f9fcff);box-shadow:0 12px 28px -25px #174a7b;gap:.55rem}
+.nx-warranties-premium>.nx-warranty-tabs button{min-height:38px;padding:0 .85rem;border:1px solid #d5e5f3;border-radius:12px;font-weight:700;color:#263a58;background:#f8fbff}
+.nx-warranties-premium>.nx-warranty-tabs button[data-active="true"]{background:linear-gradient(115deg,#11ded0,#00accf);color:white;border-color:#00bad0;box-shadow:0 10px 21px -15px #008db9}
+.nx-warranties-premium>.nx-warranty-intake{padding:clamp(1rem,2vw,1.6rem);border:1px solid #d2eaf4;border-radius:21px;background:linear-gradient(138deg,#fff 65%,#f5fcff);box-shadow:0 17px 35px -30px #165583}
+.nx-warranties-premium>.nx-warranty-intake>div:first-child{padding-bottom:.8rem;border-bottom:1px solid #e6eff7}
+.nx-warranties-premium>.nx-warranty-intake>div:first-child button{border-radius:999px;font-weight:750;padding:0 1rem;min-height:37px}
+.nx-warranties-premium>.nx-warranty-intake>div:first-child button[data-active="true"]{background:#e6f8fc;color:#0b5f7a}
+.nx-warranties-premium>.nx-warranty-intake p.text-muted-foreground{color:#627790;line-height:1.55}
+.nx-warranties-premium>.nx-warranty-intake input,.nx-warranties-premium>.nx-warranty-intake textarea,.nx-warranties-premium>.nx-warranty-intake select{border-color:#d3e4f1;border-radius:13px;background:#f8fbff;min-height:41px}
+.nx-warranties-premium>.nx-warranty-intake label{font-size:.86rem;font-weight:650;color:#1a304f}
+.nx-warranties-premium>.nx-warranty-intake button{border-radius:12px}
+.nx-warranties-premium>.nx-warranty-intake .rounded-md.border,.nx-warranties-premium>.nx-warranty-stats .rounded-lg.border{border-color:#dceaf5;border-radius:14px}
+.nx-warranties-premium [data-slot="badge"]{border-radius:999px}
+@media(max-width:640px){.nx-warranties-premium>.nx-page-header{padding:1.1rem;border-radius:17px}.nx-warranties-premium>.nx-warranty-tabs{flex-wrap:nowrap;overflow-x:auto;padding:.55rem;scrollbar-width:thin}.nx-warranties-premium>.nx-warranty-tabs button{flex-shrink:0}.nx-warranties-premium>.nx-warranty-intake{border-radius:17px}}
+@media(prefers-reduced-motion:reduce){.nx-warranties-premium *{transition:none!important}}
