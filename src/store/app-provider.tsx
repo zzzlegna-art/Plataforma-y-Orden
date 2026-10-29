@@ -662,7 +662,7 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
     <AppContext.Provider value={value}>
       {children}
       {cargando ? (
-        <LoadingScreen message={t(abriendo ? "app.loadingInventory" : "app.starting")} />
+        <LoadingScreen message={t("app.loadingInventory")} />
       ) : null}
       <BusyIndicator active={guardando > 0} />
     </AppContext.Provider>
