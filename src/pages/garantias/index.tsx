@@ -1,3 +1,4 @@
+import "./warranty-premium.css";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
@@ -1435,10 +1436,10 @@ const Garantias = () => {
   };
 
   return (
-    <div className="nx-management nx-warranties space-y-5 stagger">
+    <div className="nx-management nx-warranties nx-warranties-premium space-y-5 stagger">
       <PageHeader title={t("warranty.title")} description={t("warranty.subtitle")} />
 
-      <section className="space-y-3 rounded-xl border bg-card p-4 shadow-sm">
+      <section className="nx-warranty-stats space-y-3 rounded-xl border bg-card p-4 shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h2 className="flex items-center gap-2 text-sm font-semibold"><BarChart3 className="h-4 w-4 text-primary" /> Estadísticas de garantías</h2>
@@ -1512,10 +1513,11 @@ const Garantias = () => {
         ) : null}
       </section>
 
-      <div className="flex flex-wrap gap-2 rounded-lg border bg-card p-3 shadow-sm">
+      <div className="nx-warranty-tabs flex flex-wrap gap-2 rounded-lg border bg-card p-3 shadow-sm">
         {TABS.map((option) => (
           <Button
             key={option}
+            data-active={tab === option}
             variant={tab === option ? "default" : "outline"}
             size="sm"
             onClick={() => {
@@ -1553,11 +1555,12 @@ const Garantias = () => {
 
       {/* ============ RECIBIR ============ */}
       {tab === "recibir" ? (
-        <section className="animate-fade-in space-y-4 rounded-lg border bg-card p-4 shadow-sm">
+        <section className="nx-warranty-intake animate-fade-in space-y-4 rounded-lg border bg-card p-4 shadow-sm">
           <div className="flex flex-wrap gap-2">
             {(["imei", "previa", "falla"] as const).map((option) => (
               <Button
                 key={option}
+                data-active={modo === option}
                 variant={modo === option ? "secondary" : "ghost"}
                 size="sm"
                 onClick={() => {
