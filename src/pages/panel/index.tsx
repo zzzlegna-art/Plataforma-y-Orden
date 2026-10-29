@@ -504,29 +504,6 @@ const Panel = () => {
         </section>
       </div>
 
-      <section className="premium-surface nx-operation-card p-5">
-        <div className="mb-3 flex items-center justify-between">
-          <h3 className="text-sm font-semibold">{t("dashboard.unitsTitle")}</h3>
-          <Link to="/unidades" className="text-xs text-primary hover:underline">
-            {t("common.viewAll")}
-            <ArrowRight className="ml-1 inline h-3 w-3" />
-          </Link>
-        </div>
-        <ul className="divide-y">
-          {db.units.slice(0, 6).map((unit) => {
-            const product = db.products.find((item) => item.id === unit.productId);
-            return (
-              <li key={unit.id} className="flex items-center justify-between gap-3 py-2">
-                <div className="min-w-0">
-                  <p className="font-tabular truncate text-sm">{unit.serial}</p>
-                  <p className="truncate text-xs text-muted-foreground">{product?.name ?? "—"}</p>
-                </div>
-                <UnitStatusBadge status={unit.status} />
-              </li>
-            );
-          })}
-        </ul>
-      </section>
 
       </section>
 
