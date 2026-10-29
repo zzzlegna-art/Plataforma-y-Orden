@@ -425,7 +425,7 @@ const Panel = () => {
           <div aria-hidden="true" className="pointer-events-none absolute -right-10 -top-12 h-32 w-32 rounded-full bg-primary/10 blur-3xl" />
           <div className="relative mb-4 flex items-start justify-between gap-3">
             <div className="flex min-w-0 items-start gap-3">
-              <span className="rounded-xl bg-primary/12 p-2 text-primary ring-1 ring-primary/10">
+              <span className="rounded-xl bg-primary/10 p-2 text-primary ring-1 ring-primary/10">
                 <TrendingUp className="h-4 w-4" />
               </span>
               <div className="min-w-0">
@@ -643,7 +643,7 @@ const Panel = () => {
         <DialogContent className="max-h-[92dvh] w-[calc(100%-1.5rem)] max-w-5xl gap-0 overflow-hidden p-0">
           <DialogHeader className="border-b px-5 pb-4 pt-5 pr-12 sm:px-6 sm:pt-6">
             <div className="mb-2 flex items-center gap-2">
-              <span className="rounded-lg bg-warning/12 p-2 text-warning"><TriangleAlert className="h-5 w-5" /></span>
+              <span className="rounded-lg bg-warning/10 p-2 text-warning"><TriangleAlert className="h-5 w-5" /></span>
               <span className="rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground">{data.kpis.lowStockProducts} referencias con alerta</span>
             </div>
             <DialogTitle>Productos con stock bajo</DialogTitle>
@@ -691,7 +691,7 @@ const Panel = () => {
                         </td>
                         <td className="px-4 py-3 text-muted-foreground">{tiposProducto.get(row.product.categoria || "") ?? row.product.categoria ?? "Otros"}</td>
                         <td className="px-4 py-3">{condicion}</td>
-                        <td className="px-4 py-3 text-center"><span className={cn("inline-flex min-w-9 justify-center rounded-full px-2 py-1 text-xs font-semibold", disponible === 0 ? "bg-destructive/12 text-destructive" : "bg-warning/12 text-warning")}>{disponible}</span></td>
+                        <td className="px-4 py-3 text-center"><span className={cn("inline-flex min-w-9 justify-center rounded-full px-2 py-1 text-xs font-semibold", disponible === 0 ? "bg-destructive/10 text-destructive" : "bg-warning/10 text-warning")}>{disponible}</span></td>
                         <td className="px-4 py-3 text-center tabular-nums">{minimo}</td>
                         <td className="px-4 py-3 text-center font-semibold tabular-nums">{Math.max(0, minimo - disponible)}</td>
                         <td className="px-4 py-3 text-right"><Link to={`/inventario/${row.product.id}`} onClick={() => setStockDialogOpen(false)} className="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline">Ver <ArrowRight className="h-3.5 w-3.5" /></Link></td>
