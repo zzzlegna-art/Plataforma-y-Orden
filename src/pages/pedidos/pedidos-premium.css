@@ -1,52 +1,41 @@
-/* Nexora · Pedidos premium. Estilos aislados para no afectar otras pantallas. */
-.nx-operations-pedidos { --ped-ink:#0a1c3d; --ped-cyan:#00c7d8; gap:1.5rem; }
-.nx-operations-pedidos .nx-page-header {
-  position:relative; isolation:isolate; overflow:hidden; min-height:126px;
-  padding:clamp(1.25rem,2.4vw,2rem); border:1px solid #cceaf6; border-radius:23px;
-  background:radial-gradient(ellipse at 74% 10%,rgba(109,229,244,.37),transparent 54%),linear-gradient(116deg,#fff 20%,#eafbff 100%);
-  box-shadow:0 15px 35px -26px rgba(17,70,116,.36);
-}
-.nx-operations-pedidos .nx-page-header::after {content:"";pointer-events:none;position:absolute;inset:auto -10% -95% 36%;height:145%;border-radius:50%;background:linear-gradient(110deg,transparent,rgba(69,211,236,.09));z-index:-1;transform:rotate(-13deg);}
-.nx-operations-pedidos .nx-page-header h1 {font-size:clamp(1.65rem,2.5vw,2.15rem);font-weight:800;letter-spacing:-.045em;color:var(--ped-ink);}
-.nx-operations-pedidos .nx-page-header p {font-size:.92rem;color:#60718d;}
-.nx-operations-pedidos .nx-page-header [data-slot="button"] {min-height:43px;border-radius:14px;font-weight:700;box-shadow:0 9px 21px -16px #0c4175;}
-.nx-operations-pedidos .nx-page-header [data-slot="button"]:last-child {border-color:#04bfd1;background:linear-gradient(120deg,#13dece,#00aed4);color:#fff;box-shadow:0 12px 24px -14px #00a8bf;}
-.nx-operations-pedidos .nx-pedidos-filters {padding:1.25rem 1.4rem; border:1px solid #e0ebf7;border-radius:23px;background:linear-gradient(132deg,#fff,#f9fcff);box-shadow:0 15px 33px -27px #1d568b;}
-.nx-operations-pedidos .nx-pedidos-filters .relative.h-10 {height:44px;max-width:440px;}
-.nx-operations-pedidos .nx-pedidos-filters input {height:44px;border-radius:13px;border-color:#d7e4f2;background:#f7fbff;color:#122a4d;}
-.nx-operations-pedidos .nx-pedidos-filters .nx-pedidos-tabs {gap:.65rem;}
-.nx-operations-pedidos .nx-pedidos-tabs button {min-height:38px;border:1px solid #d7e5f2;border-radius:999px;background:#f8fbff;color:#263651;font-size:.81rem;font-weight:650;padding:0 .9rem;box-shadow:0 3px 9px -8px #1e5488;transition:background .18s,transform .18s,box-shadow .18s;}
-.nx-operations-pedidos .nx-pedidos-tabs button:hover {background:#eafbff;transform:translateY(-1px);}
-.nx-operations-pedidos .nx-pedidos-tabs button[data-active="true"] {background:linear-gradient(118deg,#18dfd2,#00b5d5);color:#fff;border-color:#02c7d2;box-shadow:0 10px 20px -12px #00a6c8;}
-.nx-operations-pedidos .nx-pedidos-tabs button svg {height:15px;width:15px;}
-.nx-operations-pedidos .nx-pedidos-table {border:1px solid #dae9f6;border-radius:23px;box-shadow:0 17px 40px -29px #164c84;background:#fff;}
-.nx-operations-pedidos .nx-pedidos-table thead {background:#f3f8fe;}
-.nx-operations-pedidos .nx-pedidos-table th {height:55px;font-size:.7rem;letter-spacing:.06em;font-weight:800;color:#60708e;white-space:nowrap;}
-.nx-operations-pedidos .nx-pedidos-table tbody tr {height:77px;border-color:#e9f0f8;transition:background .18s;}
-.nx-operations-pedidos .nx-pedidos-table tbody tr:hover {background:#eefcff;}
-.nx-operations-pedidos .nx-pedidos-table td {padding-top:1rem;padding-bottom:1rem;color:#112342;}
-.nx-operations-pedidos .nx-pedidos-table tbody tr:first-child {background:#f1fcff;}
-.nx-operations-pedidos .nx-pedidos-table tbody tr:first-child td:first-child {box-shadow:inset 4px 0 #00c9da;}
-.nx-operations-pedidos .nx-pedidos-table [data-slot="badge"] {border-radius:99px;padding:.35rem .7rem;font-weight:700;}
-.nx-operations-pedidos .nx-pedidos-table tbody button {border-radius:11px;font-weight:700;}
-.nx-pedidos-customer {display:flex;align-items:center;gap:.65rem;min-width:130px;}
-.nx-pedidos-avatar {display:grid;place-items:center;flex:none;width:34px;height:34px;border-radius:50%;background:#dcf5ff;color:#0086b4;font-size:.76rem;font-weight:800;}
-.nx-pedidos-customer:nth-child(3n) .nx-pedidos-avatar {background:#f1e7ff;color:#7548ba;}
-.nx-pedidos-money {color:#0c1d3b;font-weight:800;}
-@media(max-width:768px) {
- .nx-operations-pedidos .nx-page-header {gap:1rem;padding:1.15rem;border-radius:19px;}
- .nx-operations-pedidos .nx-pedidos-filters {padding:1rem;border-radius:18px;}
- .nx-operations-pedidos .nx-pedidos-tabs {flex-wrap:nowrap;overflow-x:auto;padding-bottom:5px;scrollbar-width:thin;}
- .nx-operations-pedidos .nx-pedidos-tabs button {flex:none;}
- .nx-operations-pedidos .nx-pedidos-table {border-radius:18px;}
-}
-@media(prefers-reduced-motion:reduce) {.nx-operations-pedidos * {transition:none!important;}}
-
-.nx-premium-export-dialog{border-radius:22px;border:1px solid #d5e8f4;background:linear-gradient(130deg,#fff,#f1fcff);padding:25px}
-.nx-premium-export-heading{padding-bottom:14px;border-bottom:1px solid #e0ebf4}
-.nx-premium-export-heading [data-slot="dialog-title"]{display:flex;align-items:center;gap:12px;font-size:1.1rem;color:#112b4c}
-.nx-premium-export-icon{display:grid;place-items:center;width:40px;height:40px;border-radius:12px;background:#e2faff;color:#00aac5}
-.nx-premium-export-scope{align-items:center;border-radius:14px;border-color:#d7e7f3;background:#f8fcff}
-.nx-premium-export-formats button{min-height:73px;display:flex;flex-direction:column;justify-content:center;gap:8px;border-radius:14px;font-weight:700}
-.nx-premium-export-formats button:hover{border-color:#00bfd1;background:#f2fdff}
-.nx-premium-export-formats button svg{width:22px;height:22px;color:#00adc3}
+/* Nexora · Pedidos premium. Todas las superficies usan tokens del tema activo. */
+.nx-operations-pedidos{--ped-ink:hsl(var(--foreground));--ped-cyan:hsl(var(--primary));--ped-border:hsl(var(--border));--ped-surface:hsl(var(--card));--ped-muted:hsl(var(--muted-foreground));--ped-soft:hsl(var(--secondary));gap:1.5rem;color:var(--ped-ink)}
+.nx-operations-pedidos .nx-page-header{position:relative;isolation:isolate;overflow:hidden;min-height:126px;padding:clamp(1.25rem,2.4vw,2rem);border:1px solid hsl(var(--primary)/.22);border-radius:23px;background:radial-gradient(ellipse at 74% 10%,hsl(var(--primary)/.15),transparent 54%),linear-gradient(116deg,hsl(var(--card)) 20%,hsl(var(--secondary)/.72) 100%);box-shadow:0 15px 35px -26px rgb(0 0 0/.22)}
+.nx-operations-pedidos .nx-page-header::after{content:"";pointer-events:none;position:absolute;inset:auto -10% -95% 36%;height:145%;border-radius:50%;background:linear-gradient(110deg,transparent,hsl(var(--primary)/.09));z-index:-1;transform:rotate(-13deg)}
+.nx-operations-pedidos .nx-page-header h1{font-size:clamp(1.45rem,2vw,1.8rem);font-weight:800;letter-spacing:-.04em;line-height:1.2;color:var(--ped-ink)}
+.nx-operations-pedidos .nx-page-header p{font-size:.88rem;color:var(--ped-muted)}
+.nx-operations-pedidos .nx-page-header [data-slot="button"]{min-height:43px;border-radius:14px;font-weight:700;box-shadow:0 9px 21px -16px rgb(0 0 0/.35)}
+.nx-operations-pedidos .nx-page-header [data-slot="button"]:last-child{border-color:hsl(var(--primary));background:linear-gradient(120deg,hsl(var(--primary-glow)),hsl(var(--primary)));color:hsl(var(--primary-foreground));box-shadow:0 12px 24px -14px hsl(var(--primary)/.6)}
+.nx-operations-pedidos .nx-pedidos-filters{padding:1.25rem 1.4rem;border:1px solid var(--ped-border);border-radius:23px;background:hsl(var(--card));box-shadow:0 15px 33px -27px rgb(0 0 0/.24)}
+.nx-operations-pedidos .nx-pedidos-filters .relative.h-10{height:44px;max-width:440px}
+.nx-operations-pedidos .nx-pedidos-filters input{height:44px;border-radius:13px;border-color:var(--ped-border);background:hsl(var(--background));color:var(--ped-ink)}
+.nx-operations-pedidos .nx-pedidos-tabs{gap:.65rem}
+.nx-operations-pedidos .nx-pedidos-tabs button{min-height:38px;border:1px solid var(--ped-border);border-radius:999px;background:hsl(var(--secondary)/.65);color:var(--ped-ink);font-size:.81rem;font-weight:650;padding:0 .9rem;box-shadow:0 3px 9px -8px rgb(0 0 0/.3);transition:background .18s,transform .18s,box-shadow .18s}
+.nx-operations-pedidos .nx-pedidos-tabs button:hover{background:hsl(var(--accent));transform:translateY(-1px)}
+.nx-operations-pedidos .nx-pedidos-tabs button[data-active="true"]{background:linear-gradient(118deg,hsl(var(--primary-glow)),hsl(var(--primary)));color:hsl(var(--primary-foreground));border-color:hsl(var(--primary));box-shadow:0 10px 20px -12px hsl(var(--primary)/.55)}
+.nx-operations-pedidos .nx-pedidos-tabs button svg{height:15px;width:15px}
+.nx-operations-pedidos .nx-pedidos-table{border:1px solid var(--ped-border);border-radius:23px;box-shadow:0 17px 40px -29px rgb(0 0 0/.3);background:var(--ped-surface);color:var(--ped-ink)}
+.nx-operations-pedidos .nx-pedidos-table thead{background:hsl(var(--muted)/.82)}
+.nx-operations-pedidos .nx-pedidos-table th{height:55px;font-size:.7rem;letter-spacing:.06em;font-weight:800;color:var(--ped-muted);white-space:nowrap}
+.nx-operations-pedidos .nx-pedidos-table tbody tr{height:77px;border-color:var(--ped-border);transition:background .18s}
+.nx-operations-pedidos .nx-pedidos-table tbody tr:hover{background:hsl(var(--primary)/.065)}
+.nx-operations-pedidos .nx-pedidos-table td{padding-top:1rem;padding-bottom:1rem;color:var(--ped-ink);border-color:var(--ped-border)}
+.nx-operations-pedidos .nx-pedidos-table tbody tr:first-child{background:hsl(var(--primary)/.075)}
+.nx-operations-pedidos .nx-pedidos-table tbody tr:first-child td:first-child{box-shadow:inset 4px 0 hsl(var(--primary))}
+.nx-operations-pedidos .nx-pedidos-table [data-slot="badge"]{border-radius:99px;padding:.35rem .7rem;font-weight:700}
+.nx-operations-pedidos .nx-pedidos-table tbody button{border-radius:11px;font-weight:700}
+.nx-pedidos-customer{display:flex;align-items:center;gap:.65rem;min-width:130px}
+.nx-pedidos-avatar{display:grid;place-items:center;flex:none;width:34px;height:34px;border-radius:50%;background:hsl(var(--accent));color:hsl(var(--accent-foreground));font-size:.76rem;font-weight:800}
+.nx-pedidos-customer:nth-child(3n) .nx-pedidos-avatar{background:hsl(var(--info)/.14);color:hsl(var(--info))}
+.nx-pedidos-money{color:var(--ped-ink);font-weight:800}
+.nx-premium-export-dialog{border-radius:22px;border:1px solid var(--ped-border);background:linear-gradient(130deg,hsl(var(--card)),hsl(var(--secondary)/.45));color:var(--ped-ink);padding:25px}
+.nx-premium-export-heading{padding-bottom:14px;border-bottom:1px solid var(--ped-border)}
+.nx-premium-export-heading [data-slot="dialog-title"]{display:flex;align-items:center;gap:12px;font-size:1.1rem;color:var(--ped-ink)}
+.nx-premium-export-icon{display:grid;place-items:center;width:40px;height:40px;border-radius:12px;background:hsl(var(--primary)/.12);color:hsl(var(--primary))}
+.nx-premium-export-scope{align-items:center;border-radius:14px;border-color:var(--ped-border);background:hsl(var(--background))}
+.nx-premium-export-formats button{min-height:73px;display:flex;flex-direction:column;justify-content:center;gap:8px;border-radius:14px;border-color:var(--ped-border);background:hsl(var(--card));color:var(--ped-ink);font-weight:700}
+.nx-premium-export-formats button:hover{border-color:hsl(var(--primary));background:hsl(var(--accent)/.5)}
+.nx-premium-export-formats button svg{width:22px;height:22px;color:hsl(var(--primary))}
+@media(max-width:768px){.nx-operations-pedidos .nx-page-header{gap:1rem;padding:1.15rem;border-radius:19px}.nx-operations-pedidos .nx-pedidos-filters{padding:1rem;border-radius:18px}.nx-operations-pedidos .nx-pedidos-tabs{flex-wrap:nowrap;overflow-x:auto;padding-bottom:5px;scrollbar-width:thin}.nx-operations-pedidos .nx-pedidos-tabs button{flex:none}.nx-operations-pedidos .nx-pedidos-table{border-radius:18px}}
+@media(max-width:420px){.nx-premium-export-formats button{min-height:67px}.nx-premium-export-dialog{padding:18px}}
+@media(prefers-reduced-motion:reduce){.nx-operations-pedidos *{transition:none!important}}
