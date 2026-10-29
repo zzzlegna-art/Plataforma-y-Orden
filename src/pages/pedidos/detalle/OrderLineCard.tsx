@@ -125,7 +125,7 @@ export const OrderLineCard = ({
     <div
       id={`linea-${line.item.id}`}
       className={cn(
-        "rounded-lg border bg-card p-4 shadow-sm transition-[box-shadow,border-color] duration-300 motion-reduce:transition-none",
+        "nx-order-line-card rounded-lg border bg-card p-4 shadow-sm transition-[box-shadow,border-color] duration-300 motion-reduce:transition-none",
         destacada && "border-primary shadow-elegant ring-2 ring-primary/60",
       )}
     >
