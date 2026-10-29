@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { BrandSpinner } from "@/components/shared/brand-spinner";
+import "./loading-screen-premium.css";
 
 /**
  * Pantalla de carga a pantalla completa: se muestra al abrir la app y al iniciar
@@ -18,19 +19,20 @@ export const LoadingScreen = ({ message }: { message: string }) => {
   }, []);
 
   return (
-    <div
-      role="status"
-      aria-live="polite"
-      className="fixed inset-0 z-[90] flex items-center justify-center bg-background px-6"
-    >
-      <div className="flex w-full max-w-xs animate-fade-in flex-col items-center gap-6 text-center">
-        <BrandSpinner />
-        <div className="space-y-1">
-          <p className="font-medium">{message}</p>
-          <p className="text-xs text-muted-foreground">
-            {t(slow ? "app.loadingSlow" : "app.loadingHint")}
-          </p>
+    <div role="status" aria-live="polite" aria-busy="true" className="nx-loading-premium">
+      <div className="nx-loading-premium__card animate-fade-in">
+        <span className="nx-loading-premium__eyebrow">NEXORA · CENTRO DE OPERACIONES</span>
+        <div className="nx-loading-premium__mark" aria-hidden="true">
+          <span className="nx-loading-premium__halo" />
+          <span className="nx-loading-premium__ring" />
+          <BrandSpinner className="!h-28 !w-28 [&>span]:hidden" />
         </div>
+        <div>
+          <p className="nx-loading-premium__title">{message}</p>
+          <p className="nx-loading-premium__hint">{t(slow ? "app.loadingSlow" : "app.loadingHint")}</p>
+        </div>
+        <div className="nx-loading-premium__progress" aria-hidden="true" />
+        <span className="nx-loading-premium__footer">Preparando tu espacio de trabajo</span>
       </div>
     </div>
   );
