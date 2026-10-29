@@ -1,6 +1,7 @@
+import "./pedidos-premium.css";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { ClipboardList, Download, Eye, FileSpreadsheet, FileText, Plus } from "lucide-react";
+import { ClipboardList, Download, Eye, FileSpreadsheet, FileText, Plus, Clock3, Truck, XCircle, ListFilter, CircleDot } from "lucide-react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 
@@ -193,28 +194,32 @@ const Pedidos = () => {
         }
       />
 
-      <div className="space-y-3 rounded-lg border bg-card p-3 shadow-sm">
+      <div className="nx-pedidos-filters space-y-3">
         <SearchField
           value={search}
           onChange={setSearch}
           placeholder={t("order.searchPlaceholder")}
           className="sm:max-w-xs"
         />
-        <div className="flex flex-wrap gap-2">
+        <div className="nx-pedidos-tabs flex flex-wrap gap-2">
           <Button
+            data-active={status === ""}
             variant={status === "" ? "default" : "outline"}
             size="sm"
             onClick={() => setStatus("")}
           >
+            <ListFilter className="mr-1" />
             {t("common.all")}
           </Button>
           {STATUSES.map((option) => (
             <Button
               key={option}
+              data-active={status === option}
               variant={status === option ? "default" : "outline"}
               size="sm"
               onClick={() => setStatus(option)}
             >
+              {option === "en_preparacion" ? <CircleDot className="mr-1" /> : option === "preparado" ? <Clock3 className="mr-1" /> : option === "despachado" ? <Truck className="mr-1" /> : <XCircle className="mr-1" />}
               {t(`orderStatus.${option}`)}
             </Button>
           ))}
@@ -223,6 +228,7 @@ const Pedidos = () => {
 
       <div key={status} className="animate-fade-in">
         <DataTable<OrderView>
+          className="nx-pedidos-table"
           rows={rows}
           rowKey={(view) => view.order.id}
           onRowClick={(view) => navigate(`/pedidos/${view.order.id}`)}
@@ -251,7 +257,7 @@ const Pedidos = () => {
             key: "customer",
             header: t("order.customer"),
             cell: (view) => (
-              <span className="text-sm">{view.customer?.name ?? t("order.noCustomer")}</span>
+              <span className="nx-pedidos-customer"><span aria-hidden="true" className="nx-pedidos-avatar">{(view.customer?.name ?? "?").trim().split(/\s+/).slice(0, 2).map((word) => word[0] ?? "").join("").toUpperCase()}</span><span className="text-sm">{view.customer?.name ?? t("order.noCustomer")}</span></span>
             ),
           },
           {
@@ -279,7 +285,7 @@ const Pedidos = () => {
             align: "right",
             cell: (view) => (
               <div className="min-w-32 text-right">
-                <span className="font-tabular text-sm font-semibold">
+                <span className="nx-pedidos-money font-tabular text-sm font-semibold">
                   {getOrderSalesTotal(view) === null ? "—" : formatCurrency(getOrderSalesTotal(view))}
                 </span>
                 {isEstimatedOrderTotal(view) ? (
