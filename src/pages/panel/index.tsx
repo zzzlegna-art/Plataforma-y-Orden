@@ -14,6 +14,11 @@ import {
   ShieldCheck,
   TrendingUp,
   TriangleAlert,
+  Clock3,
+  Truck,
+  Wrench,
+  Inbox,
+  BarChart3,
   Users,
 } from "lucide-react";
 import { Link } from "react-router-dom";
@@ -54,6 +59,7 @@ import {
 } from "@/lib/selectors";
 import type { UnitCondition } from "@/lib/types";
 import { RankChart } from "./rank-chart";
+import "./panel-premium.css";
 
 import {
   firmaRankClientes,
@@ -130,6 +136,21 @@ const Panel = () => {
   };
   const [reporteDesde, setReporteDesde] = useState(() => getLocalDateInputValue().slice(0, 7) + "-01");
   const [reporteHasta, setReporteHasta] = useState(() => getLocalDateInputValue());
+  const [movementPreset, setMovementPreset] = useState<"month" | "7d" | "30d" | "90d" | "custom">("month");
+  const changeMovementPreset = (next: "month" | "7d" | "30d" | "90d" | "custom") => {
+    setMovementPreset(next);
+    if (next === "custom") return;
+    const now = new Date();
+    setReporteHasta(getLocalDateInputValue(now));
+    if (next === "month") {
+      setReporteDesde(getLocalDateInputValue(now).slice(0, 7) + "-01");
+    } else {
+      const days = next === "7d" ? 7 : next === "30d" ? 30 : 90;
+      const from = new Date(now);
+      from.setDate(from.getDate() - (days - 1));
+      setReporteDesde(getLocalDateInputValue(from));
+    }
+  };
   const dentroPeriodoReporte = (fecha: string) => isWithinDateRange(fecha, reporteDesde, reporteHasta);
 
   const exportarReporteOperativo = () => {
@@ -213,36 +234,215 @@ const Panel = () => {
   const operationalChartTotal = operationalChartData.reduce((total, item) => total + item.value, 0);
 
   return (
-    <div className="space-y-8 stagger nx-dashboard-premium">
-      <div className="nx-dashboard-heading">
+    <div className="space-y-7 stagger nx-dashboard-premium nx-dashboard-showcase">
+      <section className="nx-warranty-section space-y-4" aria-labelledby="warranty-priorities-heading">
+        <div className="nx-warranty-section__heading">
+          <div className="nx-warranty-section__title">
+            <span className="nx-warranty-section__accent" aria-hidden="true" />
+            <div>
+              <h2 id="warranty-priorities-heading">Prioridades de garantías</h2>
+              <p>Casos que requieren seguimiento, ordenados por tiempo sin movimiento.</p>
+            </div>
+          </div>
+          <Link to="/garantias" className="nx-manage-warranties">
+            Gestionar garantías <ArrowRight className="h-4 w-4" />
+          </Link>
+        </div>
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          {[
+            { title: "Críticas", count: prioridadesGarantia.criticas.length, description: "15 días o más sin movimiento", tone: "critical", Icon: TriangleAlert },
+            { title: "Estancadas", count: prioridadesGarantia.estancadas.length, description: "De 7 a 14 días sin movimiento", tone: "stalled", Icon: Clock3 },
+            { title: "Pendientes de entrega", count: prioridadesGarantia.listas.length, description: "Reenvío pendiente", tone: "pending", Icon: Truck },
+            { title: "En servicio técnico", count: prioridadesGarantia.tecnico.length, description: "Equipos con el técnico", tone: "service", Icon: Wrench },
+          ].map(({ title, count, description, tone, Icon }) => (
+            <div key={title} className={`nx-warranty-kpi nx-warranty-kpi--${tone}`}>
+              <span className="nx-warranty-kpi__icon" aria-hidden="true"><Icon className="h-6 w-6" /></span>
+              <div className="nx-warranty-kpi__text">
+                <h3 className="nx-warranty-kpi__title">{title}</h3>
+                <p className="nx-warranty-kpi__value tabular-nums">{count}</p>
+                <p className="nx-warranty-kpi__description">{description}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+        {data.openWarranties.length === 0 ? (
+          <div className="nx-warranty-empty" role="status">
+            <span className="nx-warranty-empty__icon" aria-hidden="true"><Inbox className="h-4 w-4" /></span>
+            No hay garantías abiertas que requieran seguimiento.
+          </div>
+        ) : (
+          <div className="overflow-hidden rounded-[20px] border bg-card shadow-sm">
+            <div className="flex items-center justify-between gap-2 border-b bg-muted/20 px-5 py-4">
+              <h3 className="text-sm font-semibold">Casos para revisar</h3>
+              <span className="text-xs text-muted-foreground">Hasta 6 casos con mayor antigüedad</span>
+            </div>
+            <div className="divide-y">
+              {data.openWarranties.slice(0, 6).map((view) => {
+                const days = diasSinMovimiento(view);
+                return (
+                  <Link key={view.warranty.id} to={`/garantias/${view.warranty.id}`}
+                    className="flex flex-wrap items-center justify-between gap-3 px-5 py-3 transition-colors hover:bg-muted/40">
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-semibold">{view.warranty.code}</p>
+                      <p className="truncate text-xs text-muted-foreground">
+                        {view.product?.name ?? view.warranty.referenciaManual ?? "Referencia no registrada"} · {view.unit?.serial ?? view.warranty.imeiManual ?? "Sin serial"}
+                      </p>
+                    </div>
+                    <div className="flex shrink-0 items-center gap-2">
+                      <WarrantyStatusBadge status={view.warranty.status} />
+                      <span className={cn("rounded-full px-2 py-1 text-xs font-semibold tabular-nums",
+                        days >= DIAS_GARANTIA_CRITICA ? "bg-destructive/10 text-destructive" :
+                        days >= DIAS_GARANTIA_ESTANCADA ? "bg-amber-100 text-amber-700" : "bg-muted text-muted-foreground")}>
+                        {days} d sin movimiento
+                      </span>
+                      <ArrowRight className="h-4 w-4 text-muted-foreground" />
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        )}
+      </section>
+
+      {garantiaMasAntigua && (
+        <div
+          role="alert"
+          className={cn(
+            "flex flex-wrap items-center gap-3 rounded-lg border px-4 py-3",
+            diasMasAntigua >= DIAS_GARANTIA_CRITICA
+              ? "border-destructive/40 bg-destructive/10"
+              : "border-warning/40 bg-warning/10",
+          )}
+        >
+          <TriangleAlert
+            className={cn(
+              "h-5 w-5 shrink-0",
+              diasMasAntigua >= DIAS_GARANTIA_CRITICA ? "text-destructive" : "text-warning",
+            )}
+          />
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-medium">
+              {t("dashboard.staleWarrantiesTitle", { count: data.staleWarranties.length })}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              {t("dashboard.staleWarrantiesBody", {
+                days: DIAS_GARANTIA_ESTANCADA,
+                code: garantiaMasAntigua.warranty.code,
+                oldest: diasMasAntigua,
+              })}
+            </p>
+          </div>
+          <Button variant="outline" size="sm" asChild>
+            <Link to="/garantias">{t("dashboard.staleWarrantiesView")}</Link>
+          </Button>
+        </div>
+      )}
+
+      <div className="nx-dashboard-analytics">
+        <section className="nx-analytics-card" aria-labelledby="inventory-movement-heading">
+          <div className="nx-analytics-header">
+            <div className="nx-analytics-heading">
+              <span className="nx-analytics-icon" aria-hidden="true"><Boxes className="h-5 w-5" /></span>
+              <div>
+                <h2 id="inventory-movement-heading">Movimiento de inventario</h2>
+                <p>Entradas y salidas en el período seleccionado.</p>
+              </div>
+            </div>
+            <div className="nx-analytics-controls">
+              <span className="nx-analytics-legend"><span className="nx-analytics-dot bg-cyan-500" /> Entradas</span>
+              <span className="nx-analytics-legend"><span className="nx-analytics-dot bg-violet-500" /> Salidas</span>
+              <select className="nx-analytics-range" value={movementPreset}
+                aria-label="Período del gráfico de inventario"
+                onChange={(event) => changeMovementPreset(event.target.value as typeof movementPreset)}>
+                <option value="month">Este mes</option>
+                <option value="7d">Últimos 7 días</option>
+                <option value="30d">Últimos 30 días</option>
+                <option value="90d">Últimos 90 días</option>
+                <option value="custom">Personalizado</option>
+              </select>
+            </div>
+          </div>
+          <div className="nx-analytics-chart" role="img" aria-label="Gráfica de entradas y salidas de inventario">
+            <ResponsiveContainer width="100%" height="100%" debounce={150}>
+              <AreaChart data={movementChartData} margin={{ top: 8, right: 14, left: -13, bottom: 3 }}>
+                <defs>
+                  <linearGradient id="movementEntriesPremiumFill" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#05b9d5" stopOpacity={0.20} />
+                    <stop offset="95%" stopColor="#05b9d5" stopOpacity={0.01} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 5" stroke="hsl(var(--border))" vertical={false} />
+                <XAxis dataKey="label" interval={Math.max(0, Math.ceil(movementChartData.length / 8) - 1)}
+                  tickLine={false} axisLine={false} tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} />
+                <YAxis allowDecimals={false} width={46} tickLine={false} axisLine={false}
+                  tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} />
+                <Tooltip
+                  contentStyle={{ borderRadius: 12, border: "1px solid hsl(var(--border))",
+                    background: "hsl(var(--popover))", color: "hsl(var(--popover-foreground))", fontSize: 12 }}
+                  labelStyle={{ fontWeight: 700, color: "hsl(var(--foreground))" }}
+                  formatter={(value, name) => [formatNumber(Number(value)), String(name)]}
+                />
+                <Area type="monotone" dataKey="entradas" name="Entradas" stroke="#05b9d5"
+                  strokeWidth={2.6} fill="url(#movementEntriesPremiumFill)"
+                  activeDot={{ r: 4, strokeWidth: 0 }} />
+                <Line type="monotone" dataKey="salidas" name="Salidas" stroke="#8655fa"
+                  strokeWidth={2.5} dot={false} activeDot={{ r: 4, fill: "#8655fa", strokeWidth: 0 }} />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+          {movementChartData.every((day) => day.entradas === 0 && day.salidas === 0 && day.devoluciones === 0) ? (
+            <p className="mt-2 text-center text-xs text-muted-foreground">Todavía no hay movimientos registrados en este período.</p>
+          ) : null}
+        </section>
+
+        <section className="nx-analytics-card" aria-labelledby="operations-summary-heading">
+          <div className="nx-analytics-header">
+            <div className="nx-analytics-heading">
+              <span className="nx-analytics-icon" aria-hidden="true"><BarChart3 className="h-5 w-5" /></span>
+              <div>
+                <h2 id="operations-summary-heading">Estado de operaciones</h2>
+                <p>Indicadores actuales de la bodega.</p>
+              </div>
+            </div>
+          </div>
+          <div className="nx-operations-chart-layout">
+            <div className="nx-operations-donut" role="img" aria-label="Gráfica de estado de operaciones">
+              <ResponsiveContainer width="100%" height="100%" debounce={150}>
+                <PieChart>
+                  <Pie data={operationalChartData} dataKey="value" nameKey="name" cx="50%" cy="50%"
+                    innerRadius="66%" outerRadius="87%" paddingAngle={2} stroke="none">
+                    {operationalChartData.map((item) => <Cell key={item.name} fill={item.color} />)}
+                  </Pie>
+                  <Tooltip formatter={(value, name) => [formatNumber(Number(value)), String(name)]} />
+                </PieChart>
+              </ResponsiveContainer>
+              <div className="nx-operations-chart-center">
+                <strong>Resumen</strong>
+                <span>operativo</span>
+              </div>
+            </div>
+            <div className="nx-operations-legend">
+              {operationalChartData.map((item) => (
+                <div className="nx-operations-legend__row" key={item.name}>
+                  <span className="nx-analytics-dot" style={{ backgroundColor: item.color }} />
+                  <span title={item.name}>{item.name}</span>
+                  <strong className="tabular-nums">{formatNumber(item.value)}</strong>
+                </div>
+              ))}
+            </div>
+          </div>
+          {operationalChartTotal === 0 ? <p className="text-center text-xs text-muted-foreground">Sin incidencias registradas.</p> : null}
+        </section>
+      </div>
+
+      <div className="nx-dashboard-heading nx-dashboard-secondary-heading">
         <div>
           <div className="nx-eyebrow"><Sparkles className="h-3.5 w-3.5" /> CENTRO DE OPERACIONES</div>
-          <PageHeader title="Panel principal" description="Resumen general de tu inventario y operaciones." />
+          <PageHeader title="Resumen de la operación" description="Más indicadores, rankings e informes de tu inventario." />
         </div>
         <span className="nx-live-pill"><span className="nx-live-dot" /> Información de tu operación</span>
       </div>
-
-      <div className="flex flex-wrap items-end gap-3 rounded-xl border bg-card p-4">
-        <div><label htmlFor="reporte-desde" className="block text-xs text-muted-foreground">Reporte desde</label><input id="reporte-desde" type="date" value={reporteDesde} max={reporteHasta} onChange={(e) => setReporteDesde(e.target.value)} className="mt-1 rounded-md border bg-background px-3 py-2 text-sm" /></div>
-        <div><label htmlFor="reporte-hasta" className="block text-xs text-muted-foreground">Hasta</label><input id="reporte-hasta" type="date" value={reporteHasta} min={reporteDesde} onChange={(e) => setReporteHasta(e.target.value)} className="mt-1 rounded-md border bg-background px-3 py-2 text-sm" /></div>
-        <div className="flex flex-wrap gap-2">
-          <Button type="button" disabled={reporteDesde > reporteHasta} onClick={exportarReporteOperativoExcel}>
-            <FileSpreadsheet className="mr-2 h-4 w-4" />Exportar a Excel (.xlsx)
-          </Button>
-          <Button type="button" variant="outline" disabled={reporteDesde > reporteHasta} onClick={exportarReporteOperativo}>
-            <Download className="mr-2 h-4 w-4" />Exportar CSV
-          </Button>
-        </div>
-      </div>
-
-      <section className="nx-hero-strip">
-        <div className="nx-hero-icon"><Activity className="h-5 w-5" /></div>
-        <div className="min-w-0 flex-1">
-          <p className="font-semibold">Bienvenido a Nexora Smart Operations</p>
-          <p className="mt-1 text-xs opacity-80">Consulta tus indicadores y accede a las operaciones de tu bodega desde un solo lugar.</p>
-        </div>
-        <Link to="/seriales" className="nx-hero-link">Consultar seriales <ArrowRight className="h-4 w-4" /></Link>
-      </section>
 
       <section className="nx-kpi-section">
         <div className="grid min-w-0 gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -271,6 +471,28 @@ const Panel = () => {
           </Link>
         </div>
       </section>
+
+      <section className="nx-hero-strip">
+        <div className="nx-hero-icon"><Activity className="h-5 w-5" /></div>
+        <div className="min-w-0 flex-1">
+          <p className="font-semibold">Bienvenido a Nexora Smart Operations</p>
+          <p className="mt-1 text-xs opacity-80">Consulta tus indicadores y accede a las operaciones de tu bodega desde un solo lugar.</p>
+        </div>
+        <Link to="/seriales" className="nx-hero-link">Consultar seriales <ArrowRight className="h-4 w-4" /></Link>
+      </section>
+
+      <div className="flex flex-wrap items-end gap-3 nx-dashboard-report-filters rounded-xl border bg-card p-4">
+        <div><label htmlFor="reporte-desde" className="block text-xs text-muted-foreground">Reporte desde</label><input id="reporte-desde" type="date" value={reporteDesde} max={reporteHasta} onChange={(e) => { setReporteDesde(e.target.value); setMovementPreset("custom"); }} className="mt-1 rounded-md border bg-background px-3 py-2 text-sm" /></div>
+        <div><label htmlFor="reporte-hasta" className="block text-xs text-muted-foreground">Hasta</label><input id="reporte-hasta" type="date" value={reporteHasta} min={reporteDesde} onChange={(e) => { setReporteHasta(e.target.value); setMovementPreset("custom"); }} className="mt-1 rounded-md border bg-background px-3 py-2 text-sm" /></div>
+        <div className="flex flex-wrap gap-2">
+          <Button type="button" disabled={reporteDesde > reporteHasta} onClick={exportarReporteOperativoExcel}>
+            <FileSpreadsheet className="mr-2 h-4 w-4" />Exportar a Excel (.xlsx)
+          </Button>
+          <Button type="button" variant="outline" disabled={reporteDesde > reporteHasta} onClick={exportarReporteOperativo}>
+            <Download className="mr-2 h-4 w-4" />Exportar CSV
+          </Button>
+        </div>
+      </div>
 
       <Dialog open={stockDialogOpen} onOpenChange={setStockDialogOpen}>
         <DialogContent className="max-h-[92dvh] w-[calc(100%-1.5rem)] max-w-5xl gap-0 overflow-hidden p-0">
@@ -344,165 +566,6 @@ const Panel = () => {
           </div>
         </DialogContent>
       </Dialog>
-
-      {garantiaMasAntigua && (
-        <div
-          role="alert"
-          className={cn(
-            "flex flex-wrap items-center gap-3 rounded-lg border px-4 py-3",
-            diasMasAntigua >= DIAS_GARANTIA_CRITICA
-              ? "border-destructive/40 bg-destructive/10"
-              : "border-warning/40 bg-warning/10",
-          )}
-        >
-          <TriangleAlert
-            className={cn(
-              "h-5 w-5 shrink-0",
-              diasMasAntigua >= DIAS_GARANTIA_CRITICA ? "text-destructive" : "text-warning",
-            )}
-          />
-          <div className="min-w-0 flex-1">
-            <p className="text-sm font-medium">
-              {t("dashboard.staleWarrantiesTitle", { count: data.staleWarranties.length })}
-            </p>
-            <p className="text-xs text-muted-foreground">
-              {t("dashboard.staleWarrantiesBody", {
-                days: DIAS_GARANTIA_ESTANCADA,
-                code: garantiaMasAntigua.warranty.code,
-                oldest: diasMasAntigua,
-              })}
-            </p>
-          </div>
-          <Button variant="outline" size="sm" asChild>
-            <Link to="/garantias">{t("dashboard.staleWarrantiesView")}</Link>
-          </Button>
-        </div>
-      )}
-
-      <section className="space-y-4">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h2 className="text-lg font-semibold">Prioridades de garantías</h2>
-            <p className="text-sm text-muted-foreground">Casos que requieren seguimiento, ordenados por tiempo sin movimiento.</p>
-          </div>
-          <Button asChild variant="outline" size="sm"><Link to="/garantias">Gestionar garantías <ArrowRight className="ml-2 h-4 w-4" /></Link></Button>
-        </div>
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          {[
-            { titulo: "Críticas", cantidad: prioridadesGarantia.criticas.length, nota: `15 días o más sin movimiento`, clase: "text-destructive" },
-            { titulo: "Estancadas", cantidad: prioridadesGarantia.estancadas.length, nota: "De 7 a 14 días sin movimiento", clase: "text-amber-600" },
-            { titulo: "Pendientes de entrega", cantidad: prioridadesGarantia.listas.length, nota: "Reenvío pendiente", clase: "text-primary" },
-            { titulo: "En servicio técnico", cantidad: prioridadesGarantia.tecnico.length, nota: "Equipos con el técnico", clase: "text-foreground" },
-          ].map((item) => (
-            <div key={item.titulo} className="rounded-xl border bg-card p-4 shadow-sm">
-              <p className="text-xs font-medium text-muted-foreground">{item.titulo}</p>
-              <p className={cn("mt-2 text-3xl font-bold tabular-nums", item.clase)}>{item.cantidad}</p>
-              <p className="mt-1 text-xs text-muted-foreground">{item.nota}</p>
-            </div>
-          ))}
-        </div>
-        {data.openWarranties.length === 0 ? (
-          <div className="rounded-xl border border-dashed px-4 py-5 text-center text-sm text-muted-foreground">No hay garantías abiertas que requieran seguimiento.</div>
-        ) : (
-          <div className="overflow-hidden rounded-xl border bg-card">
-            <div className="flex items-center justify-between gap-2 border-b bg-muted/30 px-4 py-3">
-              <h3 className="text-sm font-semibold">Casos para revisar</h3>
-              <span className="text-xs text-muted-foreground">Hasta 6 casos con mayor antigüedad</span>
-            </div>
-            <div className="divide-y">
-              {data.openWarranties.slice(0, 6).map((view) => {
-                const dias = diasSinMovimiento(view);
-                return (
-                  <Link key={view.warranty.id} to={`/garantias/${view.warranty.id}`} className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 transition-colors hover:bg-muted/40">
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-semibold">{view.warranty.code}</p>
-                      <p className="truncate text-xs text-muted-foreground">{view.product?.name ?? view.warranty.referenciaManual ?? "Referencia no registrada"} · {view.unit?.serial ?? view.warranty.imeiManual ?? "Sin serial"}</p>
-                    </div>
-                    <div className="flex shrink-0 items-center gap-2">
-                      <WarrantyStatusBadge status={view.warranty.status} />
-                      <span className={cn("rounded-full px-2 py-1 text-xs font-semibold tabular-nums", dias >= DIAS_GARANTIA_CRITICA ? "bg-destructive/10 text-destructive" : dias >= DIAS_GARANTIA_ESTANCADA ? "bg-amber-100 text-amber-700" : "bg-muted text-muted-foreground")}>{dias} d sin movimiento</span>
-                      <ArrowRight className="h-4 w-4 text-muted-foreground" />
-                    </div>
-                  </Link>
-                );
-              })}
-            </div>
-          </div>
-        )}
-      </section>
-
-      <div className="grid min-w-0 gap-3 xl:grid-cols-[1.45fr_1fr]">
-        <section className="premium-surface nx-ranking-card min-w-0 p-4">
-          <div className="mb-3 flex items-start justify-between gap-3">
-            <div>
-              <h2 className="text-sm font-semibold">Movimiento de inventario</h2>
-              <p className="mt-1 text-xs text-muted-foreground">Entradas y salidas en el periodo seleccionado.</p>
-            </div>
-            <div className="flex shrink-0 items-center gap-3 pt-0.5 text-[11px]">
-              <span className="inline-flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-cyan-500" />Entradas</span>
-              <span className="inline-flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-violet-500" />Salidas</span>
-            </div>
-          </div>
-          <div className="h-[205px] w-full">
-            <ResponsiveContainer width="100%" height="100%" debounce={150}>
-              <AreaChart data={movementChartData} margin={{ top: 6, right: 8, left: 0, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="movementEntriesFill" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#06b6d4" stopOpacity={0.22} />
-                    <stop offset="95%" stopColor="#06b6d4" stopOpacity={0.015} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="2 4" stroke="hsl(var(--border))" vertical={false} />
-                <XAxis dataKey="label" interval={Math.max(0, Math.ceil(movementChartData.length / 10) - 1)} tickLine={false} axisLine={false} tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} />
-                <YAxis hide allowDecimals={false} />
-                <Tooltip
-                  contentStyle={{ borderRadius: 10, border: "1px solid hsl(var(--border))", background: "hsl(var(--popover))", fontSize: 12 }}
-                  labelStyle={{ color: "hsl(var(--foreground))", fontWeight: 600 }}
-                  formatter={(value, name) => [formatNumber(Number(value)), String(name)]}
-                />
-                <Area type="monotone" dataKey="entradas" name="Entradas" stroke="#06b6d4" strokeWidth={2} fill="url(#movementEntriesFill)" activeDot={{ r: 4, strokeWidth: 0 }} />
-                <Line type="monotone" dataKey="salidas" name="Salidas" stroke="#8b5cf6" strokeWidth={2} dot={false} activeDot={{ r: 4, fill: "#8b5cf6", strokeWidth: 0 }} />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
-          {movementChartData.every((day) => day.entradas === 0 && day.salidas === 0 && day.devoluciones === 0) ? (
-            <p className="mt-1 text-center text-xs text-muted-foreground">Todavía no hay movimientos registrados en este periodo.</p>
-          ) : null}
-        </section>
-
-        <section className="premium-surface nx-ranking-card min-w-0 p-4">
-          <div className="mb-1">
-            <h2 className="text-sm font-semibold">Estado de operaciones</h2>
-            <p className="mt-1 text-xs text-muted-foreground">Indicadores actuales de la bodega.</p>
-          </div>
-          <div className="grid min-h-[205px] grid-cols-[minmax(130px,0.9fr)_minmax(0,1.1fr)] items-center gap-1 sm:gap-3">
-            <div className="relative h-[190px] min-w-0">
-              <ResponsiveContainer width="100%" height="100%" debounce={150}>
-                <PieChart>
-                  <Pie data={operationalChartData} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius="64%" outerRadius="84%" paddingAngle={2} stroke="none">
-                    {operationalChartData.map((item) => <Cell key={item.name} fill={item.color} />)}
-                  </Pie>
-                  <Tooltip formatter={(value, name) => [formatNumber(Number(value)), String(name)]} />
-                </PieChart>
-              </ResponsiveContainer>
-              <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center text-center">
-                <span className="text-xs font-semibold">Resumen</span>
-                <span className="mt-0.5 text-[10px] text-muted-foreground">operativo</span>
-              </div>
-            </div>
-            <div className="min-w-0 space-y-3">
-              {operationalChartData.map((item) => (
-                <div key={item.name} className="flex min-w-0 items-center gap-2 text-[11px]">
-                  <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: item.color }} />
-                  <span className="min-w-0 flex-1 truncate">{item.name}</span>
-                  <span className="font-tabular shrink-0 font-semibold">{formatNumber(item.value)}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-          {operationalChartTotal === 0 ? <p className="text-center text-[10px] text-muted-foreground">Sin incidencias registradas.</p> : null}
-        </section>
-      </div>
 
       <div className="mb-4 flex items-center justify-between">
         <div>
