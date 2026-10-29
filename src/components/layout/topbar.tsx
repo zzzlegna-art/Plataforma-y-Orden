@@ -86,8 +86,8 @@ export const Topbar = ({ onOpenMenu }: { onOpenMenu: () => void }) => {
 
       <div className="flex min-w-0 flex-1 items-center">
         <div className="hidden min-w-0 lg:block">
-          <p className="truncate text-[15px] font-bold tracking-[-0.01em] text-foreground">{title}</p>
-          <p className="mt-0.5 hidden xl:block text-[11px] text-muted-foreground">Centro de operaciones Nexora</p>
+          <p className={location.pathname === "/panel" ? "truncate text-xl font-extrabold tracking-[-0.035em] text-foreground sm:text-2xl" : "truncate text-[15px] font-bold tracking-[-0.01em] text-foreground"}>{title}</p>
+          <p className={location.pathname === "/panel" ? "mt-0.5 hidden text-xs text-muted-foreground xl:block" : "mt-0.5 hidden xl:block text-[11px] text-muted-foreground"}>Centro de operaciones Nexora</p>
         </div>
       </div>
 
