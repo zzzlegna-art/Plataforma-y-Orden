@@ -1,3 +1,4 @@
+import "./pedido-detalle-premium.css";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ArrowLeft, Check, Download, FileSpreadsheet, PackagePlus, Receipt, Undo2, Wrench } from "lucide-react";
@@ -324,7 +325,7 @@ const PedidoDetalle = () => {
   };
 
   return (
-    <div className="space-y-5 stagger">
+    <div className="nx-order-detail-premium space-y-5 stagger">
       <Button variant="ghost" size="sm" asChild className="-ml-2 w-fit">
         <Link
           to="/pedidos"
@@ -343,6 +344,7 @@ const PedidoDetalle = () => {
       </Button>
 
       <PageHeader
+        className="nx-order-hero nx-page-header flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
         title={<span className="font-tabular">{order.code}</span>}
         description={
           <span className="flex flex-wrap items-center gap-2">
@@ -436,12 +438,12 @@ const PedidoDetalle = () => {
         }
       />
 
-      <section className="rounded-xl border bg-card p-4 shadow-sm">
+      <section className="nx-order-documents rounded-xl border bg-card p-4 shadow-sm">
         <div className="mb-3 flex items-center gap-2">
           <Download className="h-4 w-4 text-primary" />
           <h2 className="text-sm font-semibold">Documentos del pedido</h2>
         </div>
-        <div className="mb-4 border-b pb-4">
+        <div className="nx-order-documents-first mb-4 border-b pb-4">
           <h3 className="text-sm font-semibold">Relación de seriales · empaque</h3>
           <p className="my-2 text-sm text-muted-foreground">
             PDF con las referencias y cada IMEI asignado, listo para imprimir e incluir dentro de la caja.
@@ -527,7 +529,7 @@ const PedidoDetalle = () => {
           </Button>
         </div>
       </section>
-      <div className="grid gap-3 sm:grid-cols-3">
+      <div className="nx-order-summary grid gap-3 sm:grid-cols-3">
         <div className="rounded-lg border bg-card p-4">
           <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
             {t("order.serializedOfTitle")}
@@ -571,7 +573,7 @@ const PedidoDetalle = () => {
         </p>
       ) : null}
 
-      <section className="space-y-3">
+      <section className="nx-order-lines space-y-3">
         <h3 className="text-sm font-semibold">{t("order.linesTitle")}</h3>
         {lines.map((line) => {
           const costos = line.units.length > 0
@@ -581,7 +583,7 @@ const PedidoDetalle = () => {
           const precioBajoCosto = line.item.unitPrice < costoReferencia;
           const editandoPrecio = lineaPrecioEditando === line.item.id;
           return (
-            <div key={line.item.id} className="space-y-2">
+            <div key={line.item.id} className="nx-order-product-group space-y-2">
               <OrderLineCard
                 line={line}
                 editable={editable}
@@ -601,7 +603,7 @@ const PedidoDetalle = () => {
                     : undefined
                 }
               />
-              <div className="flex flex-wrap items-center gap-x-5 gap-y-2 rounded-lg border bg-card/70 px-4 py-3 text-sm">
+              <div className="nx-order-pricing flex flex-wrap items-center gap-x-5 gap-y-2 rounded-lg border bg-card/70 px-4 py-3 text-sm">
                 <div>
                   <p className="text-xs text-muted-foreground">Precio unitario</p>
                   <p className="font-tabular font-semibold">{formatCurrency(line.item.unitPrice)}</p>
