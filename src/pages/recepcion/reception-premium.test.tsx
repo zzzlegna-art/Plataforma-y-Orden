@@ -110,9 +110,10 @@ describe("Recepciones premium · datos y acciones preservadas", () => {
     await user.click(screen.getByRole("checkbox", { name: /Elegir todas|Seleccionar todas/i }));
     const exportButton = screen.getByRole("button", { name: /Exportar \(3\)/i });
     expect(exportButton.hasAttribute("disabled")).toBe(false);
+    expect(await screen.findByText(/Proveedor: Sunlong Distribuciones/)).toBeTruthy();
+    expect(screen.getAllByRole("button", { name: "Proveedor" }).length).toBeGreaterThan(0);
     await user.click(exportButton);
     expect(screen.getByRole("dialog")).toBeTruthy();
-    expect(screen.getByText("Sunlong Distribuciones")).toBeTruthy();
   });
 
   it("aplica estilos locales sin tocar la barra lateral y soporta ambos temas", () => {
