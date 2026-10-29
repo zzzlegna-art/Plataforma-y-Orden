@@ -320,7 +320,7 @@ export const ProductImportDialog = ({ trigger }: { trigger: React.ReactNode }) =
                           <td className="max-w-56 px-3 py-2">{item.row.name || "—"}</td>
                           <td className="px-3 py-2 font-mono text-xs">{item.row.sku || t("productImport.generatedSku")}</td>
                           <td className="px-3 py-2">
-                            <span className={item.status === "ready" ? "text-emerald-600" : item.status === "duplicate" ? "text-amber-600" : "text-destructive"}>
+                            <span className={item.status === "ready" ? "text-success" : item.status === "duplicate" ? "text-warning" : "text-destructive"}>
                               {t(`productImport.status.${item.status}`)}
                             </span>
                           </td>
