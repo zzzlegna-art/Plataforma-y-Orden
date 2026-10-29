@@ -214,3 +214,185 @@
   .nx-dashboard-showcase .nx-manage-warranties { transition: none; }
   .nx-dashboard-showcase .nx-manage-warranties:hover { transform: none; }
 }
+
+
+/* Panel en cuatro secciones. No aplicar reglas a sidebar ni a otras rutas. */
+.nx-dashboard-showcase .nx-dashboard-block {
+  min-width: 0;
+}
+.nx-dashboard-showcase .nx-dashboard-block + .nx-dashboard-block {
+  padding-top: clamp(1rem, 2.1vw, 1.75rem);
+  border-top: 1px solid hsl(var(--border) / .62);
+}
+.nx-dashboard-showcase .nx-dashboard-block--summary .nx-dashboard-heading {
+  margin-bottom: 1rem;
+}
+.nx-dashboard-showcase .nx-dashboard-block--movement .nx-dashboard-report-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: .8rem;
+  border: 1px solid hsl(var(--border) / .8);
+  background: linear-gradient(125deg, hsl(var(--card)), hsl(var(--secondary) / .25));
+}
+.nx-dashboard-showcase .nx-dashboard-block--movement .nx-dashboard-report-filters > div:last-child {
+  margin-left: auto;
+}
+.nx-dashboard-showcase .nx-dashboard-block--performance > .nx-dashboard-performance-heading {
+  margin-bottom: 0;
+}
+.nx-dashboard-showcase .nx-dashboard-performance-heading h2 {
+  font-size: clamp(1.25rem, 1.8vw, 1.6rem);
+  font-weight: 800;
+  letter-spacing: -.035em;
+}
+.nx-dashboard-showcase .nx-dashboard-performance-heading p {
+  font-size: .84rem;
+  margin-top: .35rem;
+  color: hsl(var(--muted-foreground));
+}
+.nx-dashboard-showcase .nx-operation-card {
+  border: 1px solid hsl(var(--border) / .8);
+  background: hsl(var(--card));
+  border-radius: 20px;
+  box-shadow: 0 16px 37px -28px rgb(12 48 82 / 24%);
+}
+.nx-dashboard-showcase .nx-ranking-card {
+  border: 1px solid hsl(var(--border) / .82);
+  border-radius: 20px;
+  box-shadow: 0 16px 37px -28px rgb(12 48 82 / 24%);
+}
+
+/* Los estilos KPI globales usan blancos y azules fijos; reemplazarlos SOLO
+   en el Panel oscuro para evitar tarjetas blancas y texto oscuro ilegible. */
+.dark .nx-dashboard-showcase .nx-premium-stat-card {
+  --nx-soft: hsl(213 43% 17%);
+  --nx-glow: rgb(28 210 173 / 12%);
+  color: hsl(var(--foreground));
+  border-color: hsl(var(--border) / .88);
+  background:
+    radial-gradient(ellipse 75% 80% at 108% 110%, var(--nx-glow), transparent 76%),
+    linear-gradient(135deg, hsl(var(--card)) 20%, var(--nx-soft) 170%);
+  box-shadow: 0 15px 35px -29px rgb(0 0 0 / 65%);
+}
+.dark .nx-dashboard-showcase .nx-premium-stat-card--info {
+  --nx-glow: rgb(59 130 246 / 19%);
+  --nx-icon-bg: #183a60;
+  --nx-icon-ink: #8bbcff;
+}
+.dark .nx-dashboard-showcase .nx-premium-stat-card--success {
+  --nx-glow: rgb(34 197 155 / 16%);
+  --nx-icon-bg: #134f42;
+  --nx-icon-ink: #6af2c7;
+}
+.dark .nx-dashboard-showcase .nx-premium-stat-card--warning {
+  --nx-glow: rgb(245 158 11 / 15%);
+  --nx-icon-bg: #513a1d;
+  --nx-icon-ink: #ffca6a;
+}
+.dark .nx-dashboard-showcase .nx-premium-stat-card--primary {
+  --nx-glow: rgb(132 204 22 / 12%);
+  --nx-icon-bg: #294525;
+  --nx-icon-ink: #b9f47e;
+}
+.dark .nx-dashboard-showcase .nx-premium-stat-card .nx-premium-stat-label,
+.dark .nx-dashboard-showcase .nx-premium-stat-card .nx-premium-stat-hint {
+  color: hsl(var(--muted-foreground));
+}
+.dark .nx-dashboard-showcase .nx-premium-stat-card .nx-premium-stat-value {
+  color: hsl(var(--foreground));
+}
+.dark .nx-dashboard-showcase .nx-premium-stat-card .nx-premium-stat-trend {
+  background: hsl(var(--success) / .16);
+  color: hsl(var(--success));
+}
+.dark .nx-dashboard-showcase .nx-premium-stat-card .nx-premium-stat-trend--negative {
+  background: hsl(var(--destructive) / .14);
+  color: hsl(var(--destructive));
+}
+.dark .nx-dashboard-showcase .nx-premium-stat-card .nx-premium-stat-trend--neutral {
+  background: hsl(var(--muted));
+  color: hsl(var(--muted-foreground));
+}
+.dark .nx-dashboard-showcase .nx-wide-stat {
+  border-color: hsl(var(--border) / .85);
+  background: linear-gradient(138deg, hsl(var(--card)), hsl(var(--secondary) / .52));
+  box-shadow: 0 15px 33px -28px rgb(0 0 0 / 65%);
+}
+.dark .nx-dashboard-showcase .nx-wide-stat:hover {
+  border-color: hsl(var(--primary) / .48);
+  box-shadow: 0 15px 33px -23px rgb(0 0 0 / 70%);
+}
+.dark .nx-dashboard-showcase .nx-wide-stat .nx-wide-value {
+  color: hsl(var(--foreground));
+}
+.dark .nx-dashboard-showcase .nx-wide-stat .nx-wide-label,
+.dark .nx-dashboard-showcase .nx-wide-stat .nx-wide-hint {
+  color: hsl(var(--muted-foreground));
+}
+.dark .nx-dashboard-showcase .nx-wide-stat > svg {
+  background: hsl(var(--info) / .12);
+  color: hsl(var(--info));
+}
+.dark .nx-dashboard-showcase .nx-wide-stat .nx-wide-icon {
+  background: hsl(var(--primary) / .12);
+  color: hsl(var(--primary));
+}
+.dark .nx-dashboard-showcase .nx-wide-stat .nx-wide-icon-blue {
+  background: hsl(var(--info) / .13);
+  color: hsl(var(--info));
+}
+.dark .nx-dashboard-showcase .nx-analytics-card,
+.dark .nx-dashboard-showcase .nx-ranking-card,
+.dark .nx-dashboard-showcase .nx-operation-card,
+.dark .nx-dashboard-showcase .nx-dashboard-report-filters {
+  color: hsl(var(--foreground));
+  border-color: hsl(var(--border));
+  background: hsl(var(--card) / .96);
+  box-shadow: 0 17px 38px -29px rgb(0 0 0 / 75%);
+}
+.dark .nx-dashboard-showcase .nx-warranty-kpi--service {
+  --nx-kpi-tone: #a8c9ff;
+}
+.dark .nx-dashboard-showcase .nx-warranty-empty {
+  background: hsl(var(--card) / .62);
+  color: hsl(var(--muted-foreground));
+}
+.dark .nx-dashboard-showcase .nx-analytics-range {
+  border-color: hsl(var(--border));
+  background: hsl(var(--background));
+  color: hsl(var(--foreground));
+}
+.dark .nx-dashboard-showcase .nx-dashboard-block--movement .nx-dashboard-report-filters {
+  background: linear-gradient(125deg, hsl(var(--card)), hsl(var(--secondary) / .38));
+}
+
+/* Más amplitud en tarjetas sin permitir que una cifra larga desborde. */
+.nx-dashboard-showcase .nx-kpi-section .nx-premium-stat-value--money {
+  font-size: clamp(.97rem, 5cqw, 1.55rem);
+  letter-spacing: -.047em;
+  max-width: 100%;
+}
+.nx-dashboard-showcase .nx-kpi-section .nx-premium-stat-card,
+.nx-dashboard-showcase .nx-kpi-section .nx-wide-stat {
+  min-width: 0;
+}
+.nx-dashboard-showcase .nx-dashboard-block--warranties .nx-warranty-kpi {
+  height: 100%;
+}
+@media (max-width: 740px) {
+  .nx-dashboard-showcase .nx-dashboard-block--movement .nx-dashboard-report-filters > div:last-child {
+    margin-left: 0;
+    width: 100%;
+  }
+}
+@media (max-width: 540px) {
+  .nx-dashboard-showcase .nx-dashboard-block--movement .nx-dashboard-report-filters > div:not(:last-child) {
+    flex: 1 1 130px;
+  }
+  .nx-dashboard-showcase .nx-dashboard-block--movement .nx-dashboard-report-filters input[type="date"] {
+    max-width: 100%;
+    min-width: 0;
+    width: 100%;
+  }
+}
