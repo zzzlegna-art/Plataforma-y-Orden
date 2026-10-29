@@ -108,7 +108,7 @@ describe("Recepciones premium · datos y acciones preservadas", () => {
     const user = userEvent.setup();
     open();
     await user.click(screen.getByRole("checkbox", { name: /Elegir todas|Seleccionar todas/i }));
-    const exportButton = screen.getByRole("button", { name: /Exportar 3|3 seleccionadas/i });
+    const exportButton = screen.getByRole("button", { name: /Exportar \(3\)/i });
     expect(exportButton.hasAttribute("disabled")).toBe(false);
     await user.click(exportButton);
     expect(screen.getByRole("dialog")).toBeTruthy();
