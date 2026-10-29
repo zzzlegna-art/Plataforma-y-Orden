@@ -82,7 +82,7 @@ export const dibujarEncabezado = (doc: jsPDF, title: string, subtitle: string, m
   // Dos columnas independientes: ninguna línea debe invadir el área del logo.
   const cleanTitle = tituloDocumentoSinMarcaDuplicada(title);
   doc.setFont("helvetica", "bold");
-  let titleFontSize = pageW < 650 ? 15.5 : 18;
+  let titleFontSize = pageW < 650 ? 13.5 : 16;
   doc.setFontSize(titleFontSize);
   let titleLines = doc.splitTextToSize(cleanTitle, textWidth) as string[];
   while (titleLines.length > 2 && titleFontSize > 11) {
@@ -214,8 +214,10 @@ export const exportPdf = ({
     body,
     showHead: "everyPage",
     styles: {
-      fontSize: 8.5,
-      cellPadding: { top: 6, bottom: 6, left: 7, right: 7 },
+      fontSize: 8.4,
+      cellPadding: { top: 7, bottom: 7, left: 8, right: 8 },
+      overflow: "linebreak",
+      rowPageBreak: "avoid",
       textColor: TEXT,
       lineColor: BORDER,
       lineWidth: 0.4,
@@ -227,7 +229,8 @@ export const exportPdf = ({
       lineColor: CYAN,
       lineWidth: 0.8,
       fontStyle: "bold",
-      fontSize: 9,
+      fontSize: 8.7,
+      cellPadding: { top: 9, bottom: 9, left: 8, right: 8 },
     },
     alternateRowStyles: { fillColor: CYAN_PALE },
     columnStyles,
@@ -1010,7 +1013,7 @@ export const exportPedidosHistorialExcel = ({
   ws["!rows"] = Array.from({ length: rows.length }, (_, r) => alturas[r] ?? {});
 
   const titleStyle = {
-    font: { bold: true, sz: 16, color: { rgb: WHITE_HEX } },
+    font: { bold: true, sz: 14, color: { rgb: WHITE_HEX } },
     fill: { fgColor: { rgb: NAVY_HEX } },
     alignment: { vertical: "center" },
   } as const;
@@ -1406,10 +1409,10 @@ export const exportExcel = ({
 
     // Filas del título y altura de producto: las miniaturas quedan centradas y el texto envuelto.
     const worksheetRows: { hpt?: number }[] = [
-      { hpt: 28 },
-      { hpt: 16 },
-      { hpt: 8 },
+      { hpt: 35 },
       { hpt: 24 },
+      { hpt: 10 },
+      { hpt: 30 },
     ];
     sheet.rows.forEach((_, rowIndex) => {
       const rowHeight = sheet.rowHeights?.[rowIndex] ??
@@ -1426,7 +1429,7 @@ export const exportExcel = ({
     const titleStyle = {
       font: { bold: true, sz: 16, color: { rgb: WHITE_HEX } },
       fill: { fgColor: { rgb: NAVY_HEX } },
-      alignment: { vertical: "center" },
+      alignment: { vertical: "center", indent: 1 },
     } as const;
     for (let c = 0; c < ncols; c += 1) {
       const cell = ws[address(0, c)] ?? { t: "s" as const, v: "" };
@@ -1436,7 +1439,7 @@ export const exportExcel = ({
     const subtitleStyle = {
       font: { sz: 9, italic: true, color: { rgb: MUTED_HEX } },
       fill: { fgColor: { rgb: CYAN_PALE_HEX } },
-      alignment: { vertical: "center" },
+      alignment: { vertical: "center", indent: 1, wrapText: true },
       border: { bottom: { style: "thin", color: { rgb: CYAN_HEX } } },
     } as const;
     for (let c = 0; c < ncols; c += 1) {
@@ -1455,6 +1458,8 @@ export const exportExcel = ({
           alignment: {
             vertical: "center",
             horizontal: numericas[c] ? "center" : "left",
+            wrapText: true,
+            ...(numericas[c] ? {} : { indent: 1 }),
           },
           border: { bottom: { style: "medium", color: { rgb: CYAN_HEX } } },
         };
@@ -1486,6 +1491,7 @@ export const exportExcel = ({
             vertical: "center",
             horizontal: sheet.imageColumn === c || numericas[c] ? "center" : "left",
             wrapText: sheet.wrapColumns?.includes(c) ?? false,
+            ...(sheet.imageColumn === c || numericas[c] ? {} : { indent: 1 }),
           },
           border: { bottom: { style: "thin", color: { rgb: BORDER_HEX } } },
         };
