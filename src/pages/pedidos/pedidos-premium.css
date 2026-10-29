@@ -41,3 +41,12 @@
  .nx-operations-pedidos .nx-pedidos-table {border-radius:18px;}
 }
 @media(prefers-reduced-motion:reduce) {.nx-operations-pedidos * {transition:none!important;}}
+
+.nx-premium-export-dialog{border-radius:22px;border:1px solid #d5e8f4;background:linear-gradient(130deg,#fff,#f1fcff);padding:25px}
+.nx-premium-export-heading{padding-bottom:14px;border-bottom:1px solid #e0ebf4}
+.nx-premium-export-heading [data-slot="dialog-title"]{display:flex;align-items:center;gap:12px;font-size:1.1rem;color:#112b4c}
+.nx-premium-export-icon{display:grid;place-items:center;width:40px;height:40px;border-radius:12px;background:#e2faff;color:#00aac5}
+.nx-premium-export-scope{align-items:center;border-radius:14px;border-color:#d7e7f3;background:#f8fcff}
+.nx-premium-export-formats button{min-height:73px;display:flex;flex-direction:column;justify-content:center;gap:8px;border-radius:14px;font-weight:700}
+.nx-premium-export-formats button:hover{border-color:#00bfd1;background:#f2fdff}
+.nx-premium-export-formats button svg{width:22px;height:22px;color:#00adc3}
