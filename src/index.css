@@ -1128,3 +1128,9 @@ body {
   .nx-dashboard-premium .nx-action-tile strong { font-size: .84rem; }
   .nx-dashboard-premium .nx-action-tile small { font-size: .74rem; }
 }
+
+/* Nexora: escala editorial de títulos coherente en módulos principales (2026). */
+.nx-operations .nx-page-header h1,.nx-management .nx-page-header h1{font-size:clamp(1.45rem,2vw,1.8rem);line-height:1.18;letter-spacing:-.035em}
+.nx-operations-pedidos .nx-page-header h1,.nx-order-detail-premium .nx-order-hero h1{font-size:clamp(1.45rem,2vw,1.8rem)}
+.nx-dashboard-premium h1,.nx-dashboard-premium .nx-dashboard-title{font-size:clamp(1.5rem,2.15vw,1.95rem);line-height:1.2;letter-spacing:-.04em}
+.nx-management .nx-page-header p,.nx-operations .nx-page-header p{font-size:.88rem}
