@@ -1,3 +1,29 @@
+/* Header changes only when the panel route is active; never affect sidebar. */
+.nx-app-topbar--panel {
+  min-height: 76px;
+  border-bottom-color: hsl(var(--border) / .7);
+  background: hsl(var(--card) / .95);
+  box-shadow: 0 8px 32px -25px rgb(14 46 88 / 28%);
+}
+.nx-app-topbar--panel .nx-dashboard-search-pill {
+  min-height: 39px;
+  border-radius: 999px;
+  padding-inline: 1rem;
+  border-color: hsl(var(--border));
+  background: hsl(var(--secondary) / .45);
+  box-shadow: inset 0 1px 0 hsl(var(--card));
+}
+.nx-app-topbar--panel .nx-dashboard-search-pill:hover {
+  border-color: hsl(var(--primary) / .55);
+  background: hsl(var(--primary) / .065);
+}
+.nx-app-topbar--panel .nx-dashboard-user-avatar {
+  border: 1px solid hsl(var(--border) / .65);
+  border-radius: 50%;
+  background: hsl(var(--secondary) / .48);
+}
+@media(max-width: 540px) { .nx-app-topbar--panel { min-height: 64px; } }
+
 /* Nexora dashboard / premium concept. Strictly scoped: never styles the left sidebar. */
 .nx-dashboard-showcase {
   --nx-dashboard-ink: 218 63% 15%;
