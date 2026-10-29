@@ -374,7 +374,18 @@ const Panel = () => {
                     innerRadius="66%" outerRadius="87%" paddingAngle={2} stroke="none">
                     {operationalChartData.map((item) => <Cell key={item.name} fill={item.color} />)}
                   </Pie>
-                  <Tooltip formatter={(value, name) => [formatNumber(Number(value)), String(name)]} />
+                  <Tooltip
+                    contentStyle={{
+                      borderRadius: 12,
+                      border: "1px solid hsl(var(--border))",
+                      background: "hsl(var(--popover))",
+                      color: "hsl(var(--popover-foreground))",
+                      fontSize: 12,
+                    }}
+                    itemStyle={{ color: "hsl(var(--popover-foreground))" }}
+                    labelStyle={{ color: "hsl(var(--foreground))", fontWeight: 700 }}
+                    formatter={(value, name) => [formatNumber(Number(value)), String(name)]}
+                  />
                 </PieChart>
               </ResponsiveContainer>
               <div className="nx-operations-chart-center">
