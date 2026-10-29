@@ -246,7 +246,7 @@ const Panel = () => {
       </div>
 
       <section className="nx-kpi-section">
-        <div className="grid min-w-0 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid min-w-0 gap-4 sm:grid-cols-2 2xl:grid-cols-4">
           <StatCard label={t("dashboard.available")} value={<AnimatedNumber value={data.kpis.available} formatter={formatNumber} />} hint={t("dashboard.availableHint")} icon={Boxes} tone="success" premium />
           <StatCard label={t("dashboard.receivedThisMonth")} value={<AnimatedNumber value={data.kpis.receivedThisMonth} formatter={formatNumber} />} hint={`${t("dashboard.receivedHint")} · ${t("dashboard.comparisonPeriod")}`} icon={PackagePlus} tone="info" trend={receivedTrend.label} trendTone={receivedTrend.tone} premium />
           <button
