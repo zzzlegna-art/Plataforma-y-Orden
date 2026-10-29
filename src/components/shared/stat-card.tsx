@@ -6,11 +6,11 @@ import { cn } from "@/lib/utils";
 type Tone = "primary" | "success" | "warning" | "info" | "destructive";
 
 const TONE_CLASSES: Record<Tone, string> = {
-  primary: "bg-primary/12 text-primary",
-  success: "bg-success/12 text-success",
-  warning: "bg-warning/12 text-warning",
-  info: "bg-info/12 text-info",
-  destructive: "bg-destructive/12 text-destructive",
+  primary: "bg-primary/10 text-primary",
+  success: "bg-success/10 text-success",
+  warning: "bg-warning/10 text-warning",
+  info: "bg-info/10 text-info",
+  destructive: "bg-destructive/10 text-destructive",
 };
 
 const BAR_CLASSES: Record<Tone, string> = {
@@ -24,8 +24,8 @@ const BAR_CLASSES: Record<Tone, string> = {
 type TrendTone = "positive" | "negative" | "neutral";
 
 const TREND_CLASSES: Record<TrendTone, string> = {
-  positive: "bg-success/12 text-success",
-  negative: "bg-destructive/12 text-destructive",
+  positive: "bg-success/10 text-success",
+  negative: "bg-destructive/10 text-destructive",
   neutral: "bg-muted text-muted-foreground",
 };
 
