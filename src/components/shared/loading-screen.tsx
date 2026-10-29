@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import "./loading-screen-premium.css";
-import nexoraLogoSource from "../../../scripts/nexora-logo-source.b64?raw";
+import { BrandLogo } from "@/components/shared/brand-logo";
 
 /**
  * Pantalla de carga a pantalla completa: se muestra al abrir la app y al iniciar
@@ -22,15 +22,8 @@ export const LoadingScreen = ({ message }: { message: string }) => {
     <div role="status" aria-live="polite" aria-busy="true" className="nx-loading-premium">
       <div className="nx-loading-premium__card animate-fade-in">
         <span className="nx-loading-premium__eyebrow">NEXORA · CENTRO DE OPERACIONES</span>
-        <div className="nx-loading-premium__identity" aria-hidden="true">
-          <svg viewBox="0 0 610 145" className="nx-loading-premium__brand-lockup" role="img" aria-label="Nexora">
-            <svg x="0" y="0" width="145" height="145" viewBox="75 18 300 300">
-              <image href={`data:image/png;base64,${nexoraLogoSource.trim()}`} width="448" height="448" />
-            </svg>
-            <svg x="159" y="22" width="440" height="108" viewBox="10 303 435 107">
-              <image href={`data:image/png;base64,${nexoraLogoSource.trim()}`} width="448" height="448" />
-            </svg>
-          </svg>
+        <div className="nx-loading-premium__brand" aria-hidden="true">
+          <BrandLogo variant="horizontal" className="nx-loading-premium__brand-lockup" alt="Nexora" />
         </div>
         <div>
           <p className="nx-loading-premium__title">{message}</p>
