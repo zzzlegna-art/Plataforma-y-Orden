@@ -3,6 +3,11 @@ import { useTranslation } from "react-i18next";
 import {
   Download,
   Eye,
+  ClipboardList,
+  Boxes,
+  Clock3,
+  ArrowRight,
+  Building2,
   FileSpreadsheet,
   FileText,
   PackageCheck,
@@ -15,7 +20,6 @@ import { toast } from "sonner";
 
 import { DataTable } from "@/components/shared/data-table";
 import { ProductThumbnail } from "@/components/shared/product-thumbnail";
-import { PageHeader } from "@/components/shared/page-header";
 import { SearchField } from "@/components/shared/search-field";
 import { ConditionBadge, Badge } from "@/components/shared/status-badge";
 import { Button } from "@/components/ui/button";
@@ -50,8 +54,10 @@ import { cn } from "@/lib/utils";
 import { getReceptionRows, type ReceptionRow } from "@/lib/selectors";
 import { listSuppliers, type Supplier } from "@/lib/suppliers";
 import { ReceptionSupplierDialog } from "./ReceptionSupplierDialog";
+import "./reception-premium.css";
 
 const STATUS_OPTIONS = ["", "captura", "confirmada"] as const;
+const receptionNumber = new Intl.NumberFormat("es-CO");
 
 /** Listado de recepciones de mercancía. */
 const Recepciones = () => {
@@ -107,9 +113,22 @@ const Recepciones = () => {
     }
   };
 
+  // Una sola consulta base: el resumen, filtros y exportaciones usan exactamente
+  // las mismas recepciones, sin contar las descartadas ni duplicar trabajo.
+  const allReceptionRows = useMemo(() => getReceptionRows(db), [db]);
+  const overview = useMemo(() => ({
+    total: allReceptionRows.length,
+    confirmed: allReceptionRows.filter((row) => row.reception.status === "confirmada").length,
+    drafts: allReceptionRows.filter((row) => row.reception.status === "captura").length,
+    units: allReceptionRows.reduce(
+      (total, row) => total + (row.reception.status === "confirmada" ? row.units.length : 0),
+      0,
+    ),
+  }), [allReceptionRows]);
+
   const rows = useMemo(() => {
     const needle = search.trim().toLowerCase();
-    return getReceptionRows(db).filter((row) => {
+    return allReceptionRows.filter((row) => {
       const matchesStatus = !status || row.reception.status === status;
       const matchesSearch =
         !needle ||
@@ -124,7 +143,7 @@ const Recepciones = () => {
         row.serials.some((serial) => serial.toLowerCase().includes(needle));
       return matchesStatus && matchesSearch;
     });
-  }, [db, search, status, supplierName]);
+  }, [allReceptionRows, search, status, supplierName]);
 
   // Selección manual de recepciones para exportar exactamente las que se elijan (igual que
   // la selección de seriales para imprimir etiquetas: checkbox por fila + "elegir visibles").
@@ -156,8 +175,8 @@ const Recepciones = () => {
   // Las seleccionadas se toman de todas las recepciones, no solo de las que deja ver el filtro
   // actual: si se cambia la búsqueda después de marcarlas, no se pierden en silencio.
   const filasSeleccionadas = useMemo(
-    () => getReceptionRows(db).filter((row) => seleccionados.has(row.reception.id)),
-    [db, seleccionados],
+    () => allReceptionRows.filter((row) => seleccionados.has(row.reception.id)),
+    [allReceptionRows, seleccionados],
   );
 
   const opcionSeriales = (
@@ -177,7 +196,7 @@ const Recepciones = () => {
   );
 
   const exportarTodas = (format: "pdf" | "excel") => {
-    const base = soloFiltrado ? rows : getReceptionRows(db);
+    const base = soloFiltrado ? rows : allReceptionRows;
     if (base.length === 0) {
       toast.error(t("export.noData"));
       return;
@@ -294,7 +313,7 @@ const Recepciones = () => {
   };
 
   const renderCard = (row: ReceptionRow) => (
-    <div className="space-y-3">
+    <div className="nx-reception-table__mobile space-y-3 p-3">
       <div className="flex items-start justify-between gap-2">
         <div className="flex min-w-0 items-start gap-2">
           <Checkbox
@@ -304,7 +323,7 @@ const Recepciones = () => {
             className="mt-1 shrink-0"
           />
             <div className="min-w-0">
-              <p className="font-tabular truncate font-semibold">{row.reception.code}</p>
+              <p className="nx-reception-table__code font-tabular truncate">{row.reception.code}</p>
               <div className="mt-1 flex min-w-0 items-center gap-2">
                 {row.products.slice(0, 3).map((item) => {
                   const product = db.products.find((candidate) => candidate.id === item.productId);
@@ -312,7 +331,7 @@ const Recepciones = () => {
                     <ProductThumbnail key={item.productId} src={product.imageUrl} alt={product.name} size="xs" />
                   ) : null;
                 })}
-                <p className="truncate text-sm">{productSummary(row) || "—"}</p>
+                <p className="nx-reception-table__product truncate">{productSummary(row) || "—"}</p>
               </div>
               <p className="truncate text-xs text-muted-foreground">
                 {supplierName(row.reception.supplierId) ? `${supplierName(row.reception.supplierId)} · ` : ""}
@@ -335,7 +354,7 @@ const Recepciones = () => {
           <ReceptionSupplierDialog
             reception={db.receptions.find((item) => item.id === row.reception.id) ?? row.reception}
             suppliers={suppliers}
-            trigger={<Button size="sm" variant="outline"><PencilLine className="h-4 w-4" /> Proveedor</Button>}
+            trigger={<Button size="sm" variant="outline" className="rounded-xl"><PencilLine className="h-4 w-4" /> Proveedor</Button>}
           />
           {row.reception.status === "captura" ? (
             <Button size="sm" variant="outline" asChild>
@@ -354,58 +373,106 @@ const Recepciones = () => {
   );
 
   return (
-    <div className="space-y-5 stagger nx-operations nx-operations-recepcion">
-      <PageHeader
-        title={t("receptions.title")}
-        description={t("receptions.subtitle")}
-        actions={
-          <div className="flex flex-wrap gap-2">
-            <Button
-              variant="outline"
-              onClick={() => {
-                setExportScope("todas");
-                setDetalleDesde("");
-                setDetalleHasta("");
-                setExportOpen(true);
-              }}
-            >
-              <Download />
-              {t("export.button")}
-            </Button>
-            <Button asChild>
-              <Link to="/recepcion/nueva">
-                <PackagePlus />
-                {t("receptions.new")}
-              </Link>
-            </Button>
-          </div>
-        }
-      />
+    <div className="space-y-5 stagger nx-operations nx-operations-recepcion nx-reception-premium">
+      <header className="nx-reception-hero">
+        <div className="min-w-0">
+          <p className="nx-reception-hero__eyebrow">
+            <Boxes className="h-4 w-4" aria-hidden="true" />
+            Centro de mercancía
+          </p>
+          <h1 className="nx-reception-hero__title">{t("receptions.title")}</h1>
+          <p className="nx-reception-hero__description">
+            Controla las entradas de equipos y repuestos, su procedencia y cada serial o IMEI desde un solo lugar.
+          </p>
+        </div>
+        <div className="nx-reception-hero__actions">
+          <Button
+            variant="outline"
+            onClick={() => {
+              setExportScope("todas");
+              setDetalleDesde("");
+              setDetalleHasta("");
+              setExportOpen(true);
+            }}
+          >
+            <Download aria-hidden="true" /> {t("export.button")}
+          </Button>
+          <Button asChild className="nx-reception-primary-action">
+            <Link to="/recepcion/nueva">
+              <PackagePlus aria-hidden="true" />
+              {t("receptions.new")}
+              <ArrowRight className="h-4 w-4" aria-hidden="true" />
+            </Link>
+          </Button>
+        </div>
+      </header>
 
-      <div className="flex flex-col gap-2 rounded-lg border bg-card p-3 shadow-sm sm:flex-row sm:items-center">
+      <section aria-label="Resumen de recepciones" className="nx-reception-stat-grid">
+        {[
+          {
+            key: "all", label: "Recepciones totales", value: overview.total,
+            help: "Historial registrado", Icon: ClipboardList,
+          },
+          {
+            key: "confirmed", label: "Confirmadas", value: overview.confirmed,
+            help: "Mercancía ingresada", Icon: PackageCheck,
+          },
+          {
+            key: "draft", label: "En captura", value: overview.drafts,
+            help: "Pendientes de confirmar", Icon: Clock3,
+          },
+          {
+            key: "units", label: "Unidades ingresadas", value: overview.units,
+            help: "Seriales de recepciones confirmadas", Icon: Boxes,
+          },
+        ].map(({ key, label, value, help, Icon }) => (
+          <div className={`nx-reception-stat nx-reception-stat--${key}`} key={key}>
+            <div className="nx-reception-stat__top">
+              <span className="nx-reception-stat__label">{label}</span>
+              <span className="nx-reception-stat__icon" aria-hidden="true">
+                <Icon className="h-5 w-5" />
+              </span>
+            </div>
+            <p className="nx-reception-stat__number">{receptionNumber.format(value)}</p>
+            <p className="nx-reception-stat__help">{help}</p>
+          </div>
+        ))}
+      </section>
+
+      <section aria-label="Buscar y filtrar recepciones" className="nx-reception-filterbar">
         <SearchField
           value={search}
           onChange={setSearch}
           placeholder={t("receptions.searchPlaceholder")}
-          className="sm:max-w-xs"
+          className="nx-reception-filterbar__search"
         />
-        <div className="flex gap-2 overflow-x-auto">
-          {STATUS_OPTIONS.map((option) => (
-            <Button
-              key={option || "all"}
-              variant={status === option ? "default" : "outline"}
-              size="sm"
-              onClick={() => setStatus(option)}
-              className="shrink-0"
-            >
-              {option ? t(`receptionStatus.${option}`) : t("common.all")}
-            </Button>
-          ))}
+        <div className="nx-reception-filterbar__tabs" role="group" aria-label="Filtrar por estado">
+          {STATUS_OPTIONS.map((option) => {
+            const count = option === "captura" ? overview.drafts :
+              option === "confirmada" ? overview.confirmed : overview.total;
+            return (
+              <Button
+                key={option || "all"}
+                variant="outline"
+                size="sm"
+                aria-pressed={status === option}
+                onClick={() => setStatus(option)}
+                className="nx-reception-filter shrink-0"
+              >
+                {option ? t(`receptionStatus.${option}`) : t("common.all")}
+                <span className="nx-reception-filter__count">{receptionNumber.format(count)}</span>
+              </Button>
+            );
+          })}
         </div>
-      </div>
+        <span className="ml-auto text-xs font-medium text-muted-foreground">
+          {t("common.resultsCount", { count: rows.length })}
+        </span>
+      </section>
 
       {rows.length > 0 ? (
-        <div className="flex flex-wrap items-center gap-2 rounded-md border bg-muted/30 p-2">
+        <div className={cn("nx-reception-selection",
+          seleccionados.size > 0 && "nx-reception-selection--active")}>
           <Checkbox
             aria-label={t("export.selectAllVisible")}
             checked={rows.every((row) => seleccionados.has(row.reception.id))}
@@ -419,32 +486,26 @@ const Recepciones = () => {
               })
             }
           />
-          <span className="text-sm text-muted-foreground">
+          <span className="nx-reception-selection__count">
             {seleccionados.size > 0
               ? t("export.selectedCount", { count: seleccionados.size })
               : t("export.selectForExportHint")}
           </span>
           {seleccionados.size > 0 ? (
-            <Button
-              size="sm"
-              variant="ghost"
-              className="h-7 px-2"
-              onClick={() => setSeleccionados(new Set())}
-            >
-              <X />
-              {t("common.clear")}
+            <Button size="sm" variant="ghost" onClick={() => setSeleccionados(new Set())}>
+              <X aria-hidden="true" /> {t("common.clear")}
             </Button>
           ) : null}
           <Button
             size="sm"
-            className="ml-auto h-7"
+            className="ml-auto rounded-xl"
             disabled={seleccionados.size === 0}
             onClick={() => {
               setExportScope("seleccionadas");
               setExportOpen(true);
             }}
           >
-            <Download />
+            <Download aria-hidden="true" />
             {seleccionados.size > 0
               ? t("export.exportSelectedCount", { count: seleccionados.size })
               : t("export.button")}
@@ -453,6 +514,7 @@ const Recepciones = () => {
       ) : null}
 
       <DataTable<ReceptionRow>
+        className="nx-reception-table"
         rows={rows}
         rowKey={(row) => row.reception.id}
         emptyTitle={search || status ? t("receptions.emptyFilteredTitle") : t("receptions.emptyTitle")}
@@ -471,6 +533,12 @@ const Recepciones = () => {
           ) : undefined
         }
         renderCard={renderCard}
+        footer={
+          <span className="nx-reception-table__footer">
+            <ClipboardList className="h-4 w-4" aria-hidden="true" />
+            {receptionNumber.format(rows.length)} recepciones mostradas
+          </span>
+        }
         columns={[
           {
             key: "select",
@@ -488,15 +556,15 @@ const Recepciones = () => {
             header: t("receptions.code"),
             cell: (row) => (
               <div>
-                <p className="font-tabular font-medium">{row.reception.code}</p>
+                <p className="nx-reception-table__code font-tabular">{row.reception.code}</p>
                 <p
-                  className="max-w-[18rem] truncate text-sm"
+                  className="nx-reception-table__product max-w-[20rem] truncate"
                   title={row.products.map((p) => `${p.name} × ${p.count}`).join("\n")}
                 >
                   {productSummary(row) || "—"}
                 </p>
                 {supplierName(row.reception.supplierId) ? (
-                  <p className="text-xs text-primary">Proveedor: {supplierName(row.reception.supplierId)}</p>
+                  <span className="nx-reception-table__supplier max-w-[20rem] truncate"><Building2 className="h-3 w-3 shrink-0" aria-hidden="true" /> Proveedor: {supplierName(row.reception.supplierId)}</span>
                 ) : null}
                 {row.reception.reference ? (
                   <p className="text-xs text-muted-foreground">{row.reception.reference}</p>
@@ -513,7 +581,7 @@ const Recepciones = () => {
             key: "units",
             header: t("receptions.units"),
             cell: (row) => (
-              <span className="font-tabular text-sm">{row.units.length}</span>
+              <span className="nx-reception-table__units">{receptionNumber.format(row.reception.status === "confirmada" ? row.units.length : row.serials.length)}</span>
             ),
           },
           {
@@ -531,7 +599,7 @@ const Recepciones = () => {
             header: t("common.actions"),
             align: "right",
             cell: (row) => (
-              <div className="flex items-center justify-end gap-1">
+              <div className="nx-reception-table__actions flex items-center justify-end gap-1">
                 <ReceptionSupplierDialog
                   reception={db.receptions.find((item) => item.id === row.reception.id) ?? row.reception}
                   suppliers={suppliers}
