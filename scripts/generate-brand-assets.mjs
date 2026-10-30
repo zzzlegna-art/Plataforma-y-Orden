@@ -203,6 +203,9 @@ for (const size of [32, 180, 192, 512]) {
   writePng(`icons/${filename}`, appIcon(symbol, size));
 }
 writePng('icons/icon-maskable-512.png', appIcon(symbol, 512, true));
+// Mantener URLs históricas que aún puedan estar en caché en Vercel o accesos guardados:
+// en cada build también sirven el isotipo oficial, nunca el antiguo logo naranja.
+writePng('icons/logo-bodega6a.png', appIcon(symbol, 512));
 
 // Replace the browser's legacy favicon fallback and SVG fallback as well.
 const favicon = readFileSync(join(ROOT, 'public/icons/favicon-32.png'));
