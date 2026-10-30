@@ -1,7 +1,7 @@
 import "./pedido-detalle-premium.css";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { ArrowLeft, Check, Download, FileSpreadsheet, PackagePlus, Receipt, Undo2, Wrench } from "lucide-react";
+import { ArrowLeft, Check, Download, FileSpreadsheet, PackagePlus, Receipt, ScanLine, Undo2, Wrench } from "lucide-react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
 
@@ -35,6 +35,7 @@ import {
   editarPrecioReferencia,
   confirmarPreparacionPedido,
   confirmarVentaPedido,
+  regresarPedidoASerializacion,
   quitarImeiPedido,
   quitarReferenciaPedido,
   quitarSerialDespachado,
@@ -52,7 +53,7 @@ const PedidoDetalle = () => {
   const { t } = useTranslation();
   const { db } = useStore();
   const runAction = useRunAction();
-  const { isAdmin } = usePermissions();
+  const { isAdmin, can } = usePermissions();
   const navigate = useNavigate();
   const location = useLocation();
   const { orderId } = useParams();
@@ -305,6 +306,16 @@ const PedidoDetalle = () => {
     });
   };
 
+  const regresarASerializacion = async () => {
+    const resultado = await runAction(
+      (db2, actor) => regresarPedidoASerializacion(db2, actor, { orderId: order.id }),
+      { key: `pedido-reabrir-serializacion:${order.id}` },
+    );
+    if (resultado !== null) {
+      toast.success("Pedido devuelto a serialización. Se conservaron los IMEI asignados.");
+    }
+  };
+
   const confirmarVenta = async () => {
     await runAction((db2, actor) => confirmarVentaPedido(db2, actor, { orderId: order.id }), {
       success: "order.dispatched",
@@ -392,6 +403,20 @@ const PedidoDetalle = () => {
             </>
           ) : preparado ? (
             <>
+              {can("orders.manage") ? (
+                <ConfirmDialog
+                  trigger={
+                    <Button type="button" variant="outline" disabled={runAction.pending} loading={runAction.pending}>
+                      <ScanLine />
+                      Volver a serialización
+                    </Button>
+                  }
+                  title="Regresar a serialización"
+                  description="El pedido volverá a En preparación para que puedas seguir asignando, reemplazando o corrigiendo seriales. Se conservarán todos los IMEI ya asignados y no se registrará ninguna venta ni salida de inventario. Cuando termines, confirma la preparación nuevamente."
+                  confirmLabel="Volver a serialización"
+                  onConfirm={regresarASerializacion}
+                />
+              ) : null}
               <ConfirmDialog
                 trigger={
                   <Button disabled={runAction.pending} loading={runAction.pending}>
