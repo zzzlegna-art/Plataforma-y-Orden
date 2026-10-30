@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { DomainError, emptyDb } from "../db";
 import type { Actor, Order, OrderItem, Product, Unit } from "../types";
-import { confirmarPreparacionPedido, confirmarVentaPedido, editarPrecioReferencia } from "./orders";
+import { confirmarPreparacionPedido, confirmarVentaPedido, editarCantidadReferencia, editarPrecioReferencia, regresarPedidoASerializacion, serializarImeiPedido } from "./orders";
 
 const actor: Actor = { id: "admin-test", email: "admin@example.test", fullName: "Prueba", role: "admin" };
 const producto: Product = {
@@ -131,4 +131,51 @@ describe("despacho seguro de pedidos", () => {
     expect(db.movements).toHaveLength(0);
   });
 
+});
+
+describe("regreso seguro de preparado a serialización", () => {
+  it("conserva los IMEI y permite seguir serializando sin vender ni liberar unidades", () => {
+    const db = emptyDb();
+    db.products.push({ ...producto });
+    db.orders.push({ ...pedido, status: "preparado", total: 150 });
+    db.orderItems.push({ ...linea, quantity: 1, subtotal: 150 });
+    db.units.push({ ...unidad }, { ...unidad, id: "unidad-2", serial: "SERIAL-67890" });
+    db.orderItemUnits.push({
+      id: "asignacion-1", orderItemId: linea.id, unitId: unidad.id, createdAt: pedido.createdAt,
+    });
+
+    const asignacionesOriginales = db.orderItemUnits.map((a) => ({ ...a }));
+    const reabierto = regresarPedidoASerializacion(db, actor, { orderId: pedido.id });
+
+    expect(reabierto.status).toBe("en_preparacion");
+    expect(db.orderItemUnits).toEqual(asignacionesOriginales);
+    expect(db.units.every((u) => u.status === "en_bodega")).toBe(true);
+    expect(db.movements).toHaveLength(0);
+
+    editarCantidadReferencia(db, actor, { orderItemId: linea.id, nuevaCantidad: 2 });
+    serializarImeiPedido(db, actor, { orderId: pedido.id, imei: "SERIAL-67890" });
+    expect(db.orderItemUnits.map((a) => a.unitId).sort()).toEqual(["unidad-2", unidad.id].sort());
+    expect(db.movements.filter((m) => m.type === "salida")).toHaveLength(0);
+
+    confirmarPreparacionPedido(db, actor, { orderId: pedido.id });
+    expect(db.orders[0].status).toBe("preparado");
+    expect(db.orderItemUnits).toHaveLength(2);
+  });
+
+  it("no reabre pedidos despachados o cancelados, ni altera sus seriales", () => {
+    for (const status of ["despachado", "cancelado"] as const) {
+      const db = emptyDb();
+      db.orders.push({ ...pedido, status });
+      db.orderItems.push({ ...linea, quantity: 1, subtotal: 150 });
+      db.units.push({ ...unidad });
+      db.orderItemUnits.push({
+        id: "asignacion-1", orderItemId: linea.id, unitId: unidad.id, createdAt: pedido.createdAt,
+      });
+      expect(() => regresarPedidoASerializacion(db, actor, { orderId: pedido.id })).toThrow(DomainError);
+      expect(db.orders[0].status).toBe(status);
+      expect(db.orderItemUnits).toHaveLength(1);
+      expect(db.units[0].status).toBe("en_bodega");
+      expect(db.movements).toHaveLength(0);
+    }
+  });
 });
