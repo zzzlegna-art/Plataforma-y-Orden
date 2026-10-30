@@ -453,6 +453,32 @@ export const confirmarPreparacionPedido = (
 };
 
 /**
+ * Reabre la serialización de un pedido preparado que todavía no se ha vendido.
+ * Conserva las asignaciones existentes: los IMEI seguirán reservados al pedido
+ * mientras se corrigen, sustituyen o agregan otros. No altera el estado físico
+ * de ninguna unidad, movimientos de inventario, ni documentos de venta.
+ */
+export const regresarPedidoASerializacion = (
+  db: Db,
+  actor: Actor,
+  input: { orderId: string },
+): Order => {
+  requirePermission(actor, "orders.manage");
+  const order = findOrder(db, input.orderId);
+  if (order.status !== "preparado") throw new DomainError("errors.orderNotPrepared");
+
+  order.status = "en_preparacion";
+  order.updatedAt = nowIso();
+  logAudit(db, actor, {
+    action: "status",
+    entity: "order",
+    entityId: order.id,
+    details: `${order.code} · regresó de preparado a serialización; se conservaron los IMEI asignados`,
+  });
+  return order;
+};
+
+/**
  * Segunda confirmación: registra la venta y la salida física de las unidades reservadas.
  * El costo real de cada unidad se valida antes de modificar inventario.
  */
