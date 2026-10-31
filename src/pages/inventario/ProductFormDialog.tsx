@@ -34,6 +34,7 @@ import {
   type ProductFormDraft,
 } from "@/lib/product-form-draft";
 import { getProductImageExtension, validateProductImageFile } from "@/lib/product-image";
+import { preciosPorColorSinConfigurar, verificarPreciosPorColor } from "@/lib/product-color-pricing";
 import { getProductTechnicalSpecFieldsForCategory, getProductTechnicalSpecsForCategory } from "@/lib/product-specs";
 import { etiquetaTipoProducto, tiposProductoOrdenados } from "@/lib/products";
 import type { Product, ProductCategory, ProductTechnicalSpecs, ProductColorVariant } from "@/lib/types";
@@ -109,7 +110,9 @@ export const ProductFormDialog = ({
     if (imageInputRef.current) imageInputRef.current.value = "";
 
     const draft = readProductFormDraft(draftKey);
-    if (draft) {
+    if (draft && (!currentProduct ||
+      (draft.sourceUpdatedAt !== undefined && draft.sourceUpdatedAt === currentProduct.updatedAt))) {
+      // No recuperar precios viejos de un borrador si el producto ya fue modificado.
       // Borradores antiguos marcaban toda edición como manual aunque nadie hubiera escrito la SKU.
       // Solo conservar ese bloqueo cuando la SKU realmente difiere de la original.
       const skuWasManuallyEdited = draft.skuManual &&
@@ -129,6 +132,7 @@ export const ProductFormDialog = ({
       return;
     }
 
+    if (draft && currentProduct) clearProductFormDraft(draftKey);
     // Editar una referencia también inicia en modo automático, sin modificarla hasta cambiar nombre o tipo.
     setSkuManual(false);
     setTechnicalSpecs(currentProduct?.technicalSpecs ?? {});
@@ -162,6 +166,7 @@ export const ProductFormDialog = ({
       form,
       technicalSpecs,
       colorVariants,
+      sourceUpdatedAt: productRef.current?.updatedAt,
       skuManual,
       removeImage,
     };
@@ -221,6 +226,12 @@ export const ProductFormDialog = ({
     : [];
 
   const save = async () => {
+    // Los importes de color deben ser válidos ANTES de subir imágenes o tocar el inventario.
+    if (colorVariants.some((v) => !Number.isFinite(v.price) || v.price < 0 ||
+      !Number.isFinite(v.cost) || v.cost < 0)) {
+      toast.error("Revisa el costo y precio de los colores: no se permiten valores inválidos.");
+      return;
+    }
     setSaving(true);
     let uploadedPath: string | undefined;
     try {
@@ -264,7 +275,7 @@ export const ProductFormDialog = ({
           product
             ? updateProduct(db2, actor, { ...payload, id: product.id })
             : createProduct(db2, actor, payload),
-        { success: product ? "product.updated" : "product.created" },
+        { key: `guardar-producto:${product?.id ?? "nuevo"}` },
       );
       if (!result) {
         if (uploadedPath) await supabase.storage.from(PRODUCT_IMAGE_BUCKET).remove([uploadedPath]);
@@ -281,9 +292,27 @@ export const ProductFormDialog = ({
           // No bloquear un guardado correcto por una limpieza de almacenamiento.
         }
       }
+      // No cerrar ni borrar el borrador antes de comprobar lo que realmente guardó Supabase.
+      // Este control detecta tarifas cero que no coincidían con el formulario.
+      const { data: guardado, error: comprobacionError } = await supabase
+        .from("bodega_products")
+        .select("color_variants")
+        .eq("id", result.id)
+        .single();
+      if (comprobacionError || !verificarPreciosPorColor(
+        payload.colorVariants,
+        guardado?.color_variants,
+      )) {
+        toast.error(
+          "No se pudieron verificar los precios por color en el servidor. " +
+          "La ventana permanecerá abierta para que revises los valores.",
+        );
+        return;
+      }
       clearProductFormDraft(draftKey);
       setDraftRestored(false);
       setOpen(false);
+      toast.success(t(product ? "product.updated" : "product.created"));
       onSaved?.(result);
     } catch {
       if (uploadedPath) {
@@ -471,6 +500,19 @@ export const ProductFormDialog = ({
                   <Plus className="h-4 w-4" /> Agregar color
                 </Button>
               </div>
+              {colorVariants.length > 0 ? (
+                <div className="rounded-xl border border-primary/20 bg-primary/5 px-3 py-2 text-xs leading-relaxed text-foreground">
+                  <strong>Precios de venta de cada color:</strong> escribe el importe en la columna
+                  <strong> Venta sugerida</strong>. El campo «Precio» de la izquierda es el precio
+                  general y no sustituye los precios individuales.
+                </div>
+              ) : null}
+              {preciosPorColorSinConfigurar(colorVariants).length > 0 ? (
+                <div role="status" className="rounded-xl border border-amber-400/35 bg-amber-400/10 px-3 py-2 text-xs leading-relaxed text-foreground">
+                  <strong>Sin precio de venta:</strong> {preciosPorColorSinConfigurar(colorVariants).join(", ")}.
+                  Estos colores mostrarán $0 en pedidos hasta que registres su precio de venta.
+                </div>
+              ) : null}
               {colorVariants.length === 0 ? (
                 <p className="rounded-xl border border-dashed p-3 text-xs text-muted-foreground">
                   Opcional: si todos los colores cuestan lo mismo, deja la lista vacía y continúa usando el precio general.
