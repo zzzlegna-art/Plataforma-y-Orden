@@ -49,7 +49,8 @@ export const OrderLineCard = ({
 
   // El campo para escanear o escribir seriales va arriba, junto a la referencia, para ver cómo
   // sube el contador mientras se agregan, sin bajar hasta el final de la lista.
-  const mostrarEscaner = editable && !complete && !line.esRepuesto;
+  const mostrarEscaner = editable && !complete && !line.esRepuesto &&
+    (!(line.product?.colorVariants?.length) || Boolean(line.item.color));
 
   const controles = (
     <div className={cn("flex items-center gap-1", mostrarEscaner && "lg:col-start-3 lg:row-start-1")}>
@@ -189,6 +190,12 @@ export const OrderLineCard = ({
 
         {controles}
 
+        {editable && !complete && !line.esRepuesto &&
+          (line.product?.colorVariants?.length ?? 0) > 0 && !line.item.color ? (
+          <p className="col-span-2 text-xs font-medium text-amber-600 dark:text-amber-400">
+            Elige el color de esta línea para habilitar la serialización. No hace falta haberlo registrado en recepción.
+          </p>
+        ) : null}
         {mostrarEscaner ? (
           <div className="col-span-2 row-start-2 lg:col-span-1 lg:col-start-2 lg:row-start-1">
             <SerialScanInput
