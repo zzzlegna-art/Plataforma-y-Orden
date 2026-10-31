@@ -1,4 +1,4 @@
-import type { ProductTechnicalSpecs } from "./types";
+import type { ProductTechnicalSpecs, ProductColorVariant } from "./types";
 
 export interface ProductFormValues {
   sku: string;
@@ -17,6 +17,7 @@ export interface ProductFormDraft {
   version: 1;
   form: ProductFormValues;
   technicalSpecs: ProductTechnicalSpecs;
+  colorVariants?: ProductColorVariant[];
   skuManual: boolean;
   removeImage: boolean;
 }
@@ -93,6 +94,9 @@ export const readProductFormDraft = (
         isActive: typeof values.isActive === "boolean" ? values.isActive : EMPTY_PRODUCT_FORM.isActive,
       },
       technicalSpecs,
+      colorVariants: Array.isArray(parsed.colorVariants)
+        ? (parsed.colorVariants as ProductColorVariant[])
+        : undefined,
       skuManual: typeof parsed.skuManual === "boolean" ? parsed.skuManual : false,
       removeImage: typeof parsed.removeImage === "boolean" ? parsed.removeImage : false,
     };
