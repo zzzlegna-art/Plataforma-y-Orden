@@ -607,7 +607,7 @@ const PedidoDetalle = () => {
         <h3 className="text-sm font-semibold">{t("order.linesTitle")}</h3>
         {lines.map((line) => {
           const costos = line.units.length > 0
-            ? line.units.map((unit) => unit.cost ?? line.product?.cost ?? 0)
+            ? line.units.map((unit) => unit.cost ?? (line.product ? costoSugeridoColor(line.product, line.item.color) : 0))
             : [line.product ? costoSugeridoColor(line.product, line.item.color) : 0];
           const costoReferencia = Math.max(0, ...costos);
           const precioBajoCosto = line.item.unitPrice < costoReferencia;
