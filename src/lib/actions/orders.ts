@@ -164,7 +164,11 @@ export const agregarReferenciaPedido = (
   return item;
 };
 
-/** Cambia color de una línea sin IMEI, y actualiza el precio sugerido (sin crear otra SKU). */
+/**
+ * Cambia el color y precio de una línea del pedido sin quitar sus IMEI asignados.
+ * Solo se permite antes de confirmar la venta, nunca sobre una venta histórica.
+ * Conserva el costo de compra ya registrado en cada unidad.
+ */
 export const cambiarColorReferenciaPedido = (
   db: Db, actor: Actor, input: { orderItemId: string; color: string },
 ): OrderItem => {
@@ -172,9 +176,8 @@ export const cambiarColorReferenciaPedido = (
   const item = db.orderItems.find((row) => row.id === input.orderItemId);
   if (!item) throw new DomainError("errors.notFound");
   const order = findOrder(db, item.orderId);
-  assertEnPreparacion(order);
-  if (db.orderItemUnits.some((a) => a.orderItemId === item.id)) {
-    throw new DomainError("Retira los IMEI asignados antes de cambiar el color.");
+  if (order.status !== "en_preparacion" && order.status !== "preparado") {
+    throw new DomainError("errors.orderNotEditable");
   }
   const product = db.products.find((p) => p.id === item.productId);
   if (!product) throw new DomainError("errors.notFound");
@@ -182,10 +185,32 @@ export const cambiarColorReferenciaPedido = (
   if (db.orderItems.some((r) => r.id !== item.id && r.orderId === order.id && r.productId === item.productId && r.condition === item.condition && r.color === color)) {
     throw new DomainError("Ya existe una línea de este color. Ajusta su cantidad.");
   }
+  // Verificar todas las unidades ANTES de cambiar cualquier dato.
+  const asignaciones = db.orderItemUnits.filter((row) => row.orderItemId === item.id);
+  const unidades = asignaciones.map((row) => {
+    const unit = db.units.find((u) => u.id === row.unitId);
+    if (!unit || unit.productId !== item.productId ||
+        (unit.status !== "en_bodega" && unit.status !== "en_local")) {
+      throw new DomainError("errors.unitNotAvailable");
+    }
+    return unit;
+  });
+  const anterior = item.color ?? "Sin asignar";
+  const precioAnterior = item.unitPrice;
+  for (const unit of unidades) {
+    // El color pertenece a la línea y a cada IMEI. No tocar serial, vínculo ni costo real.
+    unit.color = color;
+  }
   item.color = color;
   item.unitPrice = precioSugeridoColor(product, color);
   item.subtotal = item.unitPrice * item.quantity;
   recalcularTotalPedido(db, order);
+  logAudit(db, actor, {
+    action: "update",
+    entity: "order",
+    entityId: order.id,
+    details: `${order.code} · color de ${product.name}: ${anterior} → ${color}; ${unidades.length} IMEI conservados; precio ${precioAnterior} → ${item.unitPrice}`,
+  });
   return item;
 };
 
