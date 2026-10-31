@@ -450,38 +450,36 @@ const formatDocumentMoney = (amount: number, currency: string) => {
   }
 };
 
-/** Diseño de factura exclusivo: el número aparece solo en el encabezado. */
+/** Factura tamaño CARTA vertical (612 × 792 pt), preparada para impresión al 100 %. */
 const drawPremiumInvoiceHeader = (doc: jsPDF, number: string, margin: number) => {
   const w = doc.internal.pageSize.getWidth();
-  const h = 94;
-  const logoW = 200, logoH = logoW * (128 / 556), divider = w - margin - 196;
+  const h = 88;
+  const logoW = 166, logoH = logoW * (128 / 556);
   doc.setFillColor(...NAVY); doc.rect(0, 0, w, h, "F");
-  // Geometría sutil de marca, inspirada en la muestra.
   doc.setFillColor(12, 52, 83);
-  doc.triangle(w - 148, 3, w, 3, w - 45, 77, "F");
+  doc.triangle(w - 110, 0, w, 0, w - 36, 81, "F");
   doc.setFillColor(12, 72, 111);
-  doc.triangle(w - 91, 3, w - 34, 3, w - 49, 41, "F");
-  doc.setFillColor(CYAN[0], CYAN[1], CYAN[2]);
+  doc.triangle(w - 60, 0, w - 22, 0, w - 37, 35, "F");
+  doc.setFillColor(...CYAN);
   doc.rect(0, 0, w, 3, "F"); doc.rect(0, h - 2, w, 2, "F");
   doc.addImage(PDF_LOGO, "PNG", margin, (h - logoH) / 2, logoW, logoH, undefined, "FAST");
-
-  doc.setFont("helvetica", "bold"); doc.setFontSize(17);
-  doc.setTextColor(255, 255, 255);
-  doc.text("FACTURA COMERCIAL", divider - 18, h / 2 + 5, { align: "right" });
   doc.setDrawColor(...CYAN); doc.setLineWidth(1);
-  doc.line(divider, 27, divider, 68);
-  doc.setFontSize(11); doc.setTextColor(...CYAN);
-  doc.text("Nº", divider + 13, h / 2 + 5);
+  doc.line(w - 214, 21, w - 214, 65);
+  doc.setFont("helvetica", "bold"); doc.setFontSize(14);
   doc.setTextColor(255, 255, 255);
-  let size = 11;
-  const maxW = w - margin - divider - 35;
-  while (doc.getTextWidth(number) > maxW && size > 7) {
+  doc.text("FACTURA COMERCIAL", w - margin, 32, { align: "right" });
+  doc.setFontSize(9); doc.setTextColor(...CYAN);
+  doc.text("Nº", w - margin - 175, 56);
+  let size = 9;
+  doc.setFont("helvetica", "bold"); doc.setFontSize(size);
+  doc.setTextColor(255, 255, 255);
+  while (doc.getTextWidth(number) > 158 && size > 7) {
     size -= 0.5; doc.setFontSize(size);
   }
-  doc.text(number, w - margin, h / 2 + 5, { align: "right" });
+  doc.text(number, w - margin, 56, { align: "right" });
 };
 
-/** Cuatro datos en una sola banda: no repetir PED ni FAC en el cuerpo. */
+/** Dos filas de datos comerciales legibles en papel carta, sin texto comprimido. */
 const drawPremiumInvoiceMetadata = (doc: jsPDF, input: SalesDocumentInput, margin: number, top: number, width: number) => {
   const values = [
     { label: "EMISOR", value: exportCompanyName(input.companyName), icon: 0 },
@@ -489,66 +487,74 @@ const drawPremiumInvoiceMetadata = (doc: jsPDF, input: SalesDocumentInput, margi
     { label: "NIT / IDENTIFICACIÓN", value: input.customer.taxId || "No registrado", icon: 2 },
     { label: "FECHA DE EMISIÓN", value: input.deliveryDate || input.orderDate, icon: 3 },
   ];
-  const h = 70, cellW = width / 4;
+  const cellW = width / 2, rowH = 51, h = rowH * 2;
   doc.setFillColor(...CYAN_PALE); doc.setDrawColor(...BORDER); doc.setLineWidth(0.7);
   doc.roundedRect(margin, top, width, h, 6, 6, "FD");
+  doc.line(margin + cellW, top + 10, margin + cellW, top + h - 10);
+  doc.line(margin + 10, top + rowH, margin + width - 10, top + rowH);
   values.forEach((entry, i) => {
-    const x = margin + i * cellW, ix = x + 12, iy = top + 18;
-    if (i) { doc.setDrawColor(...BORDER); doc.line(x, top + 14, x, top + h - 14); }
-    doc.setFillColor(221, 246, 252); doc.roundedRect(ix, iy, 32, 32, 6, 6, "F");
-    doc.setDrawColor(0, 126, 172); doc.setLineWidth(1.4);
+    const col = i % 2, row = Math.floor(i / 2);
+    const x = margin + col * cellW, y = top + row * rowH;
+    const ix = x + 12, iy = y + 12;
+    doc.setFillColor(221, 246, 252); doc.roundedRect(ix, iy, 27, 27, 5, 5, "F");
+    doc.setDrawColor(0, 126, 172); doc.setLineWidth(1.15);
     if (entry.icon === 0) {
-      doc.rect(ix + 9, iy + 7, 14, 20);
-      doc.line(ix + 16, iy + 7, ix + 16, iy + 27);
-      doc.line(ix + 9, iy + 14, ix + 23, iy + 14);
-      doc.line(ix + 9, iy + 21, ix + 23, iy + 21);
+      doc.rect(ix + 8, iy + 6, 11, 16);
+      doc.line(ix + 13.5, iy + 6, ix + 13.5, iy + 22);
+      doc.line(ix + 8, iy + 12, ix + 19, iy + 12);
     } else if (entry.icon === 1) {
-      doc.circle(ix + 16, iy + 10, 4); doc.roundedRect(ix + 8, iy + 18, 16, 9, 4, 4);
+      doc.circle(ix + 13.5, iy + 9, 3.5);
+      doc.roundedRect(ix + 7, iy + 16, 13, 8, 3, 3);
     } else if (entry.icon === 2) {
-      doc.roundedRect(ix + 8, iy + 6, 16, 21, 2, 2);
-      doc.circle(ix + 16, iy + 13, 2); doc.line(ix + 12, iy + 20, ix + 20, iy + 20);
+      doc.roundedRect(ix + 7, iy + 5, 13, 18, 2, 2);
+      doc.circle(ix + 13.5, iy + 12, 1.6);
+      doc.line(ix + 10, iy + 19, ix + 17, iy + 19);
     } else {
-      doc.roundedRect(ix + 7, iy + 8, 18, 19, 2, 2);
-      doc.line(ix + 7, iy + 14, ix + 25, iy + 14);
-      doc.line(ix + 12, iy + 5, ix + 12, iy + 11);
-      doc.line(ix + 20, iy + 5, ix + 20, iy + 11);
+      doc.roundedRect(ix + 6, iy + 7, 15, 16, 2, 2);
+      doc.line(ix + 6, iy + 12, ix + 21, iy + 12);
+      doc.line(ix + 10, iy + 5, ix + 10, iy + 9);
+      doc.line(ix + 17, iy + 5, ix + 17, iy + 9);
     }
-    const left = x + 54, available = cellW - 65;
-    doc.setFont("helvetica", "normal"); doc.setFontSize(7.1);
-    doc.setTextColor(...MUTED); doc.text(entry.label, left, top + 28);
-    doc.setFont("helvetica", "bold"); doc.setFontSize(9.7);
-    doc.setTextColor(...NAVY);
+    const left = x + 48, available = cellW - 62;
+    doc.setFont("helvetica", "normal"); doc.setFontSize(7);
+    doc.setTextColor(...MUTED); doc.text(entry.label, left, y + 19);
+    doc.setFont("helvetica", "bold"); doc.setFontSize(9.7); doc.setTextColor(...NAVY);
     const lines = splitCatalogLines(doc, entry.value, available, 2);
-    doc.text(lines, left, top + 44, { lineHeightFactor: 1.15 });
+    doc.text(lines, left, y + 34, { lineHeightFactor: 1.08 });
   });
   return top + h;
 };
 
 /** Genera la factura comercial premium sin repetir identificadores. */
 export const exportSalesInvoicePdf = (input: SalesDocumentInput) => {
-  const doc = new jsPDF({ orientation: "landscape", unit: "pt", format: "a4" });
+  const doc = new jsPDF({ orientation: "portrait", unit: "pt", format: "letter" });
   const w = doc.internal.pageSize.getWidth(), h = doc.internal.pageSize.getHeight();
-  const margin = 28, width = w - margin * 2, headerH = 94;
+  const margin = 27, width = w - margin * 2, headerH = 88;
   const documentNumber = "FAC-" + input.orderCode;
   const header = () => drawPremiumInvoiceHeader(doc, documentNumber, margin);
   header();
 
-  const metaBottom = drawPremiumInvoiceMetadata(doc, input, margin, headerH + 18, width);
+  const metaBottom = drawPremiumInvoiceMetadata(doc, input, margin, headerH + 15, width);
   const contact = [
     input.customer.address ? "Dirección: " + input.customer.address : "",
     input.customer.phone ? "Teléfono: " + input.customer.phone : "",
     input.customer.email ? "Correo: " + input.customer.email : "",
   ].filter(Boolean).join("  ·  ");
-  let tableY = metaBottom + 20;
+  let tableY = metaBottom + 17;
   if (contact) {
-    doc.setFont("helvetica", "normal"); doc.setFontSize(7.6); doc.setTextColor(...MUTED);
+    doc.setFont("helvetica", "normal"); doc.setFontSize(7.5); doc.setTextColor(...MUTED);
     const lines = splitCatalogLines(doc, contact, width, 2);
     doc.text(lines, margin + 2, metaBottom + 13, { lineHeightFactor: 1.2 });
     tableY = metaBottom + 17 + lines.length * 10;
   }
+
+  const boxH = 64, totalGap = 14;
+  // Reservar el total dentro de la página que contiene las últimas referencias.
+  // Así un pedido normal no genera una hoja vacía solo con el total.
+  const reservedBottom = FOOTER_SPACE + boxH + totalGap + 12;
   autoTable(doc, {
     startY: tableY,
-    margin: { top: headerH + 20, left: margin, right: margin, bottom: FOOTER_SPACE + 18 },
+    margin: { top: headerH + 19, left: margin, right: margin, bottom: reservedBottom },
     head: [["Referencia", "Producto", "Condición", "Cantidad", "Precio unitario", "Subtotal"]],
     body: input.lines.map((line) => [
       line.reference, line.product, line.condition || "No aplica",
@@ -558,47 +564,44 @@ export const exportSalesInvoicePdf = (input: SalesDocumentInput) => {
     showHead: "everyPage", rowPageBreak: "avoid",
     styles: {
       font: "helvetica", fontSize: 8.1,
-      cellPadding: { top: 10, bottom: 10, left: 9, right: 9 },
+      cellPadding: { top: 7, bottom: 7, left: 6, right: 6 },
       textColor: NAVY, lineColor: BORDER, lineWidth: 0.45,
       valign: "middle", overflow: "linebreak",
     },
     headStyles: {
       fillColor: NAVY, textColor: [255, 255, 255], lineColor: BORDER,
-      lineWidth: 0.45, fontStyle: "bold", fontSize: 8.7,
+      lineWidth: 0.45, fontStyle: "bold", fontSize: 8.1,
     },
     alternateRowStyles: { fillColor: CYAN_PALE },
     columnStyles: {
       0: { cellWidth: width * 0.14, fontStyle: "bold", textColor: CYAN_DARK },
-      1: { cellWidth: width * 0.26 },
+      1: { cellWidth: width * 0.28 },
       2: { cellWidth: width * 0.13 },
-      3: { cellWidth: width * 0.10, halign: "center", fontStyle: "bold" },
-      4: { cellWidth: width * 0.18, halign: "right" },
-      5: { cellWidth: width * 0.19, halign: "right", fontStyle: "bold" },
+      3: { cellWidth: width * 0.095, halign: "center", fontStyle: "bold" },
+      4: { cellWidth: width * 0.185, halign: "right" },
+      5: { cellWidth: width * 0.17, halign: "right", fontStyle: "bold" },
     },
-    // La portada ya tiene su encabezado; autoTable solo lo repite en páginas adicionales.
     didDrawPage: (data) => { if (data.pageNumber > 1) header(); },
   });
 
-  let y = ((doc as jsPDF & { lastAutoTable?: { finalY: number } }).lastAutoTable?.finalY ?? tableY) + 20;
-  const boxH = 72;
-  if (y + boxH + 12 > h - FOOTER_SPACE) {
-    doc.addPage(); header(); y = headerH + 25;
+  let y = ((doc as jsPDF & { lastAutoTable?: { finalY: number } }).lastAutoTable?.finalY ?? tableY) + totalGap;
+  if (y + boxH + 8 > h - FOOTER_SPACE) {
+    doc.addPage(); header(); y = headerH + 24;
   }
   const total = input.lines.reduce((sum, line) => sum + line.subtotal, 0);
-  const boxW = 315, boxX = w - margin - boxW;
+  const boxW = Math.min(275, width * 0.55), boxX = w - margin - boxW;
   doc.setFillColor(...CYAN_PALE); doc.setDrawColor(...BORDER); doc.setLineWidth(0.7);
   doc.roundedRect(boxX, y, boxW, boxH, 6, 6, "FD");
-  doc.setFillColor(...CYAN); doc.roundedRect(boxX, y, 5, boxH, 2, 2, "F");
-  doc.setFont("helvetica", "bold"); doc.setFontSize(10); doc.setTextColor(...MUTED);
-  doc.text("TOTAL COMERCIAL", boxX + 20, y + 28);
+  doc.setFillColor(...CYAN); doc.roundedRect(boxX, y, 4, boxH, 2, 2, "F");
+  doc.setFont("helvetica", "bold"); doc.setFontSize(9); doc.setTextColor(...MUTED);
+  doc.text("TOTAL COMERCIAL", boxX + 16, y + 25);
   const formattedTotal = formatDocumentMoney(total, input.currency);
-  let totalFont = 18; doc.setFontSize(totalFont);
-  while (doc.getTextWidth(formattedTotal) > boxW - 40 && totalFont > 10) {
+  let totalFont = 17; doc.setFontSize(totalFont);
+  while (doc.getTextWidth(formattedTotal) > boxW - 33 && totalFont > 10) {
     totalFont -= 0.5; doc.setFontSize(totalFont);
   }
   doc.setTextColor(...NAVY);
-  doc.text(formattedTotal, boxX + boxW - 18, y + 52, { align: "right" });
-  // Pie limpio: sin número de pedido, fecha ni documento duplicados.
+  doc.text(formattedTotal, boxX + boxW - 15, y + 48, { align: "right" });
   dibujarPies(doc, "Factura comercial", margin);
   doc.save(input.filename);
   return doc;
