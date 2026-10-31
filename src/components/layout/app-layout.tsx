@@ -16,7 +16,7 @@ export const AppLayout = () => {
 
   return (
     <div className="flex min-h-screen h-screen min-w-0 overflow-hidden bg-background">
-      <aside className="sticky top-0 hidden h-screen w-64 shrink-0 border-r border-sidebar-border lg:flex lg:flex-col">
+      <aside className="sticky top-0 hidden h-screen w-[280px] shrink-0 border-r border-sidebar-border lg:flex lg:flex-col">
         <SidebarNav />
       </aside>
 
@@ -35,7 +35,7 @@ export const AppLayout = () => {
       <MobileTabBar />
 
       <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
-        <SheetContent side="left" className="w-72 border-sidebar-border p-0">
+        <SheetContent side="left" className="w-[min(88vw,320px)] border-sidebar-border p-0">
           <SheetTitle className="sr-only">Menú</SheetTitle>
           <SidebarNav onNavigate={() => setMenuOpen(false)} />
         </SheetContent>
