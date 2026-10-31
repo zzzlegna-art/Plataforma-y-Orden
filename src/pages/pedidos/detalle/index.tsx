@@ -157,7 +157,7 @@ const PedidoDetalle = () => {
       return;
     }
     const result = await runAction((db2, actor) =>
-      serializarImeiPedido(db2, actor, { orderId: order.id, imei: serial }),
+      serializarImeiPedido(db2, actor, { orderId: order.id, imei: serial, orderItemId: desdeLineaId }),
     );
     if (!result) return;
     if (!desdeLineaId || result.orderItemId === desdeLineaId) {
