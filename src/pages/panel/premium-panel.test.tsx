@@ -71,7 +71,7 @@ describe("panel premium sin cambiar la barra lateral", () => {
     expect(screen.getByLabelText("Gráfica de estado de operaciones")).toBeTruthy();
   });
 
-  it("mantiene indicadores, rankings, exportaciones y últimos seriales agrupados en su sección", () => {
+  it("mantiene indicadores, rankings y exportaciones sin restaurar la sección eliminada de últimos seriales", () => {
     const { container } = open();
     const summary = container.querySelector(".nx-dashboard-block--summary");
     const movement = container.querySelector(".nx-dashboard-block--movement");
@@ -84,7 +84,7 @@ describe("panel premium sin cambiar la barra lateral", () => {
     expect(movement?.textContent).toContain("Exportar CSV");
     expect(movement?.textContent).toContain("Exportar a Excel");
     expect(performance?.querySelectorAll(".nx-ranking-card")).toHaveLength(2);
-    expect(performance?.querySelector(".nx-operation-card")).toBeTruthy();
+    expect(performance?.querySelector(".nx-operation-card")).toBeNull();
     expect(warranties?.querySelectorAll(".nx-warranty-kpi")).toHaveLength(4);
     expect(container.querySelector(".nx-dashboard-showcase .nx-app-sidebar")).toBeNull();
   });
