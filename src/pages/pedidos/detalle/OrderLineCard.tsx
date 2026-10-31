@@ -17,6 +17,7 @@ export const OrderLineCard = ({
   edicionDespachado,
   onCambiarCantidad,
   onCambiarColor,
+  colorEditable = false,
   onSerializar,
   onQuitarSerial,
   onQuitarLinea,
@@ -30,6 +31,8 @@ export const OrderLineCard = ({
   edicionDespachado?: boolean;
   onCambiarCantidad: (delta: number) => void;
   onCambiarColor?: (color: string) => void;
+  /** Permite corregir el color también si el pedido está preparado, antes de vender. */
+  colorEditable?: boolean;
   onSerializar: (serial: string) => void;
   onQuitarSerial: (serial: string) => void;
   onQuitarLinea: () => void;
@@ -163,19 +166,33 @@ export const OrderLineCard = ({
               <ConditionBadge condition={line.item.condition ?? "nuevo"} />
             </div>
             {(line.product?.colorVariants?.length ?? 0) > 0 ? (
-              <div className="mt-2 max-w-[290px] space-y-1">
-                <p className="text-xs font-semibold text-muted-foreground">Color · {line.item.color || "Sin asignar"}</p>
-                {editable && line.serializados === 0 && onCambiarColor ? (
-                  <OptionSelect
-                    value={line.item.color || undefined}
-                    onChange={onCambiarColor}
-                    options={(line.product?.colorVariants ?? []).map((variant) => ({
-                      value: variant.color,
-                      label: `${variant.color} · ${variant.price.toLocaleString("es-CO")}`,
-                    }))}
-                    placeholder="Elegir color para serializar"
-                  />
-                ) : null}
+              <div className="mt-2 max-w-[320px] space-y-1.5">
+                <p className="text-xs font-semibold text-muted-foreground">Color del producto</p>
+                {colorEditable && onCambiarColor ? (
+                  <>
+                    <OptionSelect
+                      value={line.item.color || undefined}
+                      onChange={onCambiarColor}
+                      options={(line.product?.colorVariants ?? []).map((variant) => ({
+                        value: variant.color,
+                        label: `${variant.color} · Venta $ ${variant.price.toLocaleString("es-CO")}`,
+                      }))}
+                      placeholder="Seleccionar color"
+                    />
+                    {line.serializados > 0 ? (
+                      <p className="text-[11px] leading-relaxed text-muted-foreground">
+                        Cambiar el color actualiza el precio y conserva los {line.serializados} IMEI asignados.
+                      </p>
+                    ) : null}
+                    {line.item.color && !line.item.unitPrice ? (
+                      <p className="text-[11px] text-amber-700 dark:text-amber-300">
+                        Este color tiene precio $ 0. Configura su venta en Inventario → Editar producto.
+                      </p>
+                    ) : null}
+                  </>
+                ) : (
+                  <p className="text-sm font-medium">{line.item.color || "Sin asignar"}</p>
+                )}
               </div>
             ) : line.item.color ? (
               <p className="mt-1 text-xs text-muted-foreground">Color: {line.item.color}</p>
@@ -249,13 +266,13 @@ export const OrderLineCard = ({
       {autoRepuesto ? null : line.units.length > 0 ? (
         // Los seriales ya ingresados van como etiquetas compactas en cuadrícula: caben varios por
         // fila y se alinean en columnas, en vez de una fila ancha por cada uno.
-        <ul className="mt-3 grid grid-cols-[repeat(auto-fill,minmax(min(100%,13rem),1fr))] gap-1.5">
+        <ul className="mt-3 grid grid-cols-[repeat(auto-fill,minmax(min(100%,16.5rem),1fr))] gap-1.5">
           {line.units.map((unit) => (
             <li
               key={unit.id}
-              className="flex animate-fade-in items-center justify-between gap-1 rounded-md border bg-background/40 py-1 pl-2.5 pr-1 motion-reduce:animate-none"
+              className="flex min-w-0 flex-wrap animate-fade-in items-center gap-1.5 rounded-md border bg-background/40 py-1 pl-2.5 pr-1 motion-reduce:animate-none"
             >
-              <span className="font-tabular min-w-0 truncate text-[13px]">{unit.serial}</span>
+              <span className="mr-auto whitespace-nowrap font-mono text-[12px] font-medium tabular-nums tracking-tight sm:text-[13px]" title={unit.serial}>{unit.serial}</span>
               <CopySerialButton serial={unit.serial} />
               {editable || edicionDespachado ? (
                 <Button
