@@ -486,12 +486,12 @@ export const ProductFormDialog = ({
                         <Input id={`variant-name-${index}`} placeholder="Blanco, Azul, Borgoña…" value={variant.color}
                           onChange={(e) => setColorVariants((old) => old.map((v,i) => i===index ? {...v,color:e.target.value} : v))} />
                       </div>
-                      <div className="space-y-1">
+                      <div className="nx-editor-variant-field">
                         <Label htmlFor={`variant-cost-${index}`}>Costo</Label>
                         <FormattedNumberInput id={`variant-cost-${index}`} value={String(variant.cost)}
                           onValueChange={(value) => setColorVariants((old) => old.map((v,i) => i===index ? {...v,cost:Number(value)||0} : v))} />
                       </div>
-                      <div className="space-y-1">
+                      <div className="nx-editor-variant-field">
                         <Label htmlFor={`variant-price-${index}`}>Venta sugerida</Label>
                         <FormattedNumberInput id={`variant-price-${index}`} value={String(variant.price)}
                           onValueChange={(value) => setColorVariants((old) => old.map((v,i) => i===index ? {...v,price:Number(value)||0} : v))} />
