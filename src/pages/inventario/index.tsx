@@ -73,6 +73,8 @@ import {
 } from "@/lib/export";
 import { descargarCsv } from "@/lib/csv";
 import { getProductTechnicalSpecFieldsForCategory } from "@/lib/product-specs";
+import { variantePorColor } from "@/lib/color-variants";
+import { imageForVariant, swatchForVariant } from "@/lib/product-color-photos";
 import { coincideBusquedaInventario, indexUnitSerialsByProduct } from "@/lib/inventory-search";
 import { clearInventoryFilters, getInventoryFilters, updateInventoryFilter } from "@/lib/inventory-filters";
 import { formatCurrency, todayIso } from "@/lib/format";
@@ -244,12 +246,20 @@ const ProductThumbnail = ({
 }) => {
   const { t } = useTranslation();
   const [imageFailed, setImageFailed] = useState(false);
+  const [selectedColor, setSelectedColor] = useState<string | null>(null);
+  const [variantImageFailed, setVariantImageFailed] = useState(false);
   useEffect(() => {
     setImageFailed(false);
-  }, [product.imageUrl]);
+    setVariantImageFailed(false);
+    setSelectedColor(null);
+  }, [product.imageUrl, product.id]);
   // Solo mostrar fotografías asignadas explícitamente a esta referencia.
   // No deducir fotos de celulares a partir del nombre de pantallas o repuestos.
   const imageUrl = product.imageUrl && !imageFailed ? product.imageUrl : undefined;
+  const selectedVariant = variantePorColor(product, selectedColor);
+  const selectedPhoto = selectedVariant?.imageUrl && !variantImageFailed
+    ? selectedVariant.imageUrl : undefined;
+  const zoomImage = imageForVariant(imageUrl, selectedPhoto ? selectedVariant : undefined);
 
   const Icon =
     product.categoria === "celular"
@@ -343,22 +353,58 @@ const ProductThumbnail = ({
                 </span>
               </div>
               <div className="nx-inventory-zoom-stage">
-                {showTechnicalSpecs ? (
-                  <img
-                    src={imageUrl}
-                    alt={product.name}
-                    className="max-h-[72vh] w-full object-contain"
-                    decoding="async"
-                  />
-                ) : (
-                  <img
-                    src={imageUrl}
-                    alt={product.name}
-                    className="max-h-[76vh] w-full object-contain"
-                    decoding="async"
-                  />
-                )}
+                <img
+                  src={zoomImage}
+                  alt={selectedPhoto
+                    ? `${product.name} · ${selectedVariant?.color}`
+                    : product.name}
+                  className="max-h-[76vh] w-full object-contain"
+                  decoding="async"
+                  onError={() => {
+                    if (selectedPhoto) setVariantImageFailed(true);
+                  }}
+                />
               </div>
+              {(product.colorVariants?.length ?? 0) > 0 ? (
+                <div className="nx-inventory-zoom-colors" aria-label="Selecciona el color del producto">
+                  <div className="nx-inventory-zoom-colors-copy">
+                    <span>Colores disponibles</span>
+                    <p>{selectedVariant?.color || "Vista principal"} · {
+                      selectedVariant
+                        ? (selectedPhoto ? "Foto del color" : "Se muestra la foto principal")
+                        : "Imagen original"
+                    }</p>
+                  </div>
+                  <div className="nx-inventory-zoom-swatches">
+                    <button type="button"
+                      aria-label="Mostrar imagen principal"
+                      title="Imagen principal"
+                      aria-pressed={!selectedColor}
+                      className="nx-inventory-zoom-default-swatch"
+                      onClick={() => { setSelectedColor(null); setVariantImageFailed(false); }}
+                    ><ImageIcon className="h-4 w-4" aria-hidden="true" /></button>
+                    {product.colorVariants?.map((variant) => {
+                      const active = variant.color === selectedColor;
+                      return (
+                        <button key={variant.color} type="button"
+                          aria-label={`Mostrar color ${variant.color}`}
+                          title={variant.imageUrl
+                            ? `${variant.color} · fotografía disponible`
+                            : `${variant.color} · utiliza la foto principal`}
+                          aria-pressed={active}
+                          className="nx-inventory-zoom-swatch"
+                          onClick={() => {
+                            setSelectedColor(variant.color);
+                            setVariantImageFailed(false);
+                          }}
+                        >
+                          <span style={{ backgroundColor: swatchForVariant(variant) }} />
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              ) : null}
               <p className="nx-inventory-zoom-image-hint">
                 <ZoomIn className="h-3.5 w-3.5" aria-hidden="true" />
                 {t("product.imageZoomHint")}
