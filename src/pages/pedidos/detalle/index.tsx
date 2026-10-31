@@ -619,6 +619,7 @@ const PedidoDetalle = () => {
                 editable={editable}
                 edicionDespachado={edicionDespachado}
                 onCambiarCantidad={(delta) => cambiarCantidad(line.item.id, delta)}
+                colorEditable={precioEditable}
                 onCambiarColor={(color) => void runAction(
                   (db2, actor) => cambiarColorReferenciaPedido(db2, actor, { orderItemId: line.item.id, color }),
                   { success: "order.updated" },
