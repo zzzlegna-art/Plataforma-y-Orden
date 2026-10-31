@@ -1,5 +1,6 @@
 import { useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { toast } from "sonner";
 import { ArrowLeft, Plus, Check, ShoppingCart, Trash2, Package } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 
@@ -62,7 +63,7 @@ const NuevoPedido = () => {
   const [categoria, setCategoria] = useState<ProductCategory>("celular");
   const [condicion, setCondicion] = useState<UnitCondition>("nuevo");
   const [busqueda, setBusqueda] = useState("");
-  const [lineas, setLineas] = useState<Array<{ productId: string; quantity: number; condition: UnitCondition }>>([]);
+  const [lineas, setLineas] = useState<Array<{ productId: string; quantity: number; condition: UnitCondition; color?: string }>>([]);
   // Mientras se escribe la cantidad a mano, se guarda el texto tal cual (puede estar vacío o
   // fuera de rango a medio escribir) para no interrumpir al usuario; se ajusta al salir del
   // campo o al pulsar Enter.
@@ -93,7 +94,7 @@ const NuevoPedido = () => {
       return order && order.status === "en_preparacion";
     });
 
-  const disponiblesDe = (productId: string, cond: UnitCondition | undefined) =>
+  const disponiblesDe = (productId: string, cond: UnitCondition | undefined, color?: string) =>
     db.units.filter(
       (unit) =>
         unit.productId === productId &&
@@ -102,7 +103,8 @@ const NuevoPedido = () => {
         // un equipo que volvía de garantía a en_local quedaba invisible para pedidos.
         (unit.status === "en_bodega" || unit.status === "en_local") &&
         !enPedidoActivo(unit.id) &&
-        (cond ? unit.condition === cond : true),
+        (cond ? unit.condition === cond : true) &&
+        (!color || (unit.color ?? "").toLowerCase() === color.toLowerCase()),
     ).length;
 
   const categorias = useMemo(
@@ -190,35 +192,45 @@ const NuevoPedido = () => {
     const product = db.products.find((p) => p.id === productId);
     if (!product) return;
     const cond = condicionVisible() ? condicion : condicionParaProducto(product.categoria);
+    const colores = product.colorVariants ?? [];
+    const color = colores.find((c) => disponiblesDe(productId, cond, c.color) > 0)?.color;
+    if (colores.length && !color) { toast.error("No hay IMEI disponibles con color registrado."); return; }
     setLineas((previous) => {
-      const existente = previous.find((l) => l.productId === productId && l.condition === cond);
+      const existente = previous.find((l) => l.productId === productId && l.condition === cond && l.color === color);
       if (existente) {
         return previous.map((l) =>
           l === existente ? { ...l, quantity: l.quantity + 1 } : l,
         );
       }
-      return [...previous, { productId, quantity: 1, condition: cond }];
+      return [...previous, { productId, quantity: 1, condition: cond, color }];
     });
   };
 
-  const cambiarCantidad = (productId: string, condition: UnitCondition, delta: number) =>
-    setLineas((previous) =>
-      previous
-        .map((l) =>
-          l.productId === productId && l.condition === condition
-            ? { ...l, quantity: l.quantity + delta }
-            : l,
-        )
-        .filter((l) => l.quantity > 0),
+  type LineaBorrador = (typeof lineas)[number];
+  const claveLinea = (l: LineaBorrador) => `${l.productId}-${l.condition}-${l.color ?? ""}`;
+  const cambiarCantidad = (linea: LineaBorrador, delta: number) =>
+    setLineas((prev) => prev.map((l) => l === linea ? { ...l, quantity: l.quantity + delta } : l).filter((l) => l.quantity > 0));
+  const fijarCantidad = (linea: LineaBorrador, valor: number) => {
+    const disponibles = disponiblesDe(linea.productId, linea.condition, linea.color);
+    const cantidad = Math.min(Math.max(Math.round(valor) || 1, 1), Math.max(disponibles, 1));
+    setLineas((prev) => prev.map((l) => l === linea ? { ...l, quantity: cantidad } : l));
+  };
+  const cambiarColor = (linea: LineaBorrador, color: string) => {
+    if (lineas.some((l) => l !== linea && l.productId === linea.productId && l.condition === linea.condition && l.color === color)) {
+      toast.error("Ya agregaste ese color al pedido."); return;
+    }
+    const stock = disponiblesDe(linea.productId, linea.condition, color);
+    if (!stock) { toast.error("No hay unidades disponibles de ese color."); return; }
+    setLineas((prev) => prev.map((l) => l === linea ? {...l, color, quantity: Math.min(l.quantity, stock)} : l));
+  };
+  const agregarOtroColor = (linea: LineaBorrador) => {
+    const product = db.products.find((p) => p.id === linea.productId);
+    const siguiente = product?.colorVariants?.find((v) =>
+      !lineas.some((l) => l.productId === linea.productId && l.condition === linea.condition && l.color === v.color) &&
+      disponiblesDe(linea.productId, linea.condition, v.color) > 0,
     );
-
-  /** Deja la cantidad escrita a mano entre 1 y lo disponible; fuera de ese rango, la ajusta. */
-  const fijarCantidad = (productId: string, condition: UnitCondition, valor: number) => {
-    const tope = disponiblesDe(productId, condicionVisible() ? condition : undefined);
-    const cantidad = Math.min(Math.max(Math.round(valor) || 1, 1), Math.max(tope, 1));
-    setLineas((previous) =>
-      previous.map((l) => (l.productId === productId && l.condition === condition ? { ...l, quantity: cantidad } : l)),
-    );
+    if (!siguiente) { toast.error("No quedan otros colores con stock disponible."); return; }
+    setLineas((prev) => [...prev, {productId:linea.productId,condition:linea.condition,color:siguiente.color,quantity:1}]);
   };
 
   const totalReferencias = lineas.reduce((sum, l) => sum + l.quantity, 0);
@@ -233,6 +245,7 @@ const NuevoPedido = () => {
         productId: l.productId,
         quantity: l.quantity,
         condition: l.condition,
+        color: l.color,
       }));
       const order = await runAction(
         (db2, actor) => createOrder(db2, actor, { customerId, lineas: lineasPedido }),
@@ -477,9 +490,9 @@ const NuevoPedido = () => {
                 <ul className="space-y-2">
                   {lineas.map((linea) => {
                     const product = db.products.find((p) => p.id === linea.productId);
-                    const disponibles = disponiblesDe(linea.productId, condicionVisible() ? linea.condition : undefined);
+                    const disponibles = disponiblesDe(linea.productId, linea.condition, linea.color);
                     return (
-                      <li key={`${linea.productId}-${linea.condition}`} className="rounded-md border px-3 py-2">
+                      <li key={claveLinea(linea)} className="rounded-md border px-3 py-2">
                         <div className="flex items-start gap-3">
                           <ProductMiniThumb
                             imageUrl={product?.imageUrl}
@@ -496,9 +509,23 @@ const NuevoPedido = () => {
                             </p>
                           </div>
                         </div>
+                        {(product?.colorVariants?.length ?? 0) > 0 ? (
+                          <div className="mt-2 space-y-2">
+                            <Label className="text-xs">Color y precio de venta sugerido</Label>
+                            <OptionSelect value={linea.color || undefined}
+                              onChange={(value) => cambiarColor(linea, value)}
+                              options={(product?.colorVariants ?? []).map((v) => ({
+                                value: v.color, label: `${v.color} · ${v.price.toLocaleString("es-CO")}`,
+                              }))}
+                              placeholder="Seleccionar color" />
+                            <Button size="sm" variant="outline" type="button" onClick={() => agregarOtroColor(linea)}>
+                              <Plus className="h-3.5 w-3.5" /> Otro color de esta referencia
+                            </Button>
+                          </div>
+                        ) : null}
                         <div className="mt-2 flex items-center justify-end gap-1">
                           <Button type="button" size="icon" variant="outline" className="h-7 w-7"
-                            disabled={linea.quantity <= 1} onClick={() => cambiarCantidad(linea.productId, linea.condition, -1)}>
+                            disabled={linea.quantity <= 1} onClick={() => cambiarCantidad(linea, -1)}>
                             −
                           </Button>
                           <Input
@@ -507,18 +534,18 @@ const NuevoPedido = () => {
                             pattern="[0-9]*"
                             aria-label={t("order.quantity")}
                             className="font-tabular h-7 w-14 px-1 text-center text-sm"
-                            value={cantidadEnEdicion[`${linea.productId}-${linea.condition}`] ?? String(linea.quantity)}
+                            value={cantidadEnEdicion[claveLinea(linea)] ?? String(linea.quantity)}
                             onChange={(event) => {
                               // Solo dígitos; se permite dejarlo vacío mientras se escribe.
                               const limpio = event.target.value.replace(/[^0-9]/g, "");
                               setCantidadEnEdicion((previous) => ({
                                 ...previous,
-                                [`${linea.productId}-${linea.condition}`]: limpio,
+                                [claveLinea(linea)]: limpio,
                               }));
                             }}
                             onBlur={() => {
-                              const clave = `${linea.productId}-${linea.condition}`;
-                              fijarCantidad(linea.productId, linea.condition, Number(cantidadEnEdicion[clave] ?? linea.quantity));
+                              const clave = claveLinea(linea);
+                              fijarCantidad(linea, Number(cantidadEnEdicion[clave] ?? linea.quantity));
                               setCantidadEnEdicion((previous) => {
                                 const { [clave]: _omitido, ...resto } = previous;
                                 return resto;
@@ -529,7 +556,7 @@ const NuevoPedido = () => {
                             }}
                           />
                           <Button type="button" size="icon" variant="outline" className="h-7 w-7"
-                            disabled={linea.quantity >= disponibles} onClick={() => cambiarCantidad(linea.productId, linea.condition, 1)}>
+                            disabled={linea.quantity >= disponibles} onClick={() => cambiarCantidad(linea, 1)}>
                             +
                           </Button>
                           <Button type="button" size="icon" variant="ghost" className="h-7 w-7 text-destructive"
