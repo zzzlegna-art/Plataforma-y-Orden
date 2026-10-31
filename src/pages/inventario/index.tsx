@@ -255,7 +255,11 @@ const ProductThumbnail = ({
   }, [product.imageUrl, product.id]);
   // Solo mostrar fotografías asignadas explícitamente a esta referencia.
   // No deducir fotos de celulares a partir del nombre de pantallas o repuestos.
-  const imageUrl = product.imageUrl && !imageFailed ? product.imageUrl : undefined;
+  const imagenPrincipal = product.imageUrl && !imageFailed ? product.imageUrl : undefined;
+  // Si solo se subieron fotografías de variantes, la vista sigue disponible:
+  // tomar la primera imagen real del propio producto, sin inventar fotografías.
+  const primeraImagenColor = product.colorVariants?.find((v) => v.imageUrl?.trim())?.imageUrl;
+  const imageUrl = imagenPrincipal ?? primeraImagenColor;
   const selectedVariant = variantePorColor(product, selectedColor);
   const selectedPhoto = selectedVariant?.imageUrl && !variantImageFailed
     ? selectedVariant.imageUrl : undefined;
@@ -372,7 +376,7 @@ const ProductThumbnail = ({
                     <p>{selectedVariant?.color || "Vista principal"} · {
                       selectedVariant
                         ? (selectedPhoto ? "Foto del color" : "Se muestra la foto principal")
-                        : "Imagen original"
+                        : (imagenPrincipal ? "Imagen original" : "Foto registrada de una variante")
                     }</p>
                   </div>
                   <div className="nx-inventory-zoom-swatches">
