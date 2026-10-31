@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { KeyRound, Pencil, Plus, UserCog, UserPlus } from "lucide-react";
 import { toast } from "sonner";
@@ -63,45 +63,36 @@ const CreateUserDialog = () => {
   const [password, setPassword] = useState("");
   const [role, setRole] = useState<Role>("bodeguero");
   const [saving, setSaving] = useState(false);
+  const savingRef = useRef(false);
 
   const save = async () => {
-    if (!fullName.trim()) {
-      toast.error(t("errors.userNameRequired"));
-      return;
-    }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
-      toast.error(t("errors.emailInvalid"));
-      return;
-    }
-    if (password.length < 8) {
-      toast.error(t("errors.passwordTooShort"));
-      return;
-    }
-
+    if (savingRef.current) return;
+    if (!fullName.trim()) { toast.error(t("errors.userNameRequired")); return; }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) { toast.error(t("errors.emailInvalid")); return; }
+    if (password.length < 8) { toast.error(t("errors.passwordTooShort")); return; }
+    savingRef.current = true;
     setSaving(true);
-    const result = await crearCuenta({
-      accion: "crear",
-      email: email.trim(),
-      password,
-      nombre: fullName.trim(),
-      rol: role,
-    });
-    setSaving(false);
-
-    if (!result.ok) {
-      toast.error(t(result.error));
-      return;
+    try {
+      const result = await crearCuenta({
+        accion: "crear", email: email.trim(), password, nombre: fullName.trim(), rol: role,
+      });
+      if (!result.ok) { toast.error(t(result.error)); return; }
+      toast.success(t("user.created"));
+      setOpen(false);
+      setFullName("");
+      setEmail("");
+      setPassword("");
+      setRole("bodeguero");
+    } catch {
+      toast.error(t("errors.unexpected"));
+    } finally {
+      savingRef.current = false;
+      setSaving(false);
     }
-    toast.success(t("user.created"));
-    setOpen(false);
-    setFullName("");
-    setEmail("");
-    setPassword("");
-    setRole("bodeguero");
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={(next) => { if (!savingRef.current) setOpen(next); }}>
       <DialogTrigger asChild>
         <Button>
           <Plus />
@@ -154,7 +145,7 @@ const CreateUserDialog = () => {
           </div>
         </div>
         <DialogFooter>
-          <Button variant="outline" type="button" onClick={() => setOpen(false)}>
+          <Button variant="outline" type="button" disabled={saving} onClick={() => setOpen(false)}>
             {t("common.cancel")}
           </Button>
           <Button type="button" loading={saving} onClick={() => void save()}>
@@ -171,30 +162,35 @@ const ResetPasswordDialog = ({ user }: { user: User }) => {
   const [open, setOpen] = useState(false);
   const [password, setPassword] = useState("");
   const [saving, setSaving] = useState(false);
+  const savingRef = useRef(false);
 
   const save = async () => {
-    if (password.length < 8) {
-      toast.error(t("errors.passwordTooShort"));
-      return;
-    }
+    if (savingRef.current) return;
+    if (password.length < 8) { toast.error(t("errors.passwordTooShort")); return; }
+    savingRef.current = true;
     setSaving(true);
-    const { data, error } = await supabase.functions.invoke("bodega-gestion-usuarios", {
-      body: { accion: "clave", userId: user.id, password },
-    });
-    setSaving(false);
-
-    if (error || !data?.ok) {
-      const mensaje = (data as { error?: string } | null)?.error ?? error?.message ?? "";
-      toast.error(t(traducirGestion(mensaje)));
-      return;
+    try {
+      const { data, error } = await supabase.functions.invoke("bodega-gestion-usuarios", {
+        body: { accion: "clave", userId: user.id, password },
+      });
+      if (error || !data?.ok) {
+        const mensaje = (data as { error?: string } | null)?.error ?? error?.message ?? "";
+        toast.error(t(traducirGestion(mensaje)));
+        return;
+      }
+      toast.success(t("user.passwordReset"));
+      setOpen(false);
+      setPassword("");
+    } catch {
+      toast.error(t("errors.unexpected"));
+    } finally {
+      savingRef.current = false;
+      setSaving(false);
     }
-    toast.success(t("user.passwordReset"));
-    setOpen(false);
-    setPassword("");
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={(next) => { if (!savingRef.current) setOpen(next); }}>
       <DialogTrigger asChild>
         <Button size="sm" variant="ghost" className="whitespace-nowrap">
           <KeyRound />
@@ -217,7 +213,7 @@ const ResetPasswordDialog = ({ user }: { user: User }) => {
           <p className="text-xs text-muted-foreground">{t("user.passwordHint")}</p>
         </div>
         <DialogFooter>
-          <Button variant="outline" type="button" onClick={() => setOpen(false)}>
+          <Button variant="outline" type="button" disabled={saving} onClick={() => setOpen(false)}>
             {t("common.cancel")}
           </Button>
           <Button type="button" loading={saving} onClick={() => void save()}>
@@ -235,18 +231,28 @@ const EditUserDialog = ({ user, onSave }: { user: User; onSave: (role: Role) => 
   const [open, setOpen] = useState(false);
   const [role, setRole] = useState<Role>(user.role);
   const [saving, setSaving] = useState(false);
+  const savingRef = useRef(false);
 
   const save = async () => {
+    if (savingRef.current) return;
+    savingRef.current = true;
     setSaving(true);
-    await onSave(role);
-    setSaving(false);
-    setOpen(false);
+    try {
+      const result = await onSave(role);
+      if (result !== null && result !== undefined) setOpen(false);
+    } catch {
+      toast.error(t("errors.unexpected"));
+    } finally {
+      savingRef.current = false;
+      setSaving(false);
+    }
   };
 
   return (
     <Dialog
       open={open}
       onOpenChange={(next) => {
+        if (savingRef.current) return;
         setOpen(next);
         if (next) setRole(user.role);
       }}
@@ -274,7 +280,7 @@ const EditUserDialog = ({ user, onSave }: { user: User; onSave: (role: Role) => 
           />
         </div>
         <DialogFooter>
-          <Button variant="outline" type="button" onClick={() => setOpen(false)}>
+          <Button variant="outline" type="button" disabled={saving} onClick={() => setOpen(false)}>
             {t("common.cancel")}
           </Button>
           <Button type="button" loading={saving} onClick={() => void save()}>
@@ -301,6 +307,7 @@ export const UsersTab = () => {
   const changeRole = (target: User, role: Role) =>
     runAction((db2, actor) => updateUser(db2, actor, { id: target.id, role }), {
       success: "user.updated",
+      key: `usuario-rol:${target.id}`,
     });
 
   const toggleActive = (target: User) =>
