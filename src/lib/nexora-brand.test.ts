@@ -1,5 +1,6 @@
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
+import { inflateSync } from "node:zlib";
 import { describe, expect, it } from "vitest";
 
 const asPng = (name: string) => {
@@ -20,6 +21,22 @@ describe("Nexora branding for web and installable app", () => {
     expect(asPng("branding/nexora-symbol-dark.png")).toMatchObject({ width: 384, height: 400 });
 
     expect(asPng("icons/favicon-32.png")).toMatchObject({ width: 32, height: 32 });
+    expect(asPng("icons/favicon-48.png")).toMatchObject({ width: 48, height: 48 });
+    // First corner pixel alpha must be transparent (PNG scanlines use filter 1).
+    for (const size of [32, 48]) {
+      const buffer = readFileSync(`public/icons/favicon-${size}.png`);
+      const idatChunks: Buffer[] = [];
+      for (let at = 8; at < buffer.length;) {
+        const length = buffer.readUInt32BE(at);
+        const type = buffer.toString("ascii", at + 4, at + 8);
+        if (type === "IDAT") idatChunks.push(buffer.subarray(at + 8, at + 8 + length));
+        at += length + 12;
+        if (type === "IEND") break;
+      }
+      const decoded = inflateSync(Buffer.concat(idatChunks));
+      expect(decoded[0]).toBe(1);
+      expect(decoded[4]).toBe(0);
+    }
     expect(asPng("icons/apple-touch-icon.png")).toMatchObject({ width: 180, height: 180 });
     expect(asPng("icons/icon-192.png")).toMatchObject({ width: 192, height: 192 });
     expect(asPng("icons/icon-512.png")).toMatchObject({ width: 512, height: 512 });
@@ -30,6 +47,13 @@ describe("Nexora branding for web and installable app", () => {
     const pkg = JSON.parse(readFileSync("package.json", "utf8"));
     expect(pkg.scripts.build).toContain("node scripts/generate-brand-assets.mjs && vite build");
     expect(pkg.scripts.dev).toContain("node scripts/generate-brand-assets.mjs && vite");
+  });
+
+  it("uses real transparent PNGs for browser tabs rather than SVG", () => {
+    const html = readFileSync("index.html", "utf8");
+    expect(html).toContain('rel="icon" type="image/png" sizes="32x32"');
+    expect(html).toContain('rel="icon" type="image/png" sizes="48x48"');
+    expect(html).not.toContain('rel="icon" type="image/svg+xml"');
   });
 
   it("describes the app as Nexora and keeps the 512px icon maskable", () => {

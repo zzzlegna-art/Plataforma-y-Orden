@@ -146,6 +146,25 @@ function recolorDark(image, onlyWordmark) {
   }
   return { ...image, pixels: result };
 }
+/** Transparent PNG for browser tabs: only the official Nexora symbol, never the PWA background. */
+function tabFavicon(symbol, size) {
+  const pixels = Buffer.alloc(size * size * 4);
+  const height = Math.round(size * 0.9);
+  const width = Math.round(height * symbol.w / symbol.h);
+  const scaled = resize(symbol, width, height);
+  const left = Math.floor((size - width) / 2);
+  const top = Math.floor((size - height) / 2);
+  for (let y = 0; y < height; y++) {
+    scaled.pixels.copy(
+      pixels,
+      ((y + top) * size + left) * 4,
+      y * width * 4,
+      (y + 1) * width * 4,
+    );
+  }
+  return { w: size, h: size, pixels };
+}
+
 function appIcon(symbol, size, maskable = false) {
   const pixels = Buffer.alloc(size * size * 4);
   for (let y = 0; y < size; y++) {
@@ -198,8 +217,12 @@ const pdfDarkLogoPng = writePng('branding/nexora-horizontal-dark.png', horizonta
 writeFileSync(join(ROOT, 'scripts/nexora-pdf-logo.b64'), pdfDarkLogoPng.toString('base64'));
 writePng('branding/nexora-symbol.png', resize(symbol, 384, 400));
 writePng('branding/nexora-symbol-dark.png', resize(recolorDark(symbol, false), 384, 400));
-for (const size of [32, 180, 192, 512]) {
-  const filename = size === 32 ? 'favicon-32.png' : size === 180 ? 'apple-touch-icon.png' : `icon-${size}.png`;
+// Tabs use transparent 32/48px PNGs; installed-app icons keep their dark PWA backgrounds.
+for (const size of [32, 48]) {
+  writePng(`icons/favicon-${size}.png`, tabFavicon(symbol, size));
+}
+for (const size of [180, 192, 512]) {
+  const filename = size === 180 ? 'apple-touch-icon.png' : `icon-${size}.png`;
   writePng(`icons/${filename}`, appIcon(symbol, size));
 }
 writePng('icons/icon-maskable-512.png', appIcon(symbol, 512, true));
