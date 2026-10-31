@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Package, Trash2, X } from "lucide-react";
 import { CopySerialButton } from "@/components/shared/copy-serial-button";
+import { OptionSelect } from "@/components/shared/option-select";
 
 import { SerialScanInput } from "@/components/shared/serial-scan-input";
 import { ConditionBadge } from "@/components/shared/status-badge";
@@ -15,6 +16,7 @@ export const OrderLineCard = ({
   editable,
   edicionDespachado,
   onCambiarCantidad,
+  onCambiarColor,
   onSerializar,
   onQuitarSerial,
   onQuitarLinea,
@@ -27,6 +29,7 @@ export const OrderLineCard = ({
   editable: boolean;
   edicionDespachado?: boolean;
   onCambiarCantidad: (delta: number) => void;
+  onCambiarColor?: (color: string) => void;
   onSerializar: (serial: string) => void;
   onQuitarSerial: (serial: string) => void;
   onQuitarLinea: () => void;
@@ -158,6 +161,24 @@ export const OrderLineCard = ({
             <div className="mt-1">
               <ConditionBadge condition={line.item.condition ?? "nuevo"} />
             </div>
+            {(line.product?.colorVariants?.length ?? 0) > 0 ? (
+              <div className="mt-2 max-w-[290px] space-y-1">
+                <p className="text-xs font-semibold text-muted-foreground">Color · {line.item.color || "Sin asignar"}</p>
+                {editable && line.serializados === 0 && onCambiarColor ? (
+                  <OptionSelect
+                    value={line.item.color || undefined}
+                    onChange={onCambiarColor}
+                    options={(line.product?.colorVariants ?? []).map((variant) => ({
+                      value: variant.color,
+                      label: `${variant.color} · ${variant.price.toLocaleString("es-CO")}`,
+                    }))}
+                    placeholder="Elegir color para serializar"
+                  />
+                ) : null}
+              </div>
+            ) : line.item.color ? (
+              <p className="mt-1 text-xs text-muted-foreground">Color: {line.item.color}</p>
+            ) : null}
             {destacada ? (
               <p className="mt-1.5 animate-pop-in text-xs font-semibold text-primary motion-reduce:animate-none">
                 {t("order.serialIncluidoAqui")}
