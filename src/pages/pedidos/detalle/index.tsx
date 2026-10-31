@@ -737,7 +737,8 @@ const PedidoDetalle = () => {
             </div>
             {(addProduct?.colorVariants?.length ?? 0) > 0 ? (
               <div className="space-y-2">
-                <Label>Color de la referencia</Label>
+                <Label>Color de la referencia (opcional en este paso)</Label>
+                <p className="text-xs text-muted-foreground">También puedes elegirlo en esta línea antes de serializar los IMEI.</p>
                 <OptionSelect value={addColor || undefined} onChange={setAddColor}
                   placeholder="Seleccionar color"
                   options={(addProduct?.colorVariants ?? []).map((v) => ({
@@ -782,7 +783,7 @@ const PedidoDetalle = () => {
             <Button
               type="button"
               loading={runAction.pending}
-              disabled={!addProductId || ((addProduct?.colorVariants?.length ?? 0) > 0 && !addColor)}
+              disabled={!addProductId}
               onClick={() => void agregarReferencia()}
             >
               {t("common.add")}
