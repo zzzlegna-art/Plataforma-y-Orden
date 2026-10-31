@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { Button } from "@/components/ui/button";
@@ -47,6 +47,7 @@ export const CustomerFormDialog = ({
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState(EMPTY);
   const [saving, setSaving] = useState(false);
+  const savingRef = useRef(false);
 
   useEffect(() => {
     if (!open) return;
@@ -68,20 +69,29 @@ export const CustomerFormDialog = ({
   }, [open, customer]);
 
   const save = async () => {
+    if (savingRef.current) return;
+    savingRef.current = true;
     setSaving(true);
-    const result = await runAction(
-      (db, actor) =>
-        customer
-          ? updateCustomer(db, actor, { ...form, id: customer.id })
-          : createCustomer(db, actor, form),
-      { success: customer ? "customer.updated" : "customer.created" },
-    );
-    setSaving(false);
-    if (result) setOpen(false);
+    try {
+      const result = await runAction(
+        (db, actor) =>
+          customer
+            ? updateCustomer(db, actor, { ...form, id: customer.id })
+            : createCustomer(db, actor, form),
+        {
+          success: customer ? "customer.updated" : "customer.created",
+          key: `guardar-cliente:${customer?.id ?? "nuevo"}`,
+        },
+      );
+      if (result) setOpen(false);
+    } finally {
+      savingRef.current = false;
+      setSaving(false);
+    }
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={(next) => { if (!savingRef.current) setOpen(next); }}>
       <DialogTrigger asChild>{trigger}</DialogTrigger>
       <DialogContent className="max-h-[90vh] overflow-y-auto pr-0 sm:max-w-lg">
         <DialogHeader className="pr-6">
@@ -182,7 +192,7 @@ export const CustomerFormDialog = ({
         </div>
 
         <DialogFooter className="pr-6">
-          <Button variant="outline" type="button" onClick={() => setOpen(false)}>
+          <Button variant="outline" type="button" disabled={saving} onClick={() => setOpen(false)}>
             {t("common.cancel")}
           </Button>
           <Button type="button" loading={saving} onClick={() => void save()}>
