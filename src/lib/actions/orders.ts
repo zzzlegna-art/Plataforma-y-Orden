@@ -8,7 +8,7 @@
 import { createId, DomainError, logAudit, logMovement, nextDailyCode, nowIso } from "../db";
 import { diaBogota, hoyBogota } from "../dates";
 import type { Actor, Db, Order, OrderItem, OrderStatus, Unit, UnitCondition } from "../types";
-import { normalizarColor, precioSugeridoColor, variantePorColor } from "../color-variants";
+import { costoSugeridoColor, normalizarColor, precioSugeridoColor, variantePorColor } from "../color-variants";
 import { esProductoRepuesto } from "../products";
 import { requireNumber, requirePermission } from "./guards";
 
@@ -43,7 +43,7 @@ export interface PedidoLineaInput {
 
 const validarColorPedido = (product: import("../types").Product, raw?: string): string | undefined => {
   const color = normalizarColor(raw);
-  if (!product.colorVariants?.length) return undefined;
+  if (!product.colorVariants?.length || !color) return undefined;
   const variante = variantePorColor(product, color);
   if (!variante) throw new DomainError("Selecciona un color válido de la referencia.");
   return variante.color;
@@ -295,7 +295,7 @@ const unitEnOtroPedidoActivo = (db: Db, unitId: string) =>
 export const serializarImeiPedido = (
   db: Db,
   actor: Actor,
-  input: { orderId: string; imei: string },
+  input: { orderId: string; imei: string; orderItemId?: string },
 ): { producto: string; condicion?: UnitCondition; orderItemId: string } => {
   requirePermission(actor, "orders.manage");
   const order = findOrder(db, input.orderId);
@@ -310,21 +310,37 @@ export const serializarImeiPedido = (
   if (unitEnOtroPedidoActivo(db, unit.id)) {
     throw new DomainError("errors.unitAlreadyAssigned");
   }
-  const lineas = db.orderItems.filter(
-    (item) =>
-      item.orderId === order.id &&
-      item.productId === unit.productId &&
-      item.condition === unit.condition &&
-      (!item.color || normalizarColor(item.color).toLocaleLowerCase("es") === normalizarColor(unit.color).toLocaleLowerCase("es")),
-  );
-  const linea = lineas.find((item) => {
+  const product = db.products.find((p) => p.id === unit.productId);
+  const lineas = db.orderItems.filter((item) => {
+    if (item.orderId !== order.id || item.productId !== unit.productId || item.condition !== unit.condition) return false;
+    // El color no tiene que haberse registrado en recepción: se define al serializar.
+    if (product?.colorVariants?.length && !item.color) return false;
+    return !item.color || !unit.color ||
+      normalizarColor(item.color).toLocaleLowerCase("es") === normalizarColor(unit.color).toLocaleLowerCase("es");
+  });
+  const candidatas = input.orderItemId
+    ? lineas.filter((item) => item.id === input.orderItemId)
+    : lineas;
+  const linea = candidatas.find((item) => {
     const asignados = db.orderItemUnits.filter((row) => row.orderItemId === item.id).length;
     return asignados < item.quantity;
   });
   if (!linea) {
+    if (product?.colorVariants?.length &&
+        db.orderItems.some((item) => item.orderId === order.id &&
+          item.productId === unit.productId && item.condition === unit.condition && !item.color)) {
+      throw new DomainError("Selecciona el color de esta referencia antes de asignar el IMEI.");
+    }
     throw new DomainError("errors.noLineaDisponible", {
       producto: db.products.find((p) => p.id === unit.productId)?.name ?? "",
     });
+  }
+  // El color se fija aquí, no en recepción. Nunca sobrescribir uno ya identificado.
+  if (linea.color && !unit.color) {
+    unit.color = linea.color;
+    // El costo real ingresado en recepción tiene prioridad; de lo contrario
+    // se toma el costo de la variante para validar precio y conservar trazabilidad.
+    if (unit.cost === undefined) unit.cost = costoSugeridoColor(product!, linea.color);
   }
   db.orderItemUnits.push({ id: createId(), orderItemId: linea.id, unitId: unit.id, createdAt: nowIso() });
   // La asignación también forma parte de la vida del serial, aunque el pedido
@@ -343,7 +359,6 @@ export const serializarImeiPedido = (
     entityId: order.id,
     details: `${order.code} · ${imei}`,
   });
-  const product = db.products.find((p) => p.id === unit.productId);
   return { producto: product?.name ?? "", condicion: linea.condition, orderItemId: linea.id };
 };
 
@@ -441,6 +456,10 @@ const validarAsignacionesPedido = (db: Db, order: Order, items: OrderItem[]) => 
     if (asignaciones.length < item.quantity) {
       const product = db.products.find((p) => p.id === item.productId);
       throw new DomainError("errors.orderIncomplete", { product: product?.name ?? "" });
+    }
+    const product = db.products.find((p) => p.id === item.productId);
+    if (product?.colorVariants?.length && !item.color) {
+      throw new DomainError("Selecciona el color de cada referencia antes de confirmar la serialización.");
     }
     for (const row of asignaciones) {
       if (idsAsignados.has(row.unitId)) throw new DomainError("errors.unitAlreadyAssigned");
@@ -543,7 +562,7 @@ export const confirmarVentaPedido = (
     for (const row of db.orderItemUnits.filter((asignacion) => asignacion.orderItemId === item.id)) {
       const unit = db.units.find((u) => u.id === row.unitId);
       if (!unit) throw new DomainError("errors.notFound");
-      const costoReal = unit.cost ?? product?.cost;
+      const costoReal = unit.cost ?? (product ? costoSugeridoColor(product, item.color) : undefined);
       if (costoReal !== undefined && item.unitPrice < costoReal) {
         throw new DomainError("errors.saleBelowCost", {
           serial: unit.serial,
@@ -670,10 +689,15 @@ export const agregarSerialDespachado = (
   if (db.orderItemUnits.some((row) => row.orderItemId === item.id && row.unitId === unit.id)) {
     throw new DomainError("errors.unitAlreadyAssigned");
   }
-  if (unit.productId !== item.productId || unit.condition !== item.condition || (item.color && normalizarColor(unit.color).toLocaleLowerCase("es") !== normalizarColor(item.color).toLocaleLowerCase("es"))) {
+  if (unit.productId !== item.productId || unit.condition !== item.condition || (item.color && unit.color && normalizarColor(unit.color).toLocaleLowerCase("es") !== normalizarColor(item.color).toLocaleLowerCase("es"))) {
     throw new DomainError("errors.serialMustMatchLine");
   }
 
+  if (item.color && !unit.color) {
+    unit.color = item.color;
+    const product = db.products.find((p) => p.id === unit.productId);
+    if (unit.cost === undefined && product) unit.cost = costoSugeridoColor(product, item.color);
+  }
   db.orderItemUnits.push({ id: createId(), orderItemId: item.id, unitId: unit.id, createdAt: nowIso() });
   unit.status = "vendido";
   logMovement(db, actor, {
