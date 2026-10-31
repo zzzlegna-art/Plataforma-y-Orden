@@ -9,6 +9,22 @@ export const variantePorColor = (producto: Pick<Product, "colorVariants"> | unde
   return producto?.colorVariants?.find((v) => normalizarColor(v.color).toLocaleLowerCase("es") === key);
 };
 
+/**
+ * El aviso de precio pendiente depende de la tarifa de color guardada en el
+ * catálogo, NO del precio unitario que quedó en un pedido anterior.
+ * Una tarifa existente con un precio distinto indica desincronización, no ausencia.
+ */
+export const estadoPrecioVentaColor = (
+  producto: Pick<Product, "colorVariants"> | undefined,
+  color: string | null | undefined,
+  precioPedido: number,
+): "sin_color" | "pendiente" | "desactualizado" | "actualizado" => {
+  const variante = variantePorColor(producto, color);
+  if (!variante) return "sin_color";
+  if (!Number.isFinite(variante.price) || variante.price <= 0) return "pendiente";
+  return variante.price === precioPedido ? "actualizado" : "desactualizado";
+};
+
 /** Mantener tarifa base para equipos históricos sin color; jamás inferir colores por nombre. */
 export const precioSugeridoColor = (producto: Pick<Product, "price" | "colorVariants">, color?: string | null): number =>
   variantePorColor(producto, color)?.price ?? producto.price;
