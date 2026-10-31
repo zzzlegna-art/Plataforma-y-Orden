@@ -451,6 +451,7 @@ export const ProductFormDialog = ({
           </div>
             </div>
           </section>
+          <div className="nx-editor-aside">
           {form.categoria && form.categoria !== "repuesto" ? (
             <section className="nx-editor-panel nx-editor-variants" aria-label="Precios por color">
               <div className="nx-editor-variants-heading">
@@ -460,7 +461,7 @@ export const ProductFormDialog = ({
                   <p className="text-sm font-bold text-foreground">Colores y precios por variante</p>
                   <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
                     Una sola referencia y SKU. Define costo y precio de venta por color;
-                    cada IMEI conservará su color al recibirlo.
+                    el color se asignará después, al serializar el pedido.
                   </p>
                   </div>
                 </div>
@@ -506,17 +507,13 @@ export const ProductFormDialog = ({
               )}
             </section>
           ) : null}
-          </div>
-          <details className="nx-editor-advanced">
-            <summary className="nx-editor-advanced-summary">
-              <span className="nx-editor-advanced-summary-icon"><SlidersHorizontal className="h-4 w-4" /></span>
-              <span className="min-w-0 flex-1">
-                <strong>Imagen, características y descripción</strong>
-                <small>Información adicional del producto. Ábrela cuando necesites editarla.</small>
-              </span>
-              <ChevronDown className="nx-editor-advanced-chevron h-4 w-4" aria-hidden="true" />
-            </summary>
-            <div className="nx-editor-advanced-content">
+          <section className="nx-editor-panel nx-editor-image" aria-labelledby="nx-editor-image-title">
+            <div className="nx-editor-section-heading nx-editor-image-heading">
+              <div>
+                <h3 id="nx-editor-image-title">Imagen del producto</h3>
+                <p>Agrega, reemplaza o elimina la fotografía de esta referencia.</p>
+              </div>
+            </div>
           <div className="space-y-2 rounded-xl border border-border/70 p-3 sm:col-span-2">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
               {imagePreview ? (
@@ -564,6 +561,20 @@ export const ProductFormDialog = ({
               ) : null}
             </div>
           </div>
+          </section>
+          </div>
+          </div>
+          <details className="nx-editor-advanced">
+            <summary className="nx-editor-advanced-summary">
+              <span className="nx-editor-advanced-summary-icon"><SlidersHorizontal className="h-4 w-4" /></span>
+              <span className="min-w-0 flex-1">
+                <strong>Características técnicas y descripción</strong>
+                <small>Opciones avanzadas para completar la ficha sin ocupar espacio adicional.</small>
+              </span>
+              <ChevronDown className="nx-editor-advanced-chevron h-4 w-4" aria-hidden="true" />
+            </summary>
+            <div className="nx-editor-advanced-content">
+
 
           {technicalEnabled ? (
             <div className="space-y-4 rounded-xl border border-border/70 bg-card p-3 sm:col-span-2">
@@ -692,7 +703,8 @@ export const ProductFormDialog = ({
               value={form.description}
               onChange={(event) => setForm({ ...form, description: event.target.value })}
             />
-          </div>            </div>
+          </div>
+            </div>
           </details>
         </div>
 
