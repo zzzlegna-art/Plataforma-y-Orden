@@ -232,7 +232,8 @@ const NuevaRecepcion = () => {
         }),
       );
       if (result) {
-        setCost("");
+        // Mantener el costo opcional para escanear un lote de la misma referencia
+        // sin tener que volver a escribirlo tras cada IMEI.
         lecturasTerminadasRef.current.add(serialNormalizado);
         setRechazados((anteriores) => anteriores.filter((item) => item.serial.trim().toUpperCase() !== serialNormalizado));
         setUltimoSerialAgregado(serial.trim());
