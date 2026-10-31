@@ -358,7 +358,7 @@ const ProductThumbnail = ({
                   alt={selectedPhoto
                     ? `${product.name} · ${selectedVariant?.color}`
                     : product.name}
-                  className="max-h-[76vh] w-full object-contain"
+                  className="nx-inventory-zoom-photo"
                   decoding="async"
                   onError={() => {
                     if (selectedPhoto) setVariantImageFailed(true);
