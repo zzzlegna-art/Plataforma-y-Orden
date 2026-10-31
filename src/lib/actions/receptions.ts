@@ -148,8 +148,9 @@ export const addReceptionItem = (
   const isRepuesto = esProductoRepuesto(db, product);
   const variantes = product.colorVariants ?? [];
   const color = normalizarColor(input.color);
-  if (!isRepuesto && variantes.length && (!color || !variantePorColor(product, color))) {
-    throw new DomainError("Selecciona un color válido de la referencia antes de recibir el IMEI.");
+  // El color NO es obligatorio en Recepción. Solo se valida si se proporcionó.
+  if (!isRepuesto && color && variantes.length && !variantePorColor(product, color)) {
+    throw new DomainError("El color proporcionado no pertenece a esta referencia.");
   }
   const quantity = isRepuesto
     ? Math.min(Math.max(Math.trunc(input.quantity ?? 1), 1), 500)
@@ -237,8 +238,8 @@ export const updateReceptionItem = (
   if (input.condition) item.condition = input.condition;
   if (input.color !== undefined || input.productId) {
     const color = normalizarColor(input.color ?? (input.productId ? "" : item.color));
-    if (productoFinal?.colorVariants?.length && (!color || !variantePorColor(productoFinal, color))) {
-      throw new DomainError("Selecciona un color válido para el modelo.");
+    if (color && productoFinal?.colorVariants?.length && !variantePorColor(productoFinal, color)) {
+      throw new DomainError("El color proporcionado no pertenece a este modelo.");
     }
     item.color = color || undefined;
     if (productoFinal && color) item.cost = costoSugeridoColor(productoFinal, color);
