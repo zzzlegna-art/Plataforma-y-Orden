@@ -381,7 +381,7 @@ const PedidoDetalle = () => {
                   </Button>
                 }
                 title="Confirmar serialización y descontar stock"
-                description={`Los ${requestedSerial} seriales asignados dejarán de contarse en el inventario disponible desde ahora. El pedido quedará pendiente de confirmar precios y venta. Todavía no se marcarán como vendidos ni se registrará un despacho.`}
+                description={`Las ${requested} unidades verificadas dejarán de contarse en el inventario disponible desde ahora. El pedido quedará pendiente de confirmar precios y venta. Todavía no se marcarán como vendidas ni se registrará un despacho.`}
                 confirmLabel="Confirmar seriales y descontar"
                 onConfirm={confirmarPreparacion}
               />
