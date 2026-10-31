@@ -28,6 +28,7 @@ import { useRunAction } from "@/hooks/use-run-action";
 import { useStore } from "@/hooks/use-store";
 import {
   agregarReferenciaPedido,
+  cambiarColorReferenciaPedido,
   agregarSerialDespachado,
   cancelarPedido,
   cancelarPedidoDespachado,
@@ -63,6 +64,7 @@ const PedidoDetalle = () => {
   const [addProductId, setAddProductId] = useState("");
   const [addQty, setAddQty] = useState("1");
   const [addCondition, setAddCondition] = useState<UnitCondition>("nuevo");
+  const [addColor, setAddColor] = useState("");
   const [cancelMotivo, setCancelMotivo] = useState("");
   const [lineaPrecioEditando, setLineaPrecioEditando] = useState<string | null>(null);
   const [precioBorrador, setPrecioBorrador] = useState("");
@@ -287,6 +289,7 @@ const PedidoDetalle = () => {
           productId: addProductId,
           quantity: Number(addQty),
           condition: addProduct?.categoria === "repuesto" ? undefined : addCondition,
+          color: addColor || undefined,
         }),
       { success: "order.updated" },
     );
@@ -295,6 +298,7 @@ const PedidoDetalle = () => {
       setAddProductId("");
       setAddQty("1");
       setAddCondition("nuevo");
+      setAddColor("");
     }
   };
 
@@ -614,6 +618,10 @@ const PedidoDetalle = () => {
                 editable={editable}
                 edicionDespachado={edicionDespachado}
                 onCambiarCantidad={(delta) => cambiarCantidad(line.item.id, delta)}
+                onCambiarColor={(color) => void runAction(
+                  (db2, actor) => cambiarColorReferenciaPedido(db2, actor, { orderItemId: line.item.id, color }),
+                  { success: "order.updated" },
+                )}
                 onSerializar={(serial) => void serializar(serial, line.item.id)}
                 destacada={lineaDestacada === line.item.id}
                 onQuitarSerial={(serial) =>
@@ -723,9 +731,21 @@ const PedidoDetalle = () => {
               <ProductPicker
                 products={db.products.filter((p) => p.isActive)}
                 value={addProductId}
-                onChange={setAddProductId}
+                onChange={(id) => { setAddProductId(id); setAddColor(""); }}
               />
             </div>
+            {(addProduct?.colorVariants?.length ?? 0) > 0 ? (
+              <div className="space-y-2">
+                <Label>Color de la referencia</Label>
+                <OptionSelect value={addColor || undefined} onChange={setAddColor}
+                  placeholder="Seleccionar color"
+                  options={(addProduct?.colorVariants ?? []).map((v) => ({
+                    value: v.color,
+                    label: `${v.color} · $${v.price.toLocaleString("es-CO")}`,
+                  }))}
+                />
+              </div>
+            ) : null}
             {addProduct?.categoria !== "repuesto" ? (
               <div className="space-y-2">
                 <Label>{t("unit.condition")}</Label>
@@ -761,7 +781,7 @@ const PedidoDetalle = () => {
             <Button
               type="button"
               loading={runAction.pending}
-              disabled={!addProductId}
+              disabled={!addProductId || ((addProduct?.colorVariants?.length ?? 0) > 0 && !addColor)}
               onClick={() => void agregarReferencia()}
             >
               {t("common.add")}
