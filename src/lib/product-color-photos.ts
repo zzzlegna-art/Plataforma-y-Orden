@@ -30,6 +30,13 @@ export const swatchForVariant = (variant: Pick<ProductColorVariant, "color" | "s
   return "#8796a8";
 };
 
+/** Prioridad de foto para el inventario: principal real, luego primera foto de color. */
+export const inventoryProductPhoto = (
+  mainImage: string | undefined,
+  variants: readonly Pick<ProductColorVariant, "imageUrl">[] | undefined,
+): string | undefined => mainImage?.trim() ||
+  variants?.find((v) => v.imageUrl?.trim())?.imageUrl?.trim() || undefined;
+
 /** If a variant has no separate photograph, continue showing the exact main image. */
 export const imageForVariant = (base: string | undefined, variant?: Pick<ProductColorVariant, "imageUrl">): string | undefined =>
   variant?.imageUrl?.trim() || base;
