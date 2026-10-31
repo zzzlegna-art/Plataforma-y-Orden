@@ -36,7 +36,7 @@ import {
 import { getProductImageExtension, validateProductImageFile } from "@/lib/product-image";
 import { getProductTechnicalSpecFieldsForCategory, getProductTechnicalSpecsForCategory } from "@/lib/product-specs";
 import { etiquetaTipoProducto, tiposProductoOrdenados } from "@/lib/products";
-import type { Product, ProductCategory, ProductTechnicalSpecs } from "@/lib/types";
+import type { Product, ProductCategory, ProductTechnicalSpecs, ProductColorVariant } from "@/lib/types";
 
 /** Breves en una línea; campos descriptivos expandibles para fichas largas. */
 const SHORT_TECHNICAL_FIELDS = new Set([
@@ -74,6 +74,7 @@ export const ProductFormDialog = ({
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState(EMPTY_PRODUCT_FORM);
   const [technicalSpecs, setTechnicalSpecs] = useState<ProductTechnicalSpecs>({});
+  const [colorVariants, setColorVariants] = useState<ProductColorVariant[]>(product?.colorVariants ?? []);
   const [saving, setSaving] = useState(false);
   const [skuManual, setSkuManual] = useState(false);
   const [imageFile, setImageFile] = useState<File | null>(null);
@@ -99,6 +100,7 @@ export const ProductFormDialog = ({
     if (!open) return;
     skipDraftSaveRef.current = true;
     const currentProduct = productRef.current;
+    setColorVariants(currentProduct?.colorVariants ?? []);
     setImageFile(null);
     setImagePreview(currentProduct?.imageUrl ?? null);
     setRemoveImage(false);
@@ -118,6 +120,7 @@ export const ProductFormDialog = ({
         } : {}),
       });
       setTechnicalSpecs(draft.technicalSpecs);
+      if (draft.colorVariants) setColorVariants(draft.colorVariants);
       setSkuManual(skuWasManuallyEdited);
       setRemoveImage(draft.removeImage);
       setImagePreview(draft.removeImage ? null : currentProduct?.imageUrl ?? null);
@@ -157,6 +160,7 @@ export const ProductFormDialog = ({
       version: 1,
       form,
       technicalSpecs,
+      colorVariants,
       skuManual,
       removeImage,
     };
@@ -245,6 +249,7 @@ export const ProductFormDialog = ({
         description: form.description,
         imageUrl,
         technicalSpecs: getProductTechnicalSpecsForCategory(form.categoria, technicalSpecs, technicalEnabled) ?? {},
+        colorVariants: form.categoria === "repuesto" ? [] : colorVariants,
         categoryId: form.categoryId || undefined,
         brandId: form.brandId || undefined,
         categoria: (form.categoria || undefined) as ProductCategory | undefined,
@@ -415,6 +420,55 @@ export const ProductFormDialog = ({
               onValueChange={(cost) => setForm((current) => ({ ...current, cost }))}
             />
           </div>
+          {form.categoria && form.categoria !== "repuesto" ? (
+            <section className="space-y-3 rounded-2xl border border-primary/20 bg-primary/[0.035] p-4 sm:col-span-2" aria-label="Precios por color">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div>
+                  <p className="text-sm font-bold text-foreground">Colores y precios por variante</p>
+                  <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                    Una sola referencia y SKU. Define costo y precio de venta por color;
+                    cada IMEI conservará su color al recibirlo.
+                  </p>
+                </div>
+                <Button type="button" size="sm" variant="outline" onClick={() =>
+                  setColorVariants((previous) => [...previous, { color: "", cost: Number(form.cost) || 0, price: Number(form.price) || 0 }])
+                }>
+                  <Plus className="h-4 w-4" /> Agregar color
+                </Button>
+              </div>
+              {colorVariants.length === 0 ? (
+                <p className="rounded-xl border border-dashed p-3 text-xs text-muted-foreground">
+                  Opcional: si todos los colores cuestan lo mismo, deja la lista vacía y continúa usando el precio general.
+                </p>
+              ) : (
+                <div className="space-y-2">
+                  {colorVariants.map((variant, index) => (
+                    <div key={index} className="grid items-end gap-2 rounded-xl border bg-card p-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_auto]">
+                      <div className="space-y-1">
+                        <Label htmlFor={`variant-name-${index}`}>Color</Label>
+                        <Input id={`variant-name-${index}`} placeholder="Blanco, Azul, Borgoña…" value={variant.color}
+                          onChange={(e) => setColorVariants((old) => old.map((v,i) => i===index ? {...v,color:e.target.value} : v))} />
+                      </div>
+                      <div className="space-y-1">
+                        <Label htmlFor={`variant-cost-${index}`}>Costo</Label>
+                        <FormattedNumberInput id={`variant-cost-${index}`} value={String(variant.cost)}
+                          onValueChange={(value) => setColorVariants((old) => old.map((v,i) => i===index ? {...v,cost:Number(value)||0} : v))} />
+                      </div>
+                      <div className="space-y-1">
+                        <Label htmlFor={`variant-price-${index}`}>Venta sugerida</Label>
+                        <FormattedNumberInput id={`variant-price-${index}`} value={String(variant.price)}
+                          onValueChange={(value) => setColorVariants((old) => old.map((v,i) => i===index ? {...v,price:Number(value)||0} : v))} />
+                      </div>
+                      <Button type="button" variant="outline" size="icon" aria-label={`Eliminar color ${variant.color || index + 1}`}
+                        onClick={() => setColorVariants((old) => old.filter((_,i) => i!==index))}>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </section>
+          ) : null}
           <div className="space-y-2">
             <Label htmlFor="minStock">{t("product.minStock")}</Label>
             <FormattedNumberInput
