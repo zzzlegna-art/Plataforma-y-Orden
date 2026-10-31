@@ -183,6 +183,10 @@ export interface ProductColorVariant {
   cost: number;
   /** Precio de venta sugerido del color. Se puede ajustar antes de confirmar venta. */
   price: number;
+  /** Fotografía opcional de esta variante, sin reemplazar la imagen principal del modelo. */
+  imageUrl?: string;
+  /** Color real de la muestra visual; no afecta stock, precios ni serialización. */
+  swatchHex?: string;
 }
 
 export interface Product {
