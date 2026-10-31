@@ -74,7 +74,7 @@ import {
 import { descargarCsv } from "@/lib/csv";
 import { getProductTechnicalSpecFieldsForCategory } from "@/lib/product-specs";
 import { variantePorColor } from "@/lib/color-variants";
-import { imageForVariant, swatchForVariant } from "@/lib/product-color-photos";
+import { imageForVariant, inventoryProductPhoto, swatchForVariant } from "@/lib/product-color-photos";
 import { coincideBusquedaInventario, indexUnitSerialsByProduct } from "@/lib/inventory-search";
 import { clearInventoryFilters, getInventoryFilters, updateInventoryFilter } from "@/lib/inventory-filters";
 import { formatCurrency, todayIso } from "@/lib/format";
@@ -258,8 +258,7 @@ const ProductThumbnail = ({
   const imagenPrincipal = product.imageUrl && !imageFailed ? product.imageUrl : undefined;
   // Si solo se subieron fotografías de variantes, la vista sigue disponible:
   // tomar la primera imagen real del propio producto, sin inventar fotografías.
-  const primeraImagenColor = product.colorVariants?.find((v) => v.imageUrl?.trim())?.imageUrl;
-  const imageUrl = imagenPrincipal ?? primeraImagenColor;
+  const imageUrl = inventoryProductPhoto(imagenPrincipal, product.colorVariants);
   const selectedVariant = variantePorColor(product, selectedColor);
   const selectedPhoto = selectedVariant?.imageUrl && !variantImageFailed
     ? selectedVariant.imageUrl : undefined;
