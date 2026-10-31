@@ -1,0 +1,325 @@
+/*
+ * Nexora | Editor premium de productos.
+ * Solo presentación: controles, estado y guardado conservan sus componentes originales.
+ * Claro/oscuro sincronizados mediante tokens semánticos de la plataforma.
+ */
+.nx-product-editor {
+  width:min(96vw,1420px) !important;
+  max-width:none !important;
+  max-height:min(94dvh,1040px);
+  padding:0;
+  display:flex;
+  flex-direction:column;
+  gap:0;
+  overflow:hidden;
+  border:1px solid hsl(var(--border)/.88);
+  border-radius:24px;
+  background:hsl(var(--card));
+  color:hsl(var(--card-foreground));
+  box-shadow:0 42px 110px -46px rgb(5 20 42/.34),0 12px 36px -27px rgb(5 20 42/.28);
+}
+.nx-product-editor .nx-editor-header {
+  position:relative;
+  flex:none;
+  padding:24px 64px 20px 30px;
+  border-bottom:1px solid hsl(var(--border)/.75);
+  background:
+    radial-gradient(ellipse 45% 180% at 94% -34%,hsl(var(--primary)/.12),transparent 76%),
+    linear-gradient(110deg,hsl(var(--card)),hsl(var(--secondary)/.48));
+}
+.nx-product-editor .nx-editor-header [role="heading"]{
+  font-size:clamp(1.23rem,1.7vw,1.48rem);
+  line-height:1.25;
+  letter-spacing:-.035em;
+  font-weight:800;
+  color:hsl(var(--foreground));
+}
+.nx-product-editor .nx-editor-header [data-radix-dialog-description]{
+  font-size:.85rem;
+  line-height:1.5;
+}
+.nx-product-editor .nx-editor-scroll {
+  flex:1 1 auto;
+  min-height:0;
+  overflow-y:auto;
+  overscroll-behavior:contain;
+  padding:22px clamp(17px,2.2vw,30px) 24px;
+  scrollbar-width:thin;
+  scrollbar-color:hsl(var(--border)) transparent;
+}
+.nx-product-editor .nx-editor-primary-grid {
+  display:grid;
+  grid-template-columns:minmax(0,1fr);
+  gap:18px;
+  align-items:stretch;
+}
+.nx-product-editor .nx-editor-panel {
+  min-width:0;
+  padding:clamp(15px,1.6vw,22px);
+  border:1px solid hsl(var(--border));
+  border-radius:19px;
+  background:hsl(var(--card));
+  box-shadow:0 12px 32px -29px rgb(8 28 49/.25);
+}
+.nx-product-editor .nx-editor-basics {
+  background:linear-gradient(143deg,hsl(var(--card)),hsl(var(--secondary)/.34));
+}
+.nx-product-editor .nx-editor-variants {
+  background:
+    radial-gradient(ellipse 70% 47% at 100% -10%,hsl(var(--primary)/.095),transparent 72%),
+    linear-gradient(145deg,hsl(var(--card)),hsl(var(--secondary)/.35));
+  border-color:hsl(var(--primary)/.23);
+}
+.nx-product-editor .nx-editor-section-heading {
+  margin-bottom:18px;
+  padding-bottom:14px;
+  border-bottom:1px solid hsl(var(--border)/.8);
+}
+.nx-product-editor .nx-editor-section-heading h3,
+.nx-product-editor .nx-editor-variants-heading p:first-child {
+  font-size:.98rem;
+  font-weight:800;
+  letter-spacing:-.02em;
+  line-height:1.3;
+  color:hsl(var(--foreground));
+}
+.nx-product-editor .nx-editor-section-heading p,
+.nx-product-editor .nx-editor-variants-heading p + p {
+  margin-top:4px;
+  color:hsl(var(--muted-foreground));
+  font-size:.76rem;
+  line-height:1.5;
+}
+.nx-product-editor .nx-editor-fields {
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  align-content:start;
+  align-items:start;
+  gap:16px 15px;
+}
+.nx-product-editor .nx-editor-fields > * {min-width:0;}
+.nx-product-editor .nx-editor-fields label{
+  font-size:.79rem;
+  font-weight:650;
+  color:hsl(var(--foreground));
+}
+.nx-product-editor .nx-editor-fields input,
+.nx-product-editor .nx-editor-fields [role="combobox"] {
+  min-height:41px;
+  width:100%;
+}
+.nx-product-editor .nx-editor-fields .text-xs {
+  font-size:.7rem;
+  line-height:1.4;
+}
+.nx-product-editor .nx-editor-fields > :last-child {
+  grid-column:1 / -1;
+  min-height:43px;
+  border-radius:12px;
+  background:hsl(var(--secondary)/.42);
+  border-color:hsl(var(--border));
+}
+.nx-product-editor .nx-editor-variants-heading{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:12px;
+  margin-bottom:18px;
+}
+.nx-product-editor .nx-editor-variants-heading-copy {
+  display:flex;
+  align-items:flex-start;
+  gap:10px;
+  min-width:0;
+}
+.nx-product-editor .nx-editor-accent-icon{
+  flex:none;
+  width:37px;
+  height:37px;
+  display:grid;
+  place-items:center;
+  border:1px solid hsl(var(--primary)/.2);
+  border-radius:12px;
+  color:hsl(var(--primary));
+  background:hsl(var(--primary)/.1);
+}
+.nx-product-editor .nx-editor-variants-heading button{
+  flex:none;
+  min-height:38px;
+  border-radius:12px;
+  font-size:.79rem;
+  font-weight:700;
+  border-color:hsl(var(--primary)/.3);
+}
+.nx-product-editor .nx-editor-variant-table{
+  min-width:0;
+  overflow:hidden;
+  border:1px solid hsl(var(--border)/.88);
+  border-radius:14px;
+  background:hsl(var(--card));
+}
+.nx-product-editor .nx-editor-variant-columns,
+.nx-product-editor .nx-editor-variant-row {
+  display:grid;
+  grid-template-columns:minmax(0,1.16fr) minmax(0,1fr) minmax(0,1fr) 40px;
+  align-items:center;
+  gap:10px;
+}
+.nx-product-editor .nx-editor-variant-columns {
+  min-height:37px;
+  padding:8px 12px;
+  background:hsl(var(--muted)/.72);
+  color:hsl(var(--muted-foreground));
+  font-size:.7rem;
+  font-weight:750;
+  letter-spacing:.025em;
+}
+.nx-product-editor .nx-editor-variant-row{
+  padding:9px 12px;
+  border-top:1px solid hsl(var(--border)/.76);
+  transition:background-color .15s;
+}
+.nx-product-editor .nx-editor-variant-row:hover{background:hsl(var(--primary)/.035);}
+.nx-product-editor .nx-editor-variant-field{
+  min-width:0;
+  display:flex;
+  flex-direction:column;
+  gap:5px;
+}
+.nx-product-editor .nx-editor-variant-field label{
+  display:none;
+  color:hsl(var(--muted-foreground));
+  font-size:.7rem;
+  font-weight:650;
+}
+.nx-product-editor .nx-editor-variant-field input{
+  min-width:0;
+  width:100%;
+  height:38px;
+  border-radius:10px;
+  background:hsl(var(--background)/.8);
+  font-variant-numeric:tabular-nums;
+}
+.nx-product-editor .nx-editor-delete-color{
+  width:38px;
+  height:38px;
+  border-radius:11px;
+  color:hsl(var(--muted-foreground));
+}
+.nx-product-editor .nx-editor-delete-color:hover{
+  color:hsl(var(--destructive));
+  background:hsl(var(--destructive)/.065);
+  border-color:hsl(var(--destructive)/.3);
+}
+.nx-product-editor .nx-editor-advanced{
+  min-width:0;
+  margin-top:17px;
+  overflow:hidden;
+  border:1px solid hsl(var(--border));
+  border-radius:17px;
+  background:hsl(var(--card));
+}
+.nx-product-editor .nx-editor-advanced-summary {
+  display:flex;
+  align-items:center;
+  min-height:67px;
+  gap:11px;
+  padding:12px 17px;
+  cursor:pointer;
+  list-style:none;
+  user-select:none;
+  background:linear-gradient(120deg,hsl(var(--card)),hsl(var(--secondary)/.36));
+}
+.nx-product-editor .nx-editor-advanced-summary::-webkit-details-marker{display:none;}
+.nx-product-editor .nx-editor-advanced-summary:focus-visible{outline:2px solid hsl(var(--ring));outline-offset:-3px;border-radius:17px;}
+.nx-product-editor .nx-editor-advanced-summary-icon {
+  display:grid;place-items:center;flex:none;width:36px;height:36px;
+  border:1px solid hsl(var(--border));
+  background:hsl(var(--muted)/.65);
+  color:hsl(var(--primary));border-radius:11px;
+}
+.nx-product-editor .nx-editor-advanced-summary strong{display:block;font-size:.84rem;color:hsl(var(--foreground));font-weight:750;}
+.nx-product-editor .nx-editor-advanced-summary small{display:block;margin-top:3px;font-size:.72rem;line-height:1.35;color:hsl(var(--muted-foreground));}
+.nx-product-editor .nx-editor-advanced-chevron {
+  color:hsl(var(--muted-foreground));
+  transition:transform .2s;
+}
+.nx-product-editor .nx-editor-advanced[open] .nx-editor-advanced-chevron{transform:rotate(180deg);}
+.nx-product-editor .nx-editor-advanced-content{
+  display:grid;
+  grid-template-columns:minmax(0,1fr);
+  gap:16px;
+  padding:17px;
+  border-top:1px solid hsl(var(--border));
+}
+.nx-product-editor .nx-editor-advanced-content>div{min-width:0;}
+.nx-product-editor .nx-editor-advanced-content>div:last-child textarea{min-height:74px;}
+.nx-product-editor .nx-editor-footer {
+  flex:none;
+  gap:10px;
+  min-height:77px;
+  padding:15px clamp(17px,2.2vw,30px);
+  border-top:1px solid hsl(var(--border)/.8);
+  background:hsl(var(--card));
+  box-shadow:0 -10px 24px -24px rgb(5 20 42/.12);
+}
+.nx-product-editor .nx-editor-footer button{
+  min-width:126px;
+  min-height:43px;
+  border-radius:12px;
+  font-weight:700;
+}
+.nx-product-editor .nx-editor-footer button:last-child{
+  background:linear-gradient(115deg,hsl(var(--primary-glow)),hsl(var(--primary)));
+  border-color:hsl(var(--primary));
+  color:hsl(var(--primary-foreground));
+  box-shadow:0 12px 24px -18px hsl(var(--primary)/.63);
+}
+@media(min-width:1120px){
+  .nx-product-editor .nx-editor-primary-grid{
+    grid-template-columns:minmax(0,.97fr) minmax(0,1.03fr);
+  }
+}
+@media(min-width:1400px){
+  .nx-product-editor .nx-editor-fields{gap:17px 18px;}
+}
+@media(max-width:850px){
+  .nx-product-editor .nx-editor-header{padding:19px 52px 16px 19px;}
+  .nx-product-editor .nx-editor-variants-heading{flex-wrap:wrap;}
+  .nx-product-editor .nx-editor-variants-heading button{margin-left:auto;}
+}
+@media(max-width:590px){
+  .nx-product-editor {
+    width:100vw !important;
+    max-width:100vw !important;
+    max-height:95dvh;
+    border-radius:20px 20px 0 0;
+    border-bottom:0;
+  }
+  .nx-product-editor .nx-editor-header{padding:17px 50px 15px 17px;}
+  .nx-product-editor .nx-editor-scroll{padding:14px 12px 18px;}
+  .nx-product-editor .nx-editor-panel{padding:14px;border-radius:15px;}
+  .nx-product-editor .nx-editor-fields{grid-template-columns:minmax(0,1fr);gap:13px;}
+  .nx-product-editor .nx-editor-variant-columns{display:none;}
+  .nx-product-editor .nx-editor-variant-row{
+    position:relative;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:9px;
+    padding:12px;
+  }
+  .nx-product-editor .nx-editor-variant-row .nx-editor-variant-field:first-child{
+    grid-column:1 / -1;
+    padding-right:42px;
+  }
+  .nx-product-editor .nx-editor-variant-field label{display:block;}
+  .nx-product-editor .nx-editor-delete-color{position:absolute;right:12px;top:22px;}
+  .nx-product-editor .nx-editor-footer{
+    padding:12px 15px max(12px,env(safe-area-inset-bottom));
+    min-height:69px;
+  }
+  .nx-product-editor .nx-editor-footer button{min-height:42px;}
+}
+@media(prefers-reduced-motion:reduce){
+  .nx-product-editor .nx-editor-advanced-chevron,
+  .nx-product-editor .nx-editor-variant-row{transition:none;}
+}
