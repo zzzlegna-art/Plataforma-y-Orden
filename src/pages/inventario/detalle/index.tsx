@@ -186,7 +186,10 @@ const ProductoDetalle = () => {
       {(product.colorVariants?.length ?? 0) > 0 ? (
         <section className="rounded-2xl border border-primary/20 bg-card p-4 sm:p-5">
           <h2 className="text-base font-bold">Stock y precios por color</h2>
-          <p className="mt-1 text-xs text-muted-foreground">Una sola referencia y SKU, con tarifas independientes por color.</p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Una sola referencia y SKU con tarifas por color. No es necesario clasificar los IMEI
+            en recepción: el color se asigna al serializar cada pedido.
+          </p>
           <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
             {product.colorVariants?.map((variant) => {
               const asignados = new Set(db.orderItemUnits.filter((assignment) => {
@@ -202,7 +205,7 @@ const ProductoDetalle = () => {
                 <div key={variant.color} className="rounded-xl border bg-background/80 p-3">
                   <div className="flex items-center justify-between gap-2">
                     <strong className="text-sm">{variant.color}</strong>
-                    <span className="rounded-full bg-primary/10 px-2 py-1 text-xs font-semibold text-primary">{disponibles} disponibles</span>
+                    <span className="rounded-full bg-primary/10 px-2 py-1 text-xs font-semibold text-primary">{disponibles} identificados</span>
                   </div>
                   <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
                     <div><p className="text-muted-foreground">Costo sugerido</p><p className="font-tabular mt-1 font-bold">{formatCurrency(variant.cost)}</p></div>
@@ -212,9 +215,22 @@ const ProductoDetalle = () => {
               );
             })}
           </div>
-          {units.some(({ unit }) => !unit.color && ["en_bodega","en_local"].includes(unit.status)) ? (
-            <p className="mt-3 text-xs text-warning">Tienes IMEI antiguos sin color; puedes asignarlo desde Seriales sin volver a recibirlos.</p>
-          ) : null}
+          {(() => {
+            const asignados = new Set(db.orderItemUnits.filter((row) => {
+              const item = db.orderItems.find((linea) => linea.id === row.orderItemId);
+              const pedido = item && db.orders.find((order) => order.id === item.orderId);
+              return pedido && ["en_preparacion","preparado"].includes(pedido.status);
+            }).map((row) => row.unitId));
+            const sinColor = units.filter(({unit}) => !unit.color &&
+              ["en_bodega","en_local"].includes(unit.status) && !asignados.has(unit.id)).length;
+            return sinColor > 0 ? (
+              <p className="mt-3 rounded-xl border border-primary/20 bg-primary/5 px-3 py-2 text-sm text-foreground">
+                <strong>{sinColor} equipos disponibles sin color asignado.</strong> Se pueden elegir
+                como blancos, azules o de otro color configurado al serializar el pedido.
+                No se suman por separado a cada color para evitar duplicar el stock.
+              </p>
+            ) : null;
+          })()}
         </section>
       ) : null}
 
