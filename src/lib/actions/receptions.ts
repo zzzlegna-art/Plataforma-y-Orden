@@ -345,7 +345,7 @@ export const confirmReception = (
       serial: item.serial,
       condition: item.condition,
       color: item.color,
-      cost: item.cost
+      cost: item.cost,
       status: "en_bodega",
       receptionId: reception.id,
       receivedAt: reception.receivedAt,
