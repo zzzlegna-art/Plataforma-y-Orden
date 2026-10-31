@@ -45,6 +45,7 @@ import {
 } from "@/lib/actions/orders";
 import { exportExcel, exportOrderSerialRelationPdf, exportSalesInvoicePdf } from "@/lib/export";
 import { formatCurrency, formatDate, todayIso } from "@/lib/format";
+import { costoSugeridoColor } from "@/lib/color-variants";
 import { findUnitBySerial, getOrderView } from "@/lib/selectors";
 import type { UnitCondition } from "@/lib/types";
 import { OrderLineCard } from "./OrderLineCard";
@@ -132,7 +133,7 @@ const PedidoDetalle = () => {
     },
     lines: lines.map((line) => ({
       reference: line.product?.sku ?? "—",
-      product: line.product?.name ?? "Producto sin nombre",
+      product: `${line.product?.name ?? "Producto sin nombre"}${line.item.color ? ` · ${line.item.color}` : ""}`,
       condition: line.esRepuesto ? "No aplica" : line.item.condition ? t(`condition.${line.item.condition}`) : "—",
       quantity: line.item.quantity,
       unitPrice: line.item.unitPrice,
@@ -489,7 +490,7 @@ const PedidoDetalle = () => {
                 customer: customer?.name ?? "Sin cliente",
                 orderDate: formatDate(order.orderDate),
                 lines: lines.map((line) => ({
-                  reference: line.product?.name ?? "Producto sin nombre",
+                  reference: `${line.product?.name ?? "Producto sin nombre"}${line.item.color ? ` · ${line.item.color}` : ""}`,
                   condition: line.esRepuesto ? "No aplica" : t(`condition.${line.item.condition}`),
                   quantity: line.item.quantity,
                   serials: line.units.map((unit) => unit.serial),
@@ -539,7 +540,7 @@ const PedidoDetalle = () => {
                   columns: ["Referencia", "Producto", "Condición", "Cantidad", "Precio unitario", "Subtotal"],
                   rows: lines.map((line) => [
                     line.product?.sku ?? "—",
-                    line.product?.name ?? "Producto sin nombre",
+                    `${line.product?.name ?? "Producto sin nombre"}${line.item.color ? ` · ${line.item.color}` : ""}`,
                     line.esRepuesto ? "No aplica" : line.item.condition ? t(`condition.${line.item.condition}`) : "—",
                     line.item.quantity,
                     line.item.unitPrice,
@@ -607,7 +608,7 @@ const PedidoDetalle = () => {
         {lines.map((line) => {
           const costos = line.units.length > 0
             ? line.units.map((unit) => unit.cost ?? line.product?.cost ?? 0)
-            : [line.product?.cost ?? 0];
+            : [line.product ? costoSugeridoColor(line.product, line.item.color) : 0];
           const costoReferencia = Math.max(0, ...costos);
           const precioBajoCosto = line.item.unitPrice < costoReferencia;
           const editandoPrecio = lineaPrecioEditando === line.item.id;
