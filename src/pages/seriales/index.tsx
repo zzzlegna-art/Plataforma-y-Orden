@@ -25,6 +25,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { OptionSelect } from "@/components/shared/option-select";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { usePermissions } from "@/hooks/use-permissions";
@@ -32,6 +33,7 @@ import { useRunAction } from "@/hooks/use-run-action";
 import { useStore } from "@/hooks/use-store";
 import {
   corregirUnitSerial,
+  asignarColorUnit,
   liberarUnit,
   reingresarUnit,
   reportarNovedad,
@@ -82,7 +84,7 @@ const HistorialSerial = ({ embedded = false }: { embedded?: boolean }) => {
   const { t } = useTranslation();
   const { db } = useStore();
   const runAction = useRunAction();
-  const { isAdmin } = usePermissions();
+  const { isAdmin, can } = usePermissions();
   const [params, setParams] = useSearchParams();
   const [search, setSearch] = useState(params.get("serial") ?? "");
 
@@ -349,6 +351,29 @@ const HistorialSerial = ({ embedded = false }: { embedded?: boolean }) => {
               </div>
             </div>
 
+            {(product?.colorVariants?.length ?? 0) > 0 ? (
+              <div className="mt-4 flex flex-wrap items-center gap-3 rounded-xl border border-primary/20 bg-primary/5 p-3">
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs font-bold text-foreground">Color del IMEI</p>
+                  <p className="mt-1 text-sm text-muted-foreground">{unit.color || "Sin color asignado"}</p>
+                  <p className="mt-1 text-xs text-muted-foreground">Los equipos ya registrados pueden clasificarse sin crear otra referencia.</p>
+                </div>
+                {can("inventory.manage") && ["en_bodega","en_local","defectuoso"].includes(unit.status) ? (
+                  <div className="w-full max-w-[240px]">
+                    <OptionSelect value={unit.color || undefined}
+                      placeholder="Asignar color"
+                      options={(product?.colorVariants ?? []).map((v) => ({value:v.color,label:v.color}))}
+                      onChange={(color) => void runAction((db2, actor) =>
+                        asignarColorUnit(db2, actor, { id: unit.id, color }),
+                        { success: "unit.updated" },
+                      )}
+                    />
+                  </div>
+                ) : null}
+              </div>
+            ) : unit.color ? (
+              <p className="mt-3 text-sm text-muted-foreground">Color: <strong>{unit.color}</strong></p>
+            ) : null}
             <div className="mt-4 grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-4">
               <div>
                 <p className="text-xs uppercase tracking-wide text-muted-foreground">
