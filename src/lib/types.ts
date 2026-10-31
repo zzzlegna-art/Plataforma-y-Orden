@@ -176,6 +176,15 @@ export type ProductTechnicalSpecs = Partial<Record<ProductTechnicalSpecKey, stri
   customFields?: ProductCustomTechnicalSpec[];
 };
 
+export interface ProductColorVariant {
+  /** Nombre comercial del color dentro de esta referencia; ej. Blanco, Azul, Borgoña. */
+  color: string;
+  /** Costo de referencia por color. El IMEI conserva el costo real de compra. */
+  cost: number;
+  /** Precio de venta sugerido del color. Se puede ajustar antes de confirmar venta. */
+  price: number;
+}
+
 export interface Product {
   id: string;
   sku: string;
@@ -183,6 +192,7 @@ export interface Product {
   description?: string;
   imageUrl?: string;
   technicalSpecs?: ProductTechnicalSpecs;
+  colorVariants?: ProductColorVariant[];
   categoryId?: string;
   brandId?: string;
   categoria?: ProductCategory;
@@ -214,6 +224,7 @@ export interface Reception {
 /** Línea en captura de una recepción; se convierte en unidad al confirmar. */
 export interface ReceptionItem {
   id: string;
+  color?: string;
   receptionId: string;
   productId: string;
   serial: string;
@@ -224,6 +235,7 @@ export interface ReceptionItem {
 
 export interface Unit {
   id: string;
+  color?: string;
   productId: string;
   serial: string;
   condition: UnitCondition;
@@ -287,6 +299,7 @@ export interface Order {
 
 export interface OrderItem {
   id: string;
+  color?: string;
   orderId: string;
   productId: string;
   quantity: number;
