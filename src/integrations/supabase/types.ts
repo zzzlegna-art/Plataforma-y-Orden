@@ -388,6 +388,7 @@ export type Database = {
       }
       bodega_products: {
         Row: {
+          color_variants: Json
           brand_id: string | null
           categoria: string | null
           category_id: string | null
@@ -408,6 +409,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          color_variants?: Json
           brand_id?: string | null
           categoria?: string | null
           category_id?: string | null
@@ -428,6 +430,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          color_variants?: Json
           brand_id?: string | null
           categoria?: string | null
           category_id?: string | null
