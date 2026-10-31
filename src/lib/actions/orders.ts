@@ -363,9 +363,8 @@ export const serializarImeiPedido = (
   // El color se fija aquí, no en recepción. Nunca sobrescribir uno ya identificado.
   if (linea.color && !unit.color) {
     unit.color = linea.color;
-    // El costo real ingresado en recepción tiene prioridad; de lo contrario
-    // se toma el costo de la variante para validar precio y conservar trazabilidad.
-    if (unit.cost === undefined) unit.cost = costoSugeridoColor(product!, linea.color);
+    // No fijar un costo estimado en la unidad: si no tiene costo real de recepción,
+    // la validación final tomará el costo del color vigente en el pedido.
   }
   db.orderItemUnits.push({ id: createId(), orderItemId: linea.id, unitId: unit.id, createdAt: nowIso() });
   // La asignación también forma parte de la vida del serial, aunque el pedido
@@ -721,7 +720,8 @@ export const agregarSerialDespachado = (
   if (item.color && !unit.color) {
     unit.color = item.color;
     const product = db.products.find((p) => p.id === unit.productId);
-    if (unit.cost === undefined && product) unit.cost = costoSugeridoColor(product, item.color);
+    // Respetar cualquier costo real de recepción. Si falta, la línea usa
+    // el costo sugerido del color cuando se valide la venta.
   }
   db.orderItemUnits.push({ id: createId(), orderItemId: item.id, unitId: unit.id, createdAt: nowIso() });
   unit.status = "vendido";
