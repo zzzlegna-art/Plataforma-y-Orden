@@ -67,7 +67,7 @@ export const DiagnosticoDialog = ({
           costo: costo ? Number(costo) : undefined,
           replacementUnitId: esCambio ? replacementUnitId : undefined,
         }),
-      { success: "warranty.diagnosed" },
+      { success: "warranty.diagnosed", key: `garantia-diagnostico:${warranty.id}` },
     );
     if (result) {
       setOpen(false);
@@ -202,7 +202,7 @@ export const EntregarDialog = ({
           reembolso: reembolsoElegido,
           destinoDefectuoso: defectuoso ? (conCliente ? destinoDefectuoso : "bodega") : undefined,
         }),
-      { success: aBodega ? "warranty.returnedToStock" : "warranty.delivered" },
+      { success: aBodega ? "warranty.returnedToStock" : "warranty.delivered", key: `garantia-entrega:${warranty.id}` },
     );
     if (result) {
       setOpen(false);
@@ -361,7 +361,7 @@ export const DevolverDialog = ({
   const save = async () => {
     const result = await runAction(
       (db, actor) => devolverGarantia(db, actor, { warrantyId: warranty.id, motivo }),
-      { success: "warranty.returned" },
+      { success: "warranty.returned", key: `garantia-devolver:${warranty.id}` },
     );
     if (result) {
       setOpen(false);
