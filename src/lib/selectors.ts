@@ -122,6 +122,27 @@ export const unidadesFueraPorGarantia = (db: Db): Set<string> => {
  * calculan solo con esas unidades (nuevas o seminuevas), de modo que un informe
  * o un filtro de "nuevos" nunca mezcle seminuevos.
  */
+/**
+ * IMEI descontados del stock operativo al confirmar la serialización.
+ *
+ * Se deriva de las relaciones del pedido, sin cambiar el estado físico de las unidades
+ * ni el esquema persistido. Así se conserva su ubicación real (bodega/local),
+ * se evitan ventas prematuras y la reversión al reabrir/cancelar es automática.
+ * Las asignaciones de pedidos que aún se están serializando no descuentan stock.
+ */
+export const unidadesDescontadasPorPreparacion = (db: Db): Set<string> => {
+  const preparados = new Set(db.orders.filter((order) => order.status === "preparado").map((order) => order.id));
+  if (!preparados.size) return new Set();
+  const lineasPreparadas = new Set(
+    db.orderItems.filter((item) => preparados.has(item.orderId)).map((item) => item.id),
+  );
+  return new Set(
+    db.orderItemUnits
+      .filter((row) => lineasPreparadas.has(row.orderItemId))
+      .map((row) => row.unitId),
+  );
+};
+
 export const getProductStock = (
   db: Db,
   productId: string,
@@ -132,6 +153,7 @@ export const getProductStock = (
     db.units.filter((unit) => unit.productId === productId),
     condicion,
     unidadesFueraPorGarantia(db),
+    unidadesDescontadasPorPreparacion(db),
     esCelular(db, db.products.find((item) => item.id === productId)),
   );
 
@@ -145,6 +167,7 @@ function construirStock(
   unidades: Unit[],
   condicion: UnitCondition | undefined,
   fueraPorGarantia: Set<string>,
+  descontadasPorPreparacion: Set<string>,
   esCelularProducto: boolean,
 ): ProductStock {
   const stock: ProductStock = {
@@ -177,11 +200,12 @@ function construirStock(
     .filter((unit) => (condicion ? unit.condition === condicion : true))
     .forEach((unit) => {
       const esInventarioPropio = !fuera.has(unit.id);
+      const descontada = descontadasPorPreparacion.has(unit.id);
       stock.total += 1;
       if (unit.condition === "nuevo") stock.nuevo += 1;
       else stock.seminuevo += 1;
-      if (unit.status === "en_bodega") stock.enBodega += 1;
-      if (unit.status === "en_local") stock.enLocal += 1;
+      if (unit.status === "en_bodega" && !descontada) stock.enBodega += 1;
+      if (unit.status === "en_local" && !descontada) stock.enLocal += 1;
       if (unit.status === "en_transito") stock.enTransito += 1;
       if (unit.status === "vendido") stock.vendido += 1;
       // Un equipo de cliente en garantía no se cuenta como reparación propia.
@@ -189,12 +213,12 @@ function construirStock(
       if (esInventarioPropio && unit.status === "defectuoso") stock.defectuoso += 1;
       if (unit.status === "entregado_garantia") stock.entregadoGarantia += 1;
       if (unit.status === "liberado") stock.liberado += 1;
-      if (unit.status === "en_bodega" || unit.status === "en_local") {
+      if (!descontada && (unit.status === "en_bodega" || unit.status === "en_local")) {
         if (unit.condition === "nuevo") stock.nuevoDisponible += 1;
         else stock.seminuevoDisponible += 1;
       }
 
-      if (esInventarioPropio && ESTADOS_EN_INVENTARIO.includes(unit.status)) {
+      if (esInventarioPropio && !descontada && ESTADOS_EN_INVENTARIO.includes(unit.status)) {
         stock.enInventario += 1;
         if (unit.condition === "nuevo") stock.nuevoEnInventario += 1;
         else stock.seminuevoEnInventario += 1;
@@ -226,6 +250,7 @@ export interface ProductRow {
 
 export const getProductRows = (db: Db, condicion?: UnitCondition): ProductRow[] => {
   const fuera = unidadesFueraPorGarantia(db);
+  const descontadas = unidadesDescontadasPorPreparacion(db);
   const unidadesPorProducto = agrupar(db.units, (unit) => unit.productId);
   const categorias = porId(db.categories);
   const marcas = porId(db.brands);
@@ -237,6 +262,7 @@ export const getProductRows = (db: Db, condicion?: UnitCondition): ProductRow[] 
       unidadesPorProducto.get(product.id) ?? [],
       condicion,
       fuera,
+      descontadas,
       esCelular(db, product),
     ),
     category: product.categoryId ? categorias.get(product.categoryId) : undefined,
@@ -771,14 +797,16 @@ const OPEN_ORDER_STATUSES = ["en_preparacion"];
 export const getDashboard = (db: Db): DashboardData => {
   const rows = getProductRows(db);
   const productos = porId(db.products);
+  const descontadas = unidadesDescontadasPorPreparacion(db);
   const available = db.units.filter(
-    (unit) => unit.status === "en_bodega" || unit.status === "en_local",
+    (unit) => !descontadas.has(unit.id) && (unit.status === "en_bodega" || unit.status === "en_local"),
   ).length;
   const fueraPorGarantia = unidadesFueraPorGarantia(db);
   const inventoryValue = db.units
     .filter(
       (unit) =>
         !fueraPorGarantia.has(unit.id) &&
+        !descontadas.has(unit.id) &&
         (unit.status === "en_bodega" ||
           unit.status === "en_local" ||
           unit.status === "en_reparacion" ||
