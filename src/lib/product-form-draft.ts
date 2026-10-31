@@ -18,6 +18,8 @@ export interface ProductFormDraft {
   form: ProductFormValues;
   technicalSpecs: ProductTechnicalSpecs;
   colorVariants?: ProductColorVariant[];
+  /** Fecha de la ficha al comenzar la edición: no restaurar borradores obsoletos. */
+  sourceUpdatedAt?: string;
   skuManual: boolean;
   removeImage: boolean;
 }
@@ -97,6 +99,7 @@ export const readProductFormDraft = (
       colorVariants: Array.isArray(parsed.colorVariants)
         ? (parsed.colorVariants as ProductColorVariant[])
         : undefined,
+      sourceUpdatedAt: typeof parsed.sourceUpdatedAt === "string" ? parsed.sourceUpdatedAt : undefined,
       skuManual: typeof parsed.skuManual === "boolean" ? parsed.skuManual : false,
       removeImage: typeof parsed.removeImage === "boolean" ? parsed.removeImage : false,
     };
