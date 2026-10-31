@@ -9,6 +9,7 @@ import {
   nowIso,
 } from "../db";
 import type { Actor, Db, Reception, ReceptionItem, Unit, UnitCondition } from "../types";
+import { costoSugeridoColor, normalizarColor, variantePorColor } from "../color-variants";
 import { errorDeSerialCelular, normalizarImei } from "../imei";
 import { esProductoRepuesto } from "../products";
 import { isSameText, normalizeText, requirePermission, requireText } from "./guards";
@@ -134,6 +135,7 @@ export const addReceptionItem = (
     serial?: string;
     condition: UnitCondition;
     cost?: number;
+    color?: string;
     quantity?: number;
   },
 ): ReceptionItem[] => {
@@ -144,6 +146,11 @@ export const addReceptionItem = (
   if (!product) throw new DomainError("errors.productRequired");
 
   const isRepuesto = esProductoRepuesto(db, product);
+  const variantes = product.colorVariants ?? [];
+  const color = normalizarColor(input.color);
+  if (!isRepuesto && variantes.length && (!color || !variantePorColor(product, color))) {
+    throw new DomainError("Selecciona un color válido de la referencia antes de recibir el IMEI.");
+  }
   const quantity = isRepuesto
     ? Math.min(Math.max(Math.trunc(input.quantity ?? 1), 1), 500)
     : 1;
@@ -181,7 +188,8 @@ export const addReceptionItem = (
       productId: input.productId,
       serial,
       condition: input.condition,
-      cost: input.cost !== undefined && input.cost > 0 ? input.cost : undefined,
+      color: color || undefined,
+      cost: input.cost !== undefined && input.cost > 0 ? input.cost : (color ? costoSugeridoColor(product, color) : undefined),
       createdAt: nowIso(),
     };
     db.receptionItems.push(item);
@@ -193,7 +201,7 @@ export const addReceptionItem = (
 export const updateReceptionItem = (
   db: Db,
   actor: Actor,
-  input: { id: string; productId?: string; serial?: string; condition?: UnitCondition },
+  input: { id: string; productId?: string; serial?: string; condition?: UnitCondition; color?: string },
 ) => {
   requirePermission(actor, "receptions.manage");
   const item = db.receptionItems.find((row) => row.id === input.id);
@@ -227,6 +235,14 @@ export const updateReceptionItem = (
   }
   if (input.productId) item.productId = input.productId;
   if (input.condition) item.condition = input.condition;
+  if (input.color !== undefined || input.productId) {
+    const color = normalizarColor(input.color ?? (input.productId ? "" : item.color));
+    if (productoFinal?.colorVariants?.length && (!color || !variantePorColor(productoFinal, color))) {
+      throw new DomainError("Selecciona un color válido para el modelo.");
+    }
+    item.color = color || undefined;
+    if (productoFinal && color) item.cost = costoSugeridoColor(productoFinal, color);
+  }
   return item;
 };
 
@@ -304,6 +320,7 @@ export const confirmReception = (
       // Reingreso: se reactiva la unidad existente conservando su historial.
       liberada.productId = item.productId;
       liberada.condition = item.condition;
+      liberada.color = item.color;
       liberada.cost = item.cost;
       liberada.status = "en_bodega";
       liberada.receptionId = reception.id;
@@ -327,7 +344,8 @@ export const confirmReception = (
       productId: item.productId,
       serial: item.serial,
       condition: item.condition,
-      cost: item.cost,
+      color: item.color,
+      cost: item.cost
       status: "en_bodega",
       receptionId: reception.id,
       receivedAt: reception.receivedAt,
