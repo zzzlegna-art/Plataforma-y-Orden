@@ -51,7 +51,7 @@ const agrupar = <T,>(
 export interface ProductStock {
   /** Disponibles para la venta (bodega + local). */
   disponible: number;
-  /** Unidades que siguen dentro del inventario (no incluye vendidas, liberadas ni entregadas por garantía). */
+  /** Stock operativo aún contabilizado: excluye unidades de pedidos con serialización confirmada y las vendidas/liberadas. */
   enInventario: number;
   /** Todas las unidades registradas alguna vez (incluye vendidas y liberadas). */
   total: number;
