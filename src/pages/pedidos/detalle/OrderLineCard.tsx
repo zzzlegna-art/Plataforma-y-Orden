@@ -8,6 +8,7 @@ import { SerialScanInput } from "@/components/shared/serial-scan-input";
 import { ConditionBadge } from "@/components/shared/status-badge";
 import { Button } from "@/components/ui/button";
 import type { OrderLineView } from "@/lib/selectors";
+import { estadoPrecioVentaColor } from "@/lib/color-variants";
 import { cn } from "@/lib/utils";
 
 /** Tarjeta de progreso de una referencia del pedido: cantidad y serialización. */
@@ -44,6 +45,7 @@ export const OrderLineCard = ({
   destacada?: boolean;
 }) => {
   const { t } = useTranslation();
+  const estadoPrecio = estadoPrecioVentaColor(line.product, line.item.color, line.item.unitPrice);
   const [imageFailed, setImageFailed] = useState(false);
   const pct = Math.min(100, Math.round((line.serializados / line.item.quantity) * 100));
   const complete = line.serializados >= line.item.quantity;
@@ -186,9 +188,9 @@ export const OrderLineCard = ({
                         Cambiar el color actualiza el precio y conserva los {line.serializados} IMEI asignados.
                       </p>
                     ) : null}
-                    {line.item.color && !line.item.unitPrice ? (
+                    {estadoPrecio === "pendiente" ? (
                       <p className="text-[11px] text-amber-700 dark:text-amber-300">
-                        Este color no tiene precio de venta guardado. Revisa la columna «Venta sugerida» en Inventario → Editar producto.
+                        No hay un precio de venta de este color guardado en el servidor. Comprueba «Venta sugerida» en Inventario → Editar producto y verifica que el guardado se complete.
                       </p>
                     ) : null}
                   </>
