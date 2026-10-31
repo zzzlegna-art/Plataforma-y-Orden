@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -25,6 +25,7 @@ export const SupplierFormDialog = ({
 }) => {
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
+  const savingRef = useRef(false);
   const [form, setForm] = useState<SupplierInput>(EMPTY);
   useEffect(() => {
     if (open) setForm(supplier ? { ...supplier } : { ...EMPTY });
@@ -34,7 +35,8 @@ export const SupplierFormDialog = ({
     setForm((prev) => ({ ...prev, [field]: value }));
 
   const save = async () => {
-    if (saving || !form.name.trim()) return;
+    if (savingRef.current || !form.name.trim()) return;
+    savingRef.current = true;
     setSaving(true);
     try {
       const result = await saveSupplier(form, supplier?.id);
@@ -44,12 +46,13 @@ export const SupplierFormDialog = ({
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "No se pudo guardar el proveedor");
     } finally {
+      savingRef.current = false;
       setSaving(false);
     }
   };
 
   return (
-    <Dialog open={open} onOpenChange={(value) => { if (!saving) setOpen(value); }}>
+    <Dialog open={open} onOpenChange={(value) => { if (!savingRef.current) setOpen(value); }}>
       <DialogTrigger asChild>{trigger}</DialogTrigger>
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-xl">
         <DialogHeader>
