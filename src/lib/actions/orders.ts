@@ -8,6 +8,7 @@
 import { createId, DomainError, logAudit, logMovement, nextDailyCode, nowIso } from "../db";
 import { diaBogota, hoyBogota } from "../dates";
 import type { Actor, Db, Order, OrderItem, OrderStatus, Unit, UnitCondition } from "../types";
+import { normalizarColor, precioSugeridoColor, variantePorColor } from "../color-variants";
 import { esProductoRepuesto } from "../products";
 import { requireNumber, requirePermission } from "./guards";
 
@@ -37,7 +38,16 @@ export interface PedidoLineaInput {
   productId: string;
   quantity: number;
   condition?: UnitCondition;
+  color?: string;
 }
+
+const validarColorPedido = (product: import("../types").Product, raw?: string): string | undefined => {
+  const color = normalizarColor(raw);
+  if (!product.colorVariants?.length) return undefined;
+  const variante = variantePorColor(product, color);
+  if (!variante) throw new DomainError("Selecciona un color válido de la referencia.");
+  return variante.color;
+};
 
 /** Condición aplicable según la categoría del producto. */
 export const condicionParaProducto = (categoria?: string): UnitCondition => {
@@ -56,6 +66,8 @@ const buildLineas = (
     const product = db.products.find((item) => item.id === linea.productId);
     if (!product) throw new DomainError("errors.productRequired");
     const quantity = requireNumber(linea.quantity, "errors.invalidQuantity", 1);
+    const color = validarColorPedido(product, linea.color);
+    const precio = precioSugeridoColor(product, color);
     const condition: UnitCondition =
       product.categoria === "repuesto" ? "nuevo" : (linea.condition ?? "nuevo");
     return {
@@ -64,8 +76,9 @@ const buildLineas = (
       productId: product.id,
       quantity,
       condition,
-      unitPrice: product.price,
-      subtotal: quantity * product.price,
+      color,
+      unitPrice: precio,
+      subtotal: quantity * precio,
     };
   });
 };
@@ -110,7 +123,7 @@ export const createOrder = (
 export const agregarReferenciaPedido = (
   db: Db,
   actor: Actor,
-  input: { orderId: string; productId: string; quantity: number; condition?: UnitCondition },
+  input: { orderId: string; productId: string; quantity: number; condition?: UnitCondition; color?: string },
 ): OrderItem => {
   requirePermission(actor, "orders.manage");
   const order = findOrder(db, input.orderId);
@@ -118,6 +131,8 @@ export const agregarReferenciaPedido = (
   const product = db.products.find((item) => item.id === input.productId);
   if (!product) throw new DomainError("errors.productRequired");
   const quantity = requireNumber(input.quantity, "errors.invalidQuantity", 1);
+  const color = validarColorPedido(product, input.color);
+  const precio = precioSugeridoColor(product, color);
   const condition: UnitCondition =
     product.categoria === "repuesto" ? "nuevo" : (input.condition ?? "nuevo");
 
@@ -125,7 +140,8 @@ export const agregarReferenciaPedido = (
     (item) =>
       item.orderId === order.id &&
       item.productId === product.id &&
-      item.condition === condition,
+      item.condition === condition &&
+      (item.color ?? "") === (color ?? ""),
   );
   if (existente) {
     existente.quantity += quantity;
@@ -139,10 +155,36 @@ export const agregarReferenciaPedido = (
     productId: product.id,
     quantity,
     condition,
-    unitPrice: product.price,
-    subtotal: quantity * product.price,
+    color,
+    unitPrice: precio,
+    subtotal: quantity * precio,
   };
   db.orderItems.push(item);
+  recalcularTotalPedido(db, order);
+  return item;
+};
+
+/** Cambia color de una línea sin IMEI, y actualiza el precio sugerido (sin crear otra SKU). */
+export const cambiarColorReferenciaPedido = (
+  db: Db, actor: Actor, input: { orderItemId: string; color: string },
+): OrderItem => {
+  requirePermission(actor, "orders.manage");
+  const item = db.orderItems.find((row) => row.id === input.orderItemId);
+  if (!item) throw new DomainError("errors.notFound");
+  const order = findOrder(db, item.orderId);
+  assertEnPreparacion(order);
+  if (db.orderItemUnits.some((a) => a.orderItemId === item.id)) {
+    throw new DomainError("Retira los IMEI asignados antes de cambiar el color.");
+  }
+  const product = db.products.find((p) => p.id === item.productId);
+  if (!product) throw new DomainError("errors.notFound");
+  const color = validarColorPedido(product, input.color);
+  if (db.orderItems.some((r) => r.id !== item.id && r.orderId === order.id && r.productId === item.productId && r.condition === item.condition && r.color === color)) {
+    throw new DomainError("Ya existe una línea de este color. Ajusta su cantidad.");
+  }
+  item.color = color;
+  item.unitPrice = precioSugeridoColor(product, color);
+  item.subtotal = item.unitPrice * item.quantity;
   recalcularTotalPedido(db, order);
   return item;
 };
@@ -272,7 +314,8 @@ export const serializarImeiPedido = (
     (item) =>
       item.orderId === order.id &&
       item.productId === unit.productId &&
-      item.condition === unit.condition,
+      item.condition === unit.condition &&
+      (!item.color || normalizarColor(item.color).toLocaleLowerCase("es") === normalizarColor(unit.color).toLocaleLowerCase("es")),
   );
   const linea = lineas.find((item) => {
     const asignados = db.orderItemUnits.filter((row) => row.orderItemId === item.id).length;
@@ -404,7 +447,7 @@ const validarAsignacionesPedido = (db: Db, order: Order, items: OrderItem[]) => 
       idsAsignados.add(row.unitId);
       const unit = db.units.find((u) => u.id === row.unitId);
       if (!unit) throw new DomainError("errors.notFound");
-      if (unit.productId !== item.productId || (item.condition && unit.condition !== item.condition)) {
+      if (unit.productId !== item.productId || (item.condition && unit.condition !== item.condition) || (item.color && normalizarColor(unit.color).toLocaleLowerCase("es") !== normalizarColor(item.color).toLocaleLowerCase("es"))) {
         throw new DomainError("errors.unitProductMismatch");
       }
       if (unit.status !== "en_bodega" && unit.status !== "en_local") {
@@ -627,7 +670,7 @@ export const agregarSerialDespachado = (
   if (db.orderItemUnits.some((row) => row.orderItemId === item.id && row.unitId === unit.id)) {
     throw new DomainError("errors.unitAlreadyAssigned");
   }
-  if (unit.productId !== item.productId || unit.condition !== item.condition) {
+  if (unit.productId !== item.productId || unit.condition !== item.condition || (item.color && normalizarColor(unit.color).toLocaleLowerCase("es") !== normalizarColor(item.color).toLocaleLowerCase("es"))) {
     throw new DomainError("errors.serialMustMatchLine");
   }
 
