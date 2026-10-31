@@ -377,12 +377,12 @@ const PedidoDetalle = () => {
                 trigger={
                   <Button disabled={pending > 0 || runAction.pending} loading={runAction.pending}>
                     <Check />
-                    {t("order.confirmPreparation")}
+                    Confirmar serialización
                   </Button>
                 }
-                title="Confirmar preparación del pedido"
-                description={`Se reservarán ${requested} unidades verificadas para este pedido. No se marcarán como vendidas ni se registrará salida del inventario hasta la segunda confirmación.`}
-                confirmLabel="Confirmar preparación"
+                title="Confirmar serialización y descontar stock"
+                description={`Los ${requestedSerial} seriales asignados dejarán de contarse en el inventario disponible desde ahora. El pedido quedará pendiente de confirmar precios y venta. Todavía no se marcarán como vendidos ni se registrará un despacho.`}
+                confirmLabel="Confirmar seriales y descontar"
                 onConfirm={confirmarPreparacion}
               />
               {isAdmin ? (
@@ -412,7 +412,7 @@ const PedidoDetalle = () => {
                     </Button>
                   }
                   title="Regresar a serialización"
-                  description="El pedido volverá a En preparación para que puedas seguir asignando, reemplazando o corrigiendo seriales. Se conservarán todos los IMEI ya asignados y no se registrará ninguna venta ni salida de inventario. Cuando termines, confirma la preparación nuevamente."
+                  description="El pedido volverá a En preparación para seguir asignando o corrigiendo IMEI. Se conservarán todos los seriales ya ingresados; el descuento del stock disponible se revertirá temporalmente hasta que confirmes otra vez la serialización. No se registrará ninguna venta."
                   confirmLabel="Volver a serialización"
                   onConfirm={regresarASerializacion}
                 />
@@ -421,12 +421,12 @@ const PedidoDetalle = () => {
                 trigger={
                   <Button disabled={runAction.pending} loading={runAction.pending}>
                     <Check />
-                    {t("order.confirmSale")}
+                    Confirmar precios y venta
                   </Button>
                 }
-                title="Confirmar venta y despacho"
-                description="Esta segunda confirmación registra la salida del inventario y marca las unidades como vendidas. Se validará que los precios no sean inferiores al costo real de cada unidad."
-                confirmLabel="Confirmar venta y despacho"
+                title="Confirmar precios, venta y despacho"
+                description="Los IMEI ya se descontaron del inventario disponible al confirmar la serialización. Ahora se validarán los precios frente al costo de cada unidad y se registrará la venta y el despacho, sin volver a descontar esas unidades."
+                confirmLabel="Confirmar precios y venta"
                 onConfirm={confirmarVenta}
               />
               {isAdmin ? (
