@@ -91,7 +91,7 @@ const NuevoPedido = () => {
       if (row.unitId !== unitId) return false;
       const item = db.orderItems.find((i) => i.id === row.orderItemId);
       const order = item ? db.orders.find((o) => o.id === item.orderId) : undefined;
-      return order && order.status === "en_preparacion";
+      return order && (order.status === "en_preparacion" || order.status === "preparado");
     });
 
   const disponiblesDe = (productId: string, cond: UnitCondition | undefined, color?: string) =>
