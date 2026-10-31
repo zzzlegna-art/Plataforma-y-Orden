@@ -183,6 +183,40 @@ const ProductoDetalle = () => {
       </div>
 
       <StockSummary stock={stock} />
+      {(product.colorVariants?.length ?? 0) > 0 ? (
+        <section className="rounded-2xl border border-primary/20 bg-card p-4 sm:p-5">
+          <h2 className="text-base font-bold">Stock y precios por color</h2>
+          <p className="mt-1 text-xs text-muted-foreground">Una sola referencia y SKU, con tarifas independientes por color.</p>
+          <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+            {product.colorVariants?.map((variant) => {
+              const asignados = new Set(db.orderItemUnits.filter((assignment) => {
+                const linea = db.orderItems.find((i) => i.id === assignment.orderItemId);
+                const pedido = linea && db.orders.find((o) => o.id === linea.orderId);
+                return pedido?.status === "preparado" || pedido?.status === "en_preparacion";
+              }).map((assignment) => assignment.unitId));
+              const disponibles = units.filter(({ unit }) =>
+                (unit.color ?? "").toLowerCase() === variant.color.toLowerCase() &&
+                ["en_bodega","en_local"].includes(unit.status) && !asignados.has(unit.id),
+              ).length;
+              return (
+                <div key={variant.color} className="rounded-xl border bg-background/80 p-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <strong className="text-sm">{variant.color}</strong>
+                    <span className="rounded-full bg-primary/10 px-2 py-1 text-xs font-semibold text-primary">{disponibles} disponibles</span>
+                  </div>
+                  <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
+                    <div><p className="text-muted-foreground">Costo sugerido</p><p className="font-tabular mt-1 font-bold">{formatCurrency(variant.cost)}</p></div>
+                    <div><p className="text-muted-foreground">Venta sugerida</p><p className="font-tabular mt-1 font-bold">{formatCurrency(variant.price)}</p></div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          {units.some(({ unit }) => !unit.color && ["en_bodega","en_local"].includes(unit.status)) ? (
+            <p className="mt-3 text-xs text-warning">Tienes IMEI antiguos sin color; puedes asignarlo desde Seriales sin volver a recibirlos.</p>
+          ) : null}
+        </section>
+      ) : null}
 
       {product.description ? (
         <p className="rounded-lg border bg-card p-4 text-sm text-muted-foreground">
