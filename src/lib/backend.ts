@@ -174,6 +174,7 @@ const ESPECIFICACIONES: Spec<unknown>[] = [
       description: nulo(p.description),
       image_url: nulo(p.imageUrl),
       technical_specs: p.technicalSpecs ?? {},
+      color_variants: p.colorVariants ?? [],
       category_id: nulo(p.categoryId),
       brand_id: nulo(p.brandId),
       categoria: nulo(p.categoria),
@@ -191,6 +192,7 @@ const ESPECIFICACIONES: Spec<unknown>[] = [
       name: texto(f.name) ?? "Sin nombre",
       description: texto(f.description) ?? undefined,
       imageUrl: texto(f.image_url) ?? undefined,
+      colorVariants: Array.isArray(f.color_variants) ? (f.color_variants as Product["colorVariants"]) : [],
       // Mantener los valores originales de la base para que el guardado optimista
       // compare contra la misma ficha y no contra texto ya normalizado en el cliente.
       technicalSpecs: getProductTechnicalSpecsForCategory(
@@ -292,6 +294,7 @@ const ESPECIFICACIONES: Spec<unknown>[] = [
       quantity: numero(i.quantity),
       unit_condition: nulo(i.condition),
       unit_price: numero(i.unitPrice),
+      color: nulo(i.color),
       subtotal: numero(i.subtotal),
     }),
     desdeFila: (f) => ({
@@ -301,6 +304,7 @@ const ESPECIFICACIONES: Spec<unknown>[] = [
       quantity: numero(f.quantity),
       condition: (texto(f.unit_condition) as OrderItem["condition"]) ?? undefined,
       unitPrice: numero(f.unit_price),
+      color: texto(f.color) ?? undefined,
       subtotal: numero(f.subtotal),
     }),
   }),
@@ -369,6 +373,7 @@ const ESPECIFICACIONES: Spec<unknown>[] = [
       product_id: i.productId,
       serial: i.serial,
       unit_condition: i.condition,
+      color: nulo(i.color),
       cost: nulo(i.cost),
       created_at: i.createdAt,
     }),
@@ -377,6 +382,7 @@ const ESPECIFICACIONES: Spec<unknown>[] = [
       receptionId: String(f.reception_id),
       productId: texto(f.product_id) ?? "",
       serial: texto(f.serial) ?? "",
+      color: texto(f.color) ?? undefined,
       condition: (texto(f.unit_condition) as ReceptionItem["condition"]) ?? "nuevo",
       cost: f.cost === null || f.cost === undefined ? undefined : numero(f.cost),
       createdAt: fecha(f.created_at),
@@ -390,6 +396,7 @@ const ESPECIFICACIONES: Spec<unknown>[] = [
       id: u.id,
       product_id: nulo(u.productId),
       serial: u.serial,
+      color: nulo(u.color),
       unit_condition: u.condition,
       status: u.status,
       cost: nulo(u.cost),
@@ -403,6 +410,7 @@ const ESPECIFICACIONES: Spec<unknown>[] = [
       id: String(f.id),
       productId: texto(f.product_id) ?? "",
       serial: texto(f.serial) ?? "",
+      color: texto(f.color) ?? undefined,
       condition: (texto(f.unit_condition) as Unit["condition"]) ?? "nuevo",
       status: (texto(f.status) as Unit["status"]) ?? "en_bodega",
       cost: f.cost === null || f.cost === undefined ? undefined : numero(f.cost),
