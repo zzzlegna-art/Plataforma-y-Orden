@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Building2, PencilLine, Plus, RefreshCw, Search } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -14,15 +14,24 @@ const Proveedores = ({ embedded = false }: { embedded?: boolean }) => {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [showInactive, setShowInactive] = useState(false);
+  const [busySupplierIds, setBusySupplierIds] = useState<Set<string>>(() => new Set());
+  // El ref bloquea el segundo clic inmediatamente, antes de que React actualice el botón.
+  const busySupplierIdsRef = useRef(new Set<string>());
+  // Una consulta lenta nunca debe sobrescribir una recarga más reciente.
+  const latestRefreshRef = useRef(0);
 
   const refresh = useCallback(async () => {
+    const refreshId = ++latestRefreshRef.current;
     setLoading(true);
     try {
-      setSuppliers(await listSuppliers());
+      const nextSuppliers = await listSuppliers();
+      if (refreshId === latestRefreshRef.current) setSuppliers(nextSuppliers);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "No se pudieron cargar los proveedores");
+      if (refreshId === latestRefreshRef.current) {
+        toast.error(error instanceof Error ? error.message : "No se pudieron cargar los proveedores");
+      }
     } finally {
-      setLoading(false);
+      if (refreshId === latestRefreshRef.current) setLoading(false);
     }
   }, []);
 
@@ -38,12 +47,22 @@ const Proveedores = ({ embedded = false }: { embedded?: boolean }) => {
   }, [suppliers, search, showInactive]);
 
   const toggle = async (supplier: Supplier) => {
+    if (busySupplierIdsRef.current.has(supplier.id)) return;
+    busySupplierIdsRef.current.add(supplier.id);
+    setBusySupplierIds((previous) => new Set(previous).add(supplier.id));
     try {
       await setSupplierActive(supplier, !supplier.isActive);
       await refresh();
       toast.success(supplier.isActive ? "Proveedor desactivado" : "Proveedor reactivado");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "No se pudo actualizar el proveedor");
+    } finally {
+      busySupplierIdsRef.current.delete(supplier.id);
+      setBusySupplierIds((previous) => {
+        const next = new Set(previous);
+        next.delete(supplier.id);
+        return next;
+      });
     }
   };
 
@@ -132,10 +151,11 @@ const Proveedores = ({ embedded = false }: { embedded?: boolean }) => {
               </div>
               <div className="mt-4 flex gap-2 border-t pt-3">
                 <SupplierFormDialog supplier={supplier} onSaved={() => void refresh()}
-                  trigger={<Button size="sm" variant="outline" className="flex-1">
+                  trigger={<Button size="sm" variant="outline" className="flex-1" disabled={busySupplierIds.has(supplier.id)}>
                     <PencilLine className="h-4 w-4" /> Editar
                   </Button>} />
-                <Button size="sm" variant="ghost" onClick={() => void toggle(supplier)}>
+                <Button size="sm" variant="ghost" loading={busySupplierIds.has(supplier.id)}
+                  onClick={() => void toggle(supplier)}>
                   {supplier.isActive ? "Desactivar" : "Reactivar"}
                 </Button>
               </div>
