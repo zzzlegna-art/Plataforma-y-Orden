@@ -173,6 +173,30 @@ describe("documentos comerciales de pedido", () => {
     expect(pdf).toContain("TOTAL COMERCIAL");
   });
 
+  it("imprime en CARTA vertical y mantiene diez referencias y el total en la misma página", () => {
+    const doc = exportSalesInvoicePdf({
+      ...input,
+      orderCode: "PED-261028-004",
+      customer: { ...input.customer, name: "Ricardo Cali" },
+      lines: Array.from({ length: 10 }, (_, index) => ({
+        reference: `IP${12 + index}PM-256`,
+        product: `iPhone ${12 + index} Pro Max 256 GB`,
+        condition: "Seminuevo",
+        quantity: 10 + index,
+        unitPrice: 1996000 - index * 51000,
+        subtotal: (10 + index) * (1996000 - index * 51000),
+      })),
+    });
+    expect(doc.internal.pageSize.getWidth()).toBeCloseTo(612, 0);
+    expect(doc.internal.pageSize.getHeight()).toBeCloseTo(792, 0);
+    expect(doc.getNumberOfPages()).toBe(1);
+    const pdf = doc.output();
+    expect(pdf).toContain("FAC-PED-261028-004");
+    expect(pdf).toContain("IP21PM-256");
+    expect(pdf).toContain("TOTAL COMERCIAL");
+    expect(pdf).toContain("Página 1 de 1");
+  });
+
   it("conserva los precios y el total en facturas extensas con varias páginas y logo oficial", () => {
     const doc = exportSalesInvoicePdf({
       ...input,
