@@ -13,6 +13,9 @@ import { PageHeader } from "@/components/shared/page-header";
 import { Badge, ConditionBadge } from "@/components/shared/status-badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { OptionSelect } from "@/components/shared/option-select";
+import { FormattedNumberInput } from "@/components/shared/formatted-number-input";
+import { costoSugeridoColor, variantePorColor } from "@/lib/color-variants";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
@@ -46,7 +49,7 @@ const IconoSeccion = ({ children }: { children: ReactNode }) => (
   </span>
 );
 
-type LecturaRecepcion = { serial: string; productId: string; condition: UnitCondition; cost: string };
+type LecturaRecepcion = { serial: string; productId: string; condition: UnitCondition; cost: string; color: string };
 type LecturaRechazada = LecturaRecepcion & { motivo: string };
 
 const NuevaRecepcion = () => {
@@ -68,6 +71,7 @@ const NuevaRecepcion = () => {
   );
   const [condition, setCondition] = useState<UnitCondition>("nuevo");
   const [cost, setCost] = useState("");
+  const [color, setColor] = useState("");
   const [repuestoQty, setRepuestoQty] = useState("1");
   const [reference, setReference] = useState("");
   const [supplierId, setSupplierId] = useState("");
@@ -142,7 +146,7 @@ const NuevaRecepcion = () => {
       value === "repuesto"
         ? esProductoRepuesto(db, selectedProduct)
         : selectedProduct.categoria === value;
-    if (!sigueVisible) setProductId("");
+    if (!sigueVisible) { setProductId(""); setColor(""); setCost(""); }
   };
 
   const persistHeader = async (selectedSupplierId = supplierId) => {
@@ -227,6 +231,7 @@ const NuevaRecepcion = () => {
           serial,
           condition: lectura.condition,
           cost: lectura.cost ? Number(lectura.cost) : undefined,
+          color: lectura.color || undefined,
         }),
       );
       if (result) {
@@ -279,7 +284,13 @@ const NuevaRecepcion = () => {
    * Cada lectura conserva la referencia, condición y costo con que se escaneó.
    * Los reintentos reaprovechan esos valores, aunque el formulario haya cambiado.
    */
-  const handleScan = (serial: string) => encolarLectura({ serial, productId, condition, cost });
+  const handleScan = (serial: string) => {
+    if (selectedProduct?.colorVariants?.length && !variantePorColor(selectedProduct, color)) {
+      toast.error("Selecciona el color antes de registrar el IMEI.");
+      return;
+    }
+    encolarLectura({ serial, productId, condition, cost, color });
+  };
   const reintentarLectura = (registro: LecturaRechazada) => {
     const serial = registro.serial.trim().toUpperCase();
     if (procesandoColaRef.current ||
@@ -637,7 +648,7 @@ const NuevaRecepcion = () => {
               <ProductPicker
                 products={productosFiltrados}
                 value={productId}
-                onChange={(id) => { if (pendientes === 0) setProductId(id); }}
+                onChange={(id) => { if (pendientes === 0) { setProductId(id); setColor(""); setCost(""); } }}
                 placeholder={t("product.select")}
               />
               {productosFiltrados.length === 0 ? (
@@ -647,6 +658,37 @@ const NuevaRecepcion = () => {
               ) : null}
             </div>
 
+            {!esRepuesto && (selectedProduct?.colorVariants?.length ?? 0) > 0 ? (
+              <div className="grid gap-3 rounded-2xl border border-primary/20 bg-primary/5 p-3 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label>Color de los equipos</Label>
+                  <OptionSelect
+                    value={color || undefined}
+                    onChange={(nextColor) => {
+                      if (pendientes > 0) return;
+                      setColor(nextColor);
+                      const variant = variantePorColor(selectedProduct, nextColor);
+                      setCost(variant ? String(variant.cost) : "");
+                    }}
+                    options={(selectedProduct?.colorVariants ?? []).map((v) => ({value:v.color,label:v.color}))}
+                    placeholder="Seleccionar color"
+                    disabled={confirmed || pendientes > 0}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Costo de compra por IMEI</Label>
+                  <FormattedNumberInput
+                    value={cost}
+                    onValueChange={setCost}
+                    disabled={confirmed || pendientes > 0}
+                  />
+                </div>
+                <p className="text-xs text-muted-foreground sm:col-span-2">
+                  Puedes registrar primero los 50 blancos y después seleccionar azul y borgoña;
+                  cada lectura conserva el color y costo seleccionados.
+                </p>
+              </div>
+            ) : null}
             {esRepuesto ? (
               <div className="space-y-2">
                 <Label>{t("receptions.quantity")}</Label>
