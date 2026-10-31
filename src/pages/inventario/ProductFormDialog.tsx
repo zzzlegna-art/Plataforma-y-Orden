@@ -287,6 +287,12 @@ export const ProductFormDialog = ({
     }
     setSaving(true);
     let uploadedPath: string | undefined;
+    const uploadedVariantPaths: string[] = [];
+    let persisted = false;
+    const cleanupUploads = async () => {
+      const paths = [...uploadedVariantPaths, ...(uploadedPath ? [uploadedPath] : [])];
+      if (paths.length) await supabase.storage.from(PRODUCT_IMAGE_BUCKET).remove(paths);
+    };
     try {
       let imageUrl: string | null | undefined = product?.imageUrl;
       if (imageFile) {
@@ -308,13 +314,33 @@ export const ProductFormDialog = ({
         imageUrl = null;
       }
 
+      // Foto independiente y opcional por color dentro de la misma referencia.
+      const variantsWithPhotos = colorVariants.map((variant) => ({ ...variant }));
+      if (form.categoria !== "repuesto") {
+        for (const [rawIndex, file] of Object.entries(variantImageFiles)) {
+          const index = Number(rawIndex);
+          if (!variantsWithPhotos[index]) continue;
+          const path = `products/colors/${crypto.randomUUID()}.${getProductImageExtension(file.type)}`;
+          const { error } = await supabase.storage.from(PRODUCT_IMAGE_BUCKET).upload(path, file, {
+            cacheControl: "3600", contentType: file.type, upsert: false,
+          });
+          if (error) {
+            toast.error(`No se pudo subir la foto del color ${variantsWithPhotos[index].color || "seleccionado"}.`);
+            await cleanupUploads();
+            return;
+          }
+          uploadedVariantPaths.push(path);
+          variantsWithPhotos[index].imageUrl = supabase.storage.from(PRODUCT_IMAGE_BUCKET)
+            .getPublicUrl(path).data.publicUrl;
+        }
+      }
       const payload = {
         sku: form.sku,
         name: form.name,
         description: form.description,
         imageUrl,
         technicalSpecs: getProductTechnicalSpecsForCategory(form.categoria, technicalSpecs, technicalEnabled) ?? {},
-        colorVariants: form.categoria === "repuesto" ? [] : colorVariants,
+        colorVariants: form.categoria === "repuesto" ? [] : variantsWithPhotos,
         categoryId: form.categoryId || undefined,
         brandId: form.brandId || undefined,
         categoria: (form.categoria || undefined) as ProductCategory | undefined,
@@ -331,20 +357,10 @@ export const ProductFormDialog = ({
         { key: `guardar-producto:${product?.id ?? "nuevo"}` },
       );
       if (!result) {
-        if (uploadedPath) await supabase.storage.from(PRODUCT_IMAGE_BUCKET).remove([uploadedPath]);
+        await cleanupUploads();
         return;
       }
-
-      const previousPath = getProductImageStoragePath(product?.imageUrl);
-      if (previousPath && previousPath !== uploadedPath && (uploadedPath || removeImage)) {
-        // La nueva referencia ya quedó guardada; si falla la limpieza, la foto vieja
-        // puede quedar huérfana, pero no se afecta el producto ni su inventario.
-        try {
-          await supabase.storage.from(PRODUCT_IMAGE_BUCKET).remove([previousPath]);
-        } catch {
-          // No bloquear un guardado correcto por una limpieza de almacenamiento.
-        }
-      }
+      persisted = true;
       // No cerrar ni borrar el borrador antes de comprobar lo que realmente guardó Supabase.
       // Este control detecta tarifas cero que no coincidían con el formulario.
       const { data: guardado, error: comprobacionError } = await supabase
@@ -355,27 +371,40 @@ export const ProductFormDialog = ({
       if (comprobacionError || !verificarPreciosPorColor(
         payload.colorVariants,
         guardado?.color_variants,
-      )) {
+      ) || !verifyVariantPhotoUrls(payload.colorVariants, guardado?.color_variants)) {
         toast.error(
           "No se pudieron verificar los precios por color en el servidor. " +
           "La ventana permanecerá abierta para que revises los valores.",
         );
         return;
       }
+      // Solo limpiar URLs anteriores que ya no estén enlazadas a ninguna foto.
+      const oldUrls = [
+        product?.imageUrl,
+        ...(product?.colorVariants ?? []).map((v) => v.imageUrl),
+      ].filter((url): url is string => Boolean(url));
+      const stillInUse = new Set([
+        imageUrl,
+        ...payload.colorVariants.map((v) => v.imageUrl),
+      ].filter((url): url is string => Boolean(url)));
+      const oldPaths = oldUrls.filter((url) => !stillInUse.has(url))
+        .map(getProductImageStoragePath)
+        .filter((path): path is string => Boolean(path));
+      if (oldPaths.length) {
+        try { await supabase.storage.from(PRODUCT_IMAGE_BUCKET).remove([...new Set(oldPaths)]); }
+        catch { /* La limpieza es secundaria al guardado exitoso. */ }
+      }
       clearProductFormDraft(draftKey);
+      setVariantImageFiles({});
       setDraftRestored(false);
       setOpen(false);
       toast.success(t(product ? "product.updated" : "product.created"));
       onSaved?.(result);
     } catch {
-      if (uploadedPath) {
-        try {
-          await supabase.storage.from(PRODUCT_IMAGE_BUCKET).remove([uploadedPath]);
-        } catch {
-          // La limpieza es secundaria al error original.
-        }
+      if (!persisted) {
+        try { await cleanupUploads(); } catch { /* Mantener error de escritura original. */ }
       }
-      toast.error(t("product.imageUploadFailed"));
+      toast.error("No se pudo completar el guardado del producto y sus imágenes.");
     } finally {
       setSaving(false);
     }
