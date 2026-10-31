@@ -303,8 +303,19 @@ const validarVariantesColor = (variantes: ProductColorVariant[] | undefined): Pr
     if (!Number.isFinite(variante.cost) || variante.cost < 0 || !Number.isFinite(variante.price) || variante.price < 0) {
       throw new DomainError("Costo y precio por color deben ser valores válidos.");
     }
+    if (variante.swatchHex && !/^#[a-fA-F0-9]{6}$/.test(variante.swatchHex)) {
+      throw new DomainError("El color visual debe tener formato hexadecimal válido.");
+    }
+    const imageUrl = variante.imageUrl?.trim();
+    if (imageUrl && !/^https:\/\//i.test(imageUrl)) {
+      throw new DomainError("La fotografía del color debe ser una dirección HTTPS válida.");
+    }
     nombres.add(id);
-    return { color, cost: variante.cost, price: variante.price };
+    return {
+      color, cost: variante.cost, price: variante.price,
+      ...(imageUrl ? { imageUrl } : {}),
+      ...(variante.swatchHex ? { swatchHex: variante.swatchHex } : {}),
+    };
   });
 };
 
