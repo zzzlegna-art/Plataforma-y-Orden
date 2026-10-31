@@ -45,7 +45,7 @@ import {
 } from "@/lib/actions/orders";
 import { exportExcel, exportOrderSerialRelationPdf, exportSalesInvoicePdf } from "@/lib/export";
 import { formatCurrency, formatDate, todayIso } from "@/lib/format";
-import { costoSugeridoColor } from "@/lib/color-variants";
+import { costoSugeridoColor, variantePorColor } from "@/lib/color-variants";
 import { findUnitBySerial, getOrderView } from "@/lib/selectors";
 import type { UnitCondition } from "@/lib/types";
 import { OrderLineCard } from "./OrderLineCard";
@@ -612,6 +612,9 @@ const PedidoDetalle = () => {
           const costoReferencia = Math.max(0, ...costos);
           const precioBajoCosto = line.item.unitPrice < costoReferencia;
           const editandoPrecio = lineaPrecioEditando === line.item.id;
+          const precioColor = variantePorColor(line.product, line.item.color)?.price;
+          const precioColorDesactualizado = precioEditable && precioColor !== undefined &&
+            precioColor > 0 && precioColor !== line.item.unitPrice;
           return (
             <div key={line.item.id} className="nx-order-product-group space-y-2">
               <OrderLineCard
@@ -642,6 +645,23 @@ const PedidoDetalle = () => {
                 <div>
                   <p className="text-xs text-muted-foreground">Precio unitario</p>
                   <p className="font-tabular font-semibold">{formatCurrency(line.item.unitPrice)}</p>
+                  {precioColorDesactualizado ? (
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      className="mt-2 h-auto min-h-8 whitespace-normal border-primary/30 text-xs text-primary"
+                      loading={runAction.pending}
+                      onClick={() => void runAction(
+                        (db2, actor) => cambiarColorReferenciaPedido(db2, actor, {
+                          orderItemId: line.item.id, color: line.item.color!,
+                        }),
+                        { success: "order.updated", key: `sincronizar-precio-color:${line.item.id}` },
+                      )}
+                    >
+                      Aplicar precio de {line.item.color}: {formatCurrency(precioColor)}
+                    </Button>
+                  ) : null}
                 </div>
                 <div>
                   <p className="text-xs text-muted-foreground">Subtotal · {line.item.quantity} unidades</p>
