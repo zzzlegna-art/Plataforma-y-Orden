@@ -3,7 +3,8 @@
 import { createId, DomainError, logAudit, nowIso } from "../db";
 import { getProductTechnicalSpecsForCategory } from "../product-specs";
 import { skuBaseReferencia } from "../sku-engine";
-import type { Actor, Brand, Category, Db, Product, ProductCategory, ProductTechnicalSpecs, ProductType, TipoRepuesto } from "../types";
+import { normalizarColor } from "../color-variants";
+import type { Actor, Brand, Category, Db, Product, ProductCategory, ProductColorVariant, ProductTechnicalSpecs, ProductType, TipoRepuesto } from "../types";
 import { isSameText, requireNumber, requirePermission, requireText } from "./guards";
 
 /** SKU comercial, por categoría, tipo de repuesto, fabricante y modelo. Las colisiones reciben sufijo. */
@@ -281,6 +282,7 @@ export interface ProductInput {
   description?: string;
   imageUrl?: string | null;
   technicalSpecs?: ProductTechnicalSpecs | null;
+  colorVariants?: ProductColorVariant[];
   categoryId?: string;
   brandId?: string;
   categoria?: ProductCategory;
@@ -290,6 +292,21 @@ export interface ProductInput {
   minStock: number;
   isActive?: boolean;
 }
+
+/** Los nombres de color deben ser únicos dentro del modelo, nunca crean una SKU aparte. */
+const validarVariantesColor = (variantes: ProductColorVariant[] | undefined): ProductColorVariant[] => {
+  const nombres = new Set<string>();
+  return (variantes ?? []).map((variante) => {
+    const color = normalizarColor(variante.color);
+    const id = color.toLocaleLowerCase("es");
+    if (!color || color.length > 50 || nombres.has(id)) throw new DomainError("Color vacío, repetido o demasiado largo.");
+    if (!Number.isFinite(variante.cost) || variante.cost < 0 || !Number.isFinite(variante.price) || variante.price < 0) {
+      throw new DomainError("Costo y precio por color deben ser valores válidos.");
+    }
+    nombres.add(id);
+    return { color, cost: variante.cost, price: variante.price };
+  });
+};
 
 export const createProduct = (db: Db, actor: Actor, input: ProductInput): Product => {
   requirePermission(actor, "inventory.manage");
@@ -305,6 +322,7 @@ export const createProduct = (db: Db, actor: Actor, input: ProductInput): Produc
     description: input.description?.trim() || undefined,
     imageUrl: input.imageUrl || undefined,
     technicalSpecs: getProductTechnicalSpecsForCategory(input.categoria, input.technicalSpecs),
+    colorVariants: validarVariantesColor(input.colorVariants),
     categoryId: input.categoryId || undefined,
     brandId: input.brandId || undefined,
     categoria: input.categoria || undefined,
@@ -362,6 +380,7 @@ export const updateProduct = (
   }
   product.price = requireNumber(input.price, "errors.invalidPrice");
   product.cost = requireNumber(input.cost, "errors.invalidCost");
+  if (input.colorVariants !== undefined) product.colorVariants = validarVariantesColor(input.colorVariants);
   product.minStock = requireNumber(input.minStock, "errors.invalidMinStock");
   product.isActive = input.isActive ?? product.isActive;
   product.updatedAt = nowIso();
