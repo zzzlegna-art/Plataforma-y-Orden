@@ -30,6 +30,8 @@ import {
   Tablet,
   Volume2,
   Keyboard,
+  Image as ImageIcon,
+  Settings2,
   MapPin,
   Watch,
   Wifi,
@@ -315,11 +317,11 @@ const ProductThumbnail = ({
           <DialogHeader className="nx-inventory-zoom-header">
             <div className="nx-inventory-zoom-heading">
               <span className="nx-inventory-zoom-mark" aria-hidden="true">
-                <ZoomIn className="h-5 w-5" strokeWidth={1.8} />
+                <ZoomIn className="h-6 w-6" strokeWidth={1.9} />
               </span>
-              <div className="min-w-0">
-                <DialogTitle className="pr-0 text-left">{product.name}</DialogTitle>
-                <DialogDescription className="nx-inventory-zoom-subtitle font-tabular">
+              <div className="nx-inventory-zoom-heading-text">
+                <DialogTitle>{product.name}</DialogTitle>
+                <DialogDescription className="nx-inventory-zoom-subtitle">
                   {product.sku} · {t("product.imageZoomHint")}
                 </DialogDescription>
               </div>
@@ -335,7 +337,10 @@ const ProductThumbnail = ({
             <section className="nx-inventory-zoom-media" aria-label={t("product.imagePreviewAlt")}>
               <div className="nx-inventory-zoom-media-title">
                 <span>Vista del producto</span>
-                <span>Imagen original</span>
+                <span className="nx-inventory-zoom-original">
+                  <ImageIcon className="h-3.5 w-3.5" aria-hidden="true" />
+                  Imagen original
+                </span>
               </div>
               <div className="nx-inventory-zoom-stage">
                 {showTechnicalSpecs ? (
@@ -355,6 +360,7 @@ const ProductThumbnail = ({
                 )}
               </div>
               <p className="nx-inventory-zoom-image-hint">
+                <ZoomIn className="h-3.5 w-3.5" aria-hidden="true" />
                 {t("product.imageZoomHint")}
               </p>
             </section>
@@ -363,12 +369,15 @@ const ProductThumbnail = ({
               <div className="nx-inventory-zoom-info">
                 <section className="nx-inventory-zoom-specs">
                   <div className="nx-inventory-zoom-section-header">
-                    <div className="min-w-0">
+                    <span className="nx-inventory-zoom-section-icon" aria-hidden="true">
+                      <Settings2 className="h-5 w-5" strokeWidth={1.9} />
+                    </span>
+                    <div className="nx-inventory-zoom-section-copy">
                       <h3>{t("product.technicalDetails")}</h3>
                       <p>{t("product.technicalSpecsSubtitle")}</p>
                     </div>
                     <span className="nx-inventory-zoom-count font-tabular" aria-label={`${technicalCount} características`}>
-                      {technicalCount}
+                      {technicalCount} <span>especificaciones</span>
                     </span>
                   </div>
                   {technicalCount ? (
@@ -377,21 +386,25 @@ const ProductThumbnail = ({
                         const SpecIcon = TECHNICAL_SPEC_ICONS[field.key];
                         return (
                           <div key={field.key} className="nx-inventory-zoom-spec-card">
-                            <div className="nx-inventory-zoom-spec-label">
-                              <SpecIcon className="h-4 w-4 shrink-0" strokeWidth={1.8} />
-                              <p>{t(field.labelKey)}</p>
+                            <span className="nx-inventory-zoom-spec-icon" aria-hidden="true">
+                              <SpecIcon className="h-4 w-4" strokeWidth={1.9} />
+                            </span>
+                            <div className="nx-inventory-zoom-spec-copy">
+                              <p className="nx-inventory-zoom-spec-label">{t(field.labelKey)}</p>
+                              <p className="nx-inventory-zoom-spec-value">{product.technicalSpecs?.[field.key]}</p>
                             </div>
-                            <p className="nx-inventory-zoom-spec-value">{product.technicalSpecs?.[field.key]}</p>
                           </div>
                         );
                       })}
                       {populatedCustomFields.map((field) => (
                         <div key={field.id} className="nx-inventory-zoom-spec-card">
-                          <div className="nx-inventory-zoom-spec-label">
-                            <Package className="h-4 w-4 shrink-0" strokeWidth={1.8} />
-                            <p>{field.name}</p>
+                          <span className="nx-inventory-zoom-spec-icon" aria-hidden="true">
+                            <Package className="h-4 w-4" strokeWidth={1.9} />
+                          </span>
+                          <div className="nx-inventory-zoom-spec-copy">
+                            <p className="nx-inventory-zoom-spec-label">{field.name}</p>
+                            <p className="nx-inventory-zoom-spec-value">{field.value}</p>
                           </div>
-                          <p className="nx-inventory-zoom-spec-value">{field.value}</p>
                         </div>
                       ))}
                     </div>
@@ -402,10 +415,17 @@ const ProductThumbnail = ({
                   )}
                 </section>
                 <section className="nx-inventory-zoom-description">
-                  <h3>{t("product.description")}</h3>
-                  <p className="whitespace-pre-wrap break-words">
-                    {product.description?.trim() || t("product.descriptionEmpty")}
-                  </p>
+                  <div className="nx-inventory-zoom-description-heading">
+                    <span className="nx-inventory-zoom-section-icon" aria-hidden="true">
+                      <FileText className="h-5 w-5" strokeWidth={1.9} />
+                    </span>
+                    <div>
+                      <h3>{t("product.description")}</h3>
+                      <p className="whitespace-pre-wrap break-words">
+                        {product.description?.trim() || t("product.descriptionEmpty")}
+                      </p>
+                    </div>
+                  </div>
                 </section>
               </div>
             ) : null}
