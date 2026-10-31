@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { readFileSync } from "node:fs";
 import { useMemo, useRef, useState } from "react";
-import { cleanup, render, screen, within } from "@testing-library/react";
+import { cleanup, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import i18n from "i18next";
 import { I18nextProvider, initReactI18next } from "react-i18next";
@@ -28,13 +28,14 @@ const inicial = (): Db => {
   return db;
 };
 
-const Almacen = () => {
+const Almacen = ({ falloGuardado = false }: { falloGuardado?: boolean }) => {
   const dbRef = useRef(inicial());
   const [, forceRender] = useState(0);
   const value = useMemo<AppValue>(
     () => ({
       db: dbRef.current, ready: true, role: "admin",
       run: (action) => {
+        if (falloGuardado) return Promise.reject(new Error("Fallo simulado al guardar el rol"));
         const siguiente = structuredClone(dbRef.current) as Db;
         const resultado = action(siguiente, ADMIN);
         dbRef.current = siguiente;
@@ -88,4 +89,19 @@ describe("Administración > Usuarios · botón Editar (ya no hay botón directo 
     expect(screen.queryByRole("dialog")).toBeNull();
     expect(within(screen.getByText("Luis").closest("tr") ?? document.body).getByText("Administrador")).toBeTruthy();
   });
+  it("conserva abierto el editor si falla guardar el rol en el servidor", async () => {
+    const user = userEvent.setup();
+    render(<I18nextProvider i18n={i18n}><Almacen falloGuardado /></I18nextProvider>);
+    const fila = screen.getByText("Luis").closest("tr") ?? screen.getByText("Luis").closest("li")!;
+    await user.click(within(fila).getByRole("button", { name: "Editar" }));
+    const dialogo = await screen.findByRole("dialog");
+    await user.click(within(dialogo).getByRole("combobox"));
+    await user.click(await screen.findByRole("option", { name: "Administrador" }));
+    await user.click(within(dialogo).getByRole("button", { name: "Guardar" }));
+    await waitFor(() => {
+      expect(screen.getByRole("dialog")).toBeTruthy();
+      expect(within(screen.getByText("Luis").closest("tr") ?? document.body).getByText("Bodeguero")).toBeTruthy();
+    });
+  });
+
 });
