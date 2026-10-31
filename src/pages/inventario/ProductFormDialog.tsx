@@ -100,6 +100,8 @@ export const ProductFormDialog = ({
   // Los archivos se mantienen localmente hasta pulsar Guardar, nunca en borradores JSON.
   const [variantImageFiles, setVariantImageFiles] = useState<Record<number, File>>({});
   const [saving, setSaving] = useState(false);
+  // Ref sincrónico: bloquea un segundo clic incluso antes de que React repinte el botón.
+  const savingRef = useRef(false);
   const [skuManual, setSkuManual] = useState(false);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(product?.imageUrl ?? null);
@@ -279,12 +281,14 @@ export const ProductFormDialog = ({
     : [];
 
   const save = async () => {
+    if (savingRef.current) return;
     // Los importes de color deben ser válidos ANTES de subir imágenes o tocar el inventario.
     if (colorVariants.some((v) => !Number.isFinite(v.price) || v.price < 0 ||
       !Number.isFinite(v.cost) || v.cost < 0)) {
       toast.error("Revisa el costo y precio de los colores: no se permiten valores inválidos.");
       return;
     }
+    savingRef.current = true;
     setSaving(true);
     let uploadedPath: string | undefined;
     const uploadedVariantPaths: string[] = [];
@@ -406,12 +410,13 @@ export const ProductFormDialog = ({
       }
       toast.error("No se pudo completar el guardado del producto y sus imágenes.");
     } finally {
+      savingRef.current = false;
       setSaving(false);
     }
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={(next) => { if (!savingRef.current) setOpen(next); }}>
       <DialogTrigger asChild>{trigger}</DialogTrigger>
       <DialogContent className="nx-product-editor !max-w-none">
         <DialogHeader className="nx-editor-header">
@@ -872,7 +877,7 @@ export const ProductFormDialog = ({
         </div>
 
         <DialogFooter className="nx-editor-footer">
-          <Button variant="outline" type="button" onClick={() => setOpen(false)}>
+          <Button variant="outline" type="button" disabled={saving} onClick={() => setOpen(false)}>
             {t("common.cancel")}
           </Button>
           <Button type="button" loading={saving} onClick={() => void save()}>
