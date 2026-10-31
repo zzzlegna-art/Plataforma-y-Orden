@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { imageForVariant, swatchForVariant, verifyVariantPhotoUrls } from "./product-color-photos";
+import { imageForVariant, inventoryProductPhoto, swatchForVariant, verifyVariantPhotoUrls } from "./product-color-photos";
 import { createProduct, updateProduct } from "./actions/catalogs";
 import { emptyDb } from "./db";
 import type { Actor } from "./types";
@@ -25,6 +25,14 @@ describe("fotografías opcionales por color", () => {
     expect(imageForVariant(product.imageUrl, product.colorVariants?.[0])).toBe(blanco.imageUrl);
     expect(imageForVariant(product.imageUrl, product.colorVariants?.[1])).toBe(azul.imageUrl);
     expect(imageForVariant(product.imageUrl)).toBe(product.imageUrl);
+  });
+
+  it("abre el visor con una foto real de variante cuando falta la foto principal", () => {
+    expect(inventoryProductPhoto(undefined, [blanco, azul])).toBe(blanco.imageUrl);
+    expect(inventoryProductPhoto("https://example.org/principal.webp", [blanco, azul]))
+      .toBe("https://example.org/principal.webp");
+    expect(inventoryProductPhoto(undefined, [{ color: "Blanco", price: 1, cost: 1 }]))
+      .toBeUndefined();
   });
 
   it("muestra la imagen principal cuando un color no tiene foto", () => {
