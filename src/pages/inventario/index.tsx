@@ -80,6 +80,7 @@ import type { Product, ProductCategory, ProductTechnicalSpecKey } from "@/lib/ty
 import { cn } from "@/lib/utils";
 import { ProductFormDialog } from "./ProductFormDialog";
 import { ProductImportDialog } from "./ProductImportDialog";
+import "./inventory-product-zoom.css";
 
 type StatTone = "primary" | "info" | "warning";
 
@@ -309,104 +310,106 @@ const ProductThumbnail = ({
           </button>
         </DialogTrigger>
         <DialogContent
-          className={cn(
-            "max-h-[92vh] max-w-none overflow-y-auto p-3 pr-0 sm:p-5 sm:pr-0 max-sm:w-full",
-            showTechnicalSpecs ? "w-[min(94vw,1180px)]" : "w-[min(92vw,960px)]",
-          )}
+          className={cn("nx-inventory-zoom", !showTechnicalSpecs && "nx-inventory-zoom-solo")}
         >
-          {showTechnicalSpecs ? (
-            <div className="grid min-w-0 gap-4 pr-3 sm:pr-5 sm:grid-cols-[minmax(0,1.08fr)_minmax(300px,.92fr)]">
-              <div className="min-w-0 space-y-3">
-                <DialogHeader className="px-1 pt-1">
-                  <DialogTitle className="pr-8 text-left">{product.name}</DialogTitle>
-                  <DialogDescription>{product.sku} · {t("product.imageZoomHint")}</DialogDescription>
-                </DialogHeader>
-                <div className="grid min-h-[280px] place-items-center overflow-hidden rounded-xl bg-muted/30 p-2 sm:min-h-[min(72vh,620px)]">
+          <DialogHeader className="nx-inventory-zoom-header">
+            <div className="nx-inventory-zoom-heading">
+              <span className="nx-inventory-zoom-mark" aria-hidden="true">
+                <ZoomIn className="h-5 w-5" strokeWidth={1.8} />
+              </span>
+              <div className="min-w-0">
+                <DialogTitle className="pr-0 text-left">{product.name}</DialogTitle>
+                <DialogDescription className="nx-inventory-zoom-subtitle font-tabular">
+                  {product.sku} · {t("product.imageZoomHint")}
+                </DialogDescription>
+              </div>
+            </div>
+            <div className="nx-inventory-zoom-meta" aria-label="Información del producto">
+              {brandName ? <span className="nx-inventory-zoom-pill">{brandName}</span> : null}
+              {categoryName ? <span className="nx-inventory-zoom-pill">{categoryName}</span> : null}
+              <span className="nx-inventory-zoom-pill font-tabular">{product.sku}</span>
+            </div>
+          </DialogHeader>
+
+          <div className="nx-inventory-zoom-body">
+            <section className="nx-inventory-zoom-media" aria-label={t("product.imagePreviewAlt")}>
+              <div className="nx-inventory-zoom-media-title">
+                <span>Vista del producto</span>
+                <span>Imagen original</span>
+              </div>
+              <div className="nx-inventory-zoom-stage">
+                {showTechnicalSpecs ? (
                   <img
                     src={imageUrl}
                     alt={product.name}
                     className="max-h-[72vh] w-full object-contain"
                     decoding="async"
                   />
-                </div>
+                ) : (
+                  <img
+                    src={imageUrl}
+                    alt={product.name}
+                    className="max-h-[76vh] w-full object-contain"
+                    decoding="async"
+                  />
+                )}
               </div>
+              <p className="nx-inventory-zoom-image-hint">
+                {t("product.imageZoomHint")}
+              </p>
+            </section>
 
-              <div className="min-w-0 space-y-3 sm:max-h-[min(80vh,720px)] sm:overflow-y-auto sm:-mr-5 sm:pr-5">
-                <div className="flex flex-wrap items-start justify-between gap-3 rounded-xl border border-border/70 bg-card p-3">
-                  <div className="min-w-0">
-                    {brandName ? <p className="font-semibold">{brandName}</p> : null}
-                    {categoryName ? <p className="mt-0.5 text-xs text-muted-foreground">{categoryName}</p> : null}
-                  </div>
-                  <span className="font-tabular rounded-lg border border-border/70 bg-muted/60 px-2 py-1 text-xs text-muted-foreground">
-                    {product.sku}
-                  </span>
-                </div>
-
-                <section className="rounded-2xl border border-border/70 bg-card p-4 shadow-sm">
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <h3 className="font-semibold">{t("product.technicalDetails")}</h3>
-                      <p className="mt-1 text-xs text-muted-foreground">{t("product.technicalSpecsSubtitle")}</p>
+            {showTechnicalSpecs ? (
+              <div className="nx-inventory-zoom-info">
+                <section className="nx-inventory-zoom-specs">
+                  <div className="nx-inventory-zoom-section-header">
+                    <div className="min-w-0">
+                      <h3>{t("product.technicalDetails")}</h3>
+                      <p>{t("product.technicalSpecsSubtitle")}</p>
                     </div>
-                    <span className="font-tabular rounded-lg bg-primary/10 px-2 py-1 text-xs font-semibold text-primary">
+                    <span className="nx-inventory-zoom-count font-tabular" aria-label={`${technicalCount} características`}>
                       {technicalCount}
                     </span>
                   </div>
                   {technicalCount ? (
-                    <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                    <div className="nx-inventory-zoom-spec-grid">
                       {populatedFields.map((field) => {
                         const SpecIcon = TECHNICAL_SPEC_ICONS[field.key];
                         return (
-                          <div key={field.key} className="min-w-0 rounded-xl border border-border/60 bg-muted/30 p-3">
-                            <div className="flex items-center gap-2 text-muted-foreground">
+                          <div key={field.key} className="nx-inventory-zoom-spec-card">
+                            <div className="nx-inventory-zoom-spec-label">
                               <SpecIcon className="h-4 w-4 shrink-0" strokeWidth={1.8} />
-                              <p className="text-[11px] font-semibold uppercase tracking-wide">{t(field.labelKey)}</p>
+                              <p>{t(field.labelKey)}</p>
                             </div>
-                            <p className="mt-2 break-words text-sm font-semibold leading-snug">{product.technicalSpecs?.[field.key]}</p>
+                            <p className="nx-inventory-zoom-spec-value">{product.technicalSpecs?.[field.key]}</p>
                           </div>
                         );
                       })}
                       {populatedCustomFields.map((field) => (
-                        <div key={field.id} className="min-w-0 rounded-xl border border-border/60 bg-muted/30 p-3">
-                          <div className="flex items-center gap-2 text-muted-foreground">
+                        <div key={field.id} className="nx-inventory-zoom-spec-card">
+                          <div className="nx-inventory-zoom-spec-label">
                             <Package className="h-4 w-4 shrink-0" strokeWidth={1.8} />
-                            <p className="text-[11px] font-semibold uppercase tracking-wide">{field.name}</p>
+                            <p>{field.name}</p>
                           </div>
-                          <p className="mt-2 break-words text-sm font-semibold leading-snug">{field.value}</p>
+                          <p className="nx-inventory-zoom-spec-value">{field.value}</p>
                         </div>
                       ))}
                     </div>
                   ) : (
-                    <div className="mt-3 rounded-xl border border-dashed border-border/80 bg-muted/30 p-3">
-                      <p className="text-sm text-muted-foreground">{t("product.technicalSpecsEmpty")}</p>
+                    <div className="nx-inventory-zoom-no-specs">
+                      {t("product.technicalSpecsEmpty")}
                     </div>
                   )}
                 </section>
-
-                <section className="rounded-2xl border border-border/70 bg-card p-4 shadow-sm">
-                  <h3 className="font-semibold">{t("product.description")}</h3>
-                  <p className="mt-2 whitespace-pre-wrap break-words text-sm leading-relaxed text-muted-foreground">
+                <section className="nx-inventory-zoom-description">
+                  <h3>{t("product.description")}</h3>
+                  <p className="whitespace-pre-wrap break-words">
                     {product.description?.trim() || t("product.descriptionEmpty")}
                   </p>
                 </section>
               </div>
-            </div>
-          ) : (
-            <div className="space-y-4 pr-3 sm:pr-5">
-              <DialogHeader className="px-2 pt-1">
-                <DialogTitle className="pr-8 text-left">{product.name}</DialogTitle>
-                <DialogDescription>{t("product.imageZoomHint")}</DialogDescription>
-              </DialogHeader>
-              <div className="grid min-h-0 place-items-center overflow-hidden rounded-xl bg-muted/30 p-1 sm:p-2">
-                <img
-                  src={imageUrl}
-                  alt={product.name}
-                  className="max-h-[76vh] w-full object-contain"
-                  decoding="async"
-                />
-              </div>
-            </div>
-          )}
+            ) : null}
+          </div>
         </DialogContent>
       </Dialog>
     );
