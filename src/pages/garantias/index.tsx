@@ -234,6 +234,17 @@ const Garantias = () => {
   const { t } = useTranslation();
   const { db } = useStore();
   const runAction = useRunAction();
+  // Cobertura sincrónica de clics repetidos, incluyendo la subida del documento.
+  const recepcionEnCursoRef = useRef(false);
+  const recibirSinDuplicar = async (accion: () => Promise<void>) => {
+    if (recepcionEnCursoRef.current) return;
+    recepcionEnCursoRef.current = true;
+    try {
+      await accion();
+    } finally {
+      recepcionEnCursoRef.current = false;
+    }
+  };
   // Construir primero las vistas evita que los efectos de navegación por foco
   // cierren sobre una declaración todavía no inicializada en el render.
   const vistas = useMemo(() => getWarrantyViews(db), [db]);
@@ -1627,7 +1638,7 @@ const Garantias = () => {
                     <div
                       className="space-y-3 rounded-md border bg-muted/40 p-4"
                       onKeyDown={onEnter(() => {
-                        if (motivoUno.trim()) void recibirUno();
+                        if (motivoUno.trim()) void recibirSinDuplicar(recibirUno);
                       })}
                     >
                       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -1661,7 +1672,7 @@ const Garantias = () => {
                         type="button"
                         loading={runAction.pending}
                         disabled={!motivoUno.trim()}
-                        onClick={() => void recibirUno()}
+                        onClick={() => void recibirSinDuplicar(recibirUno)}
                       >
                         {t("warranty.create")}
                       </Button>
@@ -1681,7 +1692,7 @@ const Garantias = () => {
                         className="divide-y rounded-md border"
                         onKeyDown={onEnter(() => {
                           if (!lote.some((item) => !(loteObs[item.imei] ?? item.obs).trim())) {
-                            void recibirLote();
+                            void recibirSinDuplicar(recibirLote);
                           }
                         })}
                       >
@@ -1720,7 +1731,7 @@ const Garantias = () => {
                         type="button"
                         loading={runAction.pending}
                         disabled={lote.some((item) => !(loteObs[item.imei] ?? item.obs).trim())}
-                        onClick={() => void recibirLote()}
+                        onClick={() => void recibirSinDuplicar(recibirLote)}
                       >
                         {t("warranty.receiveAll")}
                       </Button>
@@ -1761,7 +1772,7 @@ const Garantias = () => {
               className="grid gap-3 sm:grid-cols-2"
               onKeyDown={onEnter(() => {
                 if (previa.imei && previa.referencia && previa.cliente && previa.motivo) {
-                  void recibirPrevia();
+                  void recibirSinDuplicar(recibirPrevia);
                 }
               })}
             >
@@ -1850,7 +1861,7 @@ const Garantias = () => {
                 type="button"
                 loading={runAction.pending}
                 disabled={!previa.imei || !previa.referencia || !previa.cliente || !previa.motivo}
-                onClick={() => void recibirPrevia()}
+                onClick={() => void recibirSinDuplicar(recibirPrevia)}
                 className="sm:col-span-2"
               >
                 {t("warranty.create")}
@@ -2008,7 +2019,7 @@ const Garantias = () => {
                       <Button
                         type="button"
                         loading={runAction.pending}
-                        onClick={() => void recibirLotePrevias()}
+                        onClick={() => void recibirSinDuplicar(recibirLotePrevias)}
                       >
                         {t("warranty.receiveAll")}
                       </Button>
