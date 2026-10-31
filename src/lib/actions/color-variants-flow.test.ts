@@ -4,7 +4,7 @@ import type { Actor, Db } from "../types";
 import { createProduct, updateProduct } from "./catalogs";
 import { addReceptionItem, confirmReception, createReception } from "./receptions";
 import { asignarColorUnit } from "./units";
-import { createOrder, serializarImeiPedido, confirmarPreparacionPedido, confirmarVentaPedido } from "./orders";
+import { cambiarColorReferenciaPedido, createOrder, serializarImeiPedido, confirmarPreparacionPedido, confirmarVentaPedido } from "./orders";
 
 const actor: Actor = { id: "admin-color", email: "admin@example.test", fullName: "Admin", role: "admin" };
 const costs = [
@@ -26,6 +26,86 @@ const setup = () => {
 };
 
 describe("Una referencia con colores y precios independientes", () => {
+  it("recibe sin color y solicita la elección solamente al serializar el pedido", () => {
+    const { db, product } = setup();
+    const reception = createReception(db, actor, {});
+    addReceptionItem(db, actor, {
+      receptionId: reception.id, productId: product.id, serial: "NO-COLOR-111", condition: "nuevo",
+    });
+    addReceptionItem(db, actor, {
+      receptionId: reception.id, productId: product.id, serial: "NO-COLOR-222", condition: "nuevo",
+    });
+    confirmReception(db, actor, { id: reception.id });
+
+    expect(db.units).toHaveLength(2);
+    expect(db.units.every((unit) => !unit.color)).toBe(true);
+    expect(db.products).toHaveLength(1);
+
+    const pedido = createOrder(db, actor, {
+      customerId: "cliente",
+      lineas: [{ productId: product.id, condition: "nuevo", quantity: 2 }],
+    });
+    const item = db.orderItems[0];
+    expect(item.color).toBeUndefined();
+    expect(() => serializarImeiPedido(db, actor, {
+      orderId: pedido.id, imei: "NO-COLOR-111", orderItemId: item.id,
+    })).toThrow(DomainError);
+    expect(db.orderItemUnits).toHaveLength(0);
+
+    cambiarColorReferenciaPedido(db, actor, { orderItemId: item.id, color: "Blanco" });
+    expect(item.unitPrice).toBe(4300000);
+    serializarImeiPedido(db, actor, { orderId: pedido.id, imei: "NO-COLOR-111", orderItemId: item.id });
+    serializarImeiPedido(db, actor, { orderId: pedido.id, imei: "NO-COLOR-222", orderItemId: item.id });
+    expect(db.units.map((unit) => unit.color)).toEqual(["Blanco", "Blanco"]);
+    expect(db.units.map((unit) => unit.cost)).toEqual([3800000, 3800000]);
+    confirmarPreparacionPedido(db, actor, { orderId: pedido.id });
+    confirmarVentaPedido(db, actor, { orderId: pedido.id });
+    expect(db.orders[0].total).toBe(8600000);
+    expect(db.units.every((unit) => unit.status === "vendido")).toBe(true);
+  });
+
+  it("no cambia el costo real de recepción al seleccionar el color después", () => {
+    const { db, product } = setup();
+    const reception = createReception(db, actor, {});
+    addReceptionItem(db, actor, {
+      receptionId: reception.id, productId: product.id, serial: "COST-EXPLICIT-111",
+      condition: "nuevo", cost: 3900000,
+    });
+    confirmReception(db, actor, { id: reception.id });
+    const order = createOrder(db, actor, {customerId:"cliente",lineas:[
+      {productId:product.id, quantity:1,condition:"nuevo",color:"Azul"},
+    ]});
+    serializarImeiPedido(db, actor, { orderId: order.id, imei:"COST-EXPLICIT-111", orderItemId:db.orderItems[0].id });
+    expect(db.units[0].color).toBe("Azul");
+    expect(db.units[0].cost).toBe(3900000);
+    confirmarPreparacionPedido(db, actor, { orderId:order.id });
+    confirmarVentaPedido(db, actor, { orderId:order.id });
+    expect(db.orders[0].status).toBe("despachado");
+  });
+
+  it("asigna al color de la línea escaneada, no al primer color del mismo modelo", () => {
+    const { db, product } = setup();
+    const reception = createReception(db, actor, {});
+    addReceptionItem(db, actor, {
+      receptionId:reception.id, productId:product.id, serial:"UNSORTED-A",condition:"nuevo",
+    });
+    addReceptionItem(db, actor, {
+      receptionId:reception.id, productId:product.id, serial:"UNSORTED-B",condition:"nuevo",
+    });
+    confirmReception(db, actor, {id:reception.id});
+    const order = createOrder(db, actor, {customerId:"cliente",lineas:[
+      {productId:product.id, quantity:1, condition:"nuevo", color:"Blanco"},
+      {productId:product.id, quantity:1, condition:"nuevo", color:"Azul"},
+    ]});
+    const [blanco, azul] = db.orderItems;
+    serializarImeiPedido(db, actor, {orderId:order.id,imei:"UNSORTED-A",orderItemId:azul.id});
+    serializarImeiPedido(db, actor, {orderId:order.id,imei:"UNSORTED-B",orderItemId:blanco.id});
+    expect(db.units[0].color).toBe("Azul");
+    expect(db.units[1].color).toBe("Blanco");
+    expect(db.orderItemUnits.find((a) => a.unitId === db.units[0].id)?.orderItemId).toBe(azul.id);
+    expect(db.orderItemUnits.find((a) => a.unitId === db.units[1].id)?.orderItemId).toBe(blanco.id);
+  });
+
   it("recibe IMEI por color sin crear nuevas SKU; conserva costo del color", () => {
     const { db, product } = setup();
     const reception = createReception(db, actor, {});
