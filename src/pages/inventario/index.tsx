@@ -575,6 +575,7 @@ const Inventario = () => {
       row.category?.name ?? "—",
       row.brand?.name ?? "—",
       formatCurrency(row.product.price),
+      formatCurrency(row.product.cost),
       row.stock.disponible,
       row.stock.enInventario,
       row.stock.lowStock ? t("product.lowStock") : t("export.estadoDisponible"),
@@ -585,7 +586,8 @@ const Inventario = () => {
       t("export.producto"),
       t("export.categoria"),
       t("export.marca"),
-      t("product.price"),
+      t("product.salePrice"),
+      t("product.costPrice"),
       t("product.available"),
       t("product.enInventario"),
       t("export.estado"),
@@ -770,15 +772,26 @@ const Inventario = () => {
         </div>
       </div>
       <div className="flex items-center justify-between border-t border-border/60 pt-3">
-        <span className="font-tabular text-sm">
+        <span className="font-tabular text-sm font-medium">
           {t("product.availableOf", {
             available: row.stock.disponible,
             total: row.stock.enInventario,
           })}
         </span>
-        <span className="font-tabular text-sm font-semibold">
-          {formatCurrency(row.product.price)}
-        </span>
+      </div>
+      <div className="grid grid-cols-2 gap-2" aria-label={t("product.pricing")}>
+        <div className="min-w-0 rounded-xl border border-border/70 bg-muted/30 px-3 py-2">
+          <p className="text-[11px] font-semibold text-muted-foreground">{t("product.costPrice")}</p>
+          <p className="font-tabular mt-1 break-words text-sm font-semibold text-foreground">
+            {formatCurrency(row.product.cost)}
+          </p>
+        </div>
+        <div className="min-w-0 rounded-xl border border-primary/15 bg-primary/5 px-3 py-2">
+          <p className="text-[11px] font-semibold text-muted-foreground">{t("product.salePrice")}</p>
+          <p className="font-tabular mt-1 break-words text-sm font-bold text-foreground">
+            {row.product.price > 0 ? formatCurrency(row.product.price) : t("product.noPrice")}
+          </p>
+        </div>
       </div>
       <CondicionPills stock={row.stock} />
       <div className="flex gap-2 pt-1">
@@ -1054,17 +1067,28 @@ const Inventario = () => {
           },
           {
             key: "price",
-            header: t("product.price"),
+            header: t("product.salePrice"),
             align: "right",
             className: "whitespace-nowrap",
             cell: (row) =>
               row.product.price > 0 ? (
-                <span className="font-tabular text-sm font-medium">
+                <span className="font-tabular text-sm font-semibold text-foreground">
                   {formatCurrency(row.product.price)}
                 </span>
               ) : (
                 <span className="text-xs italic text-muted-foreground">{t("product.noPrice")}</span>
               ),
+          },
+          {
+            key: "cost",
+            header: t("product.costPrice"),
+            align: "right",
+            className: "whitespace-nowrap",
+            cell: (row) => (
+              <span className="font-tabular rounded-lg border border-border/60 bg-muted/35 px-2 py-1 text-sm font-medium text-foreground">
+                {formatCurrency(row.product.cost)}
+              </span>
+            ),
           },
           {
             key: "available",
