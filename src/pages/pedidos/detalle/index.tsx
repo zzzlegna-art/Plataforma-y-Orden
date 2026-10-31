@@ -45,7 +45,7 @@ import {
 } from "@/lib/actions/orders";
 import { exportExcel, exportOrderSerialRelationPdf, exportSalesInvoicePdf } from "@/lib/export";
 import { formatCurrency, formatDate, todayIso } from "@/lib/format";
-import { costoSugeridoColor, variantePorColor } from "@/lib/color-variants";
+import { costoSugeridoColor, estadoPrecioVentaColor, variantePorColor } from "@/lib/color-variants";
 import { findUnitBySerial, getOrderView } from "@/lib/selectors";
 import type { UnitCondition } from "@/lib/types";
 import { OrderLineCard } from "./OrderLineCard";
@@ -613,8 +613,8 @@ const PedidoDetalle = () => {
           const precioBajoCosto = line.item.unitPrice < costoReferencia;
           const editandoPrecio = lineaPrecioEditando === line.item.id;
           const precioColor = variantePorColor(line.product, line.item.color)?.price;
-          const precioColorDesactualizado = precioEditable && precioColor !== undefined &&
-            precioColor > 0 && precioColor !== line.item.unitPrice;
+          const precioColorDesactualizado = precioEditable &&
+            estadoPrecioVentaColor(line.product, line.item.color, line.item.unitPrice) === "desactualizado";
           return (
             <div key={line.item.id} className="nx-order-product-group space-y-2">
               <OrderLineCard
