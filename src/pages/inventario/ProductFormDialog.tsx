@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ChangeEvent } from "react";
-import { ChevronDown, ImagePlus, Palette, Plus, SlidersHorizontal, Trash2 } from "lucide-react";
+import { Camera, ChevronDown, ImagePlus, Palette, Plus, SlidersHorizontal, Trash2, X } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 
@@ -35,6 +35,7 @@ import {
 } from "@/lib/product-form-draft";
 import { getProductImageExtension, validateProductImageFile } from "@/lib/product-image";
 import { preciosPorColorSinConfigurar, verificarPreciosPorColor } from "@/lib/product-color-pricing";
+import { swatchForVariant, verifyVariantPhotoUrls } from "@/lib/product-color-photos";
 import { getProductTechnicalSpecFieldsForCategory, getProductTechnicalSpecsForCategory } from "@/lib/product-specs";
 import { etiquetaTipoProducto, tiposProductoOrdenados } from "@/lib/products";
 import type { Product, ProductCategory, ProductTechnicalSpecs, ProductColorVariant } from "@/lib/types";
@@ -59,6 +60,25 @@ const getProductImageStoragePath = (url?: string): string | undefined => {
   }
 };
 
+/** Vista temporal de la fotografía elegida sin transformar la original. */
+const VariantPhotoPreview = ({ file, url, color }: { file?: File; url?: string; color: string }) => {
+  const [preview, setPreview] = useState<string>();
+  useEffect(() => {
+    if (!file) { setPreview(undefined); return; }
+    const objectUrl = URL.createObjectURL(file);
+    setPreview(objectUrl);
+    return () => URL.revokeObjectURL(objectUrl);
+  }, [file]);
+  return preview || url ? (
+    <img className="nx-editor-variant-photo-preview" src={preview || url}
+      alt={`Foto del color ${color || "sin nombre"}`} />
+  ) : (
+    <span className="nx-editor-variant-photo-placeholder" aria-hidden="true">
+      <ImagePlus className="h-5 w-5" />
+    </span>
+  );
+};
+
 /** Alta y edición de productos del inventario. */
 export const ProductFormDialog = ({
   trigger,
@@ -77,6 +97,8 @@ export const ProductFormDialog = ({
   const [form, setForm] = useState(EMPTY_PRODUCT_FORM);
   const [technicalSpecs, setTechnicalSpecs] = useState<ProductTechnicalSpecs>({});
   const [colorVariants, setColorVariants] = useState<ProductColorVariant[]>(product?.colorVariants ?? []);
+  // Los archivos se mantienen localmente hasta pulsar Guardar, nunca en borradores JSON.
+  const [variantImageFiles, setVariantImageFiles] = useState<Record<number, File>>({});
   const [saving, setSaving] = useState(false);
   const [skuManual, setSkuManual] = useState(false);
   const [imageFile, setImageFile] = useState<File | null>(null);
@@ -103,6 +125,7 @@ export const ProductFormDialog = ({
     skipDraftSaveRef.current = true;
     const currentProduct = productRef.current;
     setColorVariants(currentProduct?.colorVariants ?? []);
+    setVariantImageFiles({});
     setImageFile(null);
     setImagePreview(currentProduct?.imageUrl ?? null);
     setRemoveImage(false);
@@ -213,6 +236,36 @@ export const ProductFormDialog = ({
     }
     if (imageInputRef.current) imageInputRef.current.value = "";
     setImageError("");
+  };
+
+  const handleVariantImageChange = (index: number, file?: File) => {
+    if (!file) return;
+    const error = validateProductImageFile(file);
+    if (error) {
+      toast.error(error === "too_large" ? t("product.imageTooLarge") : t("product.imageInvalidType"));
+      return;
+    }
+    setVariantImageFiles((old) => ({ ...old, [index]: file }));
+  };
+  const clearVariantImage = (index: number) => {
+    setVariantImageFiles((old) => {
+      const next = { ...old };
+      delete next[index];
+      return next;
+    });
+    setColorVariants((old) => old.map((v, i) => i === index ? { ...v, imageUrl: undefined } : v));
+  };
+  const removeColorVariant = (index: number) => {
+    setVariantImageFiles((old) => {
+      const next: Record<number, File> = {};
+      Object.entries(old).forEach(([key, file]) => {
+        const i = Number(key);
+        if (i < index) next[i] = file;
+        if (i > index) next[i - 1] = file;
+      });
+      return next;
+    });
+    setColorVariants((old) => old.filter((_, i) => i !== index));
   };
 
   const selectedProductType = db.productTypes.find((type) => type.key === form.categoria);
@@ -491,6 +544,7 @@ export const ProductFormDialog = ({
                   <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
                     Una sola referencia y SKU. Define costo y precio de venta por color;
                     el color se asignará después, al serializar el pedido.
+                    Puedes adjuntar una fotografía opcional por color para el visor de inventario.
                   </p>
                   </div>
                 </div>
@@ -540,9 +594,47 @@ export const ProductFormDialog = ({
                           onValueChange={(value) => setColorVariants((old) => old.map((v,i) => i===index ? {...v,price:Number(value)||0} : v))} />
                       </div>
                       <Button type="button" variant="outline" size="icon" className="nx-editor-delete-color" aria-label={`Eliminar color ${variant.color || index + 1}`}
-                        onClick={() => setColorVariants((old) => old.filter((_,i) => i!==index))}>
+                        onClick={() => removeColorVariant(index)}>
                         <Trash2 className="h-4 w-4" />
                       </Button>
+                      <div className="nx-editor-variant-media">
+                        <div className="nx-editor-variant-color-chip">
+                          <label htmlFor={`variant-swatch-${index}`}>Muestra</label>
+                          <input id={`variant-swatch-${index}`} type="color"
+                            value={swatchForVariant(variant)}
+                            aria-label={`Color visual de ${variant.color || "la variante"}`}
+                            onChange={(event) => setColorVariants((old) => old.map((entry, i) =>
+                              i === index ? { ...entry, swatchHex: event.target.value } : entry))}
+                          />
+                        </div>
+                        <div className="nx-editor-variant-photo-field">
+                          <VariantPhotoPreview file={variantImageFiles[index]} url={variant.imageUrl} color={variant.color} />
+                          <div className="min-w-0">
+                            <p className="text-xs font-semibold">Fotografía de {variant.color || "este color"}</p>
+                            <p className="text-[11px] text-muted-foreground">
+                              Opcional · JPG, PNG o WebP · máximo 5 MB
+                            </p>
+                          </div>
+                          <label className="nx-editor-variant-photo-upload">
+                            <Camera className="h-4 w-4" />
+                            {variantImageFiles[index] || variant.imageUrl ? "Cambiar foto" : "Subir foto"}
+                            <input type="file" accept="image/jpeg,image/png,image/webp"
+                              aria-label={`Subir foto del color ${variant.color || index + 1}`}
+                              onChange={(event) => {
+                                handleVariantImageChange(index, event.currentTarget.files?.[0]);
+                                event.currentTarget.value = "";
+                              }}
+                            />
+                          </label>
+                          {variantImageFiles[index] || variant.imageUrl ? (
+                            <Button type="button" size="icon" variant="ghost"
+                              aria-label={`Quitar foto del color ${variant.color || index + 1}`}
+                              onClick={() => clearVariantImage(index)}>
+                              <X className="h-4 w-4" />
+                            </Button>
+                          ) : null}
+                        </div>
+                      </div>
                     </div>
                   ))}
                 </div>
