@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ChangeEvent } from "react";
-import { ImagePlus, Plus, Trash2 } from "lucide-react";
+import { ChevronDown, ImagePlus, Palette, Plus, SlidersHorizontal, Trash2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 
@@ -37,6 +37,7 @@ import { getProductImageExtension, validateProductImageFile } from "@/lib/produc
 import { getProductTechnicalSpecFieldsForCategory, getProductTechnicalSpecsForCategory } from "@/lib/product-specs";
 import { etiquetaTipoProducto, tiposProductoOrdenados } from "@/lib/products";
 import type { Product, ProductCategory, ProductTechnicalSpecs, ProductColorVariant } from "@/lib/types";
+import "./product-editor-premium.css";
 
 /** Breves en una línea; campos descriptivos expandibles para fichas largas. */
 const SHORT_TECHNICAL_FIELDS = new Set([
@@ -165,7 +166,7 @@ export const ProductFormDialog = ({
       removeImage,
     };
     writeProductFormDraft(draftKey, draft);
-  }, [open, draftKey, form, technicalSpecs, skuManual, removeImage]);
+  }, [open, draftKey, form, technicalSpecs, colorVariants, skuManual, removeImage]);
 
   useEffect(() => {
     if (!imageFile) return;
@@ -301,8 +302,8 @@ export const ProductFormDialog = ({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>{trigger}</DialogTrigger>
-      <DialogContent className="max-h-[90vh] overflow-y-auto pr-0 sm:max-w-2xl">
-        <DialogHeader className="pr-6">
+      <DialogContent className="nx-product-editor !max-w-none">
+        <DialogHeader className="nx-editor-header">
           <DialogTitle>{product ? t("product.editTitle") : t("product.createTitle")}</DialogTitle>
           <DialogDescription>{t("product.formDescription")}</DialogDescription>
           {draftRestored ? (
@@ -312,7 +313,16 @@ export const ProductFormDialog = ({
           ) : null}
         </DialogHeader>
 
-        <div className="grid gap-4 py-2 pr-6 sm:grid-cols-2">
+        <div className="nx-editor-scroll" tabIndex={-1}>
+          <div className="nx-editor-primary-grid">
+          <section className="nx-editor-panel nx-editor-basics" aria-labelledby="nx-editor-basics-title">
+            <div className="nx-editor-section-heading">
+              <div>
+                <h3 id="nx-editor-basics-title">Información del producto</h3>
+                <p>Identificación, categoría y precios generales de la referencia.</p>
+              </div>
+            </div>
+            <div className="nx-editor-fields">
           <div className="space-y-2">
             <Label htmlFor="sku">{t("product.sku")}</Label>
             <Input
@@ -420,55 +430,6 @@ export const ProductFormDialog = ({
               onValueChange={(cost) => setForm((current) => ({ ...current, cost }))}
             />
           </div>
-          {form.categoria && form.categoria !== "repuesto" ? (
-            <section className="space-y-3 rounded-2xl border border-primary/20 bg-primary/[0.035] p-4 sm:col-span-2" aria-label="Precios por color">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <div>
-                  <p className="text-sm font-bold text-foreground">Colores y precios por variante</p>
-                  <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-                    Una sola referencia y SKU. Define costo y precio de venta por color;
-                    cada IMEI conservará su color al recibirlo.
-                  </p>
-                </div>
-                <Button type="button" size="sm" variant="outline" onClick={() =>
-                  setColorVariants((previous) => [...previous, { color: "", cost: Number(form.cost) || 0, price: Number(form.price) || 0 }])
-                }>
-                  <Plus className="h-4 w-4" /> Agregar color
-                </Button>
-              </div>
-              {colorVariants.length === 0 ? (
-                <p className="rounded-xl border border-dashed p-3 text-xs text-muted-foreground">
-                  Opcional: si todos los colores cuestan lo mismo, deja la lista vacía y continúa usando el precio general.
-                </p>
-              ) : (
-                <div className="space-y-2">
-                  {colorVariants.map((variant, index) => (
-                    <div key={index} className="grid items-end gap-2 rounded-xl border bg-card p-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_auto]">
-                      <div className="space-y-1">
-                        <Label htmlFor={`variant-name-${index}`}>Color</Label>
-                        <Input id={`variant-name-${index}`} placeholder="Blanco, Azul, Borgoña…" value={variant.color}
-                          onChange={(e) => setColorVariants((old) => old.map((v,i) => i===index ? {...v,color:e.target.value} : v))} />
-                      </div>
-                      <div className="space-y-1">
-                        <Label htmlFor={`variant-cost-${index}`}>Costo</Label>
-                        <FormattedNumberInput id={`variant-cost-${index}`} value={String(variant.cost)}
-                          onValueChange={(value) => setColorVariants((old) => old.map((v,i) => i===index ? {...v,cost:Number(value)||0} : v))} />
-                      </div>
-                      <div className="space-y-1">
-                        <Label htmlFor={`variant-price-${index}`}>Venta sugerida</Label>
-                        <FormattedNumberInput id={`variant-price-${index}`} value={String(variant.price)}
-                          onValueChange={(value) => setColorVariants((old) => old.map((v,i) => i===index ? {...v,price:Number(value)||0} : v))} />
-                      </div>
-                      <Button type="button" variant="outline" size="icon" aria-label={`Eliminar color ${variant.color || index + 1}`}
-                        onClick={() => setColorVariants((old) => old.filter((_,i) => i!==index))}>
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </section>
-          ) : null}
           <div className="space-y-2">
             <Label htmlFor="minStock">{t("product.minStock")}</Label>
             <FormattedNumberInput
@@ -488,6 +449,74 @@ export const ProductFormDialog = ({
               onCheckedChange={(checked) => setForm({ ...form, isActive: checked })}
             />
           </div>
+            </div>
+          </section>
+          {form.categoria && form.categoria !== "repuesto" ? (
+            <section className="nx-editor-panel nx-editor-variants" aria-label="Precios por color">
+              <div className="nx-editor-variants-heading">
+                <div className="nx-editor-variants-heading-copy">
+                  <div className="nx-editor-accent-icon" aria-hidden="true"><Palette className="h-5 w-5" /></div>
+                  <div>
+                  <p className="text-sm font-bold text-foreground">Colores y precios por variante</p>
+                  <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                    Una sola referencia y SKU. Define costo y precio de venta por color;
+                    cada IMEI conservará su color al recibirlo.
+                  </p>
+                  </div>
+                </div>
+                <Button type="button" size="sm" variant="outline" onClick={() =>
+                  setColorVariants((previous) => [...previous, { color: "", cost: Number(form.cost) || 0, price: Number(form.price) || 0 }])
+                }>
+                  <Plus className="h-4 w-4" /> Agregar color
+                </Button>
+              </div>
+              {colorVariants.length === 0 ? (
+                <p className="rounded-xl border border-dashed p-3 text-xs text-muted-foreground">
+                  Opcional: si todos los colores cuestan lo mismo, deja la lista vacía y continúa usando el precio general.
+                </p>
+              ) : (
+                <div className="nx-editor-variant-table">
+                  <div className="nx-editor-variant-columns" aria-hidden="true">
+                    <span>Color</span><span>Costo de compra</span><span>Venta sugerida</span><span />
+                  </div>
+                  {colorVariants.map((variant, index) => (
+                    <div key={index} className="nx-editor-variant-row">
+                      <div className="nx-editor-variant-field">
+                        <Label htmlFor={`variant-name-${index}`}>Color</Label>
+                        <Input id={`variant-name-${index}`} placeholder="Blanco, Azul, Borgoña…" value={variant.color}
+                          onChange={(e) => setColorVariants((old) => old.map((v,i) => i===index ? {...v,color:e.target.value} : v))} />
+                      </div>
+                      <div className="space-y-1">
+                        <Label htmlFor={`variant-cost-${index}`}>Costo</Label>
+                        <FormattedNumberInput id={`variant-cost-${index}`} value={String(variant.cost)}
+                          onValueChange={(value) => setColorVariants((old) => old.map((v,i) => i===index ? {...v,cost:Number(value)||0} : v))} />
+                      </div>
+                      <div className="space-y-1">
+                        <Label htmlFor={`variant-price-${index}`}>Venta sugerida</Label>
+                        <FormattedNumberInput id={`variant-price-${index}`} value={String(variant.price)}
+                          onValueChange={(value) => setColorVariants((old) => old.map((v,i) => i===index ? {...v,price:Number(value)||0} : v))} />
+                      </div>
+                      <Button type="button" variant="outline" size="icon" className="nx-editor-delete-color" aria-label={`Eliminar color ${variant.color || index + 1}`}
+                        onClick={() => setColorVariants((old) => old.filter((_,i) => i!==index))}>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </section>
+          ) : null}
+          </div>
+          <details className="nx-editor-advanced">
+            <summary className="nx-editor-advanced-summary">
+              <span className="nx-editor-advanced-summary-icon"><SlidersHorizontal className="h-4 w-4" /></span>
+              <span className="min-w-0 flex-1">
+                <strong>Imagen, características y descripción</strong>
+                <small>Información adicional del producto. Ábrela cuando necesites editarla.</small>
+              </span>
+              <ChevronDown className="nx-editor-advanced-chevron h-4 w-4" aria-hidden="true" />
+            </summary>
+            <div className="nx-editor-advanced-content">
           <div className="space-y-2 rounded-xl border border-border/70 p-3 sm:col-span-2">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
               {imagePreview ? (
@@ -663,10 +692,11 @@ export const ProductFormDialog = ({
               value={form.description}
               onChange={(event) => setForm({ ...form, description: event.target.value })}
             />
-          </div>
+          </div>            </div>
+          </details>
         </div>
 
-        <DialogFooter className="pr-6">
+        <DialogFooter className="nx-editor-footer">
           <Button variant="outline" type="button" onClick={() => setOpen(false)}>
             {t("common.cancel")}
           </Button>
