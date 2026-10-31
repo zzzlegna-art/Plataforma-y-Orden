@@ -380,7 +380,25 @@ export const updateProduct = (
   }
   product.price = requireNumber(input.price, "errors.invalidPrice");
   product.cost = requireNumber(input.cost, "errors.invalidCost");
-  if (input.colorVariants !== undefined) product.colorVariants = validarVariantesColor(input.colorVariants);
+  if (input.colorVariants !== undefined) {
+    const nuevas = validarVariantesColor(input.colorVariants);
+    const permitidos = new Set(nuevas.map((v) => v.color.toLocaleLowerCase("es")));
+    const unidadesEnStock = db.units.some((unit) =>
+      unit.productId === product.id && unit.color &&
+      !["vendido", "liberado", "entregado_garantia"].includes(unit.status) &&
+      !permitidos.has(unit.color.toLocaleLowerCase("es")),
+    );
+    const lineasPendientes = db.orderItems.some((item) =>
+      item.productId === product.id && item.color &&
+      db.orders.some((order) => order.id === item.orderId &&
+        ["en_preparacion", "preparado"].includes(order.status)) &&
+      !permitidos.has(item.color.toLocaleLowerCase("es")),
+    );
+    if (unidadesEnStock || lineasPendientes) {
+      throw new DomainError("No puedes eliminar un color mientras tenga IMEI en stock o pedidos abiertos.");
+    }
+    product.colorVariants = nuevas;
+  }
   product.minStock = requireNumber(input.minStock, "errors.invalidMinStock");
   product.isActive = input.isActive ?? product.isActive;
   product.updatedAt = nowIso();
