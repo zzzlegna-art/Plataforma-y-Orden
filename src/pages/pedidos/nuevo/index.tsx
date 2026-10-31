@@ -104,7 +104,7 @@ const NuevoPedido = () => {
         (unit.status === "en_bodega" || unit.status === "en_local") &&
         !enPedidoActivo(unit.id) &&
         (cond ? unit.condition === cond : true) &&
-        (!color || (unit.color ?? "").toLowerCase() === color.toLowerCase()),
+        (!color || !unit.color || unit.color.toLocaleLowerCase("es") === color.toLocaleLowerCase("es")),
     ).length;
 
   const categorias = useMemo(
@@ -192,9 +192,14 @@ const NuevoPedido = () => {
     const product = db.products.find((p) => p.id === productId);
     if (!product) return;
     const cond = condicionVisible() ? condicion : condicionParaProducto(product.categoria);
-    const colores = product.colorVariants ?? [];
-    const color = colores.find((c) => disponiblesDe(productId, cond, c.color) > 0)?.color;
-    if (colores.length && !color) { toast.error("No hay IMEI disponibles con color registrado."); return; }
+    // La referencia entra al pedido SIN color: se puede escoger aquí o al serializar.
+    const color: string | undefined = undefined;
+    const ocupado = lineas.filter((l) => l.productId === productId && l.condition === cond)
+      .reduce((n,l) => n + l.quantity, 0);
+    if (ocupado >= disponiblesDe(productId, cond)) {
+      toast.error("No hay más IMEI disponibles para esta referencia.");
+      return;
+    }
     setLineas((previous) => {
       const existente = previous.find((l) => l.productId === productId && l.condition === cond && l.color === color);
       if (existente) {
@@ -208,10 +213,19 @@ const NuevoPedido = () => {
 
   type LineaBorrador = (typeof lineas)[number];
   const claveLinea = (l: LineaBorrador) => `${l.productId}-${l.condition}-${l.color ?? ""}`;
+  const maximoParaLinea = (linea: LineaBorrador, color = linea.color) => {
+    const total = disponiblesDe(linea.productId, linea.condition);
+    const usadoEnOtrasLineas = lineas.filter((l) => l !== linea &&
+      l.productId === linea.productId && l.condition === linea.condition)
+      .reduce((sum,l) => sum + l.quantity, 0);
+    return Math.max(0, Math.min(disponiblesDe(linea.productId, linea.condition, color), total - usadoEnOtrasLineas));
+  };
   const cambiarCantidad = (linea: LineaBorrador, delta: number) =>
-    setLineas((prev) => prev.map((l) => l === linea ? { ...l, quantity: l.quantity + delta } : l).filter((l) => l.quantity > 0));
+    setLineas((prev) => prev.map((l) => l === linea
+      ? { ...l, quantity: Math.max(0, Math.min(l.quantity + delta, maximoParaLinea(linea))) }
+      : l).filter((l) => l.quantity > 0));
   const fijarCantidad = (linea: LineaBorrador, valor: number) => {
-    const disponibles = disponiblesDe(linea.productId, linea.condition, linea.color);
+    const disponibles = maximoParaLinea(linea);
     const cantidad = Math.min(Math.max(Math.round(valor) || 1, 1), Math.max(disponibles, 1));
     setLineas((prev) => prev.map((l) => l === linea ? { ...l, quantity: cantidad } : l));
   };
@@ -219,7 +233,7 @@ const NuevoPedido = () => {
     if (lineas.some((l) => l !== linea && l.productId === linea.productId && l.condition === linea.condition && l.color === color)) {
       toast.error("Ya agregaste ese color al pedido."); return;
     }
-    const stock = disponiblesDe(linea.productId, linea.condition, color);
+    const stock = maximoParaLinea(linea, color);
     if (!stock) { toast.error("No hay unidades disponibles de ese color."); return; }
     setLineas((prev) => prev.map((l) => l === linea ? {...l, color, quantity: Math.min(l.quantity, stock)} : l));
   };
@@ -229,7 +243,11 @@ const NuevoPedido = () => {
       !lineas.some((l) => l.productId === linea.productId && l.condition === linea.condition && l.color === v.color) &&
       disponiblesDe(linea.productId, linea.condition, v.color) > 0,
     );
-    if (!siguiente) { toast.error("No quedan otros colores con stock disponible."); return; }
+    if (!siguiente || lineas.filter((l) => l.productId === linea.productId &&
+      l.condition === linea.condition).reduce((sum,l) => sum + l.quantity, 0) >=
+      disponiblesDe(linea.productId, linea.condition)) {
+      toast.error("No quedan unidades disponibles para agregar otro color."); return;
+    }
     setLineas((prev) => [...prev, {productId:linea.productId,condition:linea.condition,color:siguiente.color,quantity:1}]);
   };
 
@@ -511,7 +529,8 @@ const NuevoPedido = () => {
                         </div>
                         {(product?.colorVariants?.length ?? 0) > 0 ? (
                           <div className="mt-2 space-y-2">
-                            <Label className="text-xs">Color y precio de venta sugerido</Label>
+                            <Label className="text-xs">Color (opcional por ahora)</Label>
+                            <p className="text-xs text-muted-foreground">Puedes elegirlo ahora o cuando serialices el pedido. No es necesario indicarlo en recepción.</p>
                             <OptionSelect value={linea.color || undefined}
                               onChange={(value) => cambiarColor(linea, value)}
                               options={(product?.colorVariants ?? []).map((v) => ({
@@ -556,7 +575,7 @@ const NuevoPedido = () => {
                             }}
                           />
                           <Button type="button" size="icon" variant="outline" className="h-7 w-7"
-                            disabled={linea.quantity >= disponibles} onClick={() => cambiarCantidad(linea, 1)}>
+                            disabled={linea.quantity >= maximoParaLinea(linea)} onClick={() => cambiarCantidad(linea, 1)}>
                             +
                           </Button>
                           <Button type="button" size="icon" variant="ghost" className="h-7 w-7 text-destructive"
