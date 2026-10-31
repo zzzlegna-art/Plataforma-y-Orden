@@ -22,12 +22,12 @@ const assertNotComprometida = (db: Db, unit: Unit) => {
   if (unit.status === "entregado_garantia") {
     throw new DomainError("errors.unitComprometida");
   }
-  // Unidades apartadas en un pedido en preparación tampoco.
+  // Unidades asignadas a pedidos activos (serializando o preparados) tampoco.
   const activeAssignment = db.orderItemUnits.find((row) => {
     if (row.unitId !== unit.id) return false;
     const item = db.orderItems.find((orderItem) => orderItem.id === row.orderItemId);
     const order = item ? db.orders.find((o) => o.id === item.orderId) : undefined;
-    return order && order.status === "en_preparacion";
+    return order && (order.status === "en_preparacion" || order.status === "preparado");
   });
   if (activeAssignment) throw new DomainError("errors.unitInOrder");
 };
@@ -250,7 +250,7 @@ export const liberarUnitsLote = (
         return {
           imei,
           resultado: "no_permitido",
-          detalle: "Está apartada en un pedido en preparación",
+          detalle: "Está asignada a un pedido activo (en preparación o pendiente de venta)",
         };
       }
       throw error;
