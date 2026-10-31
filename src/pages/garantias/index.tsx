@@ -86,6 +86,11 @@ import { FiltrosReenvio } from "./filtros-reenvio";
 import { DeshacerEstadoButton } from "./deshacer-estado";
 import { SEARCH_INPUT_PROPS } from "@/lib/search-input";
 import { cn } from "@/lib/utils";
+import {
+  referenciasGarantiaPrevia,
+  TIPOS_EQUIPOS_GARANTIA_PREVIA,
+  type TipoEquipoGarantiaPrevia,
+} from "@/lib/warranty-previa-catalog";
 import type { Unit, WarrantyStatus } from "@/lib/types";
 import {
   DevolverDialog,
@@ -240,13 +245,6 @@ const Garantias = () => {
     .map((c) => c.name)
     .sort((a, b) => a.localeCompare(b));
 
-  // Referencias del catálogo: sugerencias únicas para garantías previas y filtros.
-  const referenciasInventario = useMemo(
-    () => [...new Set(db.products.map((producto) => producto.name.trim()).filter(Boolean))]
-      .sort((a, b) => a.localeCompare(b, "es")),
-    [db.products],
-  );
-
   // La pestaña activa vive en la dirección (?tab=recibidos): así, al ver una garantía y volver
   // (botón "Volver" o "atrás" del navegador), se regresa a la misma pestaña.
   const [params, setParams] = useSearchParams();
@@ -274,6 +272,19 @@ const Garantias = () => {
   const [archivoLote, setArchivoLote] = useState<File | null>(null);
   const [loteObs, setLoteObs] = useState<Record<string, string>>({});
   const [aviso, setAviso] = useState<Aviso | null>(null);
+
+  // Garantía previa: primero elegir tipo de equipo y después modelo.
+  // El tipo es una preferencia de presentación: solo se persiste el modelo elegido.
+  const [previaTipo, setPreviaTipo] = useState<TipoEquipoGarantiaPrevia | "">("");
+  const [previaLoteTipo, setPreviaLoteTipo] = useState<TipoEquipoGarantiaPrevia | "">("");
+  const referenciasPrevia = useMemo(
+    () => referenciasGarantiaPrevia(db.products, previaTipo),
+    [db.products, previaTipo],
+  );
+  const referenciasPreviaLote = useMemo(
+    () => referenciasGarantiaPrevia(db.products, previaLoteTipo),
+    [db.products, previaLoteTipo],
+  );
 
   // Previa
   const [previa, setPrevia] = useState({
@@ -1782,15 +1793,33 @@ const Garantias = () => {
                 </Button>
               </div>
               <div className="space-y-2">
+                <Label>{t("warranty.previaTipoEquipo")}</Label>
+                <OptionSelect
+                  value={previaTipo || undefined}
+                  onChange={(tipo) => {
+                    setPreviaTipo(tipo as TipoEquipoGarantiaPrevia | "");
+                    setPrevia((actual) => ({ ...actual, referencia: "" }));
+                  }}
+                  options={TIPOS_EQUIPOS_GARANTIA_PREVIA.map((tipo) => ({
+                    value: tipo, label: t(`productCat.${tipo}`),
+                  }))}
+                  emptyLabel={t("warranty.previaTipoPlaceholder")}
+                  placeholder={t("warranty.previaTipoPlaceholder")}
+                />
+              </div>
+              <div className="space-y-2">
                 <Label>{t("warranty.previaReferencia")}</Label>
                 <OptionSelect
                   value={previa.referencia || undefined}
-                  onChange={(referencia) => setPrevia({ ...previa, referencia })}
-                  options={referenciasInventario.map((referencia) => ({ value: referencia, label: referencia }))}
-                  placeholder={t("warranty.previaReferenciaPlaceholder")}
+                  onChange={(referencia) => setPrevia((actual) => ({ ...actual, referencia }))}
+                  options={referenciasPrevia.map((referencia) => ({ value: referencia, label: referencia }))}
+                  placeholder={previaTipo ? t("warranty.previaReferenciaPlaceholder") : t("warranty.previaTipoFirst")}
                   emptyLabel={t("common.select")}
-                  disabled={referenciasInventario.length === 0}
+                  disabled={!previaTipo || referenciasPrevia.length === 0}
                 />
+                {previaTipo && referenciasPrevia.length === 0 ? (
+                  <p className="text-xs text-muted-foreground">{t("warranty.previaSinModelos")}</p>
+                ) : null}
               </div>
               <div className="space-y-2">
                 <Label>{t("warranty.previaCliente")}</Label>
@@ -1873,15 +1902,33 @@ const Garantias = () => {
                       </Button>
                     </div>
                     <div className="space-y-2">
+                      <Label>{t("warranty.previaTipoEquipo")}</Label>
+                      <OptionSelect
+                        value={previaLoteTipo || undefined}
+                        onChange={(tipo) => {
+                          setPreviaLoteTipo(tipo as TipoEquipoGarantiaPrevia | "");
+                          setPreviaLoteDraft((actual) => ({ ...actual, referencia: "" }));
+                        }}
+                        options={TIPOS_EQUIPOS_GARANTIA_PREVIA.map((tipo) => ({
+                          value: tipo, label: t(`productCat.${tipo}`),
+                        }))}
+                        emptyLabel={t("warranty.previaTipoPlaceholder")}
+                        placeholder={t("warranty.previaTipoPlaceholder")}
+                      />
+                    </div>
+                    <div className="space-y-2">
                       <Label>{t("warranty.previaReferencia")}</Label>
                       <OptionSelect
                         value={previaLoteDraft.referencia || undefined}
-                        onChange={(referencia) => setPreviaLoteDraft({ ...previaLoteDraft, referencia })}
-                        options={referenciasInventario.map((referencia) => ({ value: referencia, label: referencia }))}
-                        placeholder={t("warranty.previaReferenciaPlaceholder")}
+                        onChange={(referencia) => setPreviaLoteDraft((actual) => ({ ...actual, referencia }))}
+                        options={referenciasPreviaLote.map((referencia) => ({ value: referencia, label: referencia }))}
+                        placeholder={previaLoteTipo ? t("warranty.previaReferenciaPlaceholder") : t("warranty.previaTipoFirst")}
                         emptyLabel={t("common.select")}
-                        disabled={referenciasInventario.length === 0}
+                        disabled={!previaLoteTipo || referenciasPreviaLote.length === 0}
                       />
+                      {previaLoteTipo && referenciasPreviaLote.length === 0 ? (
+                        <p className="text-xs text-muted-foreground">{t("warranty.previaSinModelos")}</p>
+                      ) : null}
                     </div>
                     <div className="space-y-2">
                       <Label>{t("warranty.previaCliente")}</Label>
