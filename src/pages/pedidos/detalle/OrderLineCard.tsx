@@ -175,7 +175,9 @@ export const OrderLineCard = ({
                       onChange={onCambiarColor}
                       options={(line.product?.colorVariants ?? []).map((variant) => ({
                         value: variant.color,
-                        label: `${variant.color} · Venta $ ${variant.price.toLocaleString("es-CO")}`,
+                        label: variant.price > 0
+                          ? `${variant.color} · Venta $ ${variant.price.toLocaleString("es-CO")}`
+                          : `${variant.color} · Precio de venta pendiente`,
                       }))}
                       placeholder="Seleccionar color"
                     />
@@ -186,7 +188,7 @@ export const OrderLineCard = ({
                     ) : null}
                     {line.item.color && !line.item.unitPrice ? (
                       <p className="text-[11px] text-amber-700 dark:text-amber-300">
-                        Este color tiene precio $ 0. Configura su venta en Inventario → Editar producto.
+                        Este color no tiene precio de venta guardado. Revisa la columna «Venta sugerida» en Inventario → Editar producto.
                       </p>
                     ) : null}
                   </>
