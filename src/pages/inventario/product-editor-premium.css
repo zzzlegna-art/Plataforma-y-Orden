@@ -386,3 +386,98 @@
   .nx-product-editor .nx-editor-advanced-chevron,
   .nx-product-editor .nx-editor-variant-row{transition:none;}
 }
+
+
+/* Colores y fotografías por variante: compacto, claro/oscuro y sin afectar precios. */
+.nx-product-editor .nx-editor-variant-media {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  padding-top: 9px;
+  border-top: 1px dashed hsl(var(--border) / .85);
+}
+.nx-product-editor .nx-editor-variant-color-chip {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 7px;
+  padding-right: 11px;
+  border-right: 1px solid hsl(var(--border));
+}
+.nx-product-editor .nx-editor-variant-color-chip label {
+  color: hsl(var(--muted-foreground));
+  font-size: .7rem;
+  font-weight: 650;
+}
+.nx-product-editor .nx-editor-variant-color-chip input[type=color] {
+  width: 33px;
+  height: 33px;
+  cursor: pointer;
+  padding: 3px;
+  border: 1px solid hsl(var(--border));
+  background: hsl(var(--card));
+  border-radius: 50%;
+}
+.nx-product-editor .nx-editor-variant-color-chip input[type=color]::-webkit-color-swatch-wrapper{padding:0;}
+.nx-product-editor .nx-editor-variant-color-chip input[type=color]::-webkit-color-swatch{
+  border-radius:50%;border:1px solid hsl(var(--border));
+}
+.nx-product-editor .nx-editor-variant-photo-field {
+  flex: 1 1 auto;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+}
+.nx-product-editor .nx-editor-variant-photo-preview,
+.nx-product-editor .nx-editor-variant-photo-placeholder {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  flex: none;
+  object-fit: contain;
+  border: 1px solid hsl(var(--border));
+  border-radius: 10px;
+  background: hsl(var(--secondary) / .45);
+  color: hsl(var(--muted-foreground));
+}
+.nx-product-editor .nx-editor-variant-photo-upload {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  gap: 6px;
+  min-height: 35px;
+  padding: 6px 10px;
+  border: 1px solid hsl(var(--border));
+  border-radius: 10px;
+  background: hsl(var(--card));
+  color: hsl(var(--foreground));
+  cursor: pointer;
+  font-size: .71rem;
+  font-weight: 750;
+}
+.nx-product-editor .nx-editor-variant-photo-upload:hover{
+  border-color: hsl(var(--primary) / .45);
+  background: hsl(var(--primary) / .07);
+}
+.nx-product-editor .nx-editor-variant-photo-upload input[type=file]{
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  opacity: 0;
+}
+.nx-product-editor .nx-editor-variant-photo-upload:focus-within{
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: 2px;
+}
+@media(max-width: 690px){
+  .nx-product-editor .nx-editor-variant-media{flex-wrap: wrap; gap: 8px;}
+  .nx-product-editor .nx-editor-variant-color-chip{border-right: 0;padding-right: 4px;}
+  .nx-product-editor .nx-editor-variant-photo-field{flex-basis:100%;flex-wrap:wrap;}
+  .nx-product-editor .nx-editor-variant-photo-field .min-w-0{flex:1 1 50%;}
+}
