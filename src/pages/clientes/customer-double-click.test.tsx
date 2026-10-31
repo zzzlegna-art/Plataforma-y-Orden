@@ -57,7 +57,7 @@ describe("Clientes · guardar una sola vez", () => {
     const user = userEvent.setup();
     render(<I18nextProvider i18n={i18n}><Wrapper /></I18nextProvider>);
     await user.click(screen.getByRole("button", { name: "Nuevo cliente prueba" }));
-    await user.type(screen.getByLabelText("Nombre"), "Cliente de prueba");
+    await user.type(screen.getByLabelText("Nombre o razón social"), "Cliente de prueba");
     const guardar = screen.getByRole("button", { name: "Guardar" });
     await act(async () => {
       fireEvent.click(guardar);
