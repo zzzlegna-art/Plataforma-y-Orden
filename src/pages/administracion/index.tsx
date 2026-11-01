@@ -9,6 +9,7 @@ import { AuditTab } from "./AuditTab";
 import { CatalogsTab } from "./CatalogsTab";
 import { DataTab } from "./DataTab";
 import { UsersTab } from "./UsersTab";
+import { SedesTab } from "./SedesTab";
 
 /**
  * Administración unificada. Personal de bodega administra proveedores sin acceder
@@ -20,7 +21,7 @@ const Administracion = () => {
   const [params, setParams] = useSearchParams();
   const selected = params.get("tab");
   const validTabs = isAdmin
-    ? ["users", "catalogs", "suppliers", "audit", "data"]
+    ? ["users", "sedes", "catalogs", "suppliers", "audit", "data"]
     : ["suppliers"];
   const activeTab = selected && validTabs.includes(selected)
     ? selected
@@ -44,6 +45,7 @@ const Administracion = () => {
       >
         <TabsList className="h-auto w-full flex-wrap justify-start gap-1 p-1 sm:w-auto">
           {isAdmin ? <TabsTrigger value="users">{t("admin.tabUsers")}</TabsTrigger> : null}
+          {isAdmin ? <TabsTrigger value="sedes">Sedes</TabsTrigger> : null}
           {isAdmin ? <TabsTrigger value="catalogs">{t("admin.tabCatalogs")}</TabsTrigger> : null}
           <TabsTrigger value="suppliers">{t("admin.tabSuppliers")}</TabsTrigger>
           {isAdmin ? <TabsTrigger value="audit">{t("admin.tabAudit")}</TabsTrigger> : null}
@@ -53,6 +55,7 @@ const Administracion = () => {
         {isAdmin ? (
           <>
             <TabsContent value="users"><UsersTab /></TabsContent>
+            <TabsContent value="sedes"><SedesTab /></TabsContent>
             <TabsContent value="catalogs"><CatalogsTab /></TabsContent>
             <TabsContent value="audit"><AuditTab /></TabsContent>
             <TabsContent value="data"><DataTab /></TabsContent>
