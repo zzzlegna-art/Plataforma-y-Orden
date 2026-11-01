@@ -34,6 +34,7 @@ export const TransferReceiptChecklist = ({
 }: TransferReceiptChecklistProps) => {
   const [decisions, setDecisions] = useState<Record<string, TransferReceiptItem>>({});
   const [saving, setSaving] = useState(false);
+  const [confirmed, setConfirmed] = useState(false);
   const locked = useRef(false);
 
   const byUnit = (unitId: string): TransferReceiptItem =>
@@ -65,7 +66,7 @@ export const TransferReceiptChecklist = ({
   }, [decisions, dispatched]);
 
   const confirm = async () => {
-    if (locked.current) return;
+    if (locked.current || confirmed) return;
     let plan: TransferReceiptPlan;
     try {
       plan = planTransferReceipt(
@@ -83,6 +84,7 @@ export const TransferReceiptChecklist = ({
     setSaving(true);
     try {
       await onConfirm(plan);
+      setConfirmed(true);
       toast.success(
         plan.missingCount
           ? `Recepción registrada: ${plan.receivedCount} recibidos y ${plan.missingCount} pendientes de retorno al origen.`
@@ -156,7 +158,7 @@ export const TransferReceiptChecklist = ({
                   <div className="flex flex-wrap gap-2" role="group" aria-label={`Estado del IMEI ${serial}`}>
                     <button
                       type="button"
-                      disabled={saving}
+                      disabled={saving || confirmed}
                       aria-pressed={current.decision === "recibido"}
                       onClick={() => setDecision(unitId, "recibido")}
                       className={`inline-flex min-h-10 items-center gap-1.5 rounded-lg border px-3 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${current.decision === "recibido" ? "border-emerald-500 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300" : "hover:bg-muted"}`}
@@ -181,7 +183,7 @@ export const TransferReceiptChecklist = ({
                     </label>
                     <Input
                       id={`observation-${unitId}`}
-                      disabled={saving}
+                      disabled={saving || confirmed}
                       maxLength={500}
                       value={current.observation}
                       onChange={(event) => setObservation(unitId, event.target.value)}
@@ -204,7 +206,7 @@ export const TransferReceiptChecklist = ({
         </div>
         <div className="flex flex-wrap items-center justify-between gap-3">
           <p role="status" className="text-xs text-muted-foreground">
-            {summary.unmarked > 0
+            {confirmed ? "Recepción confirmada. Puedes consultar su acta." : summary.unmarked > 0
               ? `Faltan ${summary.unmarked} IMEI por marcar.`
               : summary.missingNotes > 0
                 ? `Faltan ${summary.missingNotes} observaciones de faltantes.`
@@ -212,7 +214,7 @@ export const TransferReceiptChecklist = ({
           </p>
           <Button
             loading={saving}
-            disabled={saving || dispatched.length === 0 || summary.unmarked > 0 || summary.missingNotes > 0}
+            disabled={confirmed || saving || dispatched.length === 0 || summary.unmarked > 0 || summary.missingNotes > 0}
             onClick={() => void confirm()}
           >
             <ClipboardCheck className="h-4 w-4" /> Confirmar recepción
