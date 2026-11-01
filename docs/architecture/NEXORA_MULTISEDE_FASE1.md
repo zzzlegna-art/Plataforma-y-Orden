@@ -12,6 +12,18 @@
 - Campo nullable `bodega_units.site_id`, sin backfill automático. NULL significa «sede no conciliada».
 - Trigger temporal que impide asignar/cambiar `site_id` desde permisos legacy por un usuario no Administrador.
 
+## Disponibilidad global por sede incorporada al detalle del producto
+
+- La ficha de cada referencia presenta ciudades, bodegas y locales con existencias verificadas.
+- El agregado se deriva del IMEI individual `bodega_units.site_id`, **no** de una deducción basada en `en_bodega`/`en_local`.
+- Los IMEI sin `site_id` o con ubicación inválida aparecen como **pendientes de conciliación**, jamás como disponibilidad real en una sede.
+- El tránsito se informa aparte y no suma a disponible.
+- Los pedidos preparados y garantías de cliente se excluyen del disponible, reutilizando los mismos selectores que el inventario actual.
+- El catálogo de sedes se consulta con permisos existentes; si la migración aún no está desplegada, la vista informa que está pendiente sin bloquear el inventario legacy.
+- La visibilidad del inventario no otorga autorización para vender, reservar, trasladar o ajustar mercancía fuera de la sede propia.
+- Las pruebas de negocio verifican localización real, diversas ciudades, estado de tránsito, bloqueo por pedidos, garantías y datos históricos sin ubicación.
+- Hasta que no se migre y confirme físicamente la totalidad de los IMEI, el resultado será parcial; los pendientes se muestran explícitamente.
+
 ## No implementado todavía
 
 - Cambio del rol real de `bodega_profiles` o el motor de permisos legacy.
