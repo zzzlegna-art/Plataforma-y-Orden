@@ -36,6 +36,9 @@ export const validateTransferRoute = (
     if (!isWarehouse(destination.kind)) {
       return { allowed: false, reason: "Los traslados directos de local a local están prohibidos." };
     }
+    if (origin.parent_warehouse_id !== destination.id || origin.city_id !== destination.city_id) {
+      return { allowed: false, reason: "El local debe regresar la mercancía a su bodega de abastecimiento." };
+    }
     return { allowed: true };
   }
   if (isWarehouse(origin.kind) && isWarehouse(destination.kind)) {
@@ -99,12 +102,14 @@ export const planTransferReceipt = (
     throw new TransferReceiptValidationError("No hay equipos despachados en este traslado.");
   }
   const expected = new Map<string, DispatchedSerial>();
+  const unitIds = new Set<string>();
   for (const unit of dispatched) {
     const key = normalizeSerial(unit.serial);
-    if (!key || !unit.unitId || expected.has(key)) {
-      throw new TransferReceiptValidationError("El traslado contiene un IMEI inválido o duplicado.");
+    if (!key || !unit.unitId || expected.has(key) || unitIds.has(unit.unitId)) {
+      throw new TransferReceiptValidationError("El traslado contiene un IMEI o identificador duplicado o inválido.");
     }
     expected.set(key, unit);
+    unitIds.add(unit.unitId);
   }
 
   const received = new Set<string>();
