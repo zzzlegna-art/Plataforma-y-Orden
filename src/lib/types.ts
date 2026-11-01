@@ -245,6 +245,8 @@ export interface Unit {
   condition: UnitCondition;
   status: UnitStatus;
   cost?: number;
+  /** Ubicación física conciliada de este IMEI; sin valor hasta verificar inventario. */
+  siteId?: string;
   receptionId?: string;
   location?: string;
   notes?: string;
