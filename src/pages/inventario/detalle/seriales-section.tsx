@@ -135,7 +135,7 @@ export const SerialesSeccion = ({
             onClick={() => setSelectedUnitId(item.unit.id)}
             className="font-tabular rounded-md text-left font-semibold text-primary underline-offset-4 transition-colors hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
           >
-            {item.unit.serial}
+            <span className="font-tabular">{item.unit.serial}</span>
           </button>
           {esCodigoInterno(item.unit.serial) ? <PendingImeiBadge /> : null}
           <CopySerialButton serial={item.unit.serial} />
