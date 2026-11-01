@@ -224,6 +224,85 @@ describe("recepción de 1.350 seriales sin guardados parciales", () => {
   });
 });
 
+describe("recepciones · recuperación segura de errores de red", () => {
+  const recepcionNueva = () => {
+    const previo = emptyDb();
+    const siguiente = cloneDb(previo);
+    siguiente.receptions.push({
+      id: "r-nueva", code: "REC-00090", status: "captura",
+      receivedAt: ahora, createdBy: "user-1", createdAt: ahora,
+    });
+    return { previo, siguiente };
+  };
+
+  const servidorConfirma = (respuestas: (string | null)[]) => {
+    const maybeSingle = vi.fn();
+    for (const id of respuestas) maybeSingle.mockResolvedValueOnce({
+      data: id ? { id } : null, error: null,
+    });
+    mocks.from.mockImplementation(() => ({
+      select: () => ({ eq: () => ({ maybeSingle }) }),
+    }));
+    return maybeSingle;
+  };
+
+  it("si se perdió la respuesta pero ya se creó la recepción NO la envía dos veces", async () => {
+    const { previo, siguiente } = recepcionNueva();
+    mocks.rpc.mockResolvedValueOnce({ data: null, error: { message: "TypeError: Failed to fetch" } });
+    const read = servidorConfirma(["r-nueva"]);
+
+    await expect(pushDb(previo, siguiente)).resolves.toBeUndefined();
+    expect(mocks.rpc).toHaveBeenCalledTimes(1);
+    expect(read).toHaveBeenCalledTimes(1);
+  });
+
+  it("si la primera petición no llegó, reintenta una vez con el mismo UUID", async () => {
+    const { previo, siguiente } = recepcionNueva();
+    mocks.rpc
+      .mockResolvedValueOnce({ data: null, error: { message: "Failed to fetch" } })
+      .mockResolvedValueOnce({ data: { ok: true }, error: null });
+    servidorConfirma([null]);
+
+    await expect(pushDb(previo, siguiente)).resolves.toBeUndefined();
+    expect(mocks.rpc).toHaveBeenCalledTimes(2);
+    expect(mocks.rpc.mock.calls[0][1]).toEqual(mocks.rpc.mock.calls[1][1]);
+  });
+
+  it("si la primera petición terminó mientras se reintentaba, reconoce el resultado real", async () => {
+    const { previo, siguiente } = recepcionNueva();
+    mocks.rpc
+      .mockResolvedValueOnce({ data: null, error: { message: "Failed to fetch" } })
+      .mockResolvedValueOnce({
+        data: null,
+        error: { message: "BODEGA_CONFLICTO_CONCURRENCIA" },
+      });
+    servidorConfirma([null, "r-nueva"]);
+
+    await expect(pushDb(previo, siguiente)).resolves.toBeUndefined();
+    expect(mocks.rpc).toHaveBeenCalledTimes(2);
+  });
+
+  it("si la red sigue caída, informa incertidumbre y nunca guarda tabla por tabla", async () => {
+    const { previo, siguiente } = recepcionNueva();
+    mocks.rpc.mockResolvedValue({ data: null, error: { message: "TypeError: Failed to fetch" } });
+    servidorConfirma([null, null]);
+    await expect(pushDb(previo, siguiente)).rejects.toMatchObject({
+      key: "errors.saveFailed",
+    });
+    expect(mocks.rpc).toHaveBeenCalledTimes(2);
+    expect(mocks.registro).toEqual([]);
+  });
+
+  it("los rechazos de negocio no se reintentan y mantienen la protección atómica", async () => {
+    const { previo, siguiente } = recepcionNueva();
+    mocks.rpc.mockResolvedValue({
+      data: null, error: { code: "42501", message: "BODEGA_FORBIDDEN" },
+    });
+    await expect(pushDb(previo, siguiente)).rejects.toBeInstanceOf(DomainError);
+    expect(mocks.rpc).toHaveBeenCalledTimes(1);
+  });
+});
+
 describe("persistencia del proveedor elegido en recepción", () => {
   it("incluye supplier_id en altas y modificaciones sin perder la referencia", () => {
     const previo = emptyDb();
