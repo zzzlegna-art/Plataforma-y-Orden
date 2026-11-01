@@ -5,6 +5,7 @@ import { cleanup, render, screen, waitFor, within } from "@testing-library/react
 import userEvent from "@testing-library/user-event";
 import i18n from "i18next";
 import { I18nextProvider, initReactI18next } from "react-i18next";
+import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
@@ -126,7 +127,9 @@ const Pantalla = ({ condicion }: { condicion?: Unit["condition"] }) => {
 const dibujar = (db: Db, condicion?: Unit["condition"]) =>
   render(
     <I18nextProvider i18n={i18n}>
-      <Almacen inicial={db} condicion={condicion} />
+      <MemoryRouter>
+        <Almacen inicial={db} condicion={condicion} />
+      </MemoryRouter>
     </I18nextProvider>,
   );
 
@@ -172,6 +175,28 @@ beforeEach(() => {
   mocks.controlFinalizar.mockReset();
 });
 afterEach(cleanup);
+
+describe("hoja de vida del IMEI desde el inventario", () => {
+  it("abre la ficha premium al pulsar un serial y muestra los movimientos históricos", async () => {
+    const db = inventario();
+    db.movements.push({
+      id: "m-ingreso", unitId: "u-350000000000001", productId: "p1",
+      type: "entrada", quantity: 1, referenceType: "manual",
+      notes: "Ingreso verificado en bodega central",
+      createdBy: "b1", createdAt: "2026-09-20T10:00:00Z",
+    });
+    const user = userEvent.setup();
+    dibujar(db);
+
+    await user.click(screen.getByRole("button", { name: "Ver hoja de vida del IMEI 350000000000001" }));
+
+    const dialog = await screen.findByRole("dialog");
+    expect(within(dialog).getByText("Hoja de vida del equipo")).toBeTruthy();
+    expect(within(dialog).getByText("Historia del serial")).toBeTruthy();
+    expect(within(dialog).getByText("Ingreso verificado en bodega central")).toBeTruthy();
+    expect(within(dialog).getByText(/Responsable: Bodeguero Uno/)).toBeTruthy();
+  });
+});
 
 describe("orden de la lista de seriales", () => {
   it("primero los que están en bodega y después el resto por estado (aunque el vendido sea el más reciente)", () => {

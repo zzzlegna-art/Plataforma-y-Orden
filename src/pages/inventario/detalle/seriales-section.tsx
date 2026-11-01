@@ -5,6 +5,7 @@ import { Printer, ScanLine, X } from "lucide-react";
 import { CopySerialButton } from "@/components/shared/copy-serial-button";
 import { DataTable, type Column } from "@/components/shared/data-table";
 import { PrintLabelsDialog } from "@/components/shared/print-labels-dialog";
+import { UnitDetailSheet } from "@/pages/unidades/UnitDetailSheet";
 import { UnitStatusMenu } from "@/components/shared/unit-status-menu";
 import { ConditionBadge, PendingImeiBadge, UnitStatusBadge } from "@/components/shared/status-badge";
 import { Button } from "@/components/ui/button";
@@ -43,6 +44,7 @@ export const SerialesSeccion = ({
   // varios seriales a la impresora de una vez, no para contarlos físicamente).
   const [seleccionados, setSeleccionados] = useState<Set<string>>(new Set());
   const [dialogoImprimir, setDialogoImprimir] = useState(false);
+  const [selectedUnitId, setSelectedUnitId] = useState<string | null>(null);
 
   const ordenadas = useMemo(() => ordenarUnidades(units), [units]);
   const estado = useMemo(
@@ -127,7 +129,14 @@ export const SerialesSeccion = ({
       header: t("unit.serial"),
       cell: (item) => (
         <span className="flex items-center gap-2">
-          <span className="font-tabular">{item.unit.serial}</span>
+          <button
+            type="button"
+            aria-label={`Ver hoja de vida del IMEI ${item.unit.serial}`}
+            onClick={() => setSelectedUnitId(item.unit.id)}
+            className="font-tabular rounded-md text-left font-semibold text-primary underline-offset-4 transition-colors hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+          >
+            <span className="font-tabular">{item.unit.serial}</span>
+          </button>
           {esCodigoInterno(item.unit.serial) ? <PendingImeiBadge /> : null}
           <CopySerialButton serial={item.unit.serial} />
         </span>
@@ -276,7 +285,14 @@ export const SerialesSeccion = ({
                     onToggle={control.alternarUnidad}
                   />
                 ) : null}
-                <p className="font-tabular truncate font-medium">{item.unit.serial}</p>
+                <button
+                  type="button"
+                  aria-label={`Ver hoja de vida del IMEI ${item.unit.serial}`}
+                  onClick={() => setSelectedUnitId(item.unit.id)}
+                  className="font-tabular max-w-full truncate rounded-md text-left font-semibold text-primary underline-offset-4 transition-colors hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+                >
+                  {item.unit.serial}
+                </button>
                 <CopySerialButton serial={item.unit.serial} />
               </div>
               <UnitStatusBadge status={item.unit.status} />
@@ -291,6 +307,11 @@ export const SerialesSeccion = ({
           </div>
         )}
         columns={columnas}
+      />
+
+      <UnitDetailSheet
+        unitId={selectedUnitId}
+        onClose={() => setSelectedUnitId(null)}
       />
 
       <PrintLabelsDialog
