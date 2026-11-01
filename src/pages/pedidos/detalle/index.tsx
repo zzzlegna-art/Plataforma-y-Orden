@@ -47,6 +47,7 @@ import { exportExcel, exportOrderSerialRelationPdf, exportSalesInvoicePdf } from
 import { formatCurrency, formatDate, todayIso } from "@/lib/format";
 import { costoSugeridoColor, estadoPrecioVentaColor, variantePorColor } from "@/lib/color-variants";
 import { findUnitBySerial, getOrderView } from "@/lib/selectors";
+import { ordenarLineasPedido } from "@/lib/order-line-sort";
 import type { UnitCondition } from "@/lib/types";
 import { OrderLineCard } from "./OrderLineCard";
 
@@ -104,6 +105,8 @@ const PedidoDetalle = () => {
   }
 
   const { order, customer, lines, requested } = view;
+  // Solo cambia el orden de presentación; no modifica las líneas ni su relación con los IMEI.
+  const lineasOrdenadas = ordenarLineasPedido(lines);
   const totalPedido = lines.reduce((total, line) => total + line.item.subtotal, 0);
   // Los repuestos no llevan serial (se descuentan solos al finalizar): el progreso y lo que falta
   // por asignar solo cuentan las referencias que sí se escanean.
@@ -131,7 +134,7 @@ const PedidoDetalle = () => {
       phone: customer?.phone,
       address: customer?.address,
     },
-    lines: lines.map((line) => ({
+    lines: lineasOrdenadas.map((line) => ({
       reference: line.product?.sku ?? "—",
       product: `${line.product?.name ?? "Producto sin nombre"}${line.item.color ? ` · ${line.item.color}` : ""}`,
       condition: line.esRepuesto ? "No aplica" : line.item.condition ? t(`condition.${line.item.condition}`) : "—",
@@ -489,7 +492,7 @@ const PedidoDetalle = () => {
                 companyName: db.settings.companyName,
                 customer: customer?.name ?? "Sin cliente",
                 orderDate: formatDate(order.orderDate),
-                lines: lines.map((line) => ({
+                lines: lineasOrdenadas.map((line) => ({
                   reference: `${line.product?.name ?? "Producto sin nombre"}${line.item.color ? ` · ${line.item.color}` : ""}`,
                   condition: line.esRepuesto ? "No aplica" : t(`condition.${line.item.condition}`),
                   quantity: line.item.quantity,
@@ -538,7 +541,7 @@ const PedidoDetalle = () => {
                   title: `Factura comercial · ${order.code}`,
                   subtitle: `Cliente: ${customer?.name ?? "Sin cliente"} · Fecha: ${formatDate(order.orderDate)}`,
                   columns: ["Referencia", "Producto", "Condición", "Cantidad", "Precio unitario", "Subtotal"],
-                  rows: lines.map((line) => [
+                  rows: lineasOrdenadas.map((line) => [
                     line.product?.sku ?? "—",
                     `${line.product?.name ?? "Producto sin nombre"}${line.item.color ? ` · ${line.item.color}` : ""}`,
                     line.esRepuesto ? "No aplica" : line.item.condition ? t(`condition.${line.item.condition}`) : "—",
@@ -604,8 +607,13 @@ const PedidoDetalle = () => {
       ) : null}
 
       <section className="nx-order-lines space-y-3">
-        <h3 className="text-sm font-semibold">{t("order.linesTitle")}</h3>
-        {lines.map((line) => {
+        <div>
+          <h3 className="text-sm font-semibold">{t("order.linesTitle")}</h3>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Referencias ordenadas automáticamente por modelo y número, de menor a mayor.
+          </p>
+        </div>
+        {lineasOrdenadas.map((line) => {
           const costos = line.units.length > 0
             ? line.units.map((unit) => unit.cost ?? (line.product ? costoSugeridoColor(line.product, line.item.color) : 0))
             : [line.product ? costoSugeridoColor(line.product, line.item.color) : 0];
