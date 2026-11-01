@@ -36,6 +36,6 @@ describe("Nexora Multisede · panel de sedes", () => {
     expect(screen.getByText("Local de Prueba")).toBeTruthy();
     expect(screen.getByText("Recibe de: Bodega Central de Prueba")).toBeTruthy();
     expect(screen.getByRole("region", { name: "Red empresarial multisede" })).toBeTruthy();
-    expect(screen.getByText(/ningún IMEI será trasladado o reasignado automáticamente/i)).toBeTruthy();
+    expect(screen.getByText(/la asignación de cada IMEI a una sede se realizará después/i)).toBeTruthy();
   });
 });
