@@ -98,19 +98,17 @@ create index bodega_units_site_id_idx on public.bodega_units(site_id);
 -- Hasta desplegar los RPC multisede, nadie salvo admin puede ASIGNAR sede.
 -- La lectura y las actualizaciones de otros campos legacy no se ven afectadas.
 create function public.nexora_guard_legacy_site_assignment()
-returns trigger language plpgsql security invoker set search_path = '' as $
+returns trigger language plpgsql security invoker set search_path = '' as $$
 begin
-  if new.site_id is not null and
-    (tg_op = 'INSERT' or old.site_id is distinct from new.site_id) and
-    not public.bodega_is_admin() then
-      raise exception 'Solo un administrador puede asociar un IMEI a una sede durante la migración.';
-  end if;
-  if tg_op = 'UPDATE' and old.site_id is distinct from new.site_id and
-    not public.bodega_is_admin() then
-      raise exception 'No tienes autorización para cambiar la sede de una unidad.';
+  if tg_op = 'INSERT' then
+    if new.site_id is not null and not public.bodega_is_admin() then
+      raise exception 'No tienes autorización para asignar sede a un IMEI.';
+    end if;
+  elsif old.site_id is distinct from new.site_id and not public.bodega_is_admin() then
+    raise exception 'No tienes autorización para cambiar la sede de una unidad.';
   end if;
   return new;
-end; $;
+end; $$;
 
 create trigger nexora_guard_legacy_site_assignment_trigger
   before insert or update of site_id on public.bodega_units
