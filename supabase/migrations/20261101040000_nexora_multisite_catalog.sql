@@ -10,7 +10,7 @@ create table public.nexora_cities (
   department text,
   is_active boolean not null default true,
   created_at timestamptz not null default now(),
-  created_by uuid references public.bodega_profiles(id) on delete set null
+  created_by uuid not null default auth.uid() references public.bodega_profiles(id) on delete restrict
 );
 
 create unique index nexora_cities_name_department_idx
@@ -26,7 +26,7 @@ create table public.nexora_sites (
   address text,
   is_active boolean not null default true,
   created_at timestamptz not null default now(),
-  created_by uuid references public.bodega_profiles(id) on delete set null,
+  created_by uuid not null default auth.uid() references public.bodega_profiles(id) on delete restrict,
   constraint nexora_sites_parent_by_kind check (
     (kind = 'local' and parent_warehouse_id is not null) or
     (kind <> 'local' and parent_warehouse_id is null)
@@ -83,7 +83,7 @@ create table public.nexora_site_memberships (
   role text not null check (role in ('admin','bodeguero','encargado','vendedor')),
   is_active boolean not null default true,
   created_at timestamptz not null default now(),
-  created_by uuid references public.bodega_profiles(id) on delete set null,
+  created_by uuid not null default auth.uid() references public.bodega_profiles(id) on delete restrict,
   primary key (site_id,user_id)
 );
 create index nexora_site_memberships_user_idx on public.nexora_site_memberships(user_id);
@@ -106,7 +106,7 @@ grant select, insert, update on public.nexora_site_memberships to authenticated;
 create policy nexora_cities_read on public.nexora_cities for select to authenticated
   using ((select public.bodega_is_staff()));
 create policy nexora_cities_insert on public.nexora_cities for insert to authenticated
-  with check ((select public.bodega_is_admin()));
+  with check ((select public.bodega_is_admin()) and created_by = (select auth.uid()));
 create policy nexora_cities_update on public.nexora_cities for update to authenticated
   using ((select public.bodega_is_admin()))
   with check ((select public.bodega_is_admin()));
@@ -114,7 +114,7 @@ create policy nexora_cities_update on public.nexora_cities for update to authent
 create policy nexora_sites_read on public.nexora_sites for select to authenticated
   using ((select public.bodega_is_staff()));
 create policy nexora_sites_insert on public.nexora_sites for insert to authenticated
-  with check ((select public.bodega_is_admin()));
+  with check ((select public.bodega_is_admin()) and created_by = (select auth.uid()));
 create policy nexora_sites_update on public.nexora_sites for update to authenticated
   using ((select public.bodega_is_admin()))
   with check ((select public.bodega_is_admin()));
@@ -122,7 +122,7 @@ create policy nexora_sites_update on public.nexora_sites for update to authentic
 create policy nexora_memberships_read on public.nexora_site_memberships for select to authenticated
   using ((select public.bodega_is_admin()) or (user_id = (select auth.uid()) and (select public.bodega_is_staff())));
 create policy nexora_memberships_insert on public.nexora_site_memberships for insert to authenticated
-  with check ((select public.bodega_is_admin()));
+  with check ((select public.bodega_is_admin()) and created_by = (select auth.uid()));
 create policy nexora_memberships_update on public.nexora_site_memberships for update to authenticated
   using ((select public.bodega_is_admin()))
   with check ((select public.bodega_is_admin()));
