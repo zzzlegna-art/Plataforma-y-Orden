@@ -195,7 +195,7 @@ export const SedesTab = () => {
             { label: "Sede principal", count: principal ? 1 : 0 },
           ].map((item) => (
             <div key={item.label} className="rounded-xl border border-white/10 bg-white/[0.07] p-3 backdrop-blur-sm">
-              <div className="text-2xl font-bold tabular-nums">{item.count}</div>
+              <div className="text-2xl font-bold tabular-nums">{loading || error ? "—" : item.count}</div>
               <div className="mt-1 text-xs text-slate-300">{item.label}</div>
             </div>
           ))}
@@ -253,7 +253,7 @@ export const SedesTab = () => {
                         <div className="min-w-0 flex-1">
                           <p className="truncate text-sm font-semibold">{site.name}</p>
                           <p className="text-xs text-muted-foreground">{KIND_LABELS[kind] ?? site.kind} · {site.code}</p>
-                          {parent ? <p className="mt-1 flex items-center gap-1 text-xs text-muted-foreground"><ArrowRight className="h-3 w-3" /> Abastece: {parent.name}</p> : null}
+                          {parent ? <p className="mt-1 flex items-center gap-1 text-xs text-muted-foreground"><ArrowRight className="h-3 w-3" /> Recibe de: {parent.name}</p> : null}
                         </div>
                         <span title={site.is_active ? "Activo" : "Inactivo"}><CheckCircle2 className={`h-4 w-4 ${site.is_active ? "text-emerald-500" : "text-muted-foreground"}`} /></span>
                       </div>
