@@ -792,3 +792,39 @@ describe("orden de seriales al recibir o serializar (no por un id interno al aza
     });
   });
 });
+
+
+describe("Nexora Multisede · asociación de IMEI a sede", () => {
+  it("conserva el mismo site_id al actualizar un estado sin cambiar de ubicación", () => {
+    const previo = emptyDb();
+    previo.units.push({
+      id: "u-1", productId: "p-1", serial: "350000000000001",
+      condition: "nuevo", status: "en_bodega", siteId: "site-verificada",
+      receivedAt: ahora, createdBy: "u-1",
+    });
+    const siguiente = cloneDb(previo);
+    siguiente.units[0].notes = "Revisada sin traslado";
+    const pasos = calcularPasos(previo, siguiente);
+    const cambio = pasos.find((p) => p.tabla === "bodega_units");
+    expect(cambio?.op).toBe("upsert");
+    if (cambio?.op === "upsert") {
+      expect(cambio.filas[0].site_id).toBe("site-verificada");
+      expect(cambio.esperados?.[0].site_id).toBe("site-verificada");
+    }
+    expect(previo.units[0].siteId).toBe("site-verificada");
+  });
+
+  it("no inventa sitio para una unidad anterior a la migración", () => {
+    const previo = emptyDb();
+    const siguiente = cloneDb(previo);
+    siguiente.units.push({
+      id: "u-antigua", productId: "p-1", serial: "350000000000002",
+      condition: "nuevo", status: "en_bodega",
+      receivedAt: ahora, createdBy: "u-1",
+    });
+    const pasos = calcularPasos(previo, siguiente);
+    const nuevo = pasos.find((p) => p.tabla === "bodega_units");
+    expect(nuevo?.op).toBe("upsert");
+    if (nuevo?.op === "upsert") expect(nuevo.filas[0].site_id).toBeNull();
+  });
+});
