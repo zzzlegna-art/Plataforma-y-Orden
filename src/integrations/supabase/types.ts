@@ -774,6 +774,7 @@ export type Database = {
           received_at: string
           reception_id: string | null
           serial: string
+          site_id: string | null
           status: string
           unit_condition: string
         }
@@ -789,6 +790,7 @@ export type Database = {
           received_at?: string
           reception_id?: string | null
           serial: string
+          site_id?: string | null
           status: string
           unit_condition?: string
         }
@@ -804,6 +806,7 @@ export type Database = {
           received_at?: string
           reception_id?: string | null
           serial?: string
+          site_id?: string | null
           status?: string
           unit_condition?: string
         }
@@ -820,6 +823,13 @@ export type Database = {
             columns: ["reception_id"]
             isOneToOne: false
             referencedRelation: "bodega_receptions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bodega_units_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "nexora_sites"
             referencedColumns: ["id"]
           },
         ]
