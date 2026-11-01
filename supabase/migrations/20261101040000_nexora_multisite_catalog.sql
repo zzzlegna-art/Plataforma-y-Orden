@@ -88,6 +88,26 @@ create table public.nexora_site_memberships (
 );
 create index nexora_site_memberships_user_idx on public.nexora_site_memberships(user_id);
 
+-- Mientras RLS legacy y RPC utilicen el rol 'bodeguero' para operaciones
+-- completas, asignar 'vendedor' o 'encargado' SOLO en esta tabla NO reduce
+-- privilegios. Bloquear su activación hasta la migración del backend.
+-- Esta medida evita otorgar accidentalmente permisos antiguos de bodega.
+create function public.nexora_block_unmigrated_roles()
+returns trigger language plpgsql security invoker set search_path = '' as $
+begin
+  if new.role in ('encargado','vendedor') then
+    raise exception
+      'Los roles Encargado y Vendedor aún no están habilitados: falta migrar la seguridad del servidor.';
+  end if;
+  return new;
+end; $;
+
+create trigger nexora_block_unmigrated_roles_trigger
+  before insert or update of role
+  on public.nexora_site_memberships
+  for each row execute function public.nexora_block_unmigrated_roles();
+
+
 -- Enlace preparado: campo nullable para NO atribuir falsamente el inventario
 -- actual a una sede. Se completará por conciliación física controlada.
 alter table public.bodega_units
