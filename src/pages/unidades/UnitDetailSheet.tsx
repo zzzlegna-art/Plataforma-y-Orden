@@ -22,8 +22,8 @@ import { useRunAction } from "@/hooks/use-run-action";
 import { useStore } from "@/hooks/use-store";
 import { usePermissions } from "@/hooks/use-permissions";
 import { liberarUnit, reingresarUnit, updateUnit } from "@/lib/actions/units";
-import { formatCurrency, formatDate } from "@/lib/format";
-import { unitLocation } from "@/lib/selectors";
+import { formatCurrency, formatDate, formatDateTime } from "@/lib/format";
+import { getUnitTimeline, unitLocation } from "@/lib/selectors";
 
 const InfoRow = ({ label, children }: { label: string; children: React.ReactNode }) => (
   <div className="flex items-center justify-between gap-3 border-b py-2 last:border-0">
@@ -73,12 +73,17 @@ export const UnitDetailSheet = ({
     : undefined;
 
   const liberable = unit && ["en_bodega", "en_local", "defectuoso"].includes(unit.status);
+  // La línea de vida reúne movimientos y garantías sin modificar el historial almacenado.
+  const timeline = unit ? getUnitTimeline(db, unit.id).slice().reverse() : [];
 
   return (
     <Sheet open={Boolean(unit)} onOpenChange={(open) => !open && onClose()}>
-      <SheetContent side="right" className="w-full overflow-y-auto pr-0 sm:max-w-md">
+      <SheetContent side="right" className="w-full overflow-y-auto pr-0 sm:max-w-2xl">
         <SheetHeader className="pr-6">
-          <SheetTitle className="font-tabular text-lg">{unit?.serial ?? ""}</SheetTitle>
+          <div className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-primary">
+            <History className="h-4 w-4" aria-hidden="true" /> Hoja de vida del equipo
+          </div>
+          <SheetTitle className="font-tabular break-all text-2xl font-bold tracking-tight">{unit?.serial ?? ""}</SheetTitle>
           <div className="flex min-w-0 items-center gap-4">
             <ProductThumbnail
               src={product?.imageUrl}
@@ -140,6 +145,59 @@ export const UnitDetailSheet = ({
                 )}
               </InfoRow>
             </div>
+
+            <section aria-label="Historial del serial" className="overflow-hidden rounded-2xl border bg-card shadow-sm">
+              <div className="flex flex-wrap items-center justify-between gap-2 border-b bg-primary/[0.04] px-4 py-4">
+                <div className="flex items-center gap-2">
+                  <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                    <History className="h-5 w-5" aria-hidden="true" />
+                  </span>
+                  <div>
+                    <h3 className="text-sm font-semibold">Historia del serial</h3>
+                    <p className="text-xs text-muted-foreground">Movimientos y garantías registrados</p>
+                  </div>
+                </div>
+                <span className="rounded-full border bg-background px-3 py-1 text-xs font-semibold tabular-nums">
+                  {timeline.length} {timeline.length === 1 ? "evento" : "eventos"}
+                </span>
+              </div>
+              {timeline.length > 0 ? (
+                <ol className="space-y-0 px-5 py-4" aria-label="Línea de tiempo del IMEI">
+                  {timeline.map((item) => (
+                    <li key={item.id} className="relative border-l border-primary/20 pb-5 pl-5 last:border-transparent last:pb-0">
+                      <span className="absolute -left-[5px] top-1.5 h-2.5 w-2.5 rounded-full border-2 border-background bg-primary ring-2 ring-primary/15" aria-hidden="true" />
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <span className="rounded-md bg-primary/10 px-2 py-0.5 text-[11px] font-semibold capitalize text-primary">
+                          {item.tipo.replace(/_/g, " ")}
+                        </span>
+                        <time dateTime={item.fecha} className="text-xs tabular-nums text-muted-foreground">
+                          {formatDateTime(item.fecha)}
+                        </time>
+                      </div>
+                      <p className="mt-2 break-words text-sm leading-relaxed text-foreground">
+                        {item.descripcion}
+                      </p>
+                      {item.usuario ? (
+                        <p className="mt-1 text-xs text-muted-foreground">Responsable: {item.usuario}</p>
+                      ) : null}
+                      {item.enlace ? (
+                        <Link
+                          to={item.enlace.to}
+                          className="mt-2 inline-flex rounded-md text-xs font-semibold text-primary underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                        >
+                          Ver documento {item.enlace.codigo}
+                        </Link>
+                      ) : null}
+                    </li>
+                  ))}
+                </ol>
+              ) : (
+                <p className="px-5 py-6 text-sm leading-relaxed text-muted-foreground">
+                  Este equipo no tiene movimientos históricos adicionales registrados.
+                  Su información de ingreso y estado actual aparece arriba.
+                </p>
+              )}
+            </section>
 
             <div className="space-y-3 rounded-lg border p-4">
               <div className="space-y-2">
