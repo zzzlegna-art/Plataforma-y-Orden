@@ -1,7 +1,7 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import {
   Building2, Check, CircleHelp, ClipboardCheck, LockKeyhole,
-  PackageCheck, ShieldCheck, ShoppingBag, Store, Users, Warehouse,
+  PackageCheck, ShieldCheck, ShoppingBag, Store, Warehouse,
 } from "lucide-react";
 
 import {
@@ -216,7 +216,7 @@ const FragmentCategory = ({
   name: string;
   Icon: typeof ShieldCheck;
   colSpan: number;
-  children: React.ReactNode;
+  children: ReactNode;
 }) => (
   <>
     <tr className="border-b bg-muted/35">
