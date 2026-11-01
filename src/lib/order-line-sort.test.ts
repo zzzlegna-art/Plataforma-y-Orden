@@ -21,7 +21,7 @@ const line = (
   },
   product: {
     id,
-    sku: `SKU-${id}`,
+    sku: `SKU-${name.toLowerCase().replace(/\\s+/g, "-")}`,
     name,
     price: 100,
     cost: 50,
