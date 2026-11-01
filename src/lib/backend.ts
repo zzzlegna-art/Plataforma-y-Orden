@@ -848,6 +848,42 @@ const funcionNoDisponible = (error: ErrorRemoto) =>
   ["PGRST202", "42883"].includes(error.code ?? "") ||
   /could not find the function|function .* does not exist/i.test(error.message ?? "");
 
+/**
+ * Cuando el navegador pierde una respuesta de red NO sabemos si PostgreSQL
+ * alcanzó a confirmar la transacción. Las altas tienen UUID definidos antes
+ * de enviarse, así que uno de ellos sirve como marcador de confirmación.
+ * La RPC aplica todos los pasos de forma atómica: si ese UUID nuevo existe,
+ * el guardado original quedó confirmado y NO debemos enviarlo otra vez.
+ */
+type MarcadorAlta = { tabla: string; id: string };
+const marcadorDeAlta = (pasos: Paso[]): MarcadorAlta | null => {
+  for (const paso of pasos) {
+    if (paso.op !== "upsert" || paso.solo_alta || !paso.nuevos?.length) continue;
+    const id = paso.nuevos[0];
+    if (paso.filas.some((fila) => fila.id === id)) {
+      return { tabla: paso.tabla, id };
+    }
+  }
+  return null;
+};
+
+const esFalloTransporte = (error: ErrorRemoto): boolean =>
+  /failed to fetch|networkerror|network request failed|load failed|fetch failed/i.test(error.message ?? "");
+
+/** No modifica nada: solo comprueba un UUID único generado para este guardado. */
+const altaConfirmada = async (marca: MarcadorAlta | null): Promise<boolean> => {
+  if (!marca) return false;
+  try {
+    const { data, error } = await nube.from(marca.tabla)
+      .select("id").eq("id", marca.id).maybeSingle();
+    return !error && Boolean(data) &&
+      typeof data === "object" &&
+      (data as { id?: unknown }).id === marca.id;
+  } catch {
+    return false;
+  }
+};
+
 /** Sube al servidor solo lo que cambió entre dos versiones del inventario. */
 export const pushDb = async (previo: Db, siguiente: Db): Promise<void> => {
   const pasos = calcularPasos(previo, siguiente);
@@ -861,7 +897,32 @@ export const pushDb = async (previo: Db, siguiente: Db): Promise<void> => {
     });
   }
 
-  const { data, error } = await nube.rpc("nexora_guardar_con_version", { p_cambios: cambios });
+  // Una caída momentánea puede perder solo la respuesta del servidor.
+  // Comprobar el UUID primero evita duplicar la recepción cuando sí se guardó.
+  const marca = marcadorDeAlta(pasos);
+  const enviar = async (): Promise<{ data: unknown; error: ErrorRemoto | null }> => {
+    try {
+      return await nube.rpc("nexora_guardar_con_version", { p_cambios: cambios });
+    } catch (fallo) {
+      return { data: null, error: { message: fallo instanceof Error ? fallo.message : String(fallo) } };
+    }
+  };
+  let { data, error } = await enviar();
+  if (error && esFalloTransporte(error)) {
+    if (await altaConfirmada(marca)) return;
+    // Un solo reintento, siempre usando exactamente los mismos UUID y el mismo
+    // paquete atómico; la función del servidor rechaza altas ya confirmadas.
+    await new Promise((resolve) => setTimeout(resolve, 600));
+    ({ data, error } = await enviar());
+    if (error && await altaConfirmada(marca)) return;
+    if (error && esFalloTransporte(error)) {
+      throw new DomainError("errors.saveFailed", {
+        detalle: detalleTecnico(
+          "No se pudo verificar el guardado por un problema de conexión. Revisa la recepción antes de volver a escanear.",
+        ),
+      });
+    }
+  }
   if (error) {
     console.error(`No se pudo guardar: ${error.message}`);
     throw traducirErrorServidor(error);
