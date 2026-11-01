@@ -12,6 +12,147 @@ export type Database = {
   }
   public: {
     Tables: {
+      nexora_cities: {
+        Row: {
+          id: string
+          code: string
+          name: string
+          department: string | null
+          is_active: boolean
+          created_at: string
+          created_by: string | null
+        }
+        Insert: {
+          id?: string
+          code: string
+          name: string
+          department?: string | null
+          is_active?: boolean
+          created_at?: string
+          created_by?: string | null
+        }
+        Update: {
+          id?: string
+          code?: string
+          name?: string
+          department?: string | null
+          is_active?: boolean
+          created_at?: string
+          created_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "nexora_cities_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "bodega_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      nexora_sites: {
+        Row: {
+          id: string
+          city_id: string
+          code: string
+          name: string
+          kind: string
+          parent_warehouse_id: string | null
+          address: string | null
+          is_active: boolean
+          created_at: string
+          created_by: string | null
+        }
+        Insert: {
+          id?: string
+          city_id: string
+          code: string
+          name: string
+          kind: string
+          parent_warehouse_id?: string | null
+          address?: string | null
+          is_active?: boolean
+          created_at?: string
+          created_by?: string | null
+        }
+        Update: {
+          id?: string
+          city_id?: string
+          code?: string
+          name?: string
+          kind?: string
+          parent_warehouse_id?: string | null
+          address?: string | null
+          is_active?: boolean
+          created_at?: string
+          created_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "nexora_sites_city_id_fkey"
+            columns: ["city_id"]
+            isOneToOne: false
+            referencedRelation: "nexora_cities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nexora_sites_parent_warehouse_id_fkey"
+            columns: ["parent_warehouse_id"]
+            isOneToOne: false
+            referencedRelation: "nexora_sites"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nexora_sites_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "bodega_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      nexora_site_memberships: {
+        Row: {
+          site_id: string
+          user_id: string
+          role: string
+          is_active: boolean
+          created_at: string
+          created_by: string | null
+        }
+        Insert: {
+          site_id: string
+          user_id: string
+          role: string
+          is_active?: boolean
+          created_at?: string
+          created_by?: string | null
+        }
+        Update: {
+          site_id?: string
+          user_id?: string
+          role?: string
+          is_active?: boolean
+          created_at?: string
+          created_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "nexora_site_memberships_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "nexora_sites"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nexora_site_memberships_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "bodega_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bodega_audit_logs: {
         Row: {
           action: string
