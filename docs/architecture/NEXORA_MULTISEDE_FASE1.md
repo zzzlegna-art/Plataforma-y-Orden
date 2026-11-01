@@ -24,6 +24,24 @@
 - Las pruebas de negocio verifican localización real, diversas ciudades, estado de tránsito, bloqueo por pedidos, garantías y datos históricos sin ubicación.
 - Hasta que no se migre y confirme físicamente la totalidad de los IMEI, el resultado será parcial; los pendientes se muestran explícitamente.
 
+## Matriz de permisos y normas de traslados (Fase 1 ampliada)
+
+Se preparó la **matriz exacta de los cuatro perfiles** en `src/lib/nexora-role-policy.ts`: Administrador, Bodeguero, Encargado y Vendedor, sin personal financiero adicional. Se incluye la pestaña `Administración > Roles y permisos` con vista premium y comparación por rol, accesible solo al Administrador actual. Esta pantalla es **informativa y todavía no habilita los perfiles nuevos**.
+
+Decisiones codificadas:
+- Todos pueden consultar inventario, costo individual de IMEI y gestionar traslados (sujetos a sede y rutas).
+- Administrador y Bodeguero gestionan garantías, correcciones de IMEI, recepciones de proveedores en sede principal y sustituciones individualmente.
+- Solo el Administrador gestiona referencias, autoriza ajustes de inventario, costos, notas de crédito, mercancía extra y cancelación de ventas/devoluciones de dinero.
+- Administrador o Encargado abren caja; el Encargado cierra, registra y autoriza gastos; solo el Administrador puede reabrir excepcionalmente.
+- Los reportes corresponden al Administrador y Encargado, pero el alcance por sede **aún exige protección servidor**.
+- La migración de roles NO debe activarse hasta corregir las políticas RLS, funciones RPC, Edge Functions y los cambios al modelo `bodega_profiles` del sistema actual. No es seguro simplemente crear usuarios con nuevos roles.
+
+Se preparó el motor de reglas `src/lib/nexora-transfer-rules.ts` y pruebas:
+- Rutas: sede principal → bodegas; bodega → bodega regional sin aprobación adicional; bodega → su local; local → bodega; **local → local prohibido**.
+- Recibir exige marcar **cada IMEI** enviado como «recibido» o «no llegó», con observación en cada faltante.
+- Un traslado de 20 celulares con 15 recibidos produce **15 recibidos y 5 devoluciones pendientes** en el origen. No se regresan automáticamente al disponible de origen: solo se habilitan después de confirmación física allí.
+- Las reglas se escriben como funciones puras, sin alterar registros existentes. **La operación atómica y el documento de devolución persistido no están implementados todavía**; se construirán y probarán con el backend multisede.
+
 ## No implementado todavía
 
 - Cambio del rol real de `bodega_profiles` o el motor de permisos legacy.
