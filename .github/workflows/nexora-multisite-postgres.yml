@@ -1,0 +1,59 @@
+name: Validate Nexora Multisede PostgreSQL E2E
+
+on:
+  push:
+    branches:
+      - feat/nexora-2-catalogo-multisede
+    paths:
+      - 'supabase/migrations/20261101*_nexora_*.sql'
+      - 'supabase/verification/nexora_multisite_ephemeral_*.sql'
+      - '.github/workflows/nexora-multisite-postgres.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  transfer-integrity:
+    name: Isolated PostgreSQL transfer workflow (mock IMEI)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: nexora_test
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d nexora_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    env:
+      PGHOST: localhost
+      PGPORT: '5432'
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGDATABASE: nexora_test
+    steps:
+      - uses: actions/checkout@v4
+      - name: PostgreSQL client
+        run: |
+          command -v psql || {
+            sudo apt-get update -qq
+            sudo apt-get install -y -qq postgresql-client
+          }
+          psql --version
+      - name: Bootstrap mock legacy schema without production data
+        run: psql -X -v ON_ERROR_STOP=1 -f supabase/verification/nexora_multisite_ephemeral_bootstrap.sql
+      - name: Migrate only the isolated test database
+        run: |
+          psql -X -v ON_ERROR_STOP=1 -f supabase/migrations/20261101040000_nexora_multisite_catalog.sql
+          psql -X -v ON_ERROR_STOP=1 -f supabase/migrations/20261101140000_nexora_transfer_documents_staging.sql
+          psql -X -v ON_ERROR_STOP=1 -f supabase/migrations/20261101180000_nexora_transfer_atomic_staging.sql
+      - name: Verify the staging structure with read-only audit
+        run: psql -X -v ON_ERROR_STOP=1 -f supabase/verification/nexora_multisite_staging_checks.sql
+      - name: Execute real PostgreSQL transactions with fictional IMEIs
+        run: psql -X -v ON_ERROR_STOP=1 -f supabase/verification/nexora_multisite_ephemeral_e2e.sql
