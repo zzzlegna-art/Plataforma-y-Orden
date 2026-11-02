@@ -12,6 +12,7 @@ import { UsersTab } from "./UsersTab";
 import { RolesTab } from "./RolesTab";
 import { SedesTab } from "./SedesTab";
 import CajaDiariaTab from "./CajaDiariaTab";
+import PreparacionOperacionTab from "./PreparacionOperacionTab";
 import PosMinoristaTab from "./PosMinoristaTab";
 
 /**
@@ -24,7 +25,7 @@ const Administracion = () => {
   const [params, setParams] = useSearchParams();
   const selected = params.get("tab");
   const validTabs = isAdmin
-    ? ["users", "roles", "sites", "cash", "pos", "catalogs", "suppliers", "audit", "data"]
+    ? ["users", "setup", "roles", "sites", "cash", "pos", "catalogs", "suppliers", "audit", "data"]
     : ["suppliers"];
   const activeTab = selected && validTabs.includes(selected)
     ? selected
@@ -48,6 +49,7 @@ const Administracion = () => {
       >
         <TabsList className="h-auto w-full flex-wrap justify-start gap-1 p-1 sm:w-auto">
           {isAdmin ? <TabsTrigger value="users">{t("admin.tabUsers")}</TabsTrigger> : null}
+          {isAdmin ? <TabsTrigger value="setup">Preparar operación</TabsTrigger> : null}
           {isAdmin ? <TabsTrigger value="roles">Roles y permisos</TabsTrigger> : null}
           {isAdmin ? <TabsTrigger value="sites">Ciudades y sedes</TabsTrigger> : null}
           {isAdmin ? <TabsTrigger value="cash">Caja diaria</TabsTrigger> : null}
@@ -61,6 +63,7 @@ const Administracion = () => {
         {isAdmin ? (
           <>
             <TabsContent value="users"><UsersTab /></TabsContent>
+            <TabsContent value="setup"><PreparacionOperacionTab /></TabsContent>
             <TabsContent value="roles"><RolesTab /></TabsContent>
             <TabsContent value="sites"><SedesTab /></TabsContent>
             <TabsContent value="cash"><CajaDiariaTab /></TabsContent>
