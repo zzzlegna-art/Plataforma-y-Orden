@@ -14,10 +14,11 @@ import { useRunAction } from "@/hooks/use-run-action";
 import { useStore } from "@/hooks/use-store";
 import { deleteProduct, setProductActive } from "@/lib/actions/catalogs";
 import { formatCurrency, formatDateTime } from "@/lib/format";
-import { getMovementRows, getProductRows, getUnitRows } from "@/lib/selectors";
+import { getMovementRows, getProductRows, getUnitRows, unidadesDescontadasPorPreparacion, unidadesFueraPorGarantia } from "@/lib/selectors";
 import type { UnitCondition } from "@/lib/types";
 import { ProductFormDialog } from "../ProductFormDialog";
 import { SerialesSeccion } from "./seriales-section";
+import { DisponibilidadPorSede } from "./DisponibilidadPorSede";
 
 /** Detalle de producto: stock, seriales y movimientos. */
 const ProductoDetalle = () => {
@@ -54,6 +55,9 @@ const ProductoDetalle = () => {
         .filter((item) => (condicion ? item.unit.condition === condicion : true)),
     [db, productId, condicion],
   );
+  const preparedUnitIds = useMemo(() => unidadesDescontadasPorPreparacion(db), [db]);
+  const excludedWarrantyIds = useMemo(() => unidadesFueraPorGarantia(db), [db]);
+  const siteUnits = useMemo(() => units.map((row) => row.unit), [units]);
   const movements = useMemo(
     () => getMovementRows(db, 500).filter((movement) => movement.product?.id === productId),
     [db, productId],
@@ -183,6 +187,11 @@ const ProductoDetalle = () => {
       </div>
 
       <StockSummary stock={stock} />
+      <DisponibilidadPorSede
+        units={siteUnits}
+        preparedUnitIds={preparedUnitIds}
+        excludedWarrantyIds={excludedWarrantyIds}
+      />
       {(product.colorVariants?.length ?? 0) > 0 ? (
         <section className="rounded-2xl border border-primary/20 bg-card p-4 sm:p-5">
           <h2 className="text-base font-bold">Stock y precios por color</h2>
