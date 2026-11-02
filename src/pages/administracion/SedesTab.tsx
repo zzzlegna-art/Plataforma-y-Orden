@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AprobacionInventarioInicialPanel } from "./AprobacionInventarioInicialPanel";
+import { TrasladosMultisedePanel } from "./TrasladosMultisedePanel";
 import { Building2, CheckCircle2, CircleHelp, MapPin, Pencil, Plus, RefreshCw, Store, Warehouse } from "lucide-react";
 import { toast } from "sonner";
 
@@ -250,6 +251,7 @@ export const SedesTab = () => {
       <PersonalSedesPanel cities={cities} sites={sites} />
       <ConciliacionImeiPanel cities={cities} sites={sites} approvalLocked={approvalLocked} />
       <AprobacionInventarioInicialPanel onApproved={markApproved} />
+      <TrasladosMultisedePanel sites={sites} />
 
       <Dialog open={cityOpen} onOpenChange={(open) => { if (!busyRef.current) setCityOpen(open); }}>
         <DialogContent className="sm:max-w-lg">
