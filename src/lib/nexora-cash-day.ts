@@ -96,7 +96,7 @@ export const parseCashDayReport = (raw: unknown): CashDayReport => {
         sessionId: nullableString(r.sessionId), state:r.state as CashState,
         openingCash:nonnegative(r.openingCash), expenses:nonnegative(r.expenses),
         salesCash:nonnegative(r.salesCash), salesTransfer:nonnegative(r.salesTransfer),
-        expectedCash: Number(r.expectedCash),
+        expectedCash: typeof r.expectedCash === "number" && Number.isFinite(r.expectedCash)\n          ? r.expectedCash : (() => { throw new Error("Efectivo esperado inválido."); })(),
         closingCountedCash: optionalAmount(r.closingCountedCash),
         closingDifference: optionalAmount(r.closingDifference),
         openedAt: nullableString(r.openedAt),closedAt:nullableString(r.closedAt),
