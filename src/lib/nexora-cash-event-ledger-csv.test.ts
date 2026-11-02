@@ -32,8 +32,7 @@ describe("Nexora · exportación completa de eventos de caja",()=>{
   });
   it("rechaza identidad mezclada, conteos cambiantes y páginas repetidas",async()=>{
     const first=Array.from({length:25},(_,i)=>row(i));
-    await expect(collectCashLedgerForExport(from,to,null,async()=>
-      {...response(1,1,[row(0)]),siteId:"otra-sede"})).rejects.toThrow();
+    await expect(collectCashLedgerForExport(from,to,null,async()=>({...response(1,1,[row(0)]),siteId:"otra-sede"}))).rejects.toThrow();
     await expect(collectCashLedgerForExport(from,to,null,
       async(_a,_b,page)=>page===1?response(1,26,first):response(2,27,[row(25)]),
     )).rejects.toThrow();
