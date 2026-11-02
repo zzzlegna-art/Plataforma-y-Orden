@@ -43,10 +43,8 @@ export const Warehouse6ADeclarationPanel=({
   };
   useEffect(()=>()=>{generation.current++;},[]);
   const openPanel=()=>{
-    setOpened(v=>{
-      if(!v&&!alreadyApproved)void load();
-      return !v;
-    });
+    if(!opened&&!alreadyApproved)void load();
+    setOpened(v=>!v);
   };
   const canSign=canCertifyWarehouse6A(preflight,checkedRecords,
     checkedLocation,supportNote,word);
