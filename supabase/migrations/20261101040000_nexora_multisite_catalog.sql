@@ -93,14 +93,14 @@ create index nexora_site_memberships_user_idx on public.nexora_site_memberships(
 -- privilegios. Bloquear su activación hasta la migración del backend.
 -- Esta medida evita otorgar accidentalmente permisos antiguos de bodega.
 create function public.nexora_block_unmigrated_roles()
-returns trigger language plpgsql security invoker set search_path = '' as $
+returns trigger language plpgsql security invoker set search_path = '' as $$
 begin
   if new.role in ('encargado','vendedor') then
     raise exception
       'Los roles Encargado y Vendedor aún no están habilitados: falta migrar la seguridad del servidor.';
   end if;
   return new;
-end; $;
+end; $$;
 
 create trigger nexora_block_unmigrated_roles_trigger
   before insert or update of role
