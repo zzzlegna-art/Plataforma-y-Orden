@@ -183,6 +183,20 @@ Pruebas nuevas: `src/lib/nexora-transfer-inbox.test.ts`, `src/pages/traslados/in
 
 **No publicar la PR #106 ni aplicar migraciones productivas hasta validar permisos, datos existentes y pruebas E2E de interfaz contra staging.**
 
+## Nuevo traslado por referencia e IMEI — formulario piloto
+
+Se desarrolló `/traslados-piloto/nuevo`, accesible desde la bandeja piloto de traslados. La ruta mantiene `RequirePermission("users.manage")`; esta limitación a Administrador **es provisional** hasta completar la migración segura de Encargado, Bodeguero y Vendedor en el servidor.
+
+- **Ruta:** selecciona ciudad/punto físico de origen y destino. Solo presenta rutas permitidas por `validateTransferRoute`; local→local está prohibido. Al cambiar origen, borra el destino y toda la selección para evitar traslados equivocados. El RPC y su trigger verifican la ruta una segunda vez.
+- **Referencias y modelos:** permite buscar producto por nombre o SKU y añadir IMEI de varias referencias al mismo envío, con resumen de unidades por modelo.
+- **Disponibilidad física:** consulta `bodega_units` por **`site_id` verificado, referencia exacta y estado `en_bodega`/`en_local`**; no permite mostrar como despachable un IMEI en tránsito, vendido, de otra sede o sin conciliación. Paginación controlada de candidatos; bloqueo si la respuesta presenta seriales duplicados o inconsistentes.
+- **Escaneo rápido:** un lector que envía Enter añade el IMEI al documento; un serial ajeno a la referencia y a la sede es rechazado. El mismo serial solo puede seleccionarse una vez. Hasta 500 equipos por traslado, según el límite SQL del RPC.
+- **Confirmación:** `nexora_dispatch_transfer` procesa unidades y eventos en una transacción y cambia su estado a `en_transito`; la interfaz no actualiza el inventario local de forma optimista ni declara éxito ante una respuesta inválida.
+- **Red interrumpida:** el formulario conserva el UUID asignado a la primera confirmación, congela las selecciones y obliga a consultar `nexora_transfers` y el manifiesto completo de `nexora_transfer_units` antes de reintentar. Si no existe el documento, puede reenviar únicamente con el mismo UUID y los mismos IMEI; si existe y coincide se da por confirmado, evitando duplicar el despacho.
+- **Sin producción:** el formulario y su ruta siguen solo en PR #106, no publicados en la plataforma. La consulta de unidades usa una columna `site_id` que todavía no está creada en producción. Sin migraciones, avisa que el servicio multisede no está habilitado.
+
+Se añadieron pruebas de carga de IMEI por sede/referencia, agrupación de cantidades, verificación de reintentos después de un corte de red y flujo del formulario; faltan sus resultados finales de CI, una prueba con Supabase staging representativo, migración de roles y comprobaciones E2E del navegador antes de activar.
+
 ## No implementado todavía
 
 - Cambio del rol real de `bodega_profiles` o el motor de permisos legacy.
