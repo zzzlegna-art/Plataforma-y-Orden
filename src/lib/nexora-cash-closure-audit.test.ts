@@ -39,7 +39,7 @@ describe("Nexora · auditoría por jornada de caja",()=>{
     expect(()=>parseCashClosureAudit({...response(),scope:"retail_only_confirmed"})).toThrow();
     expect(()=>parseCashClosureAudit({...response(),total:0})).toThrow();
     expect(()=>parseCashClosureAudit({...response(),from:"2022-01-01"})).toThrow();
-    expect(()=>parseCashClosureAudit({...response(),items:[{...session(),businessDate:"2026-99-99"}]})).not.toThrow();
+    expect(()=>parseCashClosureAudit({...response(),items:[{...session(),businessDate:"2026-99-99"}]})).toThrow();
   });
   it("no inventa arqueos si la base no tiene sesiones",()=>{
     const a=parseCashClosureAudit({...response(),total:0,items:[]});
