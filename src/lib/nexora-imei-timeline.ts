@@ -89,7 +89,7 @@ export const parseMultisiteImeiTimeline=(
 export const fetchMultisiteImeiTimeline=async (
   unitId:string,page=1,
 ):Promise<MultisiteImeiTimeline>=>{
-  if(!/^[0-9a-f]{8}-[0-9a-f-]{27,}$/.test(unitId))
+  if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(unitId))
     throw new Error("Identificador de equipo inválido.");
   if(!Number.isInteger(page)||page<1||page>10000)
     throw new Error("Página solicitada inválida.");
