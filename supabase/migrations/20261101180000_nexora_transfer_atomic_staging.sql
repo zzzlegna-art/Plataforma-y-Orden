@@ -10,6 +10,37 @@ alter table public.bodega_movements add constraint bodega_movements_reference_ty
 alter table public.nexora_transfers add column receipt_decisions jsonb
   check (receipt_decisions is null or jsonb_typeof(receipt_decisions)='array');
 
+-- Preparacion segura de los cuatro perfiles, SIN habilitar todavia
+-- el acceso de personal por RPC hasta migrar toda la seguridad legacy.
+-- Cada empleado opera SOLO su sede asignada y activa; un admin activo ve todas.
+-- La coincidencia entre el rol global y el rol de membresia evita escalamiento
+-- mediante una membresia mal configurada en otra sede.
+create function public.nexora_can_operate_transfer_site(p_site_id uuid)
+returns boolean language sql stable security definer set search_path = '' as $
+  select exists (
+    select 1
+    from public.bodega_profiles p
+    where p.id = (select auth.uid()) and p.is_active
+      and (
+        p.role = 'admin'
+        or (
+          p.role in ('bodeguero','encargado','vendedor')
+          and exists (
+            select 1 from public.nexora_site_memberships m
+            join public.nexora_sites s on s.id = m.site_id
+            where m.user_id = p.id
+              and m.site_id = p_site_id
+              and m.is_active and s.is_active
+              and m.role = p.role
+          )
+        )
+      )
+  )
+$;
+
+revoke all on function public.nexora_can_operate_transfer_site(uuid) from public,anon;
+grant execute on function public.nexora_can_operate_transfer_site(uuid) to authenticated;
+
 -- Enviar unidades disponibles sin reservar inventario ni dejar traslados a medias.
 -- Un segundo envio con igual UUID devuelve el documento existente solo si todo coincide.
 create function public.nexora_dispatch_transfer(
@@ -76,7 +107,7 @@ begin
     if exists(select 1 from public.bodega_order_item_units oi
       join public.bodega_order_items li on li.id=oi.order_item_id
       join public.bodega_orders o on o.id=li.order_id
-      where oi.unit_id=item.id and o.status<>'cancelado') then
+      where oi.unit_id=item.id and o.status in ('en_preparacion','preparado')) then
       raise exception 'IMEI % comprometido en un pedido.',item.serial;
     end if;
     if exists(select 1 from public.bodega_warranties w
