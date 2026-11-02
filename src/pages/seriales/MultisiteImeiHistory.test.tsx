@@ -24,7 +24,7 @@ import { MultisiteImeiHistory } from "./MultisiteImeiHistory";
 afterEach(cleanup);
 describe("Hoja de vida · vista multisede",()=>{
   it("muestra solo la recepción realmente confirmada con sus sedes",async()=>{
-    render(<MultisiteImeiHistory unitId={id}/>);
+    render(<MultisiteImeiHistory unitId={id} serial="000123456789012" receivedAt="2026-11-01T10:00:00.000Z" legacyTimeline={[]} />);
     expect(await screen.findByText("Recepción física de este IMEI confirmada en destino")).toBeTruthy();
     expect(screen.getByText("Recepción confirmada")).toBeTruthy();
     expect(screen.getByText(/Traslado #1/)).toBeTruthy();
@@ -33,7 +33,7 @@ describe("Hoja de vida · vista multisede",()=>{
   });
   it("mantiene la superficie premium y la actualización sin modificar datos",async()=>{
     const user=userEvent.setup();
-    const {container}=render(<MultisiteImeiHistory unitId={id}/>);
+    const {container}=render(<MultisiteImeiHistory unitId={id} serial="000123456789012" receivedAt="2026-11-01T10:00:00.000Z" legacyTimeline={[]} />);
     expect(container.firstElementChild?.className).toContain("bg-card");
     expect(container.querySelector(".dark\\:from-slate-950")).not.toBeNull();
     const button=await screen.findByRole("button",{name:"Actualizar"});

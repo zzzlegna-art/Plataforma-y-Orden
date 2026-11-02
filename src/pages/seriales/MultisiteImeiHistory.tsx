@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from "react";
-import { ArrowLeft, ArrowRight, History, LockKeyhole, MapPin, RefreshCw, ShieldCheck } from "lucide-react";
+import { ArrowLeft, ArrowRight, Download, History, LockKeyhole, MapPin, RefreshCw, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { formatDateTime } from "@/lib/format";
+import type { UnitTimelineItem } from "@/lib/selectors";
+import { buildUnifiedImeiCsv, collectMultisiteEventsForExport } from "@/lib/nexora-imei-unified-csv";
 import {
   fetchMultisiteImeiTimeline,
   type MultisiteImeiEvent,type MultisiteImeiTimeline,
@@ -53,12 +55,16 @@ const EventRow=({event}:{event:MultisiteImeiEvent})=>(
 );
 
 /** Complemento de solo lectura: no duplica el historial de bodega ni permite operaciones. */
-export const MultisiteImeiHistory=({unitId}:{unitId:string})=>{
+export const MultisiteImeiHistory=({unitId,serial,receivedAt,legacyTimeline}:{
+  unitId:string;serial:string;receivedAt:string;legacyTimeline:readonly UnitTimelineItem[];
+})=>{
   const [page,setPage]=useState(1);
   const [revision,setRevision]=useState(0);
   const [timeline,setTimeline]=useState<MultisiteImeiTimeline|null>(null);
   const [loading,setLoading]=useState(true);
   const [error,setError]=useState<string|null>(null);
+  const [exportError,setExportError]=useState<string|null>(null);
+  const [exporting,setExporting]=useState(false);
   const request=useRef(0);
 
   useEffect(()=>{
@@ -78,6 +84,28 @@ export const MultisiteImeiHistory=({unitId}:{unitId:string})=>{
   },[unitId,page,revision]);
 
   const pages=timeline?Math.max(1,Math.ceil(timeline.total/timeline.pageSize)):1;
+
+  const handleExport=async()=>{
+    if(exporting||loading||error)return;
+    setExporting(true);
+    setExportError(null);
+    try{
+      const multisite=await collectMultisiteEventsForExport(unitId,serial);
+      const csv=buildUnifiedImeiCsv({serial,receivedAt,legacy:legacyTimeline,multisite});
+      const blob=new Blob([csv],{type:"text/csv;charset=utf-8"});
+      const url=URL.createObjectURL(blob);
+      try{
+        const anchor=document.createElement("a");
+        anchor.href=url;
+        anchor.download=`hoja-de-vida-${serial.replace(/[^a-zA-Z0-9_-]/g,"").slice(0,80)||"imei"}.csv`;
+        document.body.appendChild(anchor);
+        anchor.click();
+        anchor.remove();
+      }finally{URL.revokeObjectURL(url);}
+    }catch(reason:unknown){
+      setExportError(reason instanceof Error?reason.message:"No fue posible verificar la hoja de vida completa.");
+    }finally{setExporting(false);}
+  };
   return <section aria-label="Movimientos multisede del IMEI"
     className="overflow-hidden rounded-2xl border border-border/80 bg-card text-card-foreground shadow-sm">
     <div className="flex flex-wrap items-start justify-between gap-3 bg-gradient-to-r from-emerald-50 via-white to-sky-50 p-4 dark:from-slate-950 dark:via-slate-900 dark:to-emerald-950 sm:p-5">
@@ -93,11 +121,20 @@ export const MultisiteImeiHistory=({unitId}:{unitId:string})=>{
           </p>
         </div>
       </div>
-      <Button size="sm" variant="outline" disabled={loading}
-        onClick={()=>setRevision(value=>value+1)}
-        className="bg-background/80 dark:border-slate-700">
-        <RefreshCw className="size-4"/> Actualizar
-      </Button>
+      <div className="flex flex-wrap items-center gap-2">
+        <Button size="sm" variant="outline"
+          disabled={loading||exporting||Boolean(error)}
+          onClick={()=>{void handleExport();}}
+          className="bg-background/80 dark:border-slate-700">
+          <Download className="size-4"/>
+          {exporting?"Preparando CSV…":"Exportar hoja de vida completa"}
+        </Button>
+        <Button size="sm" variant="outline" disabled={loading||exporting}
+          onClick={()=>setRevision(value=>value+1)}
+          className="bg-background/80 dark:border-slate-700">
+          <RefreshCw className="size-4"/> Actualizar
+        </Button>
+      </div>
     </div>
     <div className="space-y-4 p-4 sm:p-5">
       <div className="flex items-start gap-2 rounded-lg border bg-muted/20 p-3 text-xs leading-relaxed text-muted-foreground">
@@ -105,6 +142,9 @@ export const MultisiteImeiHistory=({unitId}:{unitId:string})=>{
         Solo se muestran movimientos respaldados por registros verificables de Supabase.
         La ausencia de movimientos multisede no significa que el equipo no tenga historial legacy.
       </div>
+      {exportError?<p role="alert" className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-950 dark:border-amber-400/25 dark:bg-amber-400/10 dark:text-amber-100">
+        {exportError} No se descargó ningún archivo incompleto.
+      </p>:null}
       {loading?<p role="status" className="text-sm text-muted-foreground">
         Verificando los movimientos multisede del IMEI…
       </p>:null}
