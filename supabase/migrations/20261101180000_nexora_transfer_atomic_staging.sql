@@ -18,6 +18,8 @@ create function public.nexora_dispatch_transfer(
 declare
   actor uuid := (select auth.uid());
   origin_kind text;
+  origin_label text;
+  destination_label text;
   old_transfer public.nexora_transfers%rowtype;
   item public.bodega_units%rowtype;
   count_units int := 0;
@@ -50,8 +52,13 @@ begin
       'status',old_transfer.status,'idempotent',true);
   end if;
 
-  select kind into origin_kind from public.nexora_sites where id=p_origin and is_active for share;
-  if origin_kind is null or origin_kind not in ('principal','bodega','local') then
+  select s.kind, s.name || ' · ' || c.name into origin_kind, origin_label
+    from public.nexora_sites s join public.nexora_cities c on c.id=s.city_id
+    where s.id=p_origin and s.is_active for share of s;
+  select s.name || ' · ' || c.name into destination_label
+    from public.nexora_sites s join public.nexora_cities c on c.id=s.city_id
+    where s.id=p_destination and s.is_active for share of s;
+  if origin_kind is null or destination_label is null or origin_kind not in ('principal','bodega','local') then
     raise exception 'Origen inexistente o inactivo.';
   end if;
 
@@ -96,7 +103,7 @@ begin
     insert into public.bodega_movements
       (unit_id,product_id,type,quantity,reference_type,reference_id,notes,created_by,created_at)
     values(item.id,item.product_id,'salida',1,'traslado',p_transfer_id,
-      'Despacho multisede desde '||p_origin||' hacia '||p_destination,actor,time_now);
+      'Despacho multisede: '||origin_label||' hacia '||destination_label,actor,time_now);
     insert into public.nexora_transfer_events
       (transfer_id,event_type,unit_id,details,created_by,created_at)
     values(p_transfer_id,'despachado',item.id,
@@ -115,6 +122,7 @@ declare
   actor uuid := (select auth.uid());
   tr public.nexora_transfers%rowtype;
   destination_kind text;
+  destination_label text;
   now_at timestamptz := clock_timestamp();
   mark jsonb;
   normalized jsonb := '[]'::jsonb;
@@ -176,8 +184,9 @@ begin
   if tr.status not in ('en_transito','pendiente_recepcion') then
     raise exception 'El traslado no se encuentra en transito.';
   end if;
-  select kind into destination_kind from public.nexora_sites
-    where id=tr.destination_site_id and is_active;
+  select s.kind, s.name || ' · ' || c.name into destination_kind, destination_label
+    from public.nexora_sites s join public.nexora_cities c on c.id=s.city_id
+    where s.id=tr.destination_site_id and s.is_active;
   if destination_kind is null then raise exception 'Destino inactivo.'; end if;
   select count(*) into sent_count from public.nexora_transfer_units where transfer_id=p_transfer_id;
   if sent_count<>pg_catalog.jsonb_array_length(normalized) or sent_count=0 then
@@ -215,7 +224,7 @@ begin
       insert into public.bodega_movements
         (unit_id,product_id,type,quantity,reference_type,reference_id,notes,created_by,created_at)
       values(uid,item.product_id,'entrada',1,'traslado',p_transfer_id,
-        'Recepcion fisica en '||tr.destination_site_id,actor,now_at);
+        'Recepción física en '||destination_label,actor,now_at);
       insert into public.nexora_transfer_events
         (transfer_id,event_type,unit_id,details,created_by,created_at)
       values(p_transfer_id,'recepcion_confirmada',uid,
@@ -271,6 +280,7 @@ declare
  notes text;
  item public.bodega_units%rowtype;
  destination_kind text;
+ destination_label text;
  total int;
  verified int := 0;
  incidents int := 0;
@@ -316,8 +326,9 @@ begin
      'status',tr.status,'idempotent',true);
  end if;
  if tr.status<>'pendiente_recepcion' then raise exception 'Retorno no pendiente.'; end if;
- select kind into destination_kind from public.nexora_sites
-   where id=tr.destination_site_id and is_active;
+ select s.kind, s.name || ' · ' || c.name into destination_kind, destination_label
+   from public.nexora_sites s join public.nexora_cities c on c.id=s.city_id
+   where s.id=tr.destination_site_id and s.is_active;
  if destination_kind is null then raise exception 'Sede de origen desactivada.'; end if;
  select count(*) into total from public.nexora_transfer_units where transfer_id=p_return_id;
  if total<>pg_catalog.jsonb_array_length(canonical) or total=0 then
@@ -352,7 +363,7 @@ begin
      insert into public.bodega_movements
        (unit_id,product_id,type,quantity,reference_type,reference_id,notes,created_by,created_at)
      values(uid,item.product_id,'entrada',1,'traslado',p_return_id,
-       'Devolucion verificada fisicamente en origen',actor,now_at);
+       'Devolución verificada físicamente en '||destination_label,actor,now_at);
      insert into public.nexora_transfer_events
        (transfer_id,event_type,unit_id,details,created_by,created_at)
      values(p_return_id,'retorno_verificado',uid,
