@@ -142,7 +142,7 @@ export const SedesTab = () => {
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
-            <Button className="bg-white text-slate-950 hover:bg-slate-100" onClick={() => setCityOpen(true)}>
+            <Button className="bg-slate-900 text-white hover:bg-slate-800 dark:bg-white dark:text-slate-950 dark:hover:bg-slate-100" onClick={() => setCityOpen(true)}>
               <Plus className="h-4 w-4" /> Nueva ciudad
             </Button>
             <Button className="border-slate-300 bg-white/80 text-slate-900 hover:bg-white dark:border-white/30 dark:bg-white/10 dark:text-white dark:hover:bg-white/20"
