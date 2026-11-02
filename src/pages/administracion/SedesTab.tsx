@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { AprobacionInventarioInicialPanel } from "./AprobacionInventarioInicialPanel";
 import { Building2, CheckCircle2, CircleHelp, MapPin, Pencil, Plus, RefreshCw, Store, Warehouse } from "lucide-react";
 import { toast } from "sonner";
 
@@ -22,6 +23,8 @@ const selectClass = "flex h-10 w-full rounded-md border border-input bg-backgrou
 
 export const SedesTab = () => {
   const [cities, setCities] = useState<NexoraCity[]>([]);
+  const [approvalLocked, setApprovalLocked] = useState(false);
+  const markApproved = useCallback(() => setApprovalLocked(true), []);
   const [sites, setSites] = useState<NexoraSite[]>([]);
   const [loading, setLoading] = useState(true);
   const [cityOpen, setCityOpen] = useState(false);
@@ -245,7 +248,8 @@ export const SedesTab = () => {
       )}
 
       <PersonalSedesPanel cities={cities} sites={sites} />
-      <ConciliacionImeiPanel cities={cities} sites={sites} />
+      <ConciliacionImeiPanel cities={cities} sites={sites} approvalLocked={approvalLocked} />
+      <AprobacionInventarioInicialPanel onApproved={markApproved} />
 
       <Dialog open={cityOpen} onOpenChange={(open) => { if (!busyRef.current) setCityOpen(open); }}>
         <DialogContent className="sm:max-w-lg">
