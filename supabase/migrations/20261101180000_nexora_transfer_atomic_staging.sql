@@ -18,22 +18,22 @@ alter table public.nexora_transfers add column receipt_decisions jsonb
 create function public.nexora_can_operate_transfer_site(p_site_id uuid)
 returns boolean language sql stable security definer set search_path = '' as $
   select exists (
-    select 1
-    from public.bodega_profiles p
-    where p.id = (select auth.uid()) and p.is_active
-      and (
-        p.role = 'admin'
-        or (
-          p.role in ('bodeguero','encargado','vendedor')
-          and exists (
-            select 1 from public.nexora_site_memberships m
-            join public.nexora_sites s on s.id = m.site_id
-            where m.user_id = p.id
-              and m.site_id = p_site_id
-              and m.is_active and s.is_active
-              and m.role = p.role
+    select 1 from public.nexora_sites target
+    where target.id = p_site_id and target.is_active
+      and exists (
+        select 1 from public.bodega_profiles p
+        where p.id = (select auth.uid()) and p.is_active
+          and (
+            p.role = 'admin'
+            or (
+              p.role in ('bodeguero','encargado','vendedor')
+              and exists (
+                select 1 from public.nexora_site_memberships m
+                where m.user_id = p.id and m.site_id = target.id
+                  and m.is_active and m.role = p.role
+              )
+            )
           )
-        )
       )
   )
 $;
