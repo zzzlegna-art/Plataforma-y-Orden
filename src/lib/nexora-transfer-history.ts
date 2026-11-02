@@ -1,7 +1,7 @@
 /** Hoja de vida global de cada IMEI: incluye tránsito, recepción y retorno. */
 export type MultisiteEventType =
   | "despachado" | "recepcion_confirmada" | "faltante_reportado"
-  | "retorno_verificado" | "incidencia";
+  | "retorno_verificado" | "incidencia" | "incidencia_resuelta";
 
 export interface TransferHistoryEvent {
   id: string;
@@ -41,7 +41,7 @@ export interface SerialMultisiteTimelineItem {
   status: string;
 }
 const supported = new Set<MultisiteEventType>([
-  "despachado","recepcion_confirmada","faltante_reportado","retorno_verificado","incidencia",
+  "despachado","recepcion_confirmada","faltante_reportado","retorno_verificado","incidencia","incidencia_resuelta",
 ]);
 const info = (details: Record<string, unknown> | null): string =>
   typeof details?.observation === "string" ? details.observation : "";
@@ -91,6 +91,10 @@ export const mapMultisiteSerialTimeline = (
         incidencia: {
           title: "Incidencia · IMEI sin localizar",
           description: `No se encontró físicamente en ${destination}. Sigue sin estar disponible para venta.`,
+        },
+        incidencia_resuelta: {
+          title: "Incidencia resuelta · IMEI recuperado",
+          description: `El equipo apareció y fue verificado físicamente en ${destination}. Regresó al inventario de esa sede.`,
         },
       };
       const observation = info(event.details);
