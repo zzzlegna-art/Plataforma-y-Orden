@@ -430,6 +430,14 @@ begin
        where transfer_id=p_return_id and unit_id=p_unit_id
          and event_type='incidencia_resuelta'
      ) then
+    if not exists (
+      select 1 from public.nexora_transfer_events
+      where transfer_id=p_return_id and unit_id=p_unit_id
+        and event_type='incidencia_resuelta'
+        and details->>'observation' = btrim(p_observation)
+    ) then
+      raise exception 'La incidencia ya fue resuelta con otra observacion.';
+    end if;
     return pg_catalog.jsonb_build_object('returnId',p_return_id,
       'unitId',p_unit_id,'status',tr.status,'idempotent',true);
   end if;
