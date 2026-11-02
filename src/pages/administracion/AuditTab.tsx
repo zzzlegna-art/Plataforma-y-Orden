@@ -8,6 +8,7 @@ import { Badge } from "@/components/shared/status-badge";
 import { Button } from "@/components/ui/button";
 import { useStore } from "@/hooks/use-store";
 import { formatDateTime } from "@/lib/format";
+import { CashEventLedgerPanel } from "./CashEventLedgerPanel";
 
 const ENTITIES = [
   "",
@@ -46,6 +47,7 @@ export const AuditTab = () => {
   return (
     <div className="space-y-4">
       <p className="text-sm text-muted-foreground">{t("audit.description")}</p>
+      <CashEventLedgerPanel />
 
       <div className="space-y-2">
         <SearchField
