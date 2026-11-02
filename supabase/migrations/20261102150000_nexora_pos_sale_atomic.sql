@@ -285,3 +285,89 @@ grant execute on function public.nexora_pos_sell(uuid,uuid,text,numeric,numeric,
 
 comment on function public.nexora_pos_sell(uuid,uuid,text,numeric,numeric,text) is
  'Venta POS atómica con pago íntegro e idempotencia, prohibida hasta aprobación inicial, caja abierta y roles operativos habilitados.';
+
+-- El POS se rige por custodia física real: un IMEI que viajó al local
+-- puede seguir como 'en_bodega' en el estado legacy. El historial de pedidos
+-- despachados también se excluye para nunca revender una venta mayorista.
+CREATE OR REPLACE FUNCTION public.nexora_pos_preflight(p_site_id uuid, p_serial text, p_price numeric)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ STABLE
+ SET search_path TO 'pg_catalog', 'public'
+AS $function$
+declare
+  v_unit record;
+  v_site record;
+  v_custody record;
+  v_reserved boolean;
+  v_in_transfer boolean;
+  v_approved boolean;
+  v_reason text;
+  v_eligible boolean := false;
+begin
+  if auth.uid() is null or not public.bodega_is_admin() then
+    raise exception 'Solo Administrador puede revisar el POS antes de habilitar roles.';
+  end if;
+  if p_site_id is null or p_serial is null or length(btrim(p_serial))=0
+     or length(p_serial)>160 or p_price is null or p_price <= 0 then
+    raise exception 'Selecciona local, IMEI y precio positivo.';
+  end if;
+
+  select exists(select 1 from public.nexora_initial_inventory_approvals) into v_approved;
+  select s.id,s.name from public.nexora_sites s
+   where s.id=p_site_id and s.site_type='local' and s.is_active into v_site;
+  select u.id,u.serial,u.status,u.cost from public.bodega_units u
+    where lower(btrim(u.serial))=lower(btrim(p_serial)) into v_unit;
+
+  if not v_approved then
+    v_reason:='INVENTORY_NOT_APPROVED';
+  elsif v_site.id is null then
+    v_reason:='INVALID_STORE';
+  elsif v_unit.id is null then
+    v_reason:='IMEI_NOT_FOUND';
+  else
+    select coalesce(c.site_id,i.site_id) site_id,
+      coalesce(c.custody_status,'at_site') custody_status
+      into v_custody
+      from public.nexora_initial_unit_sites i
+      left join public.nexora_unit_custody c on c.unit_id=i.unit_id
+      where i.unit_id=v_unit.id;
+
+    select exists(
+      select 1 from public.bodega_order_item_units l
+      join public.bodega_order_items oi on oi.id=l.order_item_id
+      join public.bodega_orders o on o.id=oi.order_id
+      where l.unit_id=v_unit.id and o.status <> 'cancelado'
+    ) into v_reserved;
+    select exists(
+      select 1 from public.nexora_transfer_lines l
+       where l.unit_id=v_unit.id and l.state in ('prepared','in_transit','return_pending')
+    ) into v_in_transfer;
+
+    if v_custody.site_id is distinct from p_site_id
+       or v_custody.custody_status is distinct from 'at_site' then
+      v_reason:='WRONG_SITE_OR_TRANSIT';
+    elsif v_unit.status not in ('en_bodega','en_local') then
+      v_reason:='NOT_RETAIL_STOCK';
+    elsif v_reserved or v_in_transfer then
+      v_reason:='IMEI_COMMITTED';
+    elsif v_unit.cost is null or p_price <= v_unit.cost then
+      v_reason:='PRICE_NOT_ABOVE_COST';
+    else
+      v_reason:='CHECKS_PASSED_POS_NOT_ENABLED';
+      v_eligible:=true;
+    end if;
+  end if;
+  return jsonb_build_object(
+    'eligibleForFuturePos',v_eligible,
+    'saleEnabled',false,
+    'reason',v_reason,
+    'siteName',v_site.name,
+    'serial',coalesce(v_unit.serial,btrim(p_serial)),
+    'status',v_unit.status,
+    'unitCost',v_unit.cost,
+    'proposedPrice',p_price
+  );
+end;
+$function$
+
