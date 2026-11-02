@@ -255,13 +255,14 @@ export const ImeiSedesPanel=()=>{
           </div>
           <p className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs leading-relaxed text-amber-950 dark:border-amber-500/25 dark:bg-amber-400/[0.07] dark:text-amber-100">
             Esta ficha no confirma una venta ni una ubicación no conciliada.
-            El historial existente incluye los movimientos heredados;
-            la integración completa de eventos multisede continúa pendiente.
+            La hoja de vida conserva los movimientos heredados y muestra
+            los eventos multisede confirmados cuando existan. La exportación
+            unificada y otros flujos de auditoría siguen pendientes.
           </p>
           <Button variant="outline" className="w-full sm:w-auto" asChild>
             <Link to={`/seriales?serial=${encodeURIComponent(selected.serial)}`}
               onClick={()=>setSelected(null)}>
-              <History className="h-4 w-4"/> Abrir historial existente
+              <History className="h-4 w-4"/> Abrir hoja de vida del IMEI
             </Link>
           </Button>
         </div>:null}
