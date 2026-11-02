@@ -77,7 +77,8 @@ export const parseInitialInventoryProgress = (payload: unknown): InitialInventor
     throw new Error("El acta no coincide con sus unidades declaradas.");
   return { total, verified, pending, stale, approved, approvedAt,
     isApproved: p.isApproved, ready: p.ready,
-    approvalMethod:method,certifiedByDeclaration };
+    ...(p.approvalMethod!==undefined ? {approvalMethod:method} : {}),
+    ...(p.certifiedByDeclaration!==undefined ? {certifiedByDeclaration} : {}) };
 };
 
 type Result = { data: unknown; error: { message: string } | null };
