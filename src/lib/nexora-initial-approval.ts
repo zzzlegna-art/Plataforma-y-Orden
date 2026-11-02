@@ -97,3 +97,29 @@ export const approveInitialInventory = async (): Promise<InitialInventoryApprova
     approvedCount: finiteCount(d.approvedCount),
   };
 };
+
+export interface ApprovedSiteSummary {
+  siteId: string;
+  siteName: string;
+  approved: number;
+  stillPhysical: number;
+}
+
+/** Cantidades agrupadas por sede aprobada, consultadas en el servidor. */
+export const getInitialApprovedSiteSummary = async (): Promise<ApprovedSiteSummary[]> => {
+  const { data, error } = await rpc("nexora_initial_inventory_site_summary");
+  if (error) throw new Error(error.message);
+  if (!Array.isArray(data)) throw new Error("No fue posible leer las sedes aprobadas.");
+  return data.map((item: unknown) => {
+    if (!item || typeof item !== "object" || Array.isArray(item))
+      throw new Error("Sede recibida con formato inválido.");
+    const row = item as Record<string, unknown>;
+    if (typeof row.siteId !== "string" || typeof row.siteName !== "string")
+      throw new Error("Falta la identificación de una sede.");
+    return {
+      siteId: row.siteId, siteName: row.siteName,
+      approved: finiteCount(row.approved),
+      stillPhysical: finiteCount(row.stillPhysical),
+    };
+  });
+};
