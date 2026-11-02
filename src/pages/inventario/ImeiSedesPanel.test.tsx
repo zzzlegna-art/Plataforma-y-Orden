@@ -54,7 +54,7 @@ describe("Inventario global · ficha de IMEI", () => {
     expect(within(dialog).getByText("Sin costo registrado")).toBeTruthy();
     expect(within(dialog).getAllByText("Sin sede verificada").length).toBeGreaterThan(0);
     expect(within(dialog).getByText("Operación restringida")).toBeTruthy();
-    expect(within(dialog).getByRole("link", { name: /Abrir historial existente/ })
+    expect(within(dialog).getByRole("link", { name: /Abrir hoja de vida del IMEI/ })
       .getAttribute("href")).toBe("/seriales?serial=000012345678901");
   });
 
@@ -67,7 +67,7 @@ describe("Inventario global · ficha de IMEI", () => {
     }));
     const dialog = screen.getByRole("dialog");
     expect(dialog.className).toContain("bg-card");
-    expect(within(dialog).getByText(/integración completa de eventos multisede continúa pendiente/)).toBeTruthy();
+    expect(within(dialog).getByText(/los eventos multisede confirmados cuando existan/)).toBeTruthy();
     expect(within(dialog).queryByRole("button", { name: /vender|reservar|trasladar/i })).toBeNull();
   });
 });
