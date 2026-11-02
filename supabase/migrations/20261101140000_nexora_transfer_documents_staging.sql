@@ -168,47 +168,45 @@ create trigger nexora_prevent_open_transfer_restock_trigger
 -- Sin estas protecciones un IMEI en transito podría quedar comprometido
 -- mediante una tabla relacional sin cambiar directamente bodega_units.
 create function public.nexora_guard_legacy_imei_links()
-returns trigger language plpgsql security definer set search_path = '' as $
+returns trigger language plpgsql security definer set search_path = '' as $$
 declare
+  related_ids uuid[];
   linked_id uuid;
 begin
   if tg_table_name = 'bodega_order_item_units' then
-    linked_id := new.unit_id;
+    related_ids := array[new.unit_id];
   elsif tg_table_name = 'bodega_warranties' then
-    if tg_op = 'UPDATE' then
-      if old.unit_id is not distinct from new.unit_id
-         and old.replacement_unit_id is not distinct from new.replacement_unit_id then
-        return new;
-      end if;
-    end if;
-    if new.unit_id is not null and exists (
-      select 1 from public.nexora_transfer_units
-      where unit_id = new.unit_id and is_open
-    ) then
-      raise exception 'IMEI en traslado: no puede asociarse a una garantia.';
-    end if;
-    linked_id := new.replacement_unit_id;
+    related_ids := array[new.unit_id,new.replacement_unit_id];
   else
     raise exception 'Uso no permitido del control de IMEI en transito.';
   end if;
 
-  if linked_id is not null and exists (
-    select 1 from public.nexora_transfer_units
-    where unit_id = linked_id and is_open
-  ) then
-    raise exception 'IMEI en traslado: no puede asociarse a pedidos ni garantias.';
-  end if;
+  -- Bloquear la unidad física ANTES de consultar si está en tránsito. De otro
+  -- modo, un pedido concurrente podría consultar la lista antes de que el
+  -- despacho termine, y crear una asignación duplicada al liberarse el FK.
+  for linked_id in
+    select distinct id from pg_catalog.unnest(related_ids) u(id)
+    where id is not null order by id
+  loop
+    perform 1 from public.bodega_units where id=linked_id for update;
+    if exists (
+      select 1 from public.nexora_transfer_units
+      where unit_id = linked_id and is_open
+    ) then
+      raise exception 'IMEI en traslado: no puede asociarse a pedidos ni garantias.';
+    end if;
+  end loop;
   return new;
-end; $;
+end; $$;
 
 revoke all on function public.nexora_guard_legacy_imei_links() from public,anon,authenticated;
 
 create trigger nexora_order_imei_open_transfer_guard
-  before insert or update of unit_id on public.bodega_order_item_units
+  before insert or update of unit_id,order_item_id on public.bodega_order_item_units
   for each row execute function public.nexora_guard_legacy_imei_links();
 
 create trigger nexora_warranty_imei_open_transfer_guard
-  before insert or update of unit_id,replacement_unit_id on public.bodega_warranties
+  before insert or update on public.bodega_warranties
   for each row execute function public.nexora_guard_legacy_imei_links();
 
 create table public.nexora_transfer_events (
