@@ -130,6 +130,18 @@ Este resultado complementa las pruebas de TypeScript, pero NO valida el contenid
 
 También se corrigió durante pruebas automáticas una excepción al confirmar devoluciones que tenían observaciones inicialmente vacías (`OriginReturnChecklist`). La pantalla ahora inicializa ambos campos incluso cuando la marca se crea mediante escaneo, y conserva los valores al reintentar.
 
+## Seguridad por sede y exclusión de ventas concurrentes (nuevo bloque)
+
+- Se preparó `public.nexora_can_operate_transfer_site(p_site_id)` como función **SECURITY DEFINER** con `search_path` restringido. Solo devuelve verdadero para un Administrador activo ante una sede activa, o para Bodeguero/Encargado/Vendedor activo que tenga **membresía activa y cuyo rol coincida exactamente con el perfil real** en la sede de destino. No confía en el rol enviado desde el navegador.
+- Se añadió `src/lib/nexora-site-access.ts` como **espejo visual de permisos**, con pruebas para los cuatro perfiles, sedes no asignadas, perfiles bloqueados, asignaciones inactivas y membresías falsificadas. **El espejo en JavaScript NO autoriza operaciones.**
+- **Activación pendiente:** las operaciones RPC de prueba siguen restringidas a Administrador y el esquema legacy todavía no admite Encargado/Vendedor. La función por sede está preparada para integrarse después de migrar las políticas RLS y los RPC históricos. No se ha concedido ningún privilegio adicional en producción.
+- Se corrigió la selección de IMEI comprometidos en pedidos: solo los pedidos **en preparación o preparados** bloquean un despacho nuevo; un pedido histórico ya despachado no debe bloquear eternamente un equipo legítimamente recuperado que vuelva a estar disponible, sujeto a su verificación física.
+- Se prepararon triggers de base de datos sobre `bodega_order_item_units` y `bodega_warranties` para impedir que una operación legacy relacione con pedidos o garantías una unidad **con traslado abierto**, incluso sin cambiar directamente `bodega_units`.
+- Los triggers bloquean la fila física del IMEI antes de comprobar el tránsito, para serializar el alta de un pedido o una garantía frente al despacho y evitar carreras cuando dos empleados trabajan a la vez. Se revisarán estos bloqueos con sesiones simultáneas en staging antes de habilitar.
+- Se ampliaron las pruebas de contratos SQL y el script de verificación de staging para exigir estos triggers. La gramática de la migración volvió a superar el analizador SQL después de corregir los delimitadores de una función.
+
+**Sin cambios en producción:** ninguna tabla, disparador ni función de este bloque ha sido aplicada en Supabase real. La activación requiere staging, pruebas de concurrencia y la migración segura de los cuatro roles.
+
 ## No implementado todavía
 
 - Cambio del rol real de `bodega_profiles` o el motor de permisos legacy.
