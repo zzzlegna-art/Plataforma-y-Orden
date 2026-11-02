@@ -39,6 +39,10 @@ describe("preflight de migraciones multisede (sin ejecutar sobre inventario)", (
     expect(sql).toContain("nexora_transfer_events_block_changes");
     expect(sql).toContain("nexora_validate_transfer_route_trigger");
     expect(sql).toContain("nexora_prevent_open_transfer_restock_trigger");
+    expect(sql).toContain("nexora_order_imei_open_transfer_guard");
+    expect(sql).toContain("nexora_warranty_imei_open_transfer_guard");
+    expect(sql).toContain("before insert or update of unit_id,order_item_id");
+    expect(sql).toContain("perform 1 from public.bodega_units where id=linked_id for update");
     expect(sql).toContain("before update on public.bodega_units");
     expect(sql).toContain("pg_catalog.to_jsonb(old) - 'status'");
     expect(sql).toContain("pg_catalog.to_jsonb(new) - 'status'");
@@ -68,6 +72,10 @@ describe("preflight de migraciones multisede (sin ejecutar sobre inventario)", (
     expect(sql).toContain("retorno_faltantes");
     expect(sql).toContain("event_type='incidencia_resuelta'");
     expect(sql).toContain("remainingIncidents");
+    expect(sql).toContain("nexora_can_operate_transfer_site");
+    expect(sql).toContain("m.role = p.role");
+    expect(sql).toContain("where target.id = p_site_id and target.is_active");
+    expect(sql).toContain("o.status in ('en_preparacion','preparado')");
     const schema = readSql(migrations[1]);
     expect(schema).toContain("'incidencia_resuelta'");
 
