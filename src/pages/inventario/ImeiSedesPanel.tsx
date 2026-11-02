@@ -1,14 +1,16 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   AlertTriangle, ArrowLeft, ArrowRight, BadgeCheck, Boxes, ChevronDown,
-  ChevronUp, Fingerprint, LockKeyhole, MapPin, RefreshCw, Search, ShieldCheck,
+  ChevronUp, Fingerprint, History, LockKeyhole, MapPin, RefreshCw, Search, ShieldCheck,
 } from "lucide-react";
 import { toast } from "sonner";
+import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
   CUSTODY_FILTERS,CUSTODY_LABEL,fetchImeiDirectory,
-  type CustodyFilter,type ImeiDirectoryResponse,
+  type CustodyFilter,type ImeiDirectoryResponse,type ImeiDirectoryRow,
 } from "@/lib/nexora-imei-directory";
 
 const fmt=(n:number)=>new Intl.NumberFormat("es-CO").format(n);
@@ -25,6 +27,7 @@ const stateColor:Record<string,string>={
 
 export const ImeiSedesPanel=()=>{
   const [expanded,setExpanded]=useState(false);
+  const [selected,setSelected]=useState<ImeiDirectoryRow|null>(null);
   const [data,setData]=useState<ImeiDirectoryResponse|null>(null);
   const [state,setState]=useState<CustodyFilter>("all");
   const [site,setSite]=useState("");
@@ -151,7 +154,12 @@ export const ImeiSedesPanel=()=>{
             {data?.items.map(item=><tr key={item.unitId} className="border-t transition-colors hover:bg-muted/20">
               <td className="px-4 py-3">
                 <p className="font-semibold">{item.productName}</p>
-                <p className="mt-1 font-mono text-xs text-muted-foreground">{item.serial}</p>
+                <button type="button"
+                  aria-label={`Abrir ficha del IMEI ${item.serial}`}
+                  onClick={()=>setSelected(item)}
+                  className="mt-1 rounded-sm font-mono text-xs font-semibold text-primary underline-offset-4 transition-colors hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                  {item.serial}
+                </button>
                 <p className="mt-1 text-[11px] text-muted-foreground">{item.sku}</p>
               </td>
               <td className="px-4 py-3">
@@ -211,5 +219,53 @@ export const ImeiSedesPanel=()=>{
         mediante conciliación física; esta vista no reserva, traslada ni vende equipos.
       </p>
     </div>:null}
+    <Dialog open={selected!==null} onOpenChange={open=>{if(!open)setSelected(null);}}>
+      <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-xl">
+        <DialogHeader>
+          <div className="mb-1 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-primary">
+            <History className="h-4 w-4" aria-hidden="true"/>
+            Ficha de inventario multisede
+          </div>
+          <DialogTitle className="break-all font-mono text-xl">{selected?.serial??""}</DialogTitle>
+          <DialogDescription>{selected?.productName??""} · {selected?.sku??""}</DialogDescription>
+        </DialogHeader>
+        {selected?<div className="space-y-4">
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="rounded-xl border bg-muted/20 p-3">
+              <p className="text-xs font-medium text-muted-foreground">Custodia física</p>
+              <p className="mt-1 font-semibold">{CUSTODY_LABEL[selected.custodyState]}</p>
+            </div>
+            <div className="rounded-xl border bg-muted/20 p-3">
+              <p className="text-xs font-medium text-muted-foreground">Sede verificada</p>
+              <p className="mt-1 font-semibold">{selected.siteName??"Sin sede verificada"}</p>
+              {selected.cityName?<p className="text-xs text-muted-foreground">{selected.cityName}</p>:null}
+            </div>
+            <div className="rounded-xl border bg-muted/20 p-3">
+              <p className="text-xs font-medium text-muted-foreground">Costo individual registrado</p>
+              <p className="mt-1 font-semibold tabular-nums">
+                {selected.cost===null?"Sin costo registrado":cop(selected.cost)}
+              </p>
+            </div>
+            <div className="rounded-xl border bg-muted/20 p-3">
+              <p className="text-xs font-medium text-muted-foreground">Estado comercial</p>
+              <p className="mt-1 font-semibold">
+                {selected.commercialCandidate?"Candidato sujeto a validación":"Operación restringida"}
+              </p>
+            </div>
+          </div>
+          <p className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs leading-relaxed text-amber-950 dark:border-amber-500/25 dark:bg-amber-400/[0.07] dark:text-amber-100">
+            Esta ficha no confirma una venta ni una ubicación no conciliada.
+            El historial existente incluye los movimientos heredados;
+            la integración completa de eventos multisede continúa pendiente.
+          </p>
+          <Button variant="outline" className="w-full sm:w-auto" asChild>
+            <Link to={`/seriales?serial=${encodeURIComponent(selected.serial)}`}
+              onClick={()=>setSelected(null)}>
+              <History className="h-4 w-4"/> Abrir historial existente
+            </Link>
+          </Button>
+        </div>:null}
+      </DialogContent>
+    </Dialog>
   </section>;
 };
