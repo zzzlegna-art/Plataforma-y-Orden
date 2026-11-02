@@ -27,7 +27,7 @@ begin
 
   with unit_rows as (
     select u.id as unit_id, u.serial, u.status as legacy_status,
-      u.unit_condition, u.location as historical_location, u.cost,
+      u.unit_condition, nullif(btrim(u.location),'') as historical_location, u.cost,
       coalesce(p.sku,'SIN-SKU') as sku,coalesce(p.name,'Referencia sin catálogo') as product_name,
       r.id as observation_id,
       r.checked_at as observation_at,
