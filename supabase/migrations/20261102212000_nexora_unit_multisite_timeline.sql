@@ -52,7 +52,7 @@ begin
       'transfer_prepared',t.created_at,
       'IMEI incluido en manifiesto de traslado',
       src.name,dst.name,
-      'Traslado #'||t.transfer_number::text,l.state
+      'Traslado #'||t.transfer_number::text,'prepared'::text
     from public.nexora_transfer_lines l
       join public.nexora_transfers t on t.id=l.transfer_id
       join public.nexora_sites src on src.id=t.origin_site_id
@@ -64,7 +64,7 @@ begin
     select ('transfer:'||l.id::text||':dispatched'),
       'transfer_dispatched',t.dispatched_at,
       'IMEI despachado; en tránsito (no disponible)',
-      src.name,dst.name,'Traslado #'||t.transfer_number::text,l.state
+      src.name,dst.name,'Traslado #'||t.transfer_number::text,'in_transit'::text
     from public.nexora_transfer_lines l
       join public.nexora_transfers t on t.id=l.transfer_id
       join public.nexora_sites src on src.id=t.origin_site_id
@@ -77,7 +77,7 @@ begin
     select ('transfer:'||l.id::text||':received'),
       'transfer_received',l.received_at,
       'Recepción física de este IMEI confirmada en destino',
-      src.name,dst.name,'Traslado #'||t.transfer_number::text,l.state
+      src.name,dst.name,'Traslado #'||t.transfer_number::text,'received'::text
     from public.nexora_transfer_lines l
       join public.nexora_transfers t on t.id=l.transfer_id
       join public.nexora_sites src on src.id=t.origin_site_id
@@ -89,7 +89,7 @@ begin
     select ('transfer:'||l.id::text||':missing'),
       'transfer_return_pending',doc.created_at,
       'Faltante registrado: documento de devolución pendiente, sin reingreso al stock',
-      src.name,dst.name,'Traslado #'||t.transfer_number::text,l.state
+      src.name,dst.name,'Traslado #'||t.transfer_number::text,'return_pending'::text
     from public.nexora_transfer_lines l
       join public.nexora_transfers t on t.id=l.transfer_id
       join public.nexora_transfer_return_documents doc on doc.transfer_id=t.id
@@ -102,7 +102,7 @@ begin
     select ('transfer:'||l.id::text||':returned'),
       'transfer_returned',l.returned_at,
       'Devolución física de este IMEI confirmada',
-      dst.name,src.name,'Traslado #'||t.transfer_number::text,l.state
+      dst.name,src.name,'Traslado #'||t.transfer_number::text,'returned'::text
     from public.nexora_transfer_lines l
       join public.nexora_transfers t on t.id=l.transfer_id
       join public.nexora_sites src on src.id=t.origin_site_id
@@ -114,7 +114,7 @@ begin
     select ('transfer:'||l.id::text||':cancelled'),
       'transfer_cancelled',t.closed_at,
       'Manifiesto de traslado cancelado antes de completarse',
-      src.name,dst.name,'Traslado #'||t.transfer_number::text,l.state
+      src.name,dst.name,'Traslado #'||t.transfer_number::text,'cancelled'::text
     from public.nexora_transfer_lines l
       join public.nexora_transfers t on t.id=l.transfer_id
       join public.nexora_sites src on src.id=t.origin_site_id
