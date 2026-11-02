@@ -15,6 +15,7 @@ import {
   type ImeiObservation, type ScannedUnit,
 } from "@/lib/nexora-imei-reconciliation";
 import type { NexoraCity, NexoraSite } from "@/lib/nexora-sites";
+import { PhysicalBatchScanPanel } from "./PhysicalBatchScanPanel";
 
 const selectClass = "flex h-10 w-full rounded-lg border border-input bg-background px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50";
 
@@ -185,6 +186,9 @@ export const ConciliacionImeiPanel = ({
         </div>
       </div>
 
+      <PhysicalBatchScanPanel key={siteId||"no-site"} siteId={siteId}
+        siteName={chosenSite?.name??""} approvalLocked={Boolean(approvalLocked)}
+        onCompleted={()=>{void refresh(siteId);}} />
       <div className="rounded-xl border bg-muted/20 p-4 text-sm text-muted-foreground">
         <div className="flex items-start gap-3">
           <LockKeyhole className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
