@@ -52,6 +52,7 @@ import {
 } from "@/lib/selectors";
 import type { Unit } from "@/lib/types";
 import { listSuppliers, type Supplier } from "@/lib/suppliers";
+import { MultisiteSerialHistory } from "./MultisiteSerialHistory";
 
 const exportarCsv = (serial: string, fechaIngreso: string, rows: ReturnType<typeof getUnitTimeline>) => {
   const header = `Serial;${serial}\nIngreso;${fechaIngreso}\nFecha;Tipo;Descripcion;Usuario\n`;
@@ -552,6 +553,8 @@ const HistorialSerial = ({ embedded = false }: { embedded?: boolean }) => {
               </ol>
             )}
           </section>
+
+          <MultisiteSerialHistory unitId={unit.id} />
 
           <PrintLabelsDialog
             open={dialog === "imprimir"}
