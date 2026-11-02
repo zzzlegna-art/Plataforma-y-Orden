@@ -155,20 +155,20 @@ export const TrasladosMultisedePanel = ({ sites }: { sites: readonly NexoraSite[
 
   return (
     <section className="space-y-5" aria-label="Traslados entre sedes">
-      <div className="relative overflow-hidden rounded-2xl border border-slate-800 bg-gradient-to-br from-slate-950 via-slate-900 to-cyan-950 p-5 text-white shadow-lg sm:p-7">
+      <div className="relative overflow-hidden rounded-2xl border border-cyan-200 bg-gradient-to-br from-white via-cyan-50 to-sky-100 p-5 text-slate-900 shadow-lg shadow-cyan-950/5 dark:border-slate-800 dark:from-slate-950 dark:via-slate-900 dark:to-cyan-950 dark:text-white dark:shadow-black/20 sm:p-7">
         <div aria-hidden="true" className="pointer-events-none absolute -right-12 top-0 h-52 w-52 rounded-full bg-cyan-400/15 blur-3xl" />
         <div className="relative flex flex-wrap items-start justify-between gap-4">
           <div className="max-w-2xl">
-            <p className="inline-flex items-center gap-2 rounded-full border border-cyan-400/25 bg-cyan-400/10 px-3 py-1 text-xs font-bold uppercase tracking-widest text-cyan-200">
+            <p className="inline-flex items-center gap-2 rounded-full border border-cyan-200 dark:border-cyan-400/25 bg-cyan-100 dark:bg-cyan-400/10 px-3 py-1 text-xs font-bold uppercase tracking-widest text-cyan-800 dark:text-cyan-200">
               <Truck className="h-3.5 w-3.5" /> Logística multisede
             </p>
             <h2 className="mt-3 text-2xl font-bold sm:text-3xl">Traslados y recepciones</h2>
-            <p className="mt-2 text-sm leading-relaxed text-slate-300">
+            <p className="mt-2 text-sm leading-relaxed text-slate-600 dark:text-slate-300">
               Manifiestos por IMEI, despacho verificable, recepción parcial y documentos de retorno físico,
               con trazabilidad independiente del stock comercial actual.
             </p>
           </div>
-          <Button variant="outline" className="border-white/30 bg-white/10 text-white hover:bg-white/20"
+          <Button variant="outline" className="border-slate-300 bg-white/80 text-slate-900 hover:bg-white dark:border-white/30 dark:bg-white/10 dark:text-white dark:hover:bg-white/20"
             disabled={working || loading} onClick={() => void load()}>
             <RefreshCw className="h-4 w-4" /> Actualizar
           </Button>
@@ -179,9 +179,9 @@ export const TrasladosMultisedePanel = ({ sites }: { sites: readonly NexoraSite[
             ["Con retorno pendiente", counts.pending],
             ["Cerrados", counts.closed],
           ].map(([title, value]) => (
-            <div key={title} className="rounded-xl border border-white/10 bg-white/[0.06] p-3 sm:p-4">
+            <div key={title} className="rounded-xl border border-slate-200 bg-white/75 shadow-sm dark:border-white/10 dark:bg-white/[0.06] dark:shadow-none p-3 sm:p-4">
               <p className="text-2xl font-bold tabular-nums">{nr(Number(value))}</p>
-              <p className="mt-1 text-xs text-slate-300">{title}</p>
+              <p className="mt-1 text-xs text-slate-600 dark:text-slate-300">{title}</p>
             </div>
           ))}
         </div>

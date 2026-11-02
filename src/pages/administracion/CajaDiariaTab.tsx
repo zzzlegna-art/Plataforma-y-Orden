@@ -78,21 +78,21 @@ const CajaDiariaTab = () => {
   return (
     <section className="space-y-5" aria-label="Caja diaria multisede">
       <PageHeader title="Caja diaria" description="Aperturas, efectivo, transferencias, arqueo y auditoría por local." />
-      <div className="relative overflow-hidden rounded-2xl border border-slate-800 bg-gradient-to-br from-slate-950 via-slate-900 to-emerald-950 p-5 text-white shadow-xl sm:p-7">
+      <div className="relative overflow-hidden rounded-2xl border border-emerald-200 bg-gradient-to-br from-white via-emerald-50 to-cyan-100 p-5 text-slate-900 shadow-xl shadow-emerald-950/5 dark:border-slate-800 dark:from-slate-950 dark:via-slate-900 dark:to-emerald-950 dark:text-white dark:shadow-black/20 sm:p-7">
         <div aria-hidden="true" className="pointer-events-none absolute -right-14 -top-16 h-60 w-60 rounded-full bg-emerald-400/15 blur-3xl" />
         <div className="relative flex flex-wrap items-start justify-between gap-3">
           <div>
-            <span className="inline-flex items-center gap-2 rounded-full border border-emerald-300/25 bg-emerald-400/10 px-3 py-1 text-xs font-semibold uppercase tracking-widest text-emerald-100">
+            <span className="inline-flex items-center gap-2 rounded-full border border-emerald-200 dark:border-emerald-300/25 bg-emerald-100 dark:bg-emerald-400/10 px-3 py-1 text-xs font-semibold uppercase tracking-widest text-emerald-100">
               <Wallet className="h-3.5 w-3.5" /> Control financiero · Nexora 2.0
             </span>
             <h2 className="mt-4 text-2xl font-bold sm:text-3xl">Control de caja por local</h2>
-            <p className="mt-2 max-w-xl text-sm leading-relaxed text-slate-300">
+            <p className="mt-2 max-w-xl text-sm leading-relaxed text-slate-600 dark:text-slate-300">
               Un único día de caja por local, con gastos autorizados, ingresos separados
               por medio de pago y diferencias de cierre documentadas.
             </p>
           </div>
           <Button size="sm" variant="outline" disabled={loading||busy}
-            className="border-white/20 bg-white/10 text-white hover:bg-white/20"
+            className="border-slate-300 bg-white/80 text-slate-900 hover:bg-white dark:border-white/20 dark:bg-white/10 dark:text-white dark:hover:bg-white/20"
             onClick={()=>void refresh()}><RefreshCw className="h-4 w-4" /> Actualizar</Button>
         </div>
         <div className="relative mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -103,10 +103,10 @@ const CajaDiariaTab = () => {
             {caption:"Ventas por transferencia",value:money(stats.transfer),icon:CircleDollarSign},
           ].map((metric)=>{
             const Icon=metric.icon;
-            return <div key={metric.caption} className="rounded-xl border border-white/10 bg-white/[0.06] p-3 sm:p-4">
-              <Icon className="mb-3 h-4 w-4 text-emerald-200" />
+            return <div key={metric.caption} className="rounded-xl border border-slate-200 bg-white/75 shadow-sm dark:border-white/10 dark:bg-white/[0.06] dark:shadow-none p-3 sm:p-4">
+              <Icon className="mb-3 h-4 w-4 text-emerald-700 dark:text-emerald-200" />
               <p className="text-lg font-bold tabular-nums sm:text-xl">{metric.value}</p>
-              <p className="mt-1 text-xs text-slate-300">{metric.caption}</p>
+              <p className="mt-1 text-xs text-slate-600 dark:text-slate-300">{metric.caption}</p>
             </div>;
           })}
         </div>

@@ -12,6 +12,7 @@ import { UsersTab } from "./UsersTab";
 import { RolesTab } from "./RolesTab";
 import { SedesTab } from "./SedesTab";
 import CajaDiariaTab from "./CajaDiariaTab";
+import PosMinoristaTab from "./PosMinoristaTab";
 
 /**
  * Administración unificada. Personal de bodega administra proveedores sin acceder
@@ -23,7 +24,7 @@ const Administracion = () => {
   const [params, setParams] = useSearchParams();
   const selected = params.get("tab");
   const validTabs = isAdmin
-    ? ["users", "roles", "sites", "cash", "catalogs", "suppliers", "audit", "data"]
+    ? ["users", "roles", "sites", "cash", "pos", "catalogs", "suppliers", "audit", "data"]
     : ["suppliers"];
   const activeTab = selected && validTabs.includes(selected)
     ? selected
@@ -50,6 +51,7 @@ const Administracion = () => {
           {isAdmin ? <TabsTrigger value="roles">Roles y permisos</TabsTrigger> : null}
           {isAdmin ? <TabsTrigger value="sites">Ciudades y sedes</TabsTrigger> : null}
           {isAdmin ? <TabsTrigger value="cash">Caja diaria</TabsTrigger> : null}
+          {isAdmin ? <TabsTrigger value="pos">POS minorista</TabsTrigger> : null}
           {isAdmin ? <TabsTrigger value="catalogs">{t("admin.tabCatalogs")}</TabsTrigger> : null}
           <TabsTrigger value="suppliers">{t("admin.tabSuppliers")}</TabsTrigger>
           {isAdmin ? <TabsTrigger value="audit">{t("admin.tabAudit")}</TabsTrigger> : null}
@@ -62,6 +64,7 @@ const Administracion = () => {
             <TabsContent value="roles"><RolesTab /></TabsContent>
             <TabsContent value="sites"><SedesTab /></TabsContent>
             <TabsContent value="cash"><CajaDiariaTab /></TabsContent>
+            <TabsContent value="pos"><PosMinoristaTab /></TabsContent>
             <TabsContent value="catalogs"><CatalogsTab /></TabsContent>
             <TabsContent value="audit"><AuditTab /></TabsContent>
             <TabsContent value="data"><DataTab /></TabsContent>
