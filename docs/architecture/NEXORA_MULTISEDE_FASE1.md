@@ -92,6 +92,22 @@ Se agregó `src/lib/nexora-sql-contract.test.ts` para detectar delimitadores PL/
 
 **Importante:** la implementación es código no publicado y todavía no verificado con SQL de staging. No se atribuye stock ni se activa un traslado por leer su historial; la autorización efectiva de los cuatro roles y la migración del inventario siguen siendo puertas obligatorias.
 
+## Resolución auditada de faltantes encontrados después
+
+La validación automática de la última revisión del plan multisede pasó en GitHub. Se preparó, además, la RPC `nexora_resolve_origin_incident` **únicamente para staging**:
+
+- Se usa cuando la bodega emisora reportó un IMEI como no encontrado en el primer conteo, pero después lo localiza físicamente.
+- El Administrador del piloto debe indicar el IMEI, el documento de retorno y una observación explícita de recuperación. La función comprueba que esa unidad sea precisamente una incidencia abierta, que su estado sea `en_transito` y que su ubicación lógica siga siendo el origen.
+- En una sola operación: cierra la incidencia de esa unidad, reincorpora el IMEI a la bodega que corresponde, escribe movimiento de entrada y agrega evento **incidencia_resuelta** al historial permanente.
+- Si hay más IMEI sin aparecer, el documento permanece en estado `incidencia`. Solo pasa a `recibido` cuando no queda ninguno abierto.
+- Un reintento de una recuperación ya confirmada no genera otra entrada, pero tampoco permite fingir que se recuperó una unidad recibida desde el comienzo.
+- Los celulares que todavía no aparecen permanecen **fuera del disponible**, sin ningún atajo para regresar existencias por mera edición de pantalla.
+- La hoja de vida muestra la incidencia inicial y la posterior recuperación como **dos hechos distintos**, con fechas y observaciones, sin sobrescribir la evidencia original.
+
+Las pruebas de contratos SQL, API y vida del IMEI fueron ampliadas para el escenario. Sigue pendiente ejecutar las migraciones y RPC contra PostgreSQL de staging con sesiones reales y probar concurrencia.
+
+**Entorno de pruebas:** Supabase confirmó que la creación de una rama de desarrollo requiere una confirmación de costo; no se creó ni se realizó ningún cargo. Hasta contar con autorización expresa del costo, NO ejecutar estas migraciones sobre producción ni asumir que las pruebas de GitHub sustituyen la prueba de base de datos.
+
 ## No implementado todavía
 
 - Cambio del rol real de `bodega_profiles` o el motor de permisos legacy.
