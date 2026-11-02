@@ -164,6 +164,53 @@ create trigger nexora_prevent_open_transfer_restock_trigger
   for each row execute function public.nexora_prevent_open_transfer_restock();
 
 
+-- Las escrituras legacy también crean asociaciones de pedidos o garantías.
+-- Sin estas protecciones un IMEI en transito podría quedar comprometido
+-- mediante una tabla relacional sin cambiar directamente bodega_units.
+create function public.nexora_guard_legacy_imei_links()
+returns trigger language plpgsql security definer set search_path = '' as $
+declare
+  linked_id uuid;
+begin
+  if tg_table_name = 'bodega_order_item_units' then
+    linked_id := new.unit_id;
+  elsif tg_table_name = 'bodega_warranties' then
+    if tg_op = 'UPDATE' then
+      if old.unit_id is not distinct from new.unit_id
+         and old.replacement_unit_id is not distinct from new.replacement_unit_id then
+        return new;
+      end if;
+    end if;
+    if new.unit_id is not null and exists (
+      select 1 from public.nexora_transfer_units
+      where unit_id = new.unit_id and is_open
+    ) then
+      raise exception 'IMEI en traslado: no puede asociarse a una garantia.';
+    end if;
+    linked_id := new.replacement_unit_id;
+  else
+    raise exception 'Uso no permitido del control de IMEI en transito.';
+  end if;
+
+  if linked_id is not null and exists (
+    select 1 from public.nexora_transfer_units
+    where unit_id = linked_id and is_open
+  ) then
+    raise exception 'IMEI en traslado: no puede asociarse a pedidos ni garantias.';
+  end if;
+  return new;
+end; $;
+
+revoke all on function public.nexora_guard_legacy_imei_links() from public,anon,authenticated;
+
+create trigger nexora_order_imei_open_transfer_guard
+  before insert or update of unit_id on public.bodega_order_item_units
+  for each row execute function public.nexora_guard_legacy_imei_links();
+
+create trigger nexora_warranty_imei_open_transfer_guard
+  before insert or update of unit_id,replacement_unit_id on public.bodega_warranties
+  for each row execute function public.nexora_guard_legacy_imei_links();
+
 create table public.nexora_transfer_events (
   id uuid primary key default gen_random_uuid(),
   transfer_id uuid not null references public.nexora_transfers(id) on delete restrict,
