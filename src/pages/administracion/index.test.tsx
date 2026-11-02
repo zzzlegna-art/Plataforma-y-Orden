@@ -18,6 +18,7 @@ vi.mock("../proveedores", () => ({
   default: () => <div>Directorio real de proveedores</div>,
 }));
 vi.mock("./UsersTab", () => ({ UsersTab: () => <div>Panel de usuarios</div> }));
+vi.mock("./RolesTab", () => ({ RolesTab: () => <div>Matriz real de cuatro perfiles</div> }));
 vi.mock("./CatalogsTab", () => ({ CatalogsTab: () => <div>Panel de catálogos</div> }));
 vi.mock("./AuditTab", () => ({ AuditTab: () => <div>Bitácora privada</div> }));
 vi.mock("./DataTab", () => ({ DataTab: () => <div>Datos privados</div> }));
@@ -41,7 +42,7 @@ describe("Administración unifica el directorio de proveedores", () => {
     render(<MemoryRouter initialEntries={["/administracion?tab=users"]}><Administracion /></MemoryRouter>);
     expect(screen.getByRole("tab", { name: "admin.tabSuppliers" }).getAttribute("data-state")).toBe("active");
     expect(screen.getByText("Directorio real de proveedores")).toBeTruthy();
-    for (const tab of ["admin.tabUsers", "admin.tabCatalogs", "admin.tabAudit", "admin.tabData"]) {
+    for (const tab of ["admin.tabUsers", "Roles y permisos", "admin.tabCatalogs", "admin.tabAudit", "admin.tabData"]) {
       expect(screen.queryByRole("tab", { name: tab })).toBeNull();
     }
     expect(screen.queryByText("Panel de usuarios")).toBeNull();
@@ -54,8 +55,26 @@ describe("Administración unifica el directorio de proveedores", () => {
     expect(screen.getByRole("tab", { name: "admin.tabSuppliers" }).getAttribute("data-state")).toBe("active");
     expect(screen.getByText("Directorio real de proveedores")).toBeTruthy();
     expect(screen.getByRole("tab", { name: "admin.tabUsers" })).toBeTruthy();
+    expect(screen.getByRole("tab", { name: "Roles y permisos" })).toBeTruthy();
     await userEvent.setup().click(screen.getByRole("tab", { name: "admin.tabCatalogs" }));
     expect(screen.getByRole("tab", { name: "admin.tabCatalogs" }).getAttribute("data-state")).toBe("active");
     expect(screen.getByText("Panel de catálogos")).toBeTruthy();
+  });
+});
+
+describe("Matriz multisede informativa", () => {
+  it("solamente Administrador accede a la pestaña Roles y permisos", () => {
+    isAdmin = true;
+    const adminView = render(
+      <MemoryRouter initialEntries={["/administracion?tab=roles"]}><Administracion /></MemoryRouter>,
+    );
+    expect(screen.getByText("Matriz real de cuatro perfiles")).toBeTruthy();
+    adminView.unmount();
+
+    isAdmin = false;
+    render(<MemoryRouter initialEntries={["/administracion?tab=roles"]}><Administracion /></MemoryRouter>);
+    expect(screen.queryByRole("tab", { name: "Roles y permisos" })).toBeNull();
+    expect(screen.queryByText("Matriz real de cuatro perfiles")).toBeNull();
+    expect(screen.getByText("Directorio real de proveedores")).toBeTruthy();
   });
 });
