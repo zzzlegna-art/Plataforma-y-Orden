@@ -52,6 +52,7 @@ import {
 } from "@/lib/selectors";
 import type { Unit } from "@/lib/types";
 import { listSuppliers, type Supplier } from "@/lib/suppliers";
+import { MultisiteImeiHistory } from "./MultisiteImeiHistory";
 
 const exportarCsv = (serial: string, fechaIngreso: string, rows: ReturnType<typeof getUnitTimeline>) => {
   const header = `Serial;${serial}\nIngreso;${fechaIngreso}\nFecha;Tipo;Descripcion;Usuario\n`;
@@ -522,6 +523,8 @@ const HistorialSerial = ({ embedded = false }: { embedded?: boolean }) => {
               ) : null}
             </div>
           </section>
+
+          <MultisiteImeiHistory key={unit.id} unitId={unit.id} />
 
           <section className="rounded-lg border bg-card p-4 shadow-sm">
             <h3 className="mb-4 flex items-center gap-2 text-sm font-semibold">
