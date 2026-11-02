@@ -64,6 +64,21 @@ Se preparó el motor de reglas `src/lib/nexora-transfer-rules.ts` y pruebas:
 6. Probar respuestas perdidas, doble envío concurrente, IMEI duplicado, recepción parcial y total, roles sin permiso, devoluciones y ciudades distintas.
 7. Solo después habilitar la vista operacional en el menú y activar políticas de escritura/RPC en staging; no habilitar desde el cliente antes que el backend.
 
+## Operaciones atómicas de traslado — prototipo administrativo para STAGING
+
+Migración nueva: `20261101180000_nexora_transfer_atomic_staging.sql`. **No se ha ejecutado ni probado en PostgreSQL de staging**, y tampoco se ha aplicado en Supabase de producción. Es una implementación inicial para validar, no una autorización para encender los traslados reales.
+
+- `nexora_dispatch_transfer`: usa un UUID de operación para reintentos, valida la ruta permitida mediante trigger, comprueba que todos los IMEI pertenecen físicamente a la sede emisora, excluye pedidos activos y garantías, evita doble tránsito y registra salida e historial en una transacción.
+- `nexora_receive_transfer`: exige una decisión individual por cada IMEI, con observación para faltantes; cierra el tránsito original y crea automáticamente una devolución pendiente solo por los equipos no recibidos. Si se confirmó una petición y se pierde la respuesta de red, reconoce un reintento idéntico sin procesar otra vez.
+- `nexora_verify_origin_return`: la sede emisora verifica cuáles equipos del documento de devolución encontró físicamente. Solo esos regresan al disponible en origen; los demás permanecen en tránsito y generan incidencia.
+- Los eventos históricos conservan actor, fecha y documento y no se permiten borrados por usuario.
+- Las operaciones utilizan inicialmente autorización de **Administrador activo solamente**. Esto limita explícitamente el prototipo hasta completar la migración del sistema legacy a los cuatro perfiles y al acceso efectivo por sede. No representa la política definitiva de todos los empleados.
+- La migración reconoce `reference_type = 'traslado'` para que el historial de movimientos pueda identificar la vida de cada serial.
+
+**Bloqueos antes de habilitar:** solo existe un proyecto Supabase conectado y corresponde al sistema activo; aún no se dispone de un proyecto de pruebas/restauración. Falta ejecutar las tres migraciones sobre staging, probar SQL/funciones y RLS con usuarios reales, validar fallas de red, reintentos simultáneos, garantías, inventario físico, integración de formulario y conciliación de incidencias no encontradas. No mezclar este backend sin verificar con recepciones o pedidos actuales. Los casos de incidencia después de una verificación sin hallazgo necesitarán un flujo de resolución posterior; no se permite devolver el equipo al stock con un simple cambio de estado.
+
+Se agregó `src/lib/nexora-sql-contract.test.ts` para detectar delimitadores PL/pgSQL rotos, ausencia de restricciones, políticas y acceso anónimo. Esta prueba estática **no sustituye** ejecutar SQL contra PostgreSQL en staging.
+
 ## No implementado todavía
 
 - Cambio del rol real de `bodega_profiles` o el motor de permisos legacy.
