@@ -45,7 +45,7 @@ create unique index nexora_transfer_only_one_return_idx
 -- Las rutas se validan EN SERVIDOR para evitar que una interfaz manipulada
 -- eluda la cadena sede principal → bodegas → locales.
 create function public.nexora_validate_transfer_route()
-returns trigger language plpgsql security invoker set search_path = '' as $
+returns trigger language plpgsql security invoker set search_path = '' as $$
 declare
   v_origin public.nexora_sites%rowtype;
   v_destination public.nexora_sites%rowtype;
@@ -86,7 +86,7 @@ begin
   end if;
 
   return new;
-end; $;
+end; $$;
 
 create trigger nexora_validate_transfer_route_trigger
   before insert or update of origin_site_id,destination_site_id,kind,original_transfer_id
