@@ -22,7 +22,7 @@ describe("Nexora · informe histórico por local",()=>{
     const table=await screen.findByRole("table");
     expect(within(table).getByText("Ciudad / local")).toBeTruthy();
     expect(screen.getByText(/Aún no hay locales comerciales registrados/)).toBeTruthy();
-    expect(screen.getByText(/no es utilidad neta/i)).toBeTruthy();
+    expect(screen.getAllByText(/no es utilidad neta/i).length).toBeGreaterThan(0);
     expect(screen.getByText(/0 IMEI vendidos/)).toBeTruthy();
   });
   it("mantiene los dos temas premium sin controles de caja o ventas",async()=>{
