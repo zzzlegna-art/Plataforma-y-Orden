@@ -108,6 +108,20 @@ Las pruebas de contratos SQL, API y vida del IMEI fueron ampliadas para el escen
 
 **Entorno de pruebas:** Supabase confirmó que la creación de una rama de desarrollo requiere una confirmación de costo; no se creó ni se realizó ningún cargo. Hasta contar con autorización expresa del costo, NO ejecutar estas migraciones sobre producción ni asumir que las pruebas de GitHub sustituyen la prueba de base de datos.
 
+## Pantalla de confirmación de devoluciones en la bodega emisora
+
+Se incorporó el componente premium `src/components/transfers/OriginReturnChecklist.tsx` y sus pruebas:
+
+- Permite **escanear** el IMEI (lector o teclado + Enter), marcar cada unidad como encontrada o no encontrada y registrar la observación obligatoria de cada faltante.
+- El mismo IMEI no suma dos veces; una referencia que no pertenece al retorno se rechaza.
+- El botón de confirmar se bloquea hasta revisar **todos** los IMEI pendientes. Se valida la coincidencia entre el documento y las decisiones antes de permitir el guardado.
+- El componente invoca una operación proporcionada por el módulo servidor, no escribe inventario desde el navegador. Ante fallo de conexión conserva las marcas y no presenta la recepción como exitosa.
+- Después de recibir confirmación del servidor, impide una segunda confirmación en la pantalla.
+- Las verificaciones que no encuentran físicamente equipos crean incidencias; la RPC `nexora_resolve_origin_incident` permite resolverlas posteriormente, por equipo y con evidencia, sin sobrescribir su historia.
+- Reintentos de esa RPC con una observación diferente se rechazan: una confirmación ya registrada no puede reemplazar silenciosamente la evidencia.
+
+**Pendiente para uso real:** integrar el componente en el módulo operativo de traslados, probar las RPC y permisos en Supabase staging y migrar los cuatro roles. Se mantiene intencionalmente fuera de la navegación productiva.
+
 ## No implementado todavía
 
 - Cambio del rol real de `bodega_profiles` o el motor de permisos legacy.
