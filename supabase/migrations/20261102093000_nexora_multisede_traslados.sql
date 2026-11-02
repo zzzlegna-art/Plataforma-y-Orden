@@ -288,7 +288,8 @@ begin
     update public.nexora_unit_custody c
       set site_id=v_origin,custody_status='at_site',transfer_id=null,updated_at=now()
       from public.nexora_transfer_lines l
-      where l.transfer_id=v_tid and l.unit_id=c.unit_id and l.state='returned';
+      where l.transfer_id=v_tid and l.unit_id=c.unit_id and l.state='returned'
+        and lower(btrim(l.serial_snapshot))=any(v_serials);
     select count(*) into v_remaining from public.nexora_transfer_lines
       where transfer_id=v_tid and state='return_pending';
     if v_remaining=0 then
