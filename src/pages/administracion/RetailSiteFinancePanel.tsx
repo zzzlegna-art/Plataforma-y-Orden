@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from "react";
-import { ArrowRightLeft, BarChart3, ChevronDown, ChevronUp, Coins, LockKeyhole, RefreshCw, ShieldCheck, Store } from "lucide-react";
+import { ArrowRightLeft, BarChart3, ChevronDown, ChevronUp, Coins, Download, LockKeyhole, RefreshCw, ShieldCheck, Store } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { todayIso } from "@/lib/format";
+import { buildRetailSiteFinancialCsv } from "@/lib/nexora-retail-site-finance-csv";
 import {
   calculateRetailReportTotals,fetchRetailSiteFinancialReport,
   validateRetailDateRange,type RetailSiteFinancialReport,
@@ -32,7 +33,7 @@ export const RetailSiteFinancePanel=()=>{
 
   useEffect(()=>{
     if(!expanded){request.current++;return;}
-    if(invalid){setReport(null);setError(invalid);return;}
+    if(invalid){request.current++;setReport(null);setBusy(false);setError(invalid);return;}
     const current=++request.current;
     setBusy(true);
     setError(null);
@@ -48,6 +49,24 @@ export const RetailSiteFinancePanel=()=>{
     return()=>{request.current++;};
   },[expanded,from,to,revision,invalid]);
 
+  const handleExport=()=>{
+    if(!report||busy||invalid||error)return;
+    try{
+      const csv=buildRetailSiteFinancialCsv(report);
+      const blob=new Blob([csv],{type:"text/csv;charset=utf-8"});
+      const url=URL.createObjectURL(blob);
+      try{
+        const link=document.createElement("a");
+        link.href=url;
+        link.download=`nexora-finanzas-retail-${report.from}-${report.to}.csv`;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+      }finally{URL.revokeObjectURL(url);}
+    }catch(reason:unknown){
+      setError(reason instanceof Error?reason.message:"No se pudo generar el CSV validado.");
+    }
+  };
   const totals=calculateRetailReportTotals(report?.stores??[]);
   return <section aria-label="Reporte histórico minorista por sede"
     className="overflow-hidden rounded-2xl border border-border bg-card text-card-foreground shadow-sm">
@@ -93,6 +112,10 @@ export const RetailSiteFinancePanel=()=>{
         <Button size="sm" variant="outline" disabled={busy||Boolean(invalid)}
           onClick={()=>setRevision(v=>v+1)}>
           <RefreshCw className="size-4"/> Actualizar informe
+        </Button>
+        <Button size="sm" variant="outline" disabled={busy||Boolean(invalid)||!report||Boolean(error)}
+          onClick={handleExport}>
+          <Download className="size-4"/> Descargar CSV de sedes
         </Button>
       </div>
       {error?<p role="alert" className="rounded-xl border border-amber-300 bg-amber-50 p-3 text-sm text-amber-950 dark:border-amber-400/25 dark:bg-amber-400/10 dark:text-amber-100">
