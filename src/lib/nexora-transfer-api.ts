@@ -32,6 +32,8 @@ export interface TransferRpcResult {
   missingCount?: number;
   verifiedCount?: number;
   incidentCount?: number;
+  remainingIncidents?: number;
+  unitId?: string;
 }
 
 const asResponse = (data: unknown): TransferRpcResult => {
@@ -129,6 +131,32 @@ export const verifyMultisiteOriginReturn = async ({
       (!result.idempotent &&
        (result.verifiedCount !== verified || result.incidentCount !== incidents))) {
     throw new MultisiteTransferError("La verificación del origen no coincide con el documento guardado.");
+  }
+  return result;
+};
+
+/** Registra una recuperación tardía, solamente después de constatar el equipo en la bodega. */
+export const resolveMultisiteOriginIncident = async ({
+  returnId, unitId, observation, rpc,
+}: {
+  returnId: string;
+  unitId: string;
+  observation: string;
+  rpc?: RpcCaller;
+}): Promise<TransferRpcResult> => {
+  if (!returnId.trim() || !unitId.trim() || !observation.trim()) {
+    throw new MultisiteTransferError("Selecciona el IMEI encontrado e indica cómo se verificó físicamente.");
+  }
+  const result = await invoke(rpc ?? await fromSupabase(), "nexora_resolve_origin_incident", {
+    p_return_id: returnId,
+    p_unit_id: unitId,
+    p_observation: observation.trim(),
+  });
+  if (result.returnId !== returnId || result.unitId !== unitId ||
+      !["incidencia", "recibido"].includes(result.status)) {
+    throw new MultisiteTransferError(
+      "La recuperación no coincide con el IMEI del acta; consulta el documento antes de repetirla.",
+    );
   }
   return result;
 };
