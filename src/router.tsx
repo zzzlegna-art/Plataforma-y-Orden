@@ -18,6 +18,7 @@ import Recepciones from "./pages/recepcion";
 import NuevaRecepcion from "./pages/recepcion/nueva";
 import TrazabilidadSeriales from "./pages/trazabilidad";
 import TrasladosPiloto from "./pages/traslados";
+import NewTransferPilot from "./pages/traslados/nuevo";
 
 export const routers = [
   {
@@ -129,6 +130,15 @@ export const routers = [
             path: "garantias/:warrantyId",
             name: "garantia-detalle",
             element: <GarantiaDetalle />,
+          },
+          {
+            path: "traslados-piloto/nuevo",
+            name: "traslado-nuevo-piloto",
+            element: (
+              <RequirePermission permission="users.manage">
+                <NewTransferPilot />
+              </RequirePermission>
+            ),
           },
           {
             path: "traslados-piloto",
