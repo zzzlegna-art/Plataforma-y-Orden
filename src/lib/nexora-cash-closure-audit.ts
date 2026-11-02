@@ -1,5 +1,5 @@
 /** Auditoría de caja por jornada y local, exclusivamente en modo lectura. */
-import { validateRetailDateRange } from "./nexora-retail-site-finance";
+import { validateRetailDateRange,validIsoDate } from "./nexora-retail-site-finance";
 export interface CashClosureAuditRow {
   sessionId:string;siteId:string;siteName:string;cityName:string;
   businessDate:string;state:"open"|"closed";
@@ -82,7 +82,7 @@ export const parseCashClosureAudit=(raw:unknown):CashClosureAuditReport=>{
       hasCashDifference:v.hasCashDifference,hasIntegrityMismatch:v.hasIntegrityMismatch,
     };
     const expected=item.openingCash+item.cashSales-item.authorizedExpenses;
-    if(!/^(?:19|20)\d{2}-\d{2}-\d{2}$/.test(item.businessDate)
+    if(!validIsoDate(item.businessDate)
       ||!near(item.expectedCashCalculated,expected)
       ||[item.openingCash,item.cashSales,item.transferSales,item.authorizedExpenses].some(x=>x<0)
       ||item.eventCount<item.reopenCount)throw new Error("Importes o fechas de caja incompatibles.");
