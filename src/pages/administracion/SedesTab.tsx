@@ -128,15 +128,15 @@ export const SedesTab = () => {
 
   return (
     <section className="space-y-6" aria-label="Red de ciudades y puntos físicos">
-      <div className="relative overflow-hidden rounded-2xl border border-slate-800 bg-gradient-to-br from-slate-950 via-slate-900 to-indigo-950 p-5 text-white shadow-lg sm:p-7">
+      <div className="relative overflow-hidden rounded-2xl border border-sky-200 bg-gradient-to-br from-white via-sky-50 to-indigo-100 p-5 text-slate-900 shadow-lg shadow-indigo-950/5 dark:border-slate-800 dark:from-slate-950 dark:via-slate-900 dark:to-indigo-950 dark:text-white dark:shadow-black/20 sm:p-7">
         <div aria-hidden="true" className="pointer-events-none absolute -right-16 -top-16 h-64 w-64 rounded-full bg-cyan-500/20 blur-3xl" />
         <div className="relative flex flex-wrap items-start justify-between gap-4">
           <div className="max-w-2xl">
-            <div className="inline-flex items-center gap-2 rounded-full border border-sky-300/25 bg-sky-500/10 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-sky-200">
+            <div className="inline-flex items-center gap-2 rounded-full border border-sky-200 dark:border-sky-300/25 bg-sky-100 dark:bg-sky-500/10 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-sky-800 dark:text-sky-200">
               <MapPin className="h-3.5 w-3.5" /> Nexora Multisede 2.0
             </div>
             <h2 className="mt-4 text-2xl font-bold tracking-tight sm:text-3xl">Ciudades y puntos físicos</h2>
-            <p className="mt-2 text-sm leading-relaxed text-slate-300">
+            <p className="mt-2 text-sm leading-relaxed text-slate-600 dark:text-slate-300">
               Construye la red de distribución desde una sede principal hacia bodegas regionales y locales.
               Los nombres y direcciones se configuran aquí, sin estructuras fijas.
             </p>
@@ -145,7 +145,7 @@ export const SedesTab = () => {
             <Button className="bg-white text-slate-950 hover:bg-slate-100" onClick={() => setCityOpen(true)}>
               <Plus className="h-4 w-4" /> Nueva ciudad
             </Button>
-            <Button className="border-white/30 bg-white/10 text-white hover:bg-white/20"
+            <Button className="border-slate-300 bg-white/80 text-slate-900 hover:bg-white dark:border-white/30 dark:bg-white/10 dark:text-white dark:hover:bg-white/20"
               variant="outline" disabled={cities.length === 0} onClick={beginSite}>
               <Plus className="h-4 w-4" /> Nuevo punto
             </Button>
@@ -158,9 +158,9 @@ export const SedesTab = () => {
             { label: "Bodegas regionales", value: count("bodega") },
             { label: "Locales", value: count("local") },
           ].map(({ label, value }) => (
-            <div key={label} className="rounded-xl border border-white/10 bg-white/[0.06] px-4 py-3">
+            <div key={label} className="rounded-xl border border-slate-200 bg-white/75 shadow-sm dark:border-white/10 dark:bg-white/[0.06] dark:shadow-none px-4 py-3">
               <p className="text-2xl font-bold tabular-nums">{value}</p>
-              <p className="mt-1 text-xs text-slate-300">{label}</p>
+              <p className="mt-1 text-xs text-slate-600 dark:text-slate-300">{label}</p>
             </div>
           ))}
         </div>
