@@ -65,6 +65,7 @@ export const MultisiteImeiHistory=({unitId}:{unitId:string})=>{
     const id=++request.current;
     setLoading(true);
     setError(null);
+    setTimeline(null);
     void fetchMultisiteImeiTimeline(unitId,page).then(result=>{
       if(id===request.current)setTimeline(result);
     }).catch((reason:unknown)=>{
