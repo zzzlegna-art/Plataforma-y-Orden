@@ -524,7 +524,8 @@ const HistorialSerial = ({ embedded = false }: { embedded?: boolean }) => {
             </div>
           </section>
 
-          <MultisiteImeiHistory key={unit.id} unitId={unit.id} />
+          <MultisiteImeiHistory key={unit.id} unitId={unit.id} serial={unit.serial}
+            receivedAt={unit.receivedAt} legacyTimeline={timeline} />
 
           <section className="rounded-lg border bg-card p-4 shadow-sm">
             <h3 className="mb-4 flex items-center gap-2 text-sm font-semibold">
