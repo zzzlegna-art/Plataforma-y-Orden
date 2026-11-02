@@ -31,6 +31,8 @@ describe("rutas autorizadas para transferencias multisede", () => {
   it("permite bodega → su local y local → bodega", () => {
     expect(validateTransferRoute(bodegaA, localA)).toEqual({ allowed: true });
     expect(validateTransferRoute(localA, bodegaA)).toEqual({ allowed: true });
+    expect(validateTransferRoute(localA, regionalB).allowed).toBe(false);
+    expect(validateTransferRoute(localA, principal).allowed).toBe(false);
   });
   it("no permite nunca local → local", () => {
     expect(validateTransferRoute(localA, localB).allowed).toBe(false);
@@ -102,6 +104,9 @@ describe("recepción de traslados: diferencia y devolución al origen", () => {
   it("rechaza despachos con IMEI duplicado o vacíos", () => {
     expect(() => planTransferReceipt([...dispatched, dispatched[0]], receivedSerials, missing))
       .toThrow(/duplicado/i);
+    expect(() => planTransferReceipt([
+      ...dispatched, { unitId: dispatched[0].unitId, serial: "999999999999999" },
+    ], receivedSerials, missing)).toThrow(/duplicado/i);
     expect(() => planTransferReceipt([], [], [])).toThrow(/No hay equipos/i);
   });
 
