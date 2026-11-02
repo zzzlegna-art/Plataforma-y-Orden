@@ -6,6 +6,10 @@ import {
   validateRetailDateRange,
 } from "./nexora-retail-site-finance";
 
+/** Los números validados, incluso negativos, siguen siendo numéricos en Excel. */
+const csvCell=(value:string):string=>
+  /^-?\\d+(?:\\.\\d{2})?$/.test(value)?'"'+value+'"':safeCsvCell(value);
+
 const amount=(n:number):string=>{
   if(!Number.isFinite(n)||Math.abs(n)>1e15)
     throw new Error("Importe financiero no válido para exportar.");
@@ -48,5 +52,5 @@ export const buildRetailSiteFinancialCsv=(report:RetailSiteFinancialReport):stri
     amount(total.unitCost),amount(total.grossProfit),amount(total.authorizedExpenses),
     amount(total.grossAfterExpenses),amount(total.closingDifference),
   ]);
-  return "\uFEFF"+rows.map(row=>row.map(value=>safeCsvCell(value)).join(";")).join("\r\n")+"\r\n";
+  return "\uFEFF"+rows.map(row=>row.map(csvCell).join(";")).join("\r\n")+"\r\n";
 };
