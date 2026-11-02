@@ -2,6 +2,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { MemoryRouter } from "react-router-dom";
 
 const mocks = vi.hoisted(() => ({
   inbox: vi.fn(),
@@ -60,7 +61,7 @@ describe("Bandeja de traslados (piloto solo admin)", () => {
           receiptStatus:"pendiente",observation:"",isOpen:true}],
       });
     const user=userEvent.setup();
-    render(<TrasladosPiloto />);
+    render(<MemoryRouter><TrasladosPiloto /></MemoryRouter>);
     await waitFor(() => expect(screen.getByText("TRA-0001")).toBeTruthy());
     await waitFor(() => expect(screen.getByText("Confirmar recepción de prueba")).toBeTruthy());
     await user.click(screen.getByRole("button",{name:"Devoluciones"}));
@@ -75,7 +76,7 @@ describe("Bandeja de traslados (piloto solo admin)", () => {
       transferId:"t-1",status:"recibido",idempotent:false,receivedCount:2,missingCount:0,
     });
     const user=userEvent.setup();
-    render(<TrasladosPiloto />);
+    render(<MemoryRouter><TrasladosPiloto /></MemoryRouter>);
     await waitFor(() => expect(screen.getByText("Confirmar recepción de prueba")).toBeTruthy());
     await user.click(screen.getByText("Confirmar recepción de prueba"));
     await waitFor(() => expect(mocks.receive).toHaveBeenCalledWith(expect.objectContaining({
@@ -87,7 +88,7 @@ describe("Bandeja de traslados (piloto solo admin)", () => {
 
   it("no finge que la base multisede está activa si faltan sus tablas", async () => {
     mocks.inbox.mockRejectedValue(new Error("Los traslados multisede aún no están activados en el servidor."));
-    render(<TrasladosPiloto />);
+    render(<MemoryRouter><TrasladosPiloto /></MemoryRouter>);
     await waitFor(() => expect(screen.getByRole("alert")).toBeTruthy());
     expect(screen.getByText("No se puede abrir el módulo")).toBeTruthy();
     expect(screen.queryByText("Confirmar recepción de prueba")).toBeNull();
