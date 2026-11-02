@@ -58,6 +58,17 @@ describe("Hoja de vida global IMEI entre ciudades", () => {
     expect(timeline[0].origin).toBe("Sede no identificada");
   });
 
+  it("anota recuperación tardía de una incidencia sin ocultar el faltante original", () => {
+    const timeline = mapMultisiteSerialTimeline("imei-1", [
+      event("1", "r2", "incidencia", { observation: "No apareció" }),
+      event("2", "r2", "incidencia_resuelta", { observation: "Encontrado en conteo físico" }),
+    ], transfers, sites, cities);
+    expect(timeline).toHaveLength(2);
+    expect(timeline[0].title).toBe("Incidencia · IMEI sin localizar");
+    expect(timeline[1].title).toBe("Incidencia resuelta · IMEI recuperado");
+    expect(timeline[1].description).toContain("Encontrado en conteo físico");
+  });
+
   it("permite registrar retorno físico verificado en la bodega original", () => {
     const timeline = mapMultisiteSerialTimeline("imei-1", [
       event("1", "r2", "retorno_verificado"),
