@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   ArrowLeftRight, ArrowRight, CircleAlert, ClipboardCheck, Clock3,
-  PackageCheck, PackageSearch, RefreshCw, Search, ShieldCheck, Truck, Warehouse,
+  PackageCheck, PackagePlus, PackageSearch, RefreshCw, Search, ShieldCheck, Truck, Warehouse,
 } from "lucide-react";
 import { toast } from "sonner";
+import { Link } from "react-router-dom";
 import { PageHeader } from "@/components/shared/page-header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -178,10 +179,14 @@ const TrasladosPiloto = () => {
   return (
     <div className="space-y-5 pb-8">
       <PageHeader title="Traslados multisede" description="Control físico de envíos, recepciones e incidencias por IMEI."
-        actions={<Button variant="outline" disabled={loading} onClick={() => void reload().catch(e =>
+        actions={<div className="flex flex-wrap items-center gap-2">
+          <Button asChild><Link to="/traslados-piloto/nuevo">
+            <PackagePlus className="h-4 w-4" /> Nuevo traslado
+          </Link></Button>
+          <Button variant="outline" disabled={loading} onClick={() => void reload().catch(e =>
           toast.error(e instanceof Error ? e.message : "No se pudo actualizar."))}>
           <RefreshCw className="h-4 w-4" /> Actualizar
-        </Button>}
+        </Button></div>}
       />
       <div className="rounded-xl border border-sky-500/20 bg-sky-500/[0.06] px-4 py-3 text-xs text-muted-foreground">
         <div className="flex items-center gap-2 font-semibold text-foreground"><ShieldCheck className="h-4 w-4 text-sky-500" /> Módulo piloto · Operaciones protegidas</div>
