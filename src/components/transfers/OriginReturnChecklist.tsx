@@ -33,7 +33,7 @@ export const OriginReturnChecklist = ({
     if (locked.current || confirmed) return;
     setMarks((current) => ({
       ...current,
-      [unitId]: { ...current[unitId], ...update },
+      [unitId]: { ...(current[unitId] ?? { decision: "sin_verificar", observation: "" }), ...update },
     }));
   };
 
