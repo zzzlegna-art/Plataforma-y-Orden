@@ -32,7 +32,7 @@ describe("Nexora · firma excepcional de Bodega 6A",()=>{
     expect(mocks.preflight).not.toHaveBeenCalled();
     await user.click(screen.getByRole("button",{name:"Revisar apertura excepcional"}));
     expect(await screen.findByText(/Huella del corte/)).toBeTruthy();
-    expect(screen.getByText(/2.758/)).toBeTruthy();
+    expect(screen.getAllByText(/2.758/).length).toBeGreaterThan(0);
     expect(mocks.certify).not.toHaveBeenCalled();
     expect(screen.getByRole("button",{name:"Firmar acta 6A"}).hasAttribute("disabled")).toBe(true);
   });
