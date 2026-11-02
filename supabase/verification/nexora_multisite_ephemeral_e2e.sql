@@ -1,5 +1,8 @@
 -- E2E SQL sobre PostgreSQL temporal de CI. Todos los IMEI son ficticios.
 -- Se ejecuta DESPUES de las tres migraciones. Nunca en Supabase real.
+-- Las altas físicas, incluso en staging, exigen identidad de Administrador activo.
+set request.jwt.claim.sub='11111111-1111-4111-8111-111111111111';
+
 insert into public.nexora_cities(id,code,name,created_by) values
  ('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaa0001','CIUDAD_A','Ciudad ficticia A','11111111-1111-4111-8111-111111111111'),
  ('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaa0002','CIUDAD_B','Ciudad ficticia B','11111111-1111-4111-8111-111111111111');
