@@ -169,7 +169,7 @@ create table public.nexora_transfer_events (
   transfer_id uuid not null references public.nexora_transfers(id) on delete restrict,
   event_type text not null check (
     event_type in ('creado','modificado','despachado','recepcion_confirmada','faltante_reportado',
-      'devolucion_generada','retorno_verificado','incidencia','cancelado')
+      'devolucion_generada','retorno_verificado','incidencia','incidencia_resuelta','cancelado')
   ),
   unit_id uuid references public.bodega_units(id) on delete restrict,
   details jsonb not null default '{}'::jsonb,
