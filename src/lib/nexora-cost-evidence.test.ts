@@ -37,8 +37,7 @@ describe("Nexora · soporte documental de costos por recepción",()=>{
     expect(()=>parseCostEvidenceReport({...data(),items:[]})).toThrow();
   });
   it("genera CSV UTF-8 con notas de no estimar costos y texto antifórmulas",()=>{
-    const input=data();
-    input.items[0].receiptReference="=IMPORTXML(A1)";
+    const input={...data(),items:[{...first(),receiptReference:"=IMPORTXML(A1)"},second()]};
     const csv=buildCostEvidenceCsv(parseCostEvidenceReport(input));
     expect(csv.startsWith("\uFEFF")).toBe(true);
     expect(csv).toContain(`"'=IMPORTXML(A1)"`);
