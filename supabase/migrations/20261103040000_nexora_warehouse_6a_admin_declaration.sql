@@ -60,7 +60,7 @@ begin
   if auth.uid() is null or not public.bodega_is_admin() then
     raise exception 'Solo Administrador puede preparar el acta de Bodega 6A.';
   end if;
-  select count(*)::integer,min(s.id)
+  select count(*)::integer,(array_agg(s.id))[1]
     into v_site_count,v_site
     from public.nexora_sites s join public.nexora_cities c on c.id=s.city_id
     where btrim(s.name)='Bodega 6A' and s.site_type='bodega'
