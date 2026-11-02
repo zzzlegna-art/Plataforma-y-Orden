@@ -9,6 +9,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PersonalSedesPanel } from "./PersonalSedesPanel";
+import { ConciliacionImeiPanel } from "./ConciliacionImeiPanel";
 import {
   allowedParents, createNexoraCity, createNexoraSite, listNexoraNetwork,
   siteTypeLabel, updateNexoraSiteDetails, validateSiteDraft,
@@ -244,6 +245,7 @@ export const SedesTab = () => {
       )}
 
       <PersonalSedesPanel cities={cities} sites={sites} />
+      <ConciliacionImeiPanel cities={cities} sites={sites} />
 
       <Dialog open={cityOpen} onOpenChange={(open) => { if (!busyRef.current) setCityOpen(open); }}>
         <DialogContent className="sm:max-w-lg">
