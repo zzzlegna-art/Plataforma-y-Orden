@@ -142,6 +142,31 @@ También se corrigió durante pruebas automáticas una excepción al confirmar d
 
 **Sin cambios en producción:** ninguna tabla, disparador ni función de este bloque ha sido aplicada en Supabase real. La activación requiere staging, pruebas de concurrencia y la migración segura de los cuatro roles.
 
+## Primera prueba E2E de PostgreSQL REAL en CI — APROBADA
+
+**Verificado con PostgreSQL 16 temporal (2026-11-02), no con Supabase de producción.**
+
+Se incorporaron tres componentes para probar las operaciones SQL sin incurrir en costos de una rama de Supabase:
+- `.github/workflows/nexora-multisite-postgres.yml`: levanta un contenedor PostgreSQL desechable en GitHub Actions, sin claves ni conexión a bases productivas.
+- `supabase/verification/nexora_multisite_ephemeral_bootstrap.sql`: crea un esquema *simulado y mínimo* de las tablas legacy, perfiles de Administrador/Bodeguero y la función `auth.uid()`. Todos los IMEI y ciudades de prueba son ficticios.
+- `supabase/verification/nexora_multisite_ephemeral_e2e.sql`: aplica las tres migraciones en esa base aislada, verifica RLS/grants estructurales y ejecuta realmente los RPC con el usuario Administrador simulado.
+
+### Caso de aceptación comprobado
+
+- Se despachan 20 IMEI desde una bodega regional a su local. Los 20 pasan a `en_transito`.
+- Una edición legacy que intenta alterar el **costo**, un pedido y una garantía que intentan asociar un IMEI en tránsito **son rechazados por PostgreSQL**.
+- La recepción confirma 15 IMEI en el local y cinco faltantes con observación. Solo 15 entran al disponible del local.
+- Se crea un solo documento de devolución para cinco IMEI. El reintento idéntico devuelve el mismo documento, sin duplicaciones.
+- La bodega verifica tres IMEI recuperados y deja dos incidencias; solo los tres encontrados regresan a su stock.
+- La recuperación tardía de otro IMEI reduce las incidencias abiertas de dos a una; su reintento no duplica el inventario ni la bitácora.
+- El Administrador activo tiene permiso en sedes activas, el Bodeguero simulado solo en su sede asignada y el usuario desactivado no tiene permiso.
+
+**Resultado GitHub Actions:** aprobado; el log contiene `E2E PASÓ: 20 enviados, 15 recibidos, 5 retorno, 3 encontrados, 2 incidencias y 1 recuperación posterior.`
+
+Esta prueba detectó y permitió corregir dos problemas antes de producción: (1) una condición PL/pgSQL que impedía compilar la función de despacho y (2) la necesidad de sembrar las ubicaciones iniciales con el perfil Administrador activo incluso en staging.
+
+**Limitaciones que aún impiden desplegar:** el esquema legacy del test es una maqueta reducida, no una restauración de la base Nexora; no valida aún todos los triggers/RLS históricos, sesiones de cuatro roles reales, conflictos entre transacciones de dos conexiones independientes ni comportamiento con el frontend real. Hace falta la revisión de seguridad por sede, conciliación física y el ambiente de ensayo Supabase antes del lanzamiento. El E2E no implica autorización para fusionar o aplicar migraciones.
+
 ## No implementado todavía
 
 - Cambio del rol real de `bodega_profiles` o el motor de permisos legacy.
