@@ -19,6 +19,7 @@ describe("Nexora · bitácora de caja en Auditoría",()=>{
     await user.click(screen.getByRole("button",{name:"Ver bitácora de caja"}));
     expect(await screen.findByText(/No hay eventos reales de caja en este período/)).toBeTruthy();
     expect(screen.getByText(/0 eventos confirmados/)).toBeTruthy();
+    expect(screen.getByRole("button",{name:"Descargar bitácora CSV"}).hasAttribute("disabled")).toBe(false);
   });
   it("mantiene tema claro/oscuro y no permite modificar caja",async()=>{
     const user=userEvent.setup();
