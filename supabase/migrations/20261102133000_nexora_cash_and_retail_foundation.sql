@@ -195,7 +195,8 @@ begin
 
   if p_action='open' then
     if v_session.id is not null then raise exception 'Solo se permite una apertura por local y día.'; end if;
-    if p_amount is null or p_amount<0 or p_amount>99999999999999.99\n       or p_amount<>round(p_amount,2) then
+    if p_amount is null or p_amount<0 or p_amount>99999999999999.99
+       or p_amount<>round(p_amount,2) then
       raise exception 'El efectivo inicial debe ser un importe válido y no negativo.';
     end if;
     insert into public.nexora_cash_sessions
@@ -231,7 +232,8 @@ begin
   v_expected:=v_session.opening_cash+v_sales_cash-v_expenses;
 
   if p_action='expense' then
-    if p_amount is null or p_amount<=0 or p_amount>99999999999999.99\n       or p_amount<>round(p_amount,2)
+    if p_amount is null or p_amount<=0 or p_amount>99999999999999.99
+       or p_amount<>round(p_amount,2)
        or length(btrim(coalesce(p_note,'')))<5 or length(p_note)>500 then
       raise exception 'Registra monto positivo y una descripción de 5 a 500 caracteres.';
     end if;
@@ -247,7 +249,8 @@ begin
   end if;
 
   if p_action='close' then
-    if p_amount is null or p_amount<0 or p_amount>99999999999999.99 then
+    if p_amount is null or p_amount<0 or p_amount>99999999999999.99
+       or p_amount<>round(p_amount,2) then
       raise exception 'Cuenta y confirma el efectivo físico de cierre.';
     end if;
     update public.nexora_cash_sessions
