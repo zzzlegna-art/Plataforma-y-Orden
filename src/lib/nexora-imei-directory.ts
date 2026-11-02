@@ -11,7 +11,7 @@ export interface ImeiDirectoryRow {
   serial: string;
   productName: string;
   sku: string;
-  cost: number;
+  cost: number | null;
   unitStatus: string;
   custodyState: CustodyState;
   siteId: string | null;
@@ -34,6 +34,7 @@ export interface DirectorySummary {
   enTransito: number;
   retornoPendiente: number;
   vendidos: number;
+  sinCosto: number;
   total: number;
 }
 export interface ImeiDirectoryResponse {
@@ -101,7 +102,7 @@ export const parseImeiDirectory=(data:unknown):ImeiDirectoryResponse=>{
     summary:{
       sinConciliar:integer(s.sinConciliar),enSede:integer(s.enSede),
       enTransito:integer(s.enTransito),retornoPendiente:integer(s.retornoPendiente),
-      vendidos:integer(s.vendidos),total:integer(s.total),
+      vendidos:integer(s.vendidos),sinCosto:integer(s.sinCosto),total:integer(s.total),
     },
     page:integer(r.page),pageSize:integer(r.pageSize),matched:integer(r.matched),
     sites:r.sites.map((v:unknown):DirectorySite=>{
@@ -114,7 +115,7 @@ export const parseImeiDirectory=(data:unknown):ImeiDirectoryResponse=>{
         throw new Error("Estado de custodia desconocido.");
       const row:ImeiDirectoryRow={
         unitId:string(x.unitId),serial:string(x.serial),
-        productName:string(x.productName),sku:string(x.sku),cost:numeric(x.cost),
+        productName:string(x.productName),sku:string(x.sku),cost:x.cost===null?null:numeric(x.cost),
         unitStatus:string(x.unitStatus),custodyState:x.custodyState as CustodyState,
         siteId:optional(x.siteId),siteName:optional(x.siteName),
         cityName:optional(x.cityName),historicalLocation:optional(x.historicalLocation),
