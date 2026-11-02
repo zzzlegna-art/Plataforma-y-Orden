@@ -42,6 +42,28 @@ Se preparó el motor de reglas `src/lib/nexora-transfer-rules.ts` y pruebas:
 - Un traslado de 20 celulares con 15 recibidos produce **15 recibidos y 5 devoluciones pendientes** en el origen. No se regresan automáticamente al disponible de origen: solo se habilitan después de confirmación física allí.
 - Las reglas se escriben como funciones puras, sin alterar registros existentes. **La operación atómica y el documento de devolución persistido no están implementados todavía**; se construirán y probarán con el backend multisede.
 
+## Recepción física premium y documentos de traslado · siguiente bloque
+
+- Migración `20261101140000_nexora_transfer_documents_staging.sql`, que **depende de la migración de ciudades/sedes**. Se preparan:
+  - `nexora_transfers`: origen y destino, tipo, estados, referencia al traslado original y quién crea, despacha y recibe.
+  - `nexora_transfer_units`: verificación por cada IMEI, observaciones obligatorias de faltantes y exclusión única de un IMEI de dos traslados abiertos simultáneos.
+  - `nexora_transfer_events`: eventos con actor, momento, documento e historial inmutable.
+- Las tres tablas poseen RLS y **solo GRANT SELECT** para el usuario autenticado. No hay edición directa del historial ni despacho por modificaciones del navegador.
+- La lectura del documento requiere rol Administrador activo o asignación activa a sede de origen/destino. Los usuarios sin sede asignada no pueden consultar documentos ajenos.
+- El componente reutilizable `src/components/transfers/TransferReceiptChecklist.tsx` ofrece el flujo premium real: marca obligatoria por IMEI, observación por faltante, totalizadores y confirmación mediante `onConfirm` asíncrono. Impide confirmar incompletos, repetir confirmaciones exitosas y conserva marcas ante fallas del servidor.
+- **Todavía no está conectado a una RPC de escritura**. La interfaz solo puede habilitarse cuando se implemente y pruebe una transacción atómica que registre recepción, historial, nueva ubicación, estado y devolución pendiente de origen. Hasta entonces, no presentar el componente como recepción guardada.
+- De momento también se bloquea en la primera migración asignar perfiles `encargado` / `vendedor` a `nexora_site_memberships`. Sin refactorizar RLS/RPC de la base legacy, podrían heredar involuntariamente permisos amplios de Bodeguero. La activación requiere la sustitución segura de esa protección.
+
+### Checklist antes de conectar la confirmación real
+
+1. Migrar y verificar la autenticación y la autorización de los cuatro roles en servidor (RLS, funciones, acciones de cliente y Edge Functions).
+2. Asignar sedes verificadas e inventario físico a las unidades, sin backfill especulativo.
+3. Implementar un RPC transaccional, idempotente por ID de recepción: bloquear traslado y unidades, validar origen/destino, usuario receptor, IMEI y estado previo.
+4. Aplicar en una sola transacción: 15 IMEI recibidos al destino, 5 IMEI faltantes que continúan sin disponibilidad, cierre de tránsito original, creación de retorno por 5 unidades, y bitácora inmutable.
+5. La bodega de origen debe verificar y confirmar físicamente cada equipo de retorno antes de sumarlo al disponible. Si no está, abrir incidencia sin duplicar stock.
+6. Probar respuestas perdidas, doble envío concurrente, IMEI duplicado, recepción parcial y total, roles sin permiso, devoluciones y ciudades distintas.
+7. Solo después habilitar la vista operacional en el menú y activar políticas de escritura/RPC en staging; no habilitar desde el cliente antes que el backend.
+
 ## No implementado todavía
 
 - Cambio del rol real de `bodega_profiles` o el motor de permisos legacy.
