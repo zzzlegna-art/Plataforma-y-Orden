@@ -91,6 +91,7 @@ begin
     'enTransito',count(*) filter(where custody_state='en_transito'),
     'retornoPendiente',count(*) filter(where custody_state='retorno_pendiente'),
     'vendidos',count(*) filter(where custody_state='vendido'),
+    'sinCosto',count(*) filter(where cost is null and status<>'vendido'),
     'total',count(*)
   ) into v_summary from ledger;
 
@@ -128,6 +129,7 @@ begin
     select l.*,s.name as site_name,city.name as city_name,
       (l.custody_state='en_sede'
         and l.status in ('en_bodega','en_local')
+        and l.cost is not null and l.cost>=0
         and not l.committed_order and not l.committed_transfer) as candidate
     from ledger l
     left join public.nexora_sites s on s.id=l.effective_site_id
@@ -178,6 +180,7 @@ begin
     select l.*,s.name as site_name,city.name as city_name,
       (l.custody_state='en_sede'
         and l.status in ('en_bodega','en_local')
+        and l.cost is not null and l.cost>=0
         and not l.committed_order and not l.committed_transfer) as candidate
     from ledger l
     left join public.nexora_sites s on s.id=l.effective_site_id
