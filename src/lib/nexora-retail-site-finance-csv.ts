@@ -8,7 +8,7 @@ import {
 
 /** Los números validados, incluso negativos, siguen siendo numéricos en Excel. */
 const csvCell=(value:string):string=>
-  /^-?\\d+(?:\\.\\d{2})?$/.test(value)?'"'+value+'"':safeCsvCell(value);
+  /^-?\d+(?:\.\d{2})?$/.test(value)?'"'+value+'"':safeCsvCell(value);
 
 const amount=(n:number):string=>{
   if(!Number.isFinite(n)||Math.abs(n)>1e15)
