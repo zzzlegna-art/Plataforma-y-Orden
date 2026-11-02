@@ -412,3 +412,33 @@ begin
   raise exception 'Acción inválida.';
 end;
 $$;
+
+
+-- Impide reactivar un pedido anteriormente cancelado si sus IMEI ya están
+-- comprometidos en un traslado. Un pedido despachado dispara la actualización
+-- de bodega_units, donde el otro guard rechaza la venta en tránsito.
+create function public.nexora_guard_order_reactivation_custody()
+returns trigger language plpgsql security invoker
+set search_path = pg_catalog, public as $$
+begin
+  if new.status is distinct from old.status
+     and new.status not in ('cancelado','despachado')
+     and exists (select 1 from public.nexora_initial_inventory_approvals) then
+    perform pg_advisory_xact_lock(78192346);
+    if exists (
+      select 1 from public.bodega_order_items oi
+      join public.bodega_order_item_units link on link.order_item_id=oi.id
+      join public.nexora_transfer_lines line on line.unit_id=link.unit_id
+      where oi.order_id=new.id and line.state in ('prepared','in_transit','return_pending')
+    ) then
+      raise exception 'No puedes activar un pedido con IMEI comprometidos en traslado.';
+    end if;
+  end if;
+  return new;
+end;
+$$;
+revoke all on function public.nexora_guard_order_reactivation_custody()
+  from public,anon,authenticated;
+create trigger nexora_guard_order_reactivation
+before update of status on public.bodega_orders
+for each row execute function public.nexora_guard_order_reactivation_custody();
