@@ -3,6 +3,7 @@ import { AlertTriangle, Banknote, CalendarClock, CheckCircle2, CircleDollarSign,
 import { toast } from "sonner";
 import { PageHeader } from "@/components/shared/page-header";
 import { RetailSiteFinancePanel } from "./RetailSiteFinancePanel";
+import { CashClosureAuditPanel } from "./CashClosureAuditPanel";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -208,6 +209,7 @@ const CajaDiariaTab = () => {
         </div>
       )}
       <RetailSiteFinancePanel />
+      <CashClosureAuditPanel />
 
       <div className="flex items-start gap-2 rounded-xl border p-4 text-xs text-muted-foreground">
         <LockKeyhole className="mt-0.5 h-4 w-4 shrink-0"/>
