@@ -5,7 +5,7 @@
 -- Intercepta pedidos legacy que intenten reservar un IMEI preparado,
 -- en tránsito o pendiente de devolución. Mantiene el resto del sistema intacto.
 create function public.nexora_guard_order_assignment_custody()
-returns trigger language plpgsql security invoker
+returns trigger language plpgsql security definer
 set search_path = pg_catalog, public as $$
 begin
   if exists (select 1 from public.nexora_initial_inventory_approvals) then
@@ -29,7 +29,7 @@ for each row execute function public.nexora_guard_order_assignment_custody();
 -- equipo esté comprometido en un traslado, incluso si se omite la pantalla.
 -- Las operaciones normales previas a la aprobación permanecen inalteradas.
 create function public.nexora_guard_unit_during_custody()
-returns trigger language plpgsql security invoker
+returns trigger language plpgsql security definer
 set search_path = pg_catalog, public as $$
 begin
   if exists (select 1 from public.nexora_initial_inventory_approvals) then
@@ -99,7 +99,7 @@ begin
   ), grouped as (
     select s.id as site_id,s.name as site_name,s.site_type,
       count(p.id) filter (where p.custody_status='at_site'
-        and p.status in ('en_bodega','en_local','en_transito','en_reparacion','defectuoso'))::integer as physical,
+        and p.status in ('en_bodega','en_local','en_reparacion','defectuoso'))::integer as physical,
       count(p.id) filter (where p.custody_status='at_site' and p.status in ('en_bodega','en_local')
         and p.reserved)::integer as reserved,
       count(p.id) filter (where p.custody_status='at_site' and p.status in ('en_bodega','en_local')
@@ -418,7 +418,7 @@ $$;
 -- comprometidos en un traslado. Un pedido despachado dispara la actualización
 -- de bodega_units, donde el otro guard rechaza la venta en tránsito.
 create function public.nexora_guard_order_reactivation_custody()
-returns trigger language plpgsql security invoker
+returns trigger language plpgsql security definer
 set search_path = pg_catalog, public as $$
 begin
   if new.status is distinct from old.status
