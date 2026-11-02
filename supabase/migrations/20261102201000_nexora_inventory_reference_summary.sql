@@ -8,7 +8,7 @@ create function public.nexora_inventory_reference_summary(
   p_page_size integer default 20
 )
 returns jsonb language plpgsql stable security definer
-set search_path=pg_catalog,public
+set search_path=pg_catalog
 as $$
 declare
   v_query text := lower(btrim(coalesce(p_query,'')));
@@ -62,7 +62,8 @@ begin
       case
         when v_approved and init.site_id is not null
           and coalesce(c.custody_status,'at_site')='at_site'
-          and u.status<>'vendido' then coalesce(c.site_id,init.site_id)
+          and u.status not in ('vendido','en_transito')
+          then coalesce(c.site_id,init.site_id)
         else null
       end as verified_site_id,
       exists (
