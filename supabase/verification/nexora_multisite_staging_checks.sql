@@ -59,7 +59,8 @@ begin
     'nexora_guard_legacy_site_assignment_trigger',
     'nexora_block_unmigrated_roles_trigger',
     'nexora_validate_transfer_route_trigger',
-    'nexora_transfer_events_block_changes'
+    'nexora_transfer_events_block_changes',
+    'nexora_prevent_open_transfer_restock_trigger'
   ] loop
     if not exists (
       select 1 from pg_trigger
