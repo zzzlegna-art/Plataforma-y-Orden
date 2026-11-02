@@ -38,6 +38,7 @@ describe("preflight de migraciones multisede (sin ejecutar sobre inventario)", (
     expect(sql).toContain("nexora_transfer_only_one_return_idx");
     expect(sql).toContain("nexora_transfer_events_block_changes");
     expect(sql).toContain("nexora_validate_transfer_route_trigger");
+    expect(sql).toContain("nexora_prevent_open_transfer_restock_trigger");
     for (const table of ["nexora_transfers", "nexora_transfer_units", "nexora_transfer_events"]) {
       expect(sql).toContain(`grant select on public.${table} to authenticated;`);
       expect(sql).not.toContain(`grant insert on public.${table} to authenticated;`);
