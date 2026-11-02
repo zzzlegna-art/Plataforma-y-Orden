@@ -39,6 +39,60 @@ create table public.nexora_transfers (
 create index nexora_transfers_origin_idx on public.nexora_transfers(origin_site_id,created_at desc);
 create index nexora_transfers_destination_idx on public.nexora_transfers(destination_site_id,status,created_at desc);
 create index nexora_transfers_original_idx on public.nexora_transfers(original_transfer_id);
+create unique index nexora_transfer_only_one_return_idx
+  on public.nexora_transfers(original_transfer_id) where kind = 'retorno_faltantes';
+
+-- Las rutas se validan EN SERVIDOR para evitar que una interfaz manipulada
+-- eluda la cadena sede principal → bodegas → locales.
+create function public.nexora_validate_transfer_route()
+returns trigger language plpgsql security invoker set search_path = '' as $
+declare
+  v_origin public.nexora_sites%rowtype;
+  v_destination public.nexora_sites%rowtype;
+  v_original public.nexora_transfers%rowtype;
+begin
+  select * into v_origin from public.nexora_sites where id = new.origin_site_id;
+  select * into v_destination from public.nexora_sites where id = new.destination_site_id;
+  if v_origin.id is null or v_destination.id is null
+     or not v_origin.is_active or not v_destination.is_active then
+    raise exception 'Origen y destino deben existir y estar activos.';
+  end if;
+
+  if new.kind = 'retorno_faltantes' then
+    select * into v_original from public.nexora_transfers
+      where id = new.original_transfer_id;
+    if v_original.id is null or v_original.kind <> 'envio'
+      or new.origin_site_id <> v_original.destination_site_id
+      or new.destination_site_id <> v_original.origin_site_id then
+      raise exception 'El retorno debe invertir exactamente la ruta del envío original.';
+    end if;
+  elsif v_origin.kind = 'local' then
+    if v_destination.kind not in ('principal','bodega')
+       or v_origin.parent_warehouse_id <> v_destination.id
+       or v_origin.city_id <> v_destination.city_id then
+      raise exception 'El local solo puede devolver a su bodega de abastecimiento.';
+    end if;
+  elsif v_origin.kind in ('principal','bodega')
+      and v_destination.kind in ('principal','bodega') then
+    null; -- Traslados regionales bodega→bodega permitidos.
+  elsif v_origin.kind in ('principal','bodega')
+      and v_destination.kind = 'local' then
+    if v_origin.id <> v_destination.parent_warehouse_id
+      or v_origin.city_id <> v_destination.city_id then
+      raise exception 'El local solo puede recibir de su bodega de la misma ciudad.';
+    end if;
+  else
+    raise exception 'Ruta de traslado no permitida.';
+  end if;
+
+  return new;
+end; $;
+
+create trigger nexora_validate_transfer_route_trigger
+  before insert or update of origin_site_id,destination_site_id,kind,original_transfer_id
+  on public.nexora_transfers for each row
+  execute function public.nexora_validate_transfer_route();
+
 
 create table public.nexora_transfer_units (
   transfer_id uuid not null references public.nexora_transfers(id) on delete restrict,
