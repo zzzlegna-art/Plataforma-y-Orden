@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { MemoryRouter } from "react-router-dom";
 
 vi.mock("@/lib/nexora-sites", () => ({
   listCities: vi.fn(async () => [{
@@ -30,7 +31,7 @@ afterEach(cleanup);
 
 describe("Nexora Multisede · panel de sedes", () => {
   it("muestra la ciudad real y de qué bodega recibe cada local, sin inventar stock", async () => {
-    render(<SedesTab />);
+    render(<MemoryRouter><SedesTab /></MemoryRouter>);
     await waitFor(() => expect(screen.getByText("Ciudad de prueba")).toBeTruthy());
     expect(screen.getByText("Bodega Central de Prueba")).toBeTruthy();
     expect(screen.getByText("Local de Prueba")).toBeTruthy();
