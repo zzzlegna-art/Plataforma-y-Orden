@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ArrowRight, BadgeCheck, Banknote, CreditCard, Fingerprint, LockKeyhole, PackageCheck, RefreshCw, ScanLine, ShieldCheck, ShoppingBag, Store, Wallet } from "lucide-react";
+import { ArrowRight, BadgeCheck, Banknote, CreditCard, Fingerprint, LockKeyhole, PackageCheck, RefreshCw, ScanLine, ShieldCheck, Store, Wallet } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
