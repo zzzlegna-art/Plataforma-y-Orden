@@ -51,6 +51,9 @@ create function public.nexora_guard_retail_legacy_assignment()
 returns trigger language plpgsql security definer
 set search_path=pg_catalog,public as $$
 begin
+  -- Compartir la exclusión transaccional con POS y traslados, incluso
+  -- al insertar o reemplazar IMEI en un pedido mayorista.
+  perform pg_advisory_xact_lock(78192346);
   if new.unit_id is not null and exists(
     select 1 from public.nexora_retail_sales sale where sale.unit_id=new.unit_id
   ) then
@@ -70,15 +73,20 @@ create function public.nexora_guard_retail_legacy_unit()
 returns trigger language plpgsql security definer
 set search_path=pg_catalog,public as $$
 begin
-  if exists (select 1 from public.nexora_retail_sales r where r.unit_id=old.id)
-    and (tg_op='DELETE' or (old.status='vendido' and
-      (new.status is distinct from old.status
+  if tg_op='DELETE' then
+    if exists(select 1 from public.nexora_retail_sales r where r.unit_id=old.id) then
+      raise exception 'No puedes eliminar un IMEI vendido en POS.';
+    end if;
+    return old;
+  end if;
+  if old.status='vendido' and exists(
+      select 1 from public.nexora_retail_sales r where r.unit_id=old.id
+    ) and (new.status is distinct from old.status
        or new.serial is distinct from old.serial
        or new.cost is distinct from old.cost
-       or new.location is distinct from old.location))) then
+       or new.location is distinct from old.location) then
     raise exception 'IMEI vendido en POS: no puede reactivarse ni modificarse fuera de un proceso de devolución.';
   end if;
-  if tg_op='DELETE' then return old; end if;
   return new;
 end;
 $$;
