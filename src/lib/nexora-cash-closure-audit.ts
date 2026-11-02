@@ -44,7 +44,8 @@ const date=(value:unknown)=>{
   if(Number.isNaN(Date.parse(iso)))throw new Error("Marca de tiempo inválida.");
   return iso;
 };
-const near=(a:number,b:number)=>Math.abs(a-b)<0.015;
+/** En caja, una diferencia real de un centavo ya es relevante. */
+const near=(a:number,b:number)=>Math.round(a*100)===Math.round(b*100);
 
 export const parseCashClosureAudit=(raw:unknown):CashClosureAuditReport=>{
   const r=record(raw);
