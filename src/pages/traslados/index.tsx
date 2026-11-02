@@ -9,7 +9,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { TransferReceiptChecklist } from "@/components/transfers/TransferReceiptChecklist";
 import { OriginReturnChecklist } from "@/components/transfers/OriginReturnChecklist";
-import { receiveMultisiteTransfer, verifyMultisiteOriginReturn } from "@/lib/nexora-transfer-api";
+import { IncidentRecoveryPanel } from "@/components/transfers/IncidentRecoveryPanel";
+import { receiveMultisiteTransfer, verifyMultisiteOriginReturn, resolveMultisiteOriginIncident } from "@/lib/nexora-transfer-api";
 import {
   loadTransferDetail, loadTransferInbox,
   TransferModuleUnavailableError, type TransferDetail, type TransferView,
@@ -159,6 +160,17 @@ const TrasladosPiloto = () => {
     await refreshAfterSave();
   };
 
+  const recoverIncident = async (unitId: string, observation: string) => {
+    if (!detail || detail.transfer.kind !== "retorno_faltantes"
+      || detail.transfer.status !== "incidencia") {
+      throw new Error("La devolución no tiene incidencias pendientes.");
+    }
+    await resolveMultisiteOriginIncident({
+      returnId: detail.transfer.id, unitId, observation,
+    });
+    await refreshAfterSave();
+  };
+
   const pendingCount = items.filter(isPending).length;
   const inTransitCount = items.filter(item => item.status === "en_transito").length;
   const incidents = items.filter(item => item.status === "incidencia").length;
@@ -291,10 +303,11 @@ const TrasladosPiloto = () => {
                     ))}
                   </div>
                   {detail.transfer.status === "incidencia" ? (
-                    <p className="rounded-xl border border-amber-500/25 bg-amber-500/10 p-3 text-xs">
-                      Las unidades que no aparecen físicamente continúan bloqueadas.
-                      Su recuperación requiere un registro individual y autorización del servidor.
-                    </p>
+                    <IncidentRecoveryPanel
+                      key={detail.transfer.id}
+                      units={detail.units}
+                      onRecover={recoverIncident}
+                    />
                   ) : (
                     <p className="flex items-center gap-2 text-xs text-muted-foreground">
                       <PackageCheck className="h-4 w-4" /> Acta consultable sin modificar inventario.
