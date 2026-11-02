@@ -127,20 +127,30 @@ create index nexora_transfer_units_transfer_idx
 -- La aplicación anterior también edita bodega_units. No debe poder devolver
 -- a disponible ni reasignar de sede un IMEI mientras tenga tránsito abierto.
 -- Los RPC legítimos cierran is_open ANTES de actualizar estado o ubicación.
+-- SECURITY DEFINER es necesario en este trigger porque el operador legacy
+-- puede no tener visibilidad RLS del traslado de otra sede. Un guard de
+-- SECURITY INVOKER podria no detectar ese transito abierto.
+-- La funcion no acepta parametros externos y solo se ejecuta como trigger.
 create function public.nexora_prevent_open_transfer_restock()
-returns trigger language plpgsql security invoker set search_path = '' as $$
+returns trigger language plpgsql security definer set search_path = '' as $
 begin
   if (old.status is distinct from new.status or old.site_id is distinct from new.site_id)
      and exists (
        select 1 from public.nexora_transfer_units t
        where t.unit_id = old.id and t.is_open
      ) then
-    if new.status in ('en_bodega','en_local') or old.site_id is distinct from new.site_id then
-      raise exception 'No se puede reponer o mover el IMEI mientras su traslado siga abierto.';
+    -- El unico cambio permitido mientras esta abierto es el primer despacho
+    -- al estado en_transito. Cualquier otro estado (venta, reparacion,
+    -- liberacion o disponible) y cualquier cambio de sede estan bloqueados.
+    if new.status is distinct from 'en_transito'
+       or old.site_id is distinct from new.site_id then
+      raise exception 'IMEI con traslado abierto: prohibido vender, liberar, reponer o cambiar de sede.';
     end if;
   end if;
   return new;
-end; $$;
+end; $;
+
+revoke all on function public.nexora_prevent_open_transfer_restock() from public,anon,authenticated;
 
 create trigger nexora_prevent_open_transfer_restock_trigger
   before update of status,site_id on public.bodega_units
