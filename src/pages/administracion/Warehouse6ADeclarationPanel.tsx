@@ -153,7 +153,7 @@ export const Warehouse6ADeclarationPanel=({
           <label className="flex items-start gap-3 text-sm">
             <input type="checkbox" className="mt-1 size-4" checked={checkedLocation}
               disabled={saving} onChange={e=>setCheckedLocation(e.target.checked)}/>
-            <span>Confirmo bajo mi responsabilidad que ninguna unidad elegible está físicamente faltante o en otra sede, y que los 395 vendidos históricos NO serán stock disponible.</span>
+            <span>Confirmo bajo mi responsabilidad que ninguna unidad elegible está físicamente faltante o en otra sede, y que los {fmt(preflight.soldHistorical)} vendidos históricos NO serán stock disponible.</span>
           </label>
           <div className="space-y-1.5">
             <Label htmlFor="nexora-6a-support-note">Fundamento de la revisión administrativa (30 a 1.000 caracteres)</Label>
