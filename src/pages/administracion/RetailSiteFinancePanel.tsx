@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { todayIso } from "@/lib/format";
 import { buildRetailSiteFinancialCsv } from "@/lib/nexora-retail-site-finance-csv";
+import { buildRetailFinancialDocuments } from "@/lib/nexora-retail-site-finance-documents";
 import {
   calculateRetailReportTotals,fetchRetailSiteFinancialReport,
   validateRetailDateRange,type RetailSiteFinancialReport,
@@ -67,6 +68,36 @@ export const RetailSiteFinancePanel=()=>{
       setError(reason instanceof Error?reason.message:"No se pudo generar el CSV validado.");
     }
   };
+
+  const handleDocumentExport = (kind:"pdf"|"excel") => {
+    if(!report||busy||invalid||error)return;
+    try {
+      const data=buildRetailFinancialDocuments(report);
+      void import("@/lib/export").then(({exportPdf,exportExcel})=>{
+        if(kind==="pdf"){
+          exportPdf({
+            title:data.title,subtitle:data.subtitle+" · Margen menos gastos no es utilidad neta",
+            head:data.columns,body:data.rows,filename:data.filename+".pdf",
+            highlightColumns:[1],
+          });
+        }else{
+          exportExcel({filename:data.filename+".xlsx",sheets:[
+            {name:"Finanzas retail",title:data.title,subtitle:data.subtitle,
+              columns:data.columns,rows:data.rows,freezeRows:4,
+              numberFormats:{2:"#,##0",3:"#,##0.00",4:"#,##0.00",5:"#,##0.00",6:"#,##0.00",7:"#,##0.00",8:"#,##0.00"}},
+            {name:"Alcance",title:"Criterios de interpretación",subtitle:data.subtitle,
+              columns:["Concepto","Regla"],rows:[
+                ["Alcance","Solo ventas minoristas confirmadas y cajas registradas"],
+                ["Margen menos gastos",data.note],
+                ["Moneda","COP"],["Exclusiones","Ventas mayoristas y transferencias entre sedes no se contabilizan en ingresos retail"],
+              ]},
+          ]});
+        }
+      }).catch((reason:unknown)=>setError(reason instanceof Error?reason.message:"No se pudo generar el informe."));
+    }catch(reason:unknown){
+      setError(reason instanceof Error?reason.message:"No se pudo preparar el informe.");
+    }
+  };
   const totals=calculateRetailReportTotals(report?.stores??[]);
   return <section aria-label="Reporte histórico minorista por sede"
     className="overflow-hidden rounded-2xl border border-border bg-card text-card-foreground shadow-sm">
@@ -116,6 +147,14 @@ export const RetailSiteFinancePanel=()=>{
         <Button size="sm" variant="outline" disabled={busy||Boolean(invalid)||!report||Boolean(error)}
           onClick={handleExport}>
           <Download className="size-4"/> Descargar CSV de sedes
+        </Button>
+        <Button size="sm" variant="outline" disabled={busy||Boolean(invalid)||!report||Boolean(error)}
+          onClick={()=>handleDocumentExport("pdf")}>
+          <Download className="size-4"/> PDF de sedes
+        </Button>
+        <Button size="sm" variant="outline" disabled={busy||Boolean(invalid)||!report||Boolean(error)}
+          onClick={()=>handleDocumentExport("excel")}>
+          <Download className="size-4"/> Excel de sedes
         </Button>
       </div>
       {error?<p role="alert" className="rounded-xl border border-amber-300 bg-amber-50 p-3 text-sm text-amber-950 dark:border-amber-400/25 dark:bg-amber-400/10 dark:text-amber-100">
