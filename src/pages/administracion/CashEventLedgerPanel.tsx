@@ -1,10 +1,11 @@
 import { useEffect,useRef,useState } from "react";
-import { ArrowLeft,ArrowRight,Banknote,ChevronDown,ChevronUp,ClipboardList,LockKeyhole,RefreshCw,ShieldCheck } from "lucide-react";
+import { ArrowLeft,ArrowRight,Banknote,ChevronDown,ChevronUp,ClipboardList,Download,LockKeyhole,RefreshCw,ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { todayIso } from "@/lib/format";
 import { validateRetailDateRange } from "@/lib/nexora-retail-site-finance";
 import { fetchCashEventLedger,type CashEventLedger,type CashLedgerAction } from "@/lib/nexora-cash-event-ledger";
+import { buildCashLedgerCsv,collectCashLedgerForExport } from "@/lib/nexora-cash-event-ledger-csv";
 
 const labels:Record<CashLedgerAction,string>={
   open:"Apertura de caja",expense:"Gasto autorizado",
@@ -37,6 +38,8 @@ export const CashEventLedgerPanel=()=>{
   const [data,setData]=useState<CashEventLedger|null>(null);
   const [busy,setBusy]=useState(false);
   const [error,setError]=useState<string|null>(null);
+  const [exportError,setExportError]=useState<string|null>(null);
+  const [exporting,setExporting]=useState(false);
   const request=useRef(0);
   const invalid=validateRetailDateRange(from,to);
   useEffect(()=>{
@@ -52,6 +55,24 @@ export const CashEventLedgerPanel=()=>{
     return()=>{request.current++;};
   },[expanded,from,to,page,revision,invalid]);
   const pages=data?Math.max(1,Math.ceil(data.total/data.pageSize)):1;
+  const exportLedger=async()=>{
+    if(!data||busy||error||exporting||invalid)return;
+    setExporting(true);setExportError(null);
+    try{
+      const items=await collectCashLedgerForExport(from,to,null);
+      const csv=buildCashLedgerCsv({from,to,siteId:null,items});
+      const url=URL.createObjectURL(new Blob([csv],{type:"text/csv;charset=utf-8"}));
+      try{
+        const link=document.createElement("a");
+        link.href=url;
+        link.download=`nexora-auditoria-caja-${from}-${to}.csv`;
+        document.body.appendChild(link);
+        link.click();link.remove();
+      }finally{URL.revokeObjectURL(url);}
+    }catch(reason:unknown){
+      setExportError(reason instanceof Error?reason.message:"No fue posible verificar todas las páginas de la bitácora.");
+    }finally{setExporting(false);}
+  };
   return <section aria-label="Bitácora de eventos de caja multisede"
     className="overflow-hidden rounded-2xl border border-border bg-card text-card-foreground shadow-sm">
     <div className="flex flex-wrap items-center justify-between gap-4 bg-gradient-to-r from-sky-50 via-white to-violet-50 p-5 dark:from-slate-950 dark:via-slate-900 dark:to-sky-950 sm:p-6">
@@ -89,11 +110,20 @@ export const CashEventLedgerPanel=()=>{
           <span>Hasta</span><Input type="date" aria-label="Hasta eventos de caja" value={to}
             onChange={e=>{setTo(e.target.value);setPage(1);}} className="min-w-[150px]"/>
         </label>
-        <Button size="sm" variant="outline" disabled={busy||Boolean(invalid)}
+        <Button size="sm" variant="outline" disabled={busy||exporting||Boolean(invalid)}
           onClick={()=>setRevision(x=>x+1)}>
           <RefreshCw className="size-4"/> Actualizar eventos
         </Button>
+        <Button size="sm" variant="outline"
+          disabled={busy||exporting||!data||Boolean(error)||Boolean(invalid)}
+          onClick={()=>{void exportLedger();}}>
+          <Download className="size-4"/>
+          {exporting?"Verificando CSV…":"Descargar bitácora CSV"}
+        </Button>
       </div>
+      {exportError?<p role="alert" className="rounded-xl border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900 dark:border-amber-400/25 dark:bg-amber-400/10 dark:text-amber-200">
+        {exportError} No se descargó ningún archivo incompleto.
+      </p>:null}
       {busy?<p role="status" className="rounded-xl border bg-muted/15 p-4 text-sm text-muted-foreground">
         Verificando eventos y responsables en Supabase…
       </p>:null}
