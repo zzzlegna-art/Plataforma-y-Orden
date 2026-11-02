@@ -12,6 +12,9 @@ export interface InitialInventoryProgress {
   approvedAt: string | null;
   isApproved: boolean;
   ready: boolean;
+  /** La declaración administrativa no se confunde con escaneo físico. */
+  approvalMethod?: "imei_scan" | "admin_declaration_6a" | null;
+  certifiedByDeclaration?: number;
 }
 
 export interface InitialInventoryApprovalResult {
@@ -61,8 +64,20 @@ export const parseInitialInventoryProgress = (payload: unknown): InitialInventor
   if (typeof p.isApproved !== "boolean" || typeof p.ready !== "boolean") {
     throw new Error("Estado de aprobación incompleto.");
   }
+  const method=p.approvalMethod===undefined||p.approvalMethod===null?null:
+    p.approvalMethod==="imei_scan"||p.approvalMethod==="admin_declaration_6a"?
+      p.approvalMethod:null;
+  if(p.approvalMethod!==undefined&&p.approvalMethod!==null&&method===null)
+    throw new Error("Método de aprobación inválido.");
+  const certifiedByDeclaration=p.certifiedByDeclaration===undefined?0:
+    finiteCount(p.certifiedByDeclaration);
+  if(certifiedByDeclaration>total||
+    (method==="admin_declaration_6a"&&
+      (!p.isApproved||certifiedByDeclaration!==approved)))
+    throw new Error("El acta no coincide con sus unidades declaradas.");
   return { total, verified, pending, stale, approved, approvedAt,
-    isApproved: p.isApproved, ready: p.ready };
+    isApproved: p.isApproved, ready: p.ready,
+    approvalMethod:method,certifiedByDeclaration };
 };
 
 type Result = { data: unknown; error: { message: string } | null };
