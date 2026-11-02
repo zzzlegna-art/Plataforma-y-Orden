@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   ArrowLeft, ArrowRight, Barcode, CheckCircle2, CircleAlert,
   ClipboardCheck, Layers3, PackagePlus, RefreshCw, ScanLine,
