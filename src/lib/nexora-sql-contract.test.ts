@@ -6,7 +6,7 @@ import { describe, expect, it } from "vitest";
  * NO sustituye ejecutar PostgreSQL y probar RLS con usuarios reales en staging.
  */
 const readSql = (name: string) =>
-  readFileSync(new URL(\`../../supabase/migrations/\${name}\`, import.meta.url), "utf8");
+  readFileSync(new URL(`../../supabase/migrations/${name}`, import.meta.url), "utf8");
 
 const migrations = [
   "20261101040000_nexora_multisite_catalog.sql",
@@ -39,8 +39,8 @@ describe("preflight de migraciones multisede (sin ejecutar sobre inventario)", (
     expect(sql).toContain("nexora_transfer_events_block_changes");
     expect(sql).toContain("nexora_validate_transfer_route_trigger");
     for (const table of ["nexora_transfers", "nexora_transfer_units", "nexora_transfer_events"]) {
-      expect(sql).toContain(\`grant select on public.\${table} to authenticated;\`);
-      expect(sql).not.toContain(\`grant insert on public.\${table} to authenticated;\`);
+      expect(sql).toContain(`grant select on public.${table} to authenticated;`);
+      expect(sql).not.toContain(`grant insert on public.${table} to authenticated;`);
     }
   });
 
@@ -49,8 +49,8 @@ describe("preflight de migraciones multisede (sin ejecutar sobre inventario)", (
     for (const method of [
       "nexora_dispatch_transfer", "nexora_receive_transfer", "nexora_verify_origin_return",
     ]) {
-      expect(sql).toContain(\`create function public.\${method}(\`);
-      expect(sql).toContain(\`revoke all on function public.\${method}(\`);
+      expect(sql).toContain(`create function public.${method}(`);
+      expect(sql).toContain(`revoke all on function public.${method}(`);
     }
     expect(sql).toMatch(/auth\.uid\(\)/i);
     expect(sql).toMatch(/bodega_is_admin\(\)/i);
