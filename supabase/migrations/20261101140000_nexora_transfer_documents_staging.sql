@@ -124,6 +124,29 @@ create unique index nexora_transfer_single_open_unit_idx
 create index nexora_transfer_units_transfer_idx
   on public.nexora_transfer_units (transfer_id,receipt_status);
 
+-- La aplicación anterior también edita bodega_units. No debe poder devolver
+-- a disponible ni reasignar de sede un IMEI mientras tenga tránsito abierto.
+-- Los RPC legítimos cierran is_open ANTES de actualizar estado o ubicación.
+create function public.nexora_prevent_open_transfer_restock()
+returns trigger language plpgsql security invoker set search_path = '' as $
+begin
+  if (old.status is distinct from new.status or old.site_id is distinct from new.site_id)
+     and exists (
+       select 1 from public.nexora_transfer_units t
+       where t.unit_id = old.id and t.is_open
+     ) then
+    if new.status in ('en_bodega','en_local') or old.site_id is distinct from new.site_id then
+      raise exception 'No se puede reponer o mover el IMEI mientras su traslado siga abierto.';
+    end if;
+  end if;
+  return new;
+end; $;
+
+create trigger nexora_prevent_open_transfer_restock_trigger
+  before update of status,site_id on public.bodega_units
+  for each row execute function public.nexora_prevent_open_transfer_restock();
+
+
 create table public.nexora_transfer_events (
   id uuid primary key default gen_random_uuid(),
   transfer_id uuid not null references public.nexora_transfers(id) on delete restrict,
