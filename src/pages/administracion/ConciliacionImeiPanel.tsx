@@ -19,10 +19,11 @@ import type { NexoraCity, NexoraSite } from "@/lib/nexora-sites";
 const selectClass = "flex h-10 w-full rounded-lg border border-input bg-background px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50";
 
 export const ConciliacionImeiPanel = ({
-  cities, sites,
+  cities, sites, approvalLocked,
 }: {
   cities: readonly NexoraCity[];
   sites: readonly NexoraSite[];
+  approvalLocked?: boolean;
 }) => {
   const [selectedSiteId, setSelectedSiteId] = useState("");
   const [serial, setSerial] = useState("");
@@ -112,7 +113,7 @@ export const ConciliacionImeiPanel = ({
   };
 
   const register = async () => {
-    if (!unit || !siteId || duplicate || busyRef.current) return;
+    if (approvalLocked || !unit || !siteId || duplicate || busyRef.current) return;
     busyRef.current = true;
     setSaving(true);
     try {
@@ -133,7 +134,7 @@ export const ConciliacionImeiPanel = ({
   };
 
   const voidObservation = async () => {
-    if (!voiding || busyRef.current) return;
+    if (approvalLocked || !voiding || busyRef.current) return;
     busyRef.current = true;
     setSaving(true);
     try {
@@ -152,7 +153,7 @@ export const ConciliacionImeiPanel = ({
   };
 
   const valid = unit && canObserveLegacyStatus(unit.status);
-  const canRegister = Boolean(valid && !duplicate && !searching && !saving && chosenSite?.isActive);
+  const canRegister = Boolean(!approvalLocked && valid && !duplicate && !searching && !saving && chosenSite?.isActive);
   return (
     <section className="space-y-5" aria-label="Conciliación física por IMEI">
       <div className="relative overflow-hidden rounded-2xl border border-slate-800 bg-gradient-to-br from-slate-950 via-slate-900 to-sky-950 p-5 text-white shadow-lg sm:p-7">
@@ -191,6 +192,12 @@ export const ConciliacionImeiPanel = ({
         </div>
       </div>
 
+      {approvalLocked ? (
+        <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 px-5 py-4 text-sm text-emerald-700 dark:text-emerald-300">
+          El inventario inicial ya fue aprobado. Los cotejos quedaron cerrados y protegidos; las compras y traslados futuros tendrán su propio flujo.
+        </div>
+      ) : null}
+
       {activeSites.length === 0 ? (
         <div className="rounded-2xl border border-dashed bg-card p-9 text-center">
           <MapPin className="mx-auto h-10 w-10 text-primary" />
@@ -210,7 +217,7 @@ export const ConciliacionImeiPanel = ({
             <div className="grid gap-4 lg:grid-cols-[minmax(220px,1fr)_minmax(250px,1.3fr)_auto] lg:items-end">
               <div className="space-y-2">
                 <Label htmlFor="nexora-physical-site">Sede física</Label>
-                <select id="nexora-physical-site" className={selectClass} value={siteId} disabled={saving}
+                <select id="nexora-physical-site" className={selectClass} value={siteId} disabled={saving || approvalLocked}
                   onChange={(event) => changeSite(event.target.value)}>
                   {activeSites.map((site) => (
                     <option value={site.id} key={site.id}>{site.name} · {getCity(site.cityId)}</option>
@@ -221,9 +228,9 @@ export const ConciliacionImeiPanel = ({
                 <Label htmlFor="nexora-imei-scan">IMEI / Serial</Label>
                 <div className="flex gap-2">
                   <Input id="nexora-imei-scan" placeholder="Escanear o escribir el serial exacto" maxLength={160}
-                    autoComplete="off" value={serial} disabled={saving}
+                    autoComplete="off" value={serial} disabled={saving || approvalLocked}
                     onChange={(event) => { lastSearch.current += 1; setSearching(false); setSerial(event.target.value); setFound(false); setUnit(null); setDuplicate(null); }} />
-                  <Button type="submit" disabled={searching || saving || !normalizeScan(serial)}>
+                  <Button type="submit" disabled={approvalLocked || searching || saving || !normalizeScan(serial)}>
                     <Search className="h-4 w-4" /> {searching ? "Buscando" : "Buscar"}
                   </Button>
                 </div>
@@ -262,7 +269,7 @@ export const ConciliacionImeiPanel = ({
                   <div role="alert" className="mt-4 rounded-lg border border-amber-400/30 bg-amber-500/10 p-3 text-sm">
                     <strong>IMEI ya cotejado.</strong> Se registró en {siteName(duplicate.siteId)}.
                     Para volver a escanearlo primero anula el cotejo anterior con un motivo.
-                    <Button className="mt-3" size="sm" variant="outline" disabled={saving}
+                    <Button className="mt-3" size="sm" variant="outline" disabled={saving || approvalLocked}
                       onClick={() => { setVoiding(duplicate); setVoidReason(""); }}>
                       <RotateCcw className="h-4 w-4" /> Anular cotejo anterior
                     </Button>
@@ -318,7 +325,7 @@ export const ConciliacionImeiPanel = ({
                       </p>
                       {record.notes ? <p className="mt-1 text-xs text-muted-foreground">{record.notes}</p> : null}
                     </div>
-                    <Button size="sm" variant="outline" disabled={saving}
+                    <Button size="sm" variant="outline" disabled={saving || approvalLocked}
                       aria-label={`Anular cotejo de ${record.serial}`}
                       onClick={() => { setVoiding(record); setVoidReason(""); }}>
                       <RotateCcw className="h-4 w-4" /> Anular
