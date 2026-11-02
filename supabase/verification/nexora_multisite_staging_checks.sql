@@ -60,7 +60,9 @@ begin
     'nexora_block_unmigrated_roles_trigger',
     'nexora_validate_transfer_route_trigger',
     'nexora_transfer_events_block_changes',
-    'nexora_prevent_open_transfer_restock_trigger'
+    'nexora_prevent_open_transfer_restock_trigger',
+    'nexora_order_imei_open_transfer_guard',
+    'nexora_warranty_imei_open_transfer_guard'
   ] loop
     if not exists (
       select 1 from pg_trigger
