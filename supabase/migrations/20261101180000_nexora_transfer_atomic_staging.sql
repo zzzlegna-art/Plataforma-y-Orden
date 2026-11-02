@@ -390,7 +390,7 @@ end; $$;
 -- Se conserva el documento y la observacion originales como evidencia.
 create function public.nexora_resolve_origin_incident(
   p_return_id uuid, p_unit_id uuid, p_observation text
-) returns jsonb language plpgsql security definer set search_path='' as $
+) returns jsonb language plpgsql security definer set search_path='' as $$
 declare
   actor uuid := (select auth.uid());
   tr public.nexora_transfers%rowtype;
@@ -483,7 +483,7 @@ begin
     'returnId',p_return_id,'unitId',p_unit_id,
     'status',case when remaining=0 then 'recibido' else 'incidencia' end,
     'remainingIncidents',remaining,'idempotent',false);
-end; $;
+end; $$;
 
 -- Public RPC requiere chequeo interno estricto de auth y rol ACTIVO.
 -- Revocar PUBLIC explícitamente para evitar acceso anónimo por privilegio default.
