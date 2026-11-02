@@ -1,7 +1,7 @@
 import { useMemo, useRef, useState } from "react";
 import {
   ArrowLeftRight, Check, ClipboardCheck, ClipboardList,
-  PackageCheck, PackageX, ShieldCheck, Truck,
+  PackageCheck, PackageX, ScanLine, ShieldCheck, Truck,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -33,6 +33,8 @@ export const TransferReceiptChecklist = ({
   transferCode, originName, destinationName, dispatched, onConfirm,
 }: TransferReceiptChecklistProps) => {
   const [decisions, setDecisions] = useState<Record<string, TransferReceiptItem>>({});
+  const [scanValue, setScanValue] = useState("");
+  const [scanFeedback, setScanFeedback] = useState("");
   const [saving, setSaving] = useState(false);
   const [confirmed, setConfirmed] = useState(false);
   const locked = useRef(false);
@@ -41,7 +43,7 @@ export const TransferReceiptChecklist = ({
     decisions[unitId] ?? { decision: "sin_marcar", observation: "" };
 
   const setDecision = (unitId: string, decision: Decision) => {
-    if (locked.current) return;
+    if (locked.current || confirmed) return;
     setDecisions((current) => ({
       ...current,
       [unitId]: { ...current[unitId], decision, observation: current[unitId]?.observation ?? "" },
@@ -49,11 +51,31 @@ export const TransferReceiptChecklist = ({
   };
 
   const setObservation = (unitId: string, observation: string) => {
-    if (locked.current) return;
+    if (locked.current || confirmed) return;
     setDecisions((current) => ({
       ...current,
       [unitId]: { ...current[unitId], decision: current[unitId]?.decision ?? "sin_marcar", observation },
     }));
+  };
+
+  const scan = () => {
+    if (locked.current || confirmed || saving) return;
+    const code = scanValue.trim().toUpperCase();
+    if (!code) return;
+    const item = dispatched.find((unit) => unit.serial.trim().toUpperCase() === code);
+    if (!item) {
+      setScanFeedback("Este IMEI no está incluido en el traslado.");
+      toast.error("El IMEI escaneado no pertenece al traslado.");
+      return;
+    }
+    if (decisions[item.unitId]?.decision === "recibido") {
+      setScanFeedback("Este IMEI ya estaba marcado como recibido.");
+      setScanValue("");
+      return;
+    }
+    setDecision(item.unitId, "recibido");
+    setScanFeedback("IMEI " + item.serial + " marcado como recibido.");
+    setScanValue("");
   };
 
   const summary = useMemo(() => {
@@ -136,6 +158,34 @@ export const TransferReceiptChecklist = ({
       </div>
 
       <div className="space-y-3 p-4 sm:p-5">
+        <form
+          onSubmit={(event) => { event.preventDefault(); scan(); }}
+          className="rounded-xl border border-primary/15 bg-primary/[0.035] p-3.5 sm:p-4"
+          aria-label="Escanear IMEI recibido"
+        >
+          <label htmlFor="imei-transfer-scan" className="mb-2 flex items-center gap-2 text-sm font-semibold">
+            <ScanLine className="h-4 w-4 text-primary" aria-hidden="true" />
+            Escaneo rápido de equipos recibidos
+          </label>
+          <div className="flex flex-wrap gap-2 sm:flex-nowrap">
+            <Input
+              id="imei-transfer-scan"
+              value={scanValue}
+              onChange={(event) => setScanValue(event.target.value)}
+              disabled={saving || confirmed}
+              autoComplete="off"
+              inputMode="numeric"
+              placeholder="Escanea o escribe el IMEI y pulsa Enter"
+              className="min-w-0 flex-1 font-mono"
+            />
+            <Button type="submit" variant="outline" disabled={saving || confirmed || !scanValue.trim()}>
+              <ScanLine className="h-4 w-4" /> Marcar recibido
+            </Button>
+          </div>
+          <p role="status" aria-live="polite" className="mt-2 text-xs text-muted-foreground">
+            {scanFeedback || "El lector marca automáticamente el equipo al pulsar Enter. Los duplicados no se contabilizan dos veces."}
+          </p>
+        </form>
         <div className="flex flex-wrap items-center justify-between gap-2">
           <h3 className="font-semibold">Verificación por IMEI</h3>
           <span className="text-xs text-muted-foreground">
@@ -167,7 +217,7 @@ export const TransferReceiptChecklist = ({
                     </button>
                     <button
                       type="button"
-                      disabled={saving}
+                      disabled={saving || confirmed}
                       aria-pressed={current.decision === "no_llego"}
                       onClick={() => setDecision(unitId, "no_llego")}
                       className={`inline-flex min-h-10 items-center gap-1.5 rounded-lg border px-3 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${current.decision === "no_llego" ? "border-amber-500 bg-amber-500/10 text-amber-700 dark:text-amber-300" : "hover:bg-muted"}`}
