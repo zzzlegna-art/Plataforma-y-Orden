@@ -96,8 +96,9 @@ begin
   for item in select * from public.bodega_units u where u.id=any(p_unit_ids)
       order by u.id for update loop
     count_units:=count_units+1;
-    if item.site_id is distinct from p_origin or
-      item.status<>case when origin_kind='local' then 'en_local' else 'en_bodega' end then
+    if item.site_id is distinct from p_origin
+      or (origin_kind='local' and item.status<>'en_local')
+      or (origin_kind<>'local' and item.status<>'en_bodega') then
       raise exception 'IMEI % no esta disponible en el origen.',item.serial;
     end if;
     if exists(select 1 from public.nexora_transfer_units tu
