@@ -134,17 +134,24 @@ create index nexora_transfer_units_transfer_idx
 create function public.nexora_prevent_open_transfer_restock()
 returns trigger language plpgsql security definer set search_path = '' as $$
 begin
-  if (old.status is distinct from new.status or old.site_id is distinct from new.site_id)
-     and exists (
-       select 1 from public.nexora_transfer_units t
-       where t.unit_id = old.id and t.is_open
-     ) then
-    -- El unico cambio permitido mientras esta abierto es el primer despacho
-    -- al estado en_transito. Cualquier otro estado (venta, reparacion,
-    -- liberacion o disponible) y cualquier cambio de sede estan bloqueados.
-    if new.status is distinct from 'en_transito'
-       or old.site_id is distinct from new.site_id then
-      raise exception 'IMEI con traslado abierto: prohibido vender, liberar, reponer o cambiar de sede.';
+  if pg_catalog.to_jsonb(old) is not distinct from pg_catalog.to_jsonb(new) then
+    return new;
+  end if;
+
+  if exists (
+    select 1 from public.nexora_transfer_units t
+    where t.unit_id = old.id and t.is_open
+  ) then
+    -- Unica excepcion: el RPC de despacho crea el transito abierto y cambia
+    -- el estado a en_transito en la misma transaccion.
+    -- Ningun otro dato del IMEI puede modificarse, ni siquiera su costo o serial.
+    if not (
+      old.status in ('en_bodega','en_local')
+      and new.status = 'en_transito'
+      and (pg_catalog.to_jsonb(old) - 'status') =
+          (pg_catalog.to_jsonb(new) - 'status')
+    ) then
+      raise exception 'IMEI en traslado: sus datos y estado estan bloqueados hasta la recepcion fisica.';
     end if;
   end if;
   return new;
@@ -153,7 +160,7 @@ end; $$;
 revoke all on function public.nexora_prevent_open_transfer_restock() from public,anon,authenticated;
 
 create trigger nexora_prevent_open_transfer_restock_trigger
-  before update of status,site_id on public.bodega_units
+  before update on public.bodega_units
   for each row execute function public.nexora_prevent_open_transfer_restock();
 
 
