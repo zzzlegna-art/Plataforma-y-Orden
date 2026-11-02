@@ -16,7 +16,7 @@ alter table public.nexora_transfers add column receipt_decisions jsonb
 -- La coincidencia entre el rol global y el rol de membresia evita escalamiento
 -- mediante una membresia mal configurada en otra sede.
 create function public.nexora_can_operate_transfer_site(p_site_id uuid)
-returns boolean language sql stable security definer set search_path = '' as $
+returns boolean language sql stable security definer set search_path = '' as $$
   select exists (
     select 1 from public.nexora_sites target
     where target.id = p_site_id and target.is_active
@@ -36,7 +36,7 @@ returns boolean language sql stable security definer set search_path = '' as $
           )
       )
   )
-$;
+$$;
 
 revoke all on function public.nexora_can_operate_transfer_site(uuid) from public,anon;
 grant execute on function public.nexora_can_operate_transfer_site(uuid) to authenticated;
