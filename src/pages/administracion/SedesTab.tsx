@@ -15,6 +15,7 @@ import { Label } from "@/components/ui/label";
 import { PersonalSedesPanel } from "./PersonalSedesPanel";
 import { ConciliacionImeiPanel } from "./ConciliacionImeiPanel";
 import { InitialCountWorklistPanel } from "./InitialCountWorklistPanel";
+import { CostEvidencePanel } from "./CostEvidencePanel";
 import {
   allowedParents, createNexoraCity, createNexoraSite, listNexoraNetwork,
   siteTypeLabel, updateNexoraSiteDetails, validateSiteDraft,
@@ -253,6 +254,7 @@ export const SedesTab = () => {
 
       <PersonalSedesPanel cities={cities} sites={sites} />
       <InitialCountWorklistPanel />
+      <CostEvidencePanel />
       <ConciliacionImeiPanel cities={cities} sites={sites} approvalLocked={approvalLocked} />
       <AprobacionInventarioInicialPanel onApproved={markApproved} />
       <TrasladosMultisedePanel sites={sites} />
