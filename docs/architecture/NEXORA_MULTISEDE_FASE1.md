@@ -122,6 +122,14 @@ Se incorporó el componente premium `src/components/transfers/OriginReturnCheckl
 
 **Pendiente para uso real:** integrar el componente en el módulo operativo de traslados, probar las RPC y permisos en Supabase staging y migrar los cuatro roles. Se mantiene intencionalmente fuera de la navegación productiva.
 
+## Validación automática de sintaxis PostgreSQL
+
+Se añadió `.github/workflows/nexora-multisite-sql.yml`, que corre en cada cambio de migraciones de la rama. Usa el analizador real de gramática SQL PostgreSQL (`pglast`) para validar **tres archivos de migración y un archivo de comprobaciones**, sin conectarse a Supabase ni ejecutar sentencias SQL. La primera ejecución terminó correctamente.
+
+Este resultado complementa las pruebas de TypeScript, pero NO valida el contenido completo de PL/pgSQL, dependencias del esquema, RLS o transacciones contra datos reales: **la migración sigue sin poder activarse sin staging**.
+
+También se corrigió durante pruebas automáticas una excepción al confirmar devoluciones que tenían observaciones inicialmente vacías (`OriginReturnChecklist`). La pantalla ahora inicializa ambos campos incluso cuando la marca se crea mediante escaneo, y conserva los valores al reintentar.
+
 ## No implementado todavía
 
 - Cambio del rol real de `bodega_profiles` o el motor de permisos legacy.
