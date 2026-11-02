@@ -79,6 +79,7 @@ export const ConciliacionImeiPanel = ({
 
   const changeSite = (value: string) => {
     lastSearch.current += 1;
+    setSearching(false);
     setSelectedSiteId(value);
     setUnit(null);
     setDuplicate(null);
@@ -221,7 +222,7 @@ export const ConciliacionImeiPanel = ({
                 <div className="flex gap-2">
                   <Input id="nexora-imei-scan" placeholder="Escanear o escribir el serial exacto" maxLength={160}
                     autoComplete="off" value={serial} disabled={saving}
-                    onChange={(event) => { lastSearch.current += 1; setSerial(event.target.value); setFound(false); setUnit(null); setDuplicate(null); }} />
+                    onChange={(event) => { lastSearch.current += 1; setSearching(false); setSerial(event.target.value); setFound(false); setUnit(null); setDuplicate(null); }} />
                   <Button type="submit" disabled={searching || saving || !normalizeScan(serial)}>
                     <Search className="h-4 w-4" /> {searching ? "Buscando" : "Buscar"}
                   </Button>
@@ -261,6 +262,10 @@ export const ConciliacionImeiPanel = ({
                   <div role="alert" className="mt-4 rounded-lg border border-amber-400/30 bg-amber-500/10 p-3 text-sm">
                     <strong>IMEI ya cotejado.</strong> Se registró en {siteName(duplicate.siteId)}.
                     Para volver a escanearlo primero anula el cotejo anterior con un motivo.
+                    <Button className="mt-3" size="sm" variant="outline" disabled={saving}
+                      onClick={() => { setVoiding(duplicate); setVoidReason(""); }}>
+                      <RotateCcw className="h-4 w-4" /> Anular cotejo anterior
+                    </Button>
                   </div>
                 ) : null}
                 {valid && !duplicate ? (
