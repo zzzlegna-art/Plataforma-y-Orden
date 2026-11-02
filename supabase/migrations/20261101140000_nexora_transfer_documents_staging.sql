@@ -192,9 +192,10 @@ create trigger nexora_transfer_events_block_changes
   before update or delete on public.nexora_transfer_events
   for each row execute function public.nexora_transfer_events_immutable();
 
--- Aun antes de crear operaciones de escritura, proteger la lectura:
--- Administrador activo ve todo; personal activo solo sus sedes asignadas.
--- La selección se apoya en membresías filtradas por RLS de la primera migración.
+-- Visibilidad aprobada: TODO el personal activo puede consultar la red
+-- y la vida de los IMEI de cualquier ciudad. Esto NO otorga permisos de
+-- escritura ni autorizacion para mover existencias de otras sedes.
+-- La autenticacion activa se valida en bodega_is_staff().
 create function public.nexora_can_read_site(p_site_id uuid)
 returns boolean language sql stable security invoker set search_path = '' as $$
   select (select public.bodega_is_admin()) or (
@@ -225,10 +226,7 @@ grant select on public.nexora_transfer_events to authenticated;
 
 create policy nexora_transfers_read on public.nexora_transfers
   for select to authenticated
-  using (
-    (select public.nexora_can_read_site(origin_site_id))
-    or (select public.nexora_can_read_site(destination_site_id))
-  );
+  using ((select public.bodega_is_staff()));
 
 create policy nexora_transfer_units_read on public.nexora_transfer_units
   for select to authenticated
