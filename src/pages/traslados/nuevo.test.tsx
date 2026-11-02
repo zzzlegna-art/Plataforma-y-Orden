@@ -42,7 +42,7 @@ const fill=async(user:ReturnType<typeof userEvent.setup>)=>{
   await user.selectOptions(screen.getByLabelText("Referencia de mercancía"),"p1");
   await waitFor(()=>expect(screen.getByText("350000000000001")).toBeTruthy());
   await user.type(screen.getByLabelText("IMEI que deseas enviar"),"350000000000001{Enter}");
-  await waitFor(()=>expect(screen.getByText(/1/)).toBeTruthy());
+  await waitFor(()=>expect(screen.getByRole("button",{name:"Quitar IMEI 350000000000001"})).toBeTruthy());
 };
 describe("Crear traslado multisede — IMEI por referencia",()=>{
   it("no presenta rutas directas de local a local",async()=>{
