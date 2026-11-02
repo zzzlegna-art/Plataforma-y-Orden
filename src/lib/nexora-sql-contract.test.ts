@@ -55,6 +55,7 @@ describe("preflight de migraciones multisede (sin ejecutar sobre inventario)", (
     const sql = readSql(migrations[2]);
     for (const method of [
       "nexora_dispatch_transfer", "nexora_receive_transfer", "nexora_verify_origin_return",
+      "nexora_resolve_origin_incident",
     ]) {
       expect(sql).toContain(`create function public.${method}(`);
       expect(sql).toContain(`revoke all on function public.${method}(`);
@@ -65,5 +66,10 @@ describe("preflight de migraciones multisede (sin ejecutar sobre inventario)", (
     expect(sql).toContain("receipt_decisions");
     expect(sql).toContain("status='en_transito'");
     expect(sql).toContain("retorno_faltantes");
+    expect(sql).toContain("event_type='incidencia_resuelta'");
+    expect(sql).toContain("remainingIncidents");
+    const schema = readSql(migrations[1]);
+    expect(schema).toContain("'incidencia_resuelta'");
+
   });
 });
