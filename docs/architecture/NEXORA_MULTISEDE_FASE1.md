@@ -167,6 +167,22 @@ Esta prueba detectó y permitió corregir dos problemas antes de producción: (1
 
 **Limitaciones que aún impiden desplegar:** el esquema legacy del test es una maqueta reducida, no una restauración de la base Nexora; no valida aún todos los triggers/RLS históricos, sesiones de cuatro roles reales, conflictos entre transacciones de dos conexiones independientes ni comportamiento con el frontend real. Hace falta la revisión de seguridad por sede, conciliación física y el ambiente de ensayo Supabase antes del lanzamiento. El E2E no implica autorización para fusionar o aplicar migraciones.
 
+## Bandeja premium de traslados conectada a RPC — PILOTO ADMINISTRATIVO
+
+Se incorporó la pantalla `/traslados-piloto` con autorización legacy `users.manage` (**solo Administrador**), vinculada desde `Administración → Sedes`. Se mantiene en la rama de desarrollo y NO se ha publicado en producción.
+
+- **Bandeja de documentos:** lista reciente (hasta 100) de traslados globales, con origen, ciudad, destino, estado y fecha; filtros de por atender, envíos, devoluciones y todos; búsqueda por código o sede. El listado no inventa documentos.
+- **Acta por IMEI:** lee `nexora_transfers`, `nexora_transfer_units`, `bodega_units`, `nexora_sites` y `nexora_cities`. Comprueba que cada IMEI del documento sea visible y esté completo; si la consulta devuelve menos seriales de los esperados, bloquea la confirmación.
+- **Recepción física desde la bandeja:** para `envio/en_transito` monta la lista premium con escaneo, decisiones `recibido/no_llego` y observaciones. Solo confirma cuando `nexora_receive_transfer` responde con el mismo documento y conteos.
+- **Devolución en bodega:** para `retorno_faltantes/pendiente_recepcion` monta la lista de revisión física y `nexora_verify_origin_return` de la misma forma.
+- **Incidencias:** para `retorno_faltantes/incidencia` abre el acta sin permitir editar su historia y ofrece la recuperación individual del IMEI físicamente encontrado, mediante `nexora_resolve_origin_incident` con observación obligatoria.
+- **Errores de red y migración:** si la tabla no existe, se informa de que el módulo no está activo. Una respuesta RPC inconclusa **no se interpreta como éxito**; no se edita inventario en el navegador. Tras una confirmación SQL exitosa, un fallo de refresco no provoca repetir el movimiento.
+- **Sin elevación prematura de permisos:** los cuatro roles siguen aprobados para el sistema definitivo, pero los RPC actuales restringen este piloto al Administrador porque la seguridad legacy todavía no se ha migrado integralmente. La ruta no se muestra al personal sin `users.manage`.
+
+Pruebas nuevas: `src/lib/nexora-transfer-inbox.test.ts`, `src/pages/traslados/index.test.tsx` y `src/components/transfers/IncidentRecoveryPanel.test.tsx`. La conexión real del navegador con una base Supabase restaurada continúa pendiente; la prueba E2E PostgreSQL previa cubre motor y transacciones, no estas pantallas de punta a punta.
+
+**No publicar la PR #106 ni aplicar migraciones productivas hasta validar permisos, datos existentes y pruebas E2E de interfaz contra staging.**
+
 ## No implementado todavía
 
 - Cambio del rol real de `bodega_profiles` o el motor de permisos legacy.
