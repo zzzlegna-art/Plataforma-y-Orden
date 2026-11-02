@@ -46,7 +46,7 @@ export type MovementType =
   | "liberacion"
   | "correccion";
 
-export type MovementReference = "recepcion" | "pedido" | "garantia" | "manual";
+export type MovementReference = "recepcion" | "pedido" | "garantia" | "manual" | "traslado";
 
 export type OrderStatus =
   | "en_preparacion"
