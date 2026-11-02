@@ -216,3 +216,37 @@ comment on table public.nexora_initial_unit_sites is
   'Foto IMMUTABLE de la ubicación física inicial aprobada por IMEI. No equivale a disponibilidad comercial; requiere integración de flujos de venta/traslado.';
 comment on table public.nexora_initial_inventory_approvals is
   'Acta única de aprobación atómica del inventario inicial, con autor y conteo.';
+
+
+-- Resumen de la foto inicial por sede; no duplica disponibilidad del POS.
+create function public.nexora_initial_inventory_site_summary()
+returns jsonb language plpgsql stable security invoker
+set search_path = pg_catalog, public
+as $$
+declare
+  result jsonb;
+begin
+  if auth.uid() is null or not public.bodega_is_admin() then
+    raise exception 'Solo Administrador puede consultar inventario por sede.';
+  end if;
+  select coalesce(jsonb_agg(jsonb_build_object(
+    'siteId', x.site_id, 'siteName', x.site_name,
+    'approved', x.approved, 'stillPhysical', x.still_physical
+  ) order by x.site_name), '[]'::jsonb)
+    into result
+    from (
+      select s.id as site_id, s.name as site_name,
+        count(m.unit_id)::integer as approved,
+        count(m.unit_id) filter (where u.status in
+         ('en_bodega','en_local','en_transito','en_reparacion','defectuoso'))::integer as still_physical
+      from public.nexora_sites s
+      join public.nexora_initial_unit_sites m on m.site_id = s.id
+      join public.bodega_units u on u.id = m.unit_id
+      group by s.id, s.name
+    ) x;
+  return result;
+end;
+$$;
+revoke all on function public.nexora_initial_inventory_site_summary()
+  from public, anon, authenticated;
+grant execute on function public.nexora_initial_inventory_site_summary() to authenticated;
