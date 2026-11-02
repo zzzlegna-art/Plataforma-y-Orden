@@ -385,11 +385,113 @@ begin
    'verifiedCount',verified,'incidentCount',incidents,'idempotent',false);
 end; $$;
 
+-- Resolver una incidencia abierta solo si el IMEI aparece fisicamente
+-- en la bodega de origen. Si aun no aparece, la incidencia sigue abierta.
+-- Se conserva el documento y la observacion originales como evidencia.
+create function public.nexora_resolve_origin_incident(
+  p_return_id uuid, p_unit_id uuid, p_observation text
+) returns jsonb language plpgsql security definer set search_path='' as $
+declare
+  actor uuid := (select auth.uid());
+  tr public.nexora_transfers%rowtype;
+  unit_row public.nexora_transfer_units%rowtype;
+  item public.bodega_units%rowtype;
+  dest_kind text;
+  dest_label text;
+  remaining int;
+  at_time timestamptz := clock_timestamp();
+begin
+  if actor is null or not (select public.bodega_is_admin()) then
+    raise exception 'Solo el Administrador puede resolver incidencias durante el piloto.';
+  end if;
+  if p_return_id is null or p_unit_id is null
+     or nullif(btrim(coalesce(p_observation,'')),'') is null then
+    raise exception 'Selecciona el IMEI encontrado y escribe como se verifico fisicamente.';
+  end if;
+
+  select * into tr from public.nexora_transfers
+    where id=p_return_id for update;
+  if not found or tr.kind<>'retorno_faltantes'
+      or tr.status not in ('incidencia','recibido') then
+    raise exception 'La devolucion no tiene una incidencia verificable.';
+  end if;
+
+  select * into unit_row from public.nexora_transfer_units
+    where transfer_id=p_return_id and unit_id=p_unit_id for update;
+  if not found then
+    raise exception 'IMEI no pertenece a esta devolucion.';
+  end if;
+
+  -- Reintento tras una respuesta perdida: comprobar el evento de resolucion
+  -- en lugar de tomar un equipo recibido originalmente como incidencia resuelta.
+  if not unit_row.is_open and unit_row.receipt_status='recibido'
+     and exists (
+       select 1 from public.nexora_transfer_events
+       where transfer_id=p_return_id and unit_id=p_unit_id
+         and event_type='incidencia_resuelta'
+     ) then
+    return pg_catalog.jsonb_build_object('returnId',p_return_id,
+      'unitId',p_unit_id,'status',tr.status,'idempotent',true);
+  end if;
+
+  if tr.status<>'incidencia' or not unit_row.is_open
+      or unit_row.receipt_status<>'no_llego' then
+    raise exception 'El IMEI no tiene una incidencia abierta.';
+  end if;
+
+  select s.kind,s.name||' · '||c.name into dest_kind,dest_label
+    from public.nexora_sites s
+    join public.nexora_cities c on c.id=s.city_id
+    where s.id=tr.destination_site_id and s.is_active;
+  if dest_kind not in ('principal','bodega','local') or dest_kind is null then
+    raise exception 'La bodega de origen esta inactiva.';
+  end if;
+  select * into item from public.bodega_units where id=p_unit_id for update;
+  if not found or item.status<>'en_transito'
+      or item.site_id is distinct from tr.destination_site_id then
+    raise exception 'El IMEI no coincide con el origen de esta devolucion.';
+  end if;
+
+  -- Mismo bloqueo y actualizacion atomica que el retorno ordinario.
+  update public.nexora_transfer_units
+    set receipt_status='recibido',is_open=false,
+        marked_by=actor,marked_at=at_time
+    where transfer_id=p_return_id and unit_id=p_unit_id;
+  update public.bodega_units set
+      site_id=tr.destination_site_id,
+      status=case when dest_kind='local' then 'en_local' else 'en_bodega' end
+    where id=p_unit_id;
+  insert into public.bodega_movements
+    (unit_id,product_id,type,quantity,reference_type,reference_id,notes,created_by,created_at)
+  values (p_unit_id,item.product_id,'entrada',1,'traslado',p_return_id,
+    'Incidencia resuelta: IMEI verificado fisicamente en '||dest_label,actor,at_time);
+  insert into public.nexora_transfer_events
+    (transfer_id,event_type,unit_id,details,created_by,created_at)
+  values (p_return_id,'incidencia_resuelta',p_unit_id,
+    pg_catalog.jsonb_build_object('observation',btrim(p_observation),
+      'verified_site',tr.destination_site_id),actor,at_time);
+
+  select count(*) into remaining from public.nexora_transfer_units
+    where transfer_id=p_return_id and is_open;
+  if remaining=0 then
+    update public.nexora_transfers
+      set status='recibido'
+      where id=p_return_id;
+  end if;
+
+  return pg_catalog.jsonb_build_object(
+    'returnId',p_return_id,'unitId',p_unit_id,
+    'status',case when remaining=0 then 'recibido' else 'incidencia' end,
+    'remainingIncidents',remaining,'idempotent',false);
+end; $;
+
 -- Public RPC requiere chequeo interno estricto de auth y rol ACTIVO.
 -- Revocar PUBLIC explícitamente para evitar acceso anónimo por privilegio default.
 revoke all on function public.nexora_dispatch_transfer(uuid,uuid,uuid,uuid[]) from public,anon;
 revoke all on function public.nexora_receive_transfer(uuid,jsonb) from public,anon;
 revoke all on function public.nexora_verify_origin_return(uuid,jsonb) from public,anon;
+revoke all on function public.nexora_resolve_origin_incident(uuid,uuid,text) from public,anon;
 grant execute on function public.nexora_dispatch_transfer(uuid,uuid,uuid,uuid[]) to authenticated;
 grant execute on function public.nexora_receive_transfer(uuid,jsonb) to authenticated;
 grant execute on function public.nexora_verify_origin_return(uuid,jsonb) to authenticated;
+grant execute on function public.nexora_resolve_origin_incident(uuid,uuid,text) to authenticated;
