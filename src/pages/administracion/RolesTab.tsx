@@ -1,5 +1,6 @@
 import { useMemo, useState, type ReactNode } from "react";
 import { RolePlanningPanel } from "./RolePlanningPanel";
+import { StaffSiteAccessAuditPanel } from "./StaffSiteAccessAuditPanel";
 import {
   Building2, Check, CircleHelp, ClipboardCheck, LockKeyhole,
   PackageCheck, ShieldCheck, ShoppingBag, Store, Warehouse,
@@ -199,6 +200,8 @@ export const RolesTab = () => {
       </div>
 
       <RolePlanningPanel />
+
+      <StaffSiteAccessAuditPanel />
 
       <div className="flex gap-3 rounded-xl border border-amber-500/25 bg-amber-500/[0.07] p-4">
         <CircleHelp className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" aria-hidden="true" />
