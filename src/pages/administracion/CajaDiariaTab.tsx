@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { AlertTriangle, Banknote, CalendarClock, CheckCircle2, CircleDollarSign, ClipboardCheck, LockKeyhole, RefreshCw, RotateCcw, ShieldCheck, Store, Wallet } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/shared/page-header";
+import { RetailSiteFinancePanel } from "./RetailSiteFinancePanel";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -82,7 +83,7 @@ const CajaDiariaTab = () => {
         <div aria-hidden="true" className="pointer-events-none absolute -right-14 -top-16 h-60 w-60 rounded-full bg-emerald-400/15 blur-3xl" />
         <div className="relative flex flex-wrap items-start justify-between gap-3">
           <div>
-            <span className="inline-flex items-center gap-2 rounded-full border border-emerald-200 dark:border-emerald-300/25 bg-emerald-100 dark:bg-emerald-400/10 px-3 py-1 text-xs font-semibold uppercase tracking-widest text-emerald-100">
+            <span className="inline-flex items-center gap-2 rounded-full border border-emerald-200 dark:border-emerald-300/25 bg-emerald-100 dark:bg-emerald-400/10 px-3 py-1 text-xs font-semibold uppercase tracking-widest text-emerald-900 dark:text-emerald-100">
               <Wallet className="h-3.5 w-3.5" /> Control financiero · Nexora 2.0
             </span>
             <h2 className="mt-4 text-2xl font-bold sm:text-3xl">Control de caja por local</h2>
@@ -206,6 +207,8 @@ const CajaDiariaTab = () => {
           ))}
         </div>
       )}
+      <RetailSiteFinancePanel />
+
       <div className="flex items-start gap-2 rounded-xl border p-4 text-xs text-muted-foreground">
         <LockKeyhole className="mt-0.5 h-4 w-4 shrink-0"/>
         La tabla retail está preparada, pero el POS aún no tiene autorización para vender.
