@@ -28,7 +28,7 @@ begin
   with unit_rows as (
     select u.id as unit_id, u.serial, u.status as legacy_status,
       u.unit_condition, u.location as historical_location, u.cost,
-      p.sku,p.name as product_name,
+      coalesce(p.sku,'SIN-SKU') as sku,coalesce(p.name,'Referencia sin catálogo') as product_name,
       r.id as observation_id,
       r.checked_at as observation_at,
       site.id as observed_site_id,
@@ -41,7 +41,7 @@ begin
         else 'revisar'
       end as reconciliation_state
     from public.bodega_units u
-    join public.bodega_products p on p.id = u.product_id
+    left join public.bodega_products p on p.id = u.product_id
     left join public.nexora_imei_reconciliation r
       on r.unit_id = u.id and r.voided_at is null
     left join public.nexora_sites site on site.id = r.site_id
