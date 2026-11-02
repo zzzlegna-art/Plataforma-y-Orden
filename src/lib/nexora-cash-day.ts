@@ -50,7 +50,7 @@ export const validateCashOperation = (
 ): string | null => {
   if (action === "reopen") return note.trim().length >= 5
     ? null : "Escribe el motivo de reapertura (mínimo 5 caracteres).";
-  if (value === null || !Number.isFinite(value) || value < 0 || value > 99999999999999.99)
+  if (value === null || !Number.isFinite(value) || value < 0 || value > Number.MAX_SAFE_INTEGER / 100)
     return "Introduce un monto válido no negativo.";
   if (Math.round(value*100)/100 !== value)
     return "Utiliza máximo dos decimales.";
