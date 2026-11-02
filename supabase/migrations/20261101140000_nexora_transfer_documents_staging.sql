@@ -128,7 +128,7 @@ create index nexora_transfer_units_transfer_idx
 -- a disponible ni reasignar de sede un IMEI mientras tenga tránsito abierto.
 -- Los RPC legítimos cierran is_open ANTES de actualizar estado o ubicación.
 create function public.nexora_prevent_open_transfer_restock()
-returns trigger language plpgsql security invoker set search_path = '' as $
+returns trigger language plpgsql security invoker set search_path = '' as $$
 begin
   if (old.status is distinct from new.status or old.site_id is distinct from new.site_id)
      and exists (
@@ -140,7 +140,7 @@ begin
     end if;
   end if;
   return new;
-end; $;
+end; $$;
 
 create trigger nexora_prevent_open_transfer_restock_trigger
   before update of status,site_id on public.bodega_units
