@@ -127,11 +127,11 @@ begin
     raise exception 'Acción de traslado inválida.';
   end if;
 
-  select coalesce(array_agg(lower(btrim(serial))),array[]::text[])
-    into v_serials from unnest(coalesce(p_serials,array[]::text[])) as serial;
+  select coalesce(array_agg(lower(btrim(x.serial))),array[]::text[])
+    into v_serials from unnest(coalesce(p_serials,array[]::text[])) as x(serial);
   v_wanted := cardinality(v_serials);
   if v_wanted > 100 or exists (select 1 from unnest(v_serials) s where s = '' or length(s)>160)
-    or (select count(distinct s) from unnest(v_serials) s) <> v_wanted then
+    or (select count(distinct x.serial) from unnest(v_serials) as x(serial)) <> v_wanted then
     raise exception 'IMEI repetido, vacío o más de 100 unidades por operación.';
   end if;
   if (p_action in ('create','return') and v_wanted = 0)
