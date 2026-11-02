@@ -68,6 +68,7 @@ export const SedesTab = () => {
   }, [refresh]);
 
   const hasPrincipal = sites.some((site) => site.siteType === "principal");
+  const central6A = sites.find((site) => site.siteType === "principal" && site.name === "Bodega 6A");
   const parentOptions = useMemo(
     () => allowedParents(siteForm.siteType, siteForm.cityId, sites),
     [siteForm.siteType, siteForm.cityId, sites],
@@ -140,8 +141,8 @@ export const SedesTab = () => {
             </div>
             <h2 className="mt-4 text-2xl font-bold tracking-tight sm:text-3xl">Ciudades y puntos físicos</h2>
             <p className="mt-2 text-sm leading-relaxed text-slate-600 dark:text-slate-300">
-              Construye la red de distribución desde una sede principal hacia bodegas regionales y locales.
-              Los nombres y direcciones se configuran aquí, sin estructuras fijas.
+              Bodega 6A es el centro principal de recepción y abastecimiento. Desde allí se distribuye
+              mercancía a las bodegas regionales y a los locales de cada ciudad.
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -168,6 +169,23 @@ export const SedesTab = () => {
           ))}
         </div>
       </div>
+
+      {central6A ? (
+        <div className="flex flex-wrap items-start gap-3 rounded-2xl border border-sky-200 bg-sky-50/80 px-5 py-4 dark:border-sky-400/20 dark:bg-sky-400/5">
+          <Warehouse className="mt-0.5 h-5 w-5 shrink-0 text-sky-700 dark:text-sky-300"/>
+          <div>
+            <h3 className="font-semibold text-sky-950 dark:text-sky-100">
+              Origen central de mercancía: Bodega 6A
+            </h3>
+            <p className="mt-1 text-sm text-sky-900/80 dark:text-sky-100/70">
+              La recepción de productos y la distribución a locales y bodegas regionales
+              parten de Bodega 6A en Barranquilla. iPhone America es un local dependiente,
+              no la sede principal. Este vínculo no representa traslados automáticos
+              ni la aprobación física de existencias.
+            </p>
+          </div>
+        </div>
+      ) : null}
 
       <div className="flex flex-wrap items-start justify-between gap-3 rounded-xl border bg-card px-4 py-3">
         <p className="flex max-w-3xl items-start gap-2 text-sm text-muted-foreground">
