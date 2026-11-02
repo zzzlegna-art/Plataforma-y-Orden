@@ -35,6 +35,13 @@ describe("Nexora · auditoría por jornada de caja",()=>{
     expect(parseCashClosureAudit({...response(),items:[v]}).items[0].hasIntegrityMismatch).toBe(true);
     expect(()=>parseCashClosureAudit({...response(),items:[{...v,hasIntegrityMismatch:false}]})).toThrow();
   });
+  it("marca un solo centavo de diferencia en la conciliación",()=>{
+    const oneCent={...session(),recordedExpectedCash:290000.01,hasIntegrityMismatch:true};
+    expect(parseCashClosureAudit({...response(),items:[oneCent]}).items[0].hasIntegrityMismatch).toBe(true);
+    expect(()=>parseCashClosureAudit({...response(),items:[{
+      ...oneCent,hasIntegrityMismatch:false,
+    }]})).toThrow();
+  });
   it("rechaza respuesta externa, conteos inconsistentes y fecha alterada",()=>{
     expect(()=>parseCashClosureAudit({...response(),scope:"retail_only_confirmed"})).toThrow();
     expect(()=>parseCashClosureAudit({...response(),total:0})).toThrow();
