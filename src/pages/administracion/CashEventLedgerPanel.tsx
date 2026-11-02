@@ -89,7 +89,7 @@ export const CashEventLedgerPanel=()=>{
         </div>
       </div>
       <Button size="sm" variant="outline" aria-controls="nexora-cash-ledger"
-        aria-expanded={expanded} onClick={()=>setExpanded(x=>!x)}
+        aria-expanded={expanded} disabled={exporting} onClick={()=>setExpanded(x=>!x)}
         className="border-slate-300 bg-white/80 text-slate-900 dark:border-slate-600 dark:bg-white/10 dark:text-white">
         {expanded?"Ocultar bitácora":"Ver bitácora de caja"}
         {expanded?<ChevronUp className="size-4"/>:<ChevronDown className="size-4"/>}
@@ -103,11 +103,11 @@ export const CashEventLedgerPanel=()=>{
       </p>
       <div className="flex flex-wrap items-end gap-3">
         <label className="space-y-1.5 text-xs font-semibold">
-          <span>Desde</span><Input type="date" aria-label="Desde eventos de caja" value={from}
+          <span>Desde</span><Input type="date" aria-label="Desde eventos de caja" value={from} disabled={exporting}
             onChange={e=>{setFrom(e.target.value);setPage(1);}} className="min-w-[150px]"/>
         </label>
         <label className="space-y-1.5 text-xs font-semibold">
-          <span>Hasta</span><Input type="date" aria-label="Hasta eventos de caja" value={to}
+          <span>Hasta</span><Input type="date" aria-label="Hasta eventos de caja" value={to} disabled={exporting}
             onChange={e=>{setTo(e.target.value);setPage(1);}} className="min-w-[150px]"/>
         </label>
         <Button size="sm" variant="outline" disabled={busy||exporting||Boolean(invalid)}
@@ -174,9 +174,9 @@ export const CashEventLedgerPanel=()=>{
         {data.total>data.pageSize?<div className="flex flex-wrap items-center justify-between gap-3 border-t pt-3 text-xs">
           <span>Página {page} de {pages}</span>
           <div className="flex gap-2">
-            <Button size="sm" variant="outline" disabled={busy||page===1}
+            <Button size="sm" variant="outline" disabled={busy||exporting||page===1}
               onClick={()=>setPage(p=>Math.max(1,p-1))}><ArrowLeft className="size-4"/>Anterior</Button>
-            <Button size="sm" variant="outline" disabled={busy||page>=pages}
+            <Button size="sm" variant="outline" disabled={busy||exporting||page>=pages}
               onClick={()=>setPage(p=>p+1)}>Siguiente<ArrowRight className="size-4"/></Button>
           </div>
         </div>:null}
