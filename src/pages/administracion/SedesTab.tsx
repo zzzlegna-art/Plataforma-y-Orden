@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PersonalSedesPanel } from "./PersonalSedesPanel";
 import { ConciliacionImeiPanel } from "./ConciliacionImeiPanel";
+import { InitialCountWorklistPanel } from "./InitialCountWorklistPanel";
 import {
   allowedParents, createNexoraCity, createNexoraSite, listNexoraNetwork,
   siteTypeLabel, updateNexoraSiteDetails, validateSiteDraft,
@@ -251,6 +252,7 @@ export const SedesTab = () => {
       )}
 
       <PersonalSedesPanel cities={cities} sites={sites} />
+      <InitialCountWorklistPanel />
       <ConciliacionImeiPanel cities={cities} sites={sites} approvalLocked={approvalLocked} />
       <AprobacionInventarioInicialPanel onApproved={markApproved} />
       <TrasladosMultisedePanel sites={sites} />
