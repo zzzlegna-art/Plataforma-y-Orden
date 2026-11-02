@@ -83,6 +83,7 @@ import { etiquetaTipoProducto, tiposProductoOrdenados } from "@/lib/products";
 import type { Product, ProductCategory, ProductTechnicalSpecKey } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { ProductFormDialog } from "./ProductFormDialog";
+import { ImeiSedesPanel } from "./ImeiSedesPanel";
 import { ProductImportDialog } from "./ProductImportDialog";
 import "./inventory-product-zoom.css";
 
@@ -966,6 +967,8 @@ const Inventario = () => {
           tone="warning"
         />
       </div>
+
+      <ImeiSedesPanel />
 
       <div className="space-y-4 rounded-2xl border border-border/70 bg-card p-4 shadow-sm">
         <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)]">
