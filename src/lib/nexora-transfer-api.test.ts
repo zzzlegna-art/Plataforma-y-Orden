@@ -4,6 +4,7 @@ import {
   dispatchMultisiteTransfer,
   receiveMultisiteTransfer,
   verifyMultisiteOriginReturn,
+  resolveMultisiteOriginIncident,
   MultisiteTransferError,
 } from "./nexora-transfer-api";
 
@@ -117,6 +118,52 @@ describe("API de transferencias multisede: sin cambios optimistas de inventario"
         { unit_id: "uuid-20", present: false, observation: "Sigue sin aparecer físicamente" },
       ]),
     });
+  });
+
+  it("resuelve una incidencia solo con observación y validación del mismo IMEI", async () => {
+    const rpc = vi.fn(async () => ok({
+      returnId: "return-1", unitId: "uuid-18",
+      status: "incidencia", idempotent: false, remainingIncidents: 1,
+    }));
+    const result = await resolveMultisiteOriginIncident({
+      returnId: "return-1", unitId: "uuid-18",
+      observation: "Equipo encontrado durante el arqueo físico", rpc,
+    });
+    expect(result.remainingIncidents).toBe(1);
+    expect(rpc).toHaveBeenCalledWith("nexora_resolve_origin_incident", {
+      p_return_id: "return-1", p_unit_id: "uuid-18",
+      p_observation: "Equipo encontrado durante el arqueo físico",
+    });
+  });
+
+  it("si no hay evidencia de recuperación no llama al servidor", async () => {
+    const rpc = vi.fn(async () => ok({
+      returnId: "return-1", unitId: "uuid-18", status: "recibido", idempotent: false,
+    }));
+    await expect(resolveMultisiteOriginIncident({
+      returnId: "return-1", unitId: "uuid-18", observation: " ", rpc,
+    })).rejects.toThrow(/verificó físicamente/);
+    expect(rpc).not.toHaveBeenCalled();
+  });
+
+  it("reintentar una recuperación no inventa otra entrada de inventario", async () => {
+    const rpc = vi.fn(async () => ok({
+      returnId: "return-1", unitId: "uuid-18", status: "recibido", idempotent: true,
+    }));
+    const result = await resolveMultisiteOriginIncident({
+      returnId: "return-1", unitId: "uuid-18", observation: "Encontrado", rpc,
+    });
+    expect(result.idempotent).toBe(true);
+    expect(rpc).toHaveBeenCalledTimes(1);
+  });
+
+  it("rechaza un documento de recuperación que no coincida con la solicitud", async () => {
+    const rpc = vi.fn(async () => ok({
+      returnId: "return-2", unitId: "uuid-18", status: "recibido", idempotent: false,
+    }));
+    await expect(resolveMultisiteOriginIncident({
+      returnId: "return-1", unitId: "uuid-18", observation: "Encontrado", rpc,
+    })).rejects.toThrow(/no coincide/);
   });
 
   it("rechaza una respuesta inválida sin suponer que se movió el inventario", async () => {
