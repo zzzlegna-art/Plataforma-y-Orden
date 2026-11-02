@@ -79,6 +79,19 @@ Migración nueva: `20261101180000_nexora_transfer_atomic_staging.sql`. **No se h
 
 Se agregó `src/lib/nexora-sql-contract.test.ts` para detectar delimitadores PL/pgSQL rotos, ausencia de restricciones, políticas y acceso anónimo. Esta prueba estática **no sustituye** ejecutar SQL contra PostgreSQL en staging.
 
+## Vida global del IMEI y bloqueo integral durante el traslado
+
+Última ampliación preparada en la rama multisede:
+
+- El historial de traslado es **consultable por todos los empleados activos de la red**, independientemente de la ciudad. Las políticas de lectura de `nexora_transfers` validan `bodega_is_staff()`; el historial de eventos e IMEI sigue sujeto a RLS y ninguna de estas lecturas autoriza movimientos de mercancía.
+- Cada serial tiene una sección adicional en `/seriales` llamada **Recorrido del IMEI entre ciudades**. Distingue despachos, recepciones físicas, faltantes, verificaciones de devoluciones e incidencias, con nombre de ciudad y sede y documento asociado.
+- Los movimientos registrados por los RPC también usan nombres legibles de ciudad y bodega/local en las observaciones del movimiento legacy.
+- La sección se oculta si las tablas nuevas aún no están migradas, para no bloquear ni confundir con la hoja de vida legacy. Si el servidor falla por otra causa, muestra una advertencia sin ocultar el historial existente.
+- `nexora_prevent_open_transfer_restock` ahora intercepta **cualquier UPDATE** de un IMEI con traslado abierto, protegiendo también serial, costo, referencia, color, observaciones y demás campos. Solo permite el primer cambio de estado a `en_transito` realizado por el RPC de despacho, sin modificar ninguno de los demás campos. La operación de recepción debe cerrar antes la marca `is_open`.
+- Pruebas: recorrido regional por IMEI, incidente y observación, registros ajenos excluidos, retorno físico y compatibilidad de la interfaz cuando todavía no hay migración.
+
+**Importante:** la implementación es código no publicado y todavía no verificado con SQL de staging. No se atribuye stock ni se activa un traslado por leer su historial; la autorización efectiva de los cuatro roles y la migración del inventario siguen siendo puertas obligatorias.
+
 ## No implementado todavía
 
 - Cambio del rol real de `bodega_profiles` o el motor de permisos legacy.
