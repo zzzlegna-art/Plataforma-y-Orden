@@ -84,6 +84,7 @@ import type { Product, ProductCategory, ProductTechnicalSpecKey } from "@/lib/ty
 import { cn } from "@/lib/utils";
 import { ProductFormDialog } from "./ProductFormDialog";
 import { ImeiSedesPanel } from "./ImeiSedesPanel";
+import { ReferenceSitesPanel } from "./ReferenceSitesPanel";
 import { ProductImportDialog } from "./ProductImportDialog";
 import "./inventory-product-zoom.css";
 
@@ -968,6 +969,7 @@ const Inventario = () => {
         />
       </div>
 
+      <ReferenceSitesPanel />
       <ImeiSedesPanel />
 
       <div className="space-y-4 rounded-2xl border border-border/70 bg-card p-4 shadow-sm">
