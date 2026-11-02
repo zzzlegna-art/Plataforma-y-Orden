@@ -132,7 +132,7 @@ create index nexora_transfer_units_transfer_idx
 -- SECURITY INVOKER podria no detectar ese transito abierto.
 -- La funcion no acepta parametros externos y solo se ejecuta como trigger.
 create function public.nexora_prevent_open_transfer_restock()
-returns trigger language plpgsql security definer set search_path = '' as $
+returns trigger language plpgsql security definer set search_path = '' as $$
 begin
   if (old.status is distinct from new.status or old.site_id is distinct from new.site_id)
      and exists (
@@ -148,7 +148,7 @@ begin
     end if;
   end if;
   return new;
-end; $;
+end; $$;
 
 revoke all on function public.nexora_prevent_open_transfer_restock() from public,anon,authenticated;
 
