@@ -91,8 +91,8 @@ export const ReferenceReconciliationProgressPanel=()=>{
     <div className="space-y-4 border-t p-4 sm:p-6">
       <p className="flex items-start gap-2 text-xs leading-relaxed text-muted-foreground">
         <LockKeyhole className="mt-0.5 size-4 shrink-0"/>
-        Consulta exclusiva de Administrador. **Pendiente** significa sin lectura física,
-        NO es un faltante comprobado. **Cotejado** es evidencia provisional,
+        Consulta exclusiva de Administrador. Pendiente significa sin lectura física,
+        NO es un faltante comprobado. Cotejado es evidencia provisional,
         NO inventario aprobado ni mercancía vendible.
       </p>
       {busy?<p role="status" className="rounded-xl border bg-muted/20 p-3 text-sm text-muted-foreground">
