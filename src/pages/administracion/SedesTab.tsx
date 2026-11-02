@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AprobacionInventarioInicialPanel } from "./AprobacionInventarioInicialPanel";
 import { TrasladosMultisedePanel } from "./TrasladosMultisedePanel";
 import { DisponibilidadPorSedePanel } from "./DisponibilidadPorSedePanel";
+import { PosPreflightPanel } from "./PosPreflightPanel";
 import { Building2, CheckCircle2, CircleHelp, MapPin, Pencil, Plus, RefreshCw, Store, Warehouse } from "lucide-react";
 import { toast } from "sonner";
 
@@ -254,6 +255,7 @@ export const SedesTab = () => {
       <AprobacionInventarioInicialPanel onApproved={markApproved} />
       <TrasladosMultisedePanel sites={sites} />
       <DisponibilidadPorSedePanel />
+      <PosPreflightPanel sites={sites} />
 
       <Dialog open={cityOpen} onOpenChange={(open) => { if (!busyRef.current) setCityOpen(open); }}>
         <DialogContent className="sm:max-w-lg">
