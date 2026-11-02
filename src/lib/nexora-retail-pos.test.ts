@@ -32,7 +32,7 @@ describe("Nexora POS: venta minorista segura por IMEI", () => {
     expect(validateRetailSale({...base,price:Infinity,paid:Infinity})).toMatch(/precio/);
   });
   it("solo acepta efectivo o transferencia, nunca otro medio", () => {
-    expect(validateRetailSale({...base,paymentMethod:"credito" as "efectivo"})).toMatch(/medio/);
+    expect(validateRetailSale({...base,paymentMethod:"credito" as "efectivo"})).toMatch(/efectivo o transferencia/);
   });
   it("interpreta un comprobante exacto e identifica reintentos idempotentes", () => {
     const receipt=parseRetailReceipt({
