@@ -1,0 +1,52 @@
+name: Validate Nexora Multisede SQL
+
+on:
+  push:
+    branches:
+      - feat/nexora-2-catalogo-multisede
+    paths:
+      - 'supabase/migrations/20261101*_nexora_*.sql'
+      - 'supabase/verification/nexora_multisite_staging_checks.sql'
+      - '.github/workflows/nexora-multisite-sql.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  sql-parse:
+    name: PostgreSQL SQL grammar (no database writes)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install PostgreSQL parser
+        run: python -m pip install pglast
+      - name: Parse all staged Nexora migrations
+        run: |
+          python - <<'PY'
+          import sys
+          from pathlib import Path
+          from pglast import parse_sql
+
+          files = sorted(Path("supabase/migrations").glob("20261101*_nexora_*.sql"))
+          files += [Path("supabase/verification/nexora_multisite_staging_checks.sql")]
+          if len(files) != 4:
+              raise SystemExit(f"Expected 3 migrations + 1 verification script, got {len(files)}")
+          failures = []
+          for path in files:
+              print(f"Checking PostgreSQL grammar: {path}")
+              try:
+                  sql = path.read_text(encoding="utf-8")
+                  parse_sql(sql)
+                  print("OK")
+              except Exception as error:
+                  failures.append((path, str(error)))
+          for path, error in failures:
+              print(f"ERROR {path}: {error}", file=sys.stderr)
+          if failures:
+              raise SystemExit(1)
+          print(f"Successfully parsed {len(files)} SQL files. No SQL executed.")
+          PY
