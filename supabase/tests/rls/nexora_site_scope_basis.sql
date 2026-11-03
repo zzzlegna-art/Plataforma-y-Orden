@@ -10,6 +10,8 @@ declare
   v_main uuid;
   v_store uuid;
   v_regional uuid;
+  v_other_city_regional uuid;
+  v_same_city_regional uuid;
   v_regional_store uuid;
   v_other_store uuid;
   v_own_site uuid;
@@ -59,6 +61,16 @@ begin
   select id into v_regional_store from public.nexora_sites
    where is_active and site_type='local' and parent_site_id=v_regional
    order by name limit 1;
+  select d.id into v_other_city_regional from public.nexora_sites d
+    join public.nexora_sites o on o.id=v_regional
+    where d.is_active and d.site_type='bodega'
+      and d.id<>o.id and d.city_id<>o.city_id
+    order by d.name limit 1;
+  select d.id into v_same_city_regional from public.nexora_sites d
+    join public.nexora_sites o on o.id=v_regional
+    where d.is_active and d.site_type='bodega'
+      and d.id<>o.id and d.city_id=o.city_id
+    order by d.name limit 1;
   select id into v_other_store from public.nexora_sites
    where is_active and site_type='local' and id<>v_store
    order by name limit 1;
@@ -82,6 +94,15 @@ begin
          or nexora_internal.transfer_actor_scope_basis('receive',v_regional,v_main) then
         raise exception 'Se debe permitir principal a bodega dependiente, pero no bodega a principal.';
       end if;
+    end if;
+
+    if v_regional is not null and v_other_city_regional is not null and
+       not nexora_internal.transfer_actor_scope_basis('create',v_regional,v_other_city_regional) then
+      raise exception 'Dos bodegas regionales de distintas ciudades pueden trasladarse mercancía.';
+    end if;
+    if v_regional is not null and v_same_city_regional is not null and
+       nexora_internal.transfer_actor_scope_basis('create',v_regional,v_same_city_regional) then
+      raise exception 'La ruta regional a regional solo está aprobada entre ciudades distintas.';
     end if;
 
     if v_regional is not null and v_regional_store is not null then
