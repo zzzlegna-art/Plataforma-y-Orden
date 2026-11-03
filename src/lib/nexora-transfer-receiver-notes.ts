@@ -47,7 +47,8 @@ export const reconcileReceiverNotes = (
     const reference = expectedByLine.get(lineId);
     if (!lineId || seen.has(lineId) || !reference || reference.serial !== serial ||
       observation.trim() !== observation || observation.length < 3 ||
-      observation.length > 500 || !recordedBy || !recordedAt ||
+      observation.length > 500 || !recordedBy || recordedBy!==reference.reportedBy ||
+      !recordedAt ||
       !Number.isFinite(Date.parse(recordedAt))) return incomplete;
     seen.add(lineId);
     entries.push({lineId,serial,observation,recordedBy,recordedAt});
