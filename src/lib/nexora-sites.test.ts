@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
-  allowedParents, validateSiteDraft, type NexoraCity, type NexoraSite, type SiteDraft,
+  allowedParents, isAllowedTransferRoute, listAllowedTransferRoutes, validateSiteDraft,
+  type NexoraCity, type NexoraSite, type SiteDraft,
 } from "./nexora-sites";
 
 const cities: NexoraCity[] = [
@@ -45,5 +46,44 @@ describe("Nexora 2.0: jerarquía segura de ciudades y sedes", () => {
     expect(validateSiteDraft(draft({ cityId: "otra" }), cities, sites)).toMatch(/ciudad/);
     expect(validateSiteDraft(draft({ name: " " }), cities, sites)).toMatch(/nombre/);
     expect(validateSiteDraft(draft({ parentSiteId: null }), cities, sites)).toMatch(/Selecciona/);
+  });
+});
+
+
+describe("Nexora V4: rutas físicas de traslados", () => {
+  const network: NexoraSite[] = [
+    { id: "principal", cityId: "barranquilla", name: "Bodega 6A", siteType: "principal", parentSiteId: null, address: null, isActive: true },
+    { id: "bodega-cali", cityId: "cali", name: "Bodega Cali", siteType: "bodega", parentSiteId: "principal", address: null, isActive: true },
+    { id: "bodega-medellin", cityId: "medellin", name: "Bodega Medellín", siteType: "bodega", parentSiteId: "principal", address: null, isActive: true },
+    { id: "local-baq", cityId: "barranquilla", name: "iPhone America", siteType: "local", parentSiteId: "principal", address: null, isActive: true },
+    { id: "local-cali", cityId: "cali", name: "Local Cali", siteType: "local", parentSiteId: "bodega-cali", address: null, isActive: true },
+    { id: "local-medellin", cityId: "medellin", name: "Local Medellín", siteType: "local", parentSiteId: "bodega-medellin", address: null, isActive: true },
+    { id: "local-inactive", cityId: "cali", name: "Local inactivo", siteType: "local", parentSiteId: "bodega-cali", address: null, isActive: false },
+  ];
+  const byId = (id: string) => network.find((site) => site.id === id)!;
+
+  it("permite principal a bodega regional y bodega a otra ciudad", () => {
+    expect(isAllowedTransferRoute(byId("principal"), byId("bodega-cali"))).toBe(true);
+    expect(isAllowedTransferRoute(byId("bodega-cali"), byId("bodega-medellin"))).toBe(true);
+  });
+
+  it("permite bodega a su local y retorno del local a su bodega de origen", () => {
+    expect(isAllowedTransferRoute(byId("bodega-cali"), byId("local-cali"))).toBe(true);
+    expect(isAllowedTransferRoute(byId("local-cali"), byId("bodega-cali"))).toBe(true);
+    expect(isAllowedTransferRoute(byId("principal"), byId("local-baq"))).toBe(true);
+    expect(isAllowedTransferRoute(byId("local-baq"), byId("principal"))).toBe(true);
+  });
+
+  it("rechaza local a otro local, bodega ajena y destinos inactivos", () => {
+    expect(isAllowedTransferRoute(byId("local-cali"), byId("local-medellin"))).toBe(false);
+    expect(isAllowedTransferRoute(byId("bodega-cali"), byId("local-medellin"))).toBe(false);
+    expect(isAllowedTransferRoute(byId("local-cali"), byId("local-inactive"))).toBe(false);
+  });
+
+  it("enumera únicamente rutas válidas y no duplica destinos", () => {
+    const routes = listAllowedTransferRoutes(network);
+    expect(routes.some((route) => route.origin.id === "local-cali" && route.destination.id === "bodega-cali")).toBe(true);
+    expect(routes.some((route) => route.origin.id === "local-cali" && route.destination.id === "local-medellin")).toBe(false);
+    expect(routes.every((route) => route.origin.isActive && route.destination.isActive)).toBe(true);
   });
 });
