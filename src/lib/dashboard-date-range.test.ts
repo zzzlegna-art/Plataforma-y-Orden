@@ -4,6 +4,7 @@ import {
   buildDashboardMovementChartData,
   getLocalDateInputValue,
   isWithinDateRange,
+  isPedidoSerialAssignment,
 } from "./dashboard-date-range";
 
 describe("dashboard date range", () => {
@@ -47,6 +48,22 @@ describe("dashboard date range", () => {
     const data = buildDashboardMovementChartData([], "2026-10-01", "2026-10-03", new Date(2026, 9, 21));
     expect(data).toHaveLength(3);
     expect(data.every((point) => point.entradas === 0 && point.salidas === 0 && point.devoluciones === 0)).toBe(true);
+  });
+
+  it("separa asignaciones de salidas y ajustes generales", () => {
+    const items = [
+      {createdAt:"2026-11-03T10:00:00",type:"entrada",quantity:2,referenceType:"recepcion"},
+      {createdAt:"2026-11-03T11:00:00",type:"ajuste",quantity:1,referenceType:"pedido",notes:"Serial 123 asignado al pedido PED-001 (pendiente de despacho)"},
+      {createdAt:"2026-11-03T12:00:00",type:"ajuste",quantity:7,referenceType:"manual",notes:"Control fisico"},
+      {createdAt:"2026-11-03T13:00:00",type:"ajuste",quantity:8,referenceType:"pedido",notes:"Reclasificacion de pedido"},
+      {createdAt:"2026-11-03T14:00:00",type:"salida",quantity:1,referenceType:"pedido"},
+    ];
+    expect(isPedidoSerialAssignment(items[1])).toBe(true);
+    expect(isPedidoSerialAssignment(items[3])).toBe(false);
+    const [d]=buildDashboardMovementChartData(items,"2026-11-03","2026-11-03");
+    expect(d.entradas).toBe(2);
+    expect(d.asignaciones).toBe(1);
+    expect(d.salidas).toBe(1);
   });
 
   it("returns no buckets for an invalid reversed range", () => {
