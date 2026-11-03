@@ -404,6 +404,39 @@ export const TrasladosMultisedePanel = ({ sites }: { sites: readonly NexoraSite[
                       <h4 className="flex items-center gap-2 font-semibold"><FileClock className="h-4 w-4 text-amber-600" /> Documento de devolución pendiente</h4>
                       <p className="mt-1 text-xs text-muted-foreground">DEV-{String(selected.number).padStart(6, "0")} · {detail.returnDocument.expectedCount} IMEI reportados como faltantes · {detail.returnDocument.status === "pending" ? "Sin cerrar" : "Completado"}</p>
                       <p className="mt-2 text-xs text-muted-foreground">Ningún faltante regresa a stock de origen hasta cotejar su llegada física.</p>
+                      {detail.missingAudit.state === "verified" ? (
+                        <div className="mt-3 rounded-lg border border-emerald-300/50 bg-emerald-50/40 p-3 dark:bg-emerald-500/5">
+                          <p className="text-sm font-semibold text-emerald-800 dark:text-emerald-300">
+                            Historial auditado en Supabase: {detail.missingAudit.entries.length} IMEI
+                          </p>
+                          <p className="mt-1 text-xs text-muted-foreground">
+                            Observación individual «No llegó», usuario y fecha guardados al registrar la recepción.
+                            El incidente permanece aunque su retorno físico se confirme después.
+                          </p>
+                          <ul className="mt-2 max-h-44 list-disc space-y-2 overflow-y-auto pl-5 text-xs">
+                            {detail.missingAudit.entries.map((item) => (
+                              <li key={item.lineId}>
+                                <span className="font-mono font-semibold">{item.serial}</span>
+                                {" · No llegó · "}
+                                <time dateTime={item.reportedAt}>
+                                  {new Date(item.reportedAt).toLocaleString("es-CO",{
+                                    dateStyle:"medium",timeStyle:"short",timeZone:"America/Bogota",
+                                  })}
+                                </time>
+                                <span className="block text-muted-foreground">
+                                  Usuario que registró: <span className="font-mono">{item.reportedBy}</span>
+                                </span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      ) : (
+                        <p role="status" className="mt-3 rounded-lg border border-amber-300/50 bg-amber-50/50 p-3 text-xs text-amber-900 dark:bg-amber-500/5 dark:text-amber-200">
+                          {detail.missingAudit.state === "unavailable"
+                            ? "Historial individual pendiente de desplegar en Supabase. La lista de IMEI pendientes es informativa, no una certificación de auditoría."
+                            : "Historial incompleto o inconsistente con el manifiesto. No se puede certificar la observación individual hasta corregir los registros del servidor."}
+                        </p>
+                      )}
                       {pendingReturns.length>0 ? (
                         <div className="mt-3 rounded-lg border bg-background/70 p-3">
                           <p className="text-xs font-semibold">IMEI con estado «No llegó» / retorno pendiente</p>

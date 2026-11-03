@@ -1,3 +1,8 @@
+import {
+  isMissingAuditTableNotDeployed, reconcileTransferMissingAudit,
+  type TransferMissingAudit,
+} from "./nexora-transfer-missing-audit";
+
 /**
  * Nexora Multisede · Control de custodia, independiente del stock comercial.
  * Toda transición es RPC y el servidor verifica rol, IMEI, sede y estado.
@@ -30,6 +35,7 @@ export interface TransferReturnDocument {
 export interface TransferDetail {
   lines: NexoraTransferLine[];
   returnDocument: TransferReturnDocument | null;
+  missingAudit: TransferMissingAudit;
 }
 
 export const transferStatusLabel: Record<TransferStatus, string> = {
@@ -99,7 +105,7 @@ export const getReceivingSummary = (
 };
 
 type Row = Record<string, unknown>;
-type Response<T> = { data: T | null; error: { message: string } | null };
+type Response<T> = { data: T | null; error: { message: string; code?: string | null } | null };
 type Query = PromiseLike<Response<Row[]>> & {
   eq: (field: string, value: string) => Query;
   order: (field: string, opts?: { ascending?: boolean }) => Query;
@@ -143,28 +149,46 @@ export const listNexoraTransfers = async (): Promise<NexoraTransfer[]> => {
 };
 
 export const getNexoraTransferDetail = async (transferId: string): Promise<TransferDetail> => {
-  const [lines, returns] = await Promise.all([
-    from("nexora_transfer_lines"), from("nexora_transfer_return_documents"),
+  const [lines, returns, audit] = await Promise.all([
+    from("nexora_transfer_lines"),
+    from("nexora_transfer_return_documents"),
+    from("nexora_transfer_missing_observations"),
   ]);
-  const [found, doc] = await Promise.all([
+  const [found, doc, observations] = await Promise.all([
     lines.select("*").eq("transfer_id", transferId).order("serial_snapshot"),
     returns.select("*").eq("transfer_id", transferId).limit(1),
+    audit.select("transfer_line_id,unit_id,serial_snapshot,observation,reported_by,reported_at")
+      .eq("transfer_id",transferId).order("reported_at",{ascending:true}).limit(100),
   ]);
   const rows = checked(found);
   const docs = checked(doc);
+  const mappedLines: NexoraTransferLine[] = rows.map((r) => ({
+    id: str(r.id),
+    unitId: str(r.unit_id),
+    serial: str(r.serial_snapshot),
+    state: r.state as TransferLineState,
+  }));
+  const expectedCount = docs.length ? count(docs[0].expected_count) : null;
+  let missingAudit: TransferMissingAudit;
+  if (observations.error) {
+    if (!isMissingAuditTableNotDeployed(observations.error)) throw new Error(
+      "No se pudo consultar el historial auditado de los IMEI faltantes: " + observations.error.message,
+    );
+    missingAudit = { state: "unavailable", entries: [] };
+  } else {
+    missingAudit = reconcileTransferMissingAudit(
+      checked(observations), mappedLines, expectedCount,
+    );
+  }
   return {
-    lines: rows.map((r) => ({
-      id: str(r.id),
-      unitId: str(r.unit_id),
-      serial: str(r.serial_snapshot),
-      state: r.state as TransferLineState,
-    })),
+    lines: mappedLines,
     returnDocument: docs.length ? {
       id: str(docs[0].id),
-      expectedCount: count(docs[0].expected_count),
+      expectedCount: expectedCount as number,
       status: docs[0].status as "pending" | "completed",
       createdAt: str(docs[0].created_at),
     } : null,
+    missingAudit,
   };
 };
 
