@@ -119,7 +119,7 @@ begin
     '%IMEI ajeno%');
   perform public.nexora_ci_expect_notes_denial(
     v_id,v_scanned,
-    jsonb_set(v_marks,'{1,lineId}',v_marks->0->'lineId'),
+    jsonb_set(v_marks,'{1}',v_marks->0),
     '%más de una vez%');
   perform public.nexora_ci_expect_notes_denial(
     v_id,array_append(v_scanned,'IMEI-AJENO'),v_marks,
