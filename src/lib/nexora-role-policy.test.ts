@@ -43,6 +43,10 @@ describe("Nexora Multisede 2.0 · cuatro roles aprobados", () => {
     exclusivo("cash.expense.record", ["encargado"]);
   });
 
+  it("solo Admin, Encargado y Vendedor pueden vender en un local", () => {
+    exclusivo("sales.create", ["admin", "encargado", "vendedor"]);
+  });
+
   it("reportes únicamente Administrador o Encargado", () => {
     exclusivo("reports.view", ["admin", "encargado"]);
   });
