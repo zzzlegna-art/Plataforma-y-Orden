@@ -345,7 +345,7 @@ export const TrasladosMultisedePanel = ({ sites }: { sites: readonly NexoraSite[
                     <span className="rounded-lg bg-primary/10 px-3 py-1.5 text-xs font-semibold text-primary">{transferStatusLabel[selected.status]}</span>
                   </div>
                   {selected.note ? <p className="rounded-lg bg-muted/30 p-3 text-sm">{selected.note}</p> : null}
-                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
                     {[
                       ["Enviados", detail.lines.length],
                       ["Recibidos", detail.lines.filter((l) => l.state === "received").length],
