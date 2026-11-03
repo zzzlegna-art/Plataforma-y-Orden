@@ -178,6 +178,12 @@ export const TrasladosMultisedePanel = ({ sites }: { sites: readonly NexoraSite[
   }));
   const missingNoteError = validateMissingTransferNotes(missingNotePayload);
   const pendingReturns = detail?.lines.filter((l) => l.state === "return_pending") ?? [];
+  const setLineMissing = (serial: string, missing: boolean) => {
+    const remaining = receiveSerials.filter((value) => value.toLowerCase() !== serial.toLowerCase());
+    if (!missing) remaining.push(serial);
+    setReceiveText(remaining.join("\n"));
+    setConfirmReceive(false);
+  };
   const returnError = validateTransferSerials(returnSerials);
   const matchingReturnSet = new Set(pendingReturns.map((l) => l.serial.toLowerCase()));
   const wrongReturns = returnSerials.filter((s) => !matchingReturnSet.has(s.toLowerCase()));
@@ -342,8 +348,9 @@ export const TrasladosMultisedePanel = ({ sites }: { sites: readonly NexoraSite[
                   <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
                     {[
                       ["Enviados", detail.lines.length],
-                      ["En destino", detail.lines.filter((l) => l.state === "received").length],
-                      ["Retorno pendiente", pendingReturns.length],
+                      ["Recibidos", detail.lines.filter((l) => l.state === "received").length],
+                      ["No recibidos", missingLines.length + pendingReturns.length],
+                      ["Pendientes de retorno", pendingReturns.length],
                     ].map(([label, value]) => (
                       <div key={label} className="rounded-lg border bg-muted/20 p-3">
                         <p className="text-xl font-bold tabular-nums">{value}</p>
@@ -420,8 +427,34 @@ export const TrasladosMultisedePanel = ({ sites }: { sites: readonly NexoraSite[
                         Introduce exclusivamente los IMEI <strong>recibidos físicamente en destino</strong>.
                         Los que falten generarán automáticamente un documento de devolución pendiente.
                       </p>
-                      <Textarea rows={5} value={receiveText} disabled={working} placeholder="Un IMEI recibido por línea"
+                      <Textarea rows={5} value={receiveText} disabled={working} placeholder="Escanea o escribe los IMEI recibidos, uno por línea"
                         onChange={(event) => { setReceiveText(event.target.value); setConfirmReceive(false); }} />
+                      <div className="space-y-2 rounded-xl border p-3">
+                        <h5 className="text-sm font-semibold">Verificación individual del manifiesto</h5>
+                        <p className="text-xs text-muted-foreground">
+                          Cada línea queda marcada como «No llegó» hasta que confirmes su recepción física.
+                        </p>
+                        <div className="max-h-64 space-y-2 overflow-y-auto">
+                          {detail.lines.filter((line) => line.state === "in_transit").map((line) => {
+                            const missing = !receivedSet.has(line.serial.toLowerCase());
+                            return (
+                              <label key={line.id} className="flex items-center gap-2 rounded-lg border bg-background px-3 py-2 text-xs">
+                                <input
+                                  type="checkbox"
+                                  checked={missing}
+                                  disabled={working}
+                                  aria-label={`Marcar ${line.serial} como No llegó`}
+                                  onChange={(event) => setLineMissing(line.serial, event.target.checked)}
+                                />
+                                <span className="font-mono">{line.serial}</span>
+                                <span className={missing ? "ml-auto font-semibold text-amber-700 dark:text-amber-300" : "ml-auto font-semibold text-emerald-700 dark:text-emerald-300"}>
+                                  {missing ? "No llegó" : "Recibido"}
+                                </span>
+                              </label>
+                            );
+                          })}
+                        </div>
+                      </div>
                       {missingLines.length > 0 ? (
                         <div className="space-y-3 rounded-xl border border-amber-500/25 bg-amber-500/5 p-3">
                           <div>
