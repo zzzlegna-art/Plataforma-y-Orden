@@ -160,6 +160,13 @@ export const MULTISITE_CAPABILITIES = [
     category: "Ventas y caja",
   },
   {
+    key: "sales.create",
+    label: "Registrar venta minorista",
+    description: "Solo en local autorizado, con caja abierta, IMEI en custodia y precio superior al costo real; la autorización final es del servidor.",
+    roles: ["admin", "encargado", "vendedor"],
+    category: "Ventas y caja",
+  },
+  {
     key: "sales.cancel",
     label: "Autorizar anulación de venta",
     description: "Conserva la venta histórica y su motivo de anulación.",
