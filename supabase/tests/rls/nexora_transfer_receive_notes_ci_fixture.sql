@@ -102,7 +102,7 @@ begin
   end;
 
   perform public.nexora_ci_expect_notes_denial(
-    v_id,v_scanned,v_marks-'0','%Debe marcar%');
+    v_id,v_scanned,v_marks - 0,'%Debe marcar%');
   perform public.nexora_ci_expect_notes_denial(
     v_id,v_scanned,'[]'::jsonb,'%Debe marcar%');
   perform public.nexora_ci_expect_notes_denial(
