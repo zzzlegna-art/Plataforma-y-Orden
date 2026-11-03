@@ -124,3 +124,48 @@ revoke all on function nexora_internal.site_role_scope_basis(uuid,text)
 
 comment on function nexora_internal.site_role_scope_basis(uuid,text) is
   'Base privada de alcance rol/sede del Plan Maestro V4; condicion necesaria, no permiso final. Nunca habilita roles, POS ni movimientos por si sola.';
+
+-- Traslados: comprueba la sede de responsabilidad en cada ETAPA, sin
+-- modificar la función ejecutora existente ni su restricción de Administrador.
+-- El destino no requiere que el despachador sea empleado del receptor:
+-- el receptor verifica su PROPIA sede al aceptar el manifiesto.
+create or replace function nexora_internal.transfer_actor_scope_basis(
+  p_action text, p_origin uuid, p_destination uuid
+)
+returns boolean language plpgsql stable security definer
+set search_path = pg_catalog
+as $
+declare
+  v_responsible_site uuid;
+begin
+  if auth.uid() is null or p_action is null
+     or p_origin is null or p_destination is null
+     or p_origin=p_destination then
+    return false;
+  end if;
+  if p_action not in ('create','dispatch','receive','return','cancel') then
+    return false;
+  end if;
+  if not exists (
+    select 1 from public.nexora_sites o
+    join public.nexora_sites d on d.parent_site_id=o.id
+    where o.id=p_origin and d.id=p_destination
+      and o.is_active and d.is_active
+  ) then
+    return false;
+  end if;
+
+  v_responsible_site:=case
+    when p_action='receive' then p_destination
+    else p_origin
+  end;
+  return nexora_internal.site_role_scope_basis(
+    v_responsible_site,'transfers.manage'
+  );
+end;
+$;
+revoke all on function nexora_internal.transfer_actor_scope_basis(text,uuid,uuid)
+  from public,anon,authenticated;
+
+comment on function nexora_internal.transfer_actor_scope_basis(text,uuid,uuid) is
+  'Alcance preparatorio de traslados por etapa. create/dispatch/return/cancel exigen sede origen; receive exige sede destino. No se llama desde execute_transfer hasta validación de RLS y pruebas E2E.';
