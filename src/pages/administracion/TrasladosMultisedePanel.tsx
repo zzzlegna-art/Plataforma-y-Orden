@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { getInitialInventoryProgress } from "@/lib/nexora-initial-approval";
 import {
-  getNexoraTransferDetail, getReceivingSummary, lineStatusLabel,
+  getMissingReceiptSerials, getNexoraTransferDetail, getReceivingSummary, lineStatusLabel,
   listNexoraTransfers, parseTransferSerials, runNexoraTransferAction,
   transferStatusLabel, validateTransferSerials,
   type NexoraTransfer, type NexoraTransferLine, type TransferDetail, type TransferAction,
@@ -142,6 +142,9 @@ export const TrasladosMultisedePanel = ({ sites }: { sites: readonly NexoraSite[
   const createError = validateTransferSerials(createSerials);
   const receipt = detail ? getReceivingSummary(detail.lines, receiveSerials) : null;
   const receiveError = validateTransferSerials(receiveSerials, true);
+  const missingPreview = detail && !receiveError && (receipt?.invalidSerials.length ?? 0)===0
+    && (receiveSerials.length>0 || confirmReceive)
+    ? getMissingReceiptSerials(detail.lines,receiveSerials) : [];
   const pendingReturns = detail?.lines.filter((l) => l.state === "return_pending") ?? [];
   const returnError = validateTransferSerials(returnSerials);
   const matchingReturnSet = new Set(pendingReturns.map((l) => l.serial.toLowerCase()));
@@ -370,6 +373,20 @@ export const TrasladosMultisedePanel = ({ sites }: { sites: readonly NexoraSite[
                           {receiveError ?? "Hay IMEI que no pertenecen al manifiesto."}
                         </p>
                       ) : null}
+                      {missingPreview.length > 0 ? (
+                        <div className="rounded-lg border border-amber-300/50 bg-amber-50/50 p-3 text-sm dark:bg-amber-500/5">
+                          <p className="font-semibold text-amber-800 dark:text-amber-300">
+                            Vista previa: {missingPreview.length} IMEI sin confirmar en destino
+                          </p>
+                          <p className="mt-1 text-xs text-muted-foreground">
+                            No llegaron según el cotejo actual. Esta lista es provisional hasta confirmar
+                            la recepción; no certifica una pérdida ni registra observaciones individuales.
+                          </p>
+                          <ul className="mt-2 max-h-36 list-disc space-y-1 overflow-y-auto pl-5 text-xs">
+                            {missingPreview.map((serial)=><li key={serial} className="font-mono">{serial}</li>)}
+                          </ul>
+                        </div>
+                      ) : null}
                       <label className="flex items-start gap-2 text-sm">
                         <input type="checkbox" className="mt-1" checked={confirmReceive}
                           onChange={(e) => setConfirmReceive(e.target.checked)} />
@@ -387,6 +404,18 @@ export const TrasladosMultisedePanel = ({ sites }: { sites: readonly NexoraSite[
                       <h4 className="flex items-center gap-2 font-semibold"><FileClock className="h-4 w-4 text-amber-600" /> Documento de devolución pendiente</h4>
                       <p className="mt-1 text-xs text-muted-foreground">DEV-{String(selected.number).padStart(6, "0")} · {detail.returnDocument.expectedCount} IMEI reportados como faltantes · {detail.returnDocument.status === "pending" ? "Sin cerrar" : "Completado"}</p>
                       <p className="mt-2 text-xs text-muted-foreground">Ningún faltante regresa a stock de origen hasta cotejar su llegada física.</p>
+                      {pendingReturns.length>0 ? (
+                        <div className="mt-3 rounded-lg border bg-background/70 p-3">
+                          <p className="text-xs font-semibold">IMEI con estado «No llegó» / retorno pendiente</p>
+                          <ul className="mt-2 max-h-36 list-disc space-y-1 overflow-y-auto pl-5 text-xs">
+                            {pendingReturns.map((line)=><li key={line.id} className="font-mono">{line.serial}</li>)}
+                          </ul>
+                          <p className="mt-2 text-xs text-muted-foreground">
+                            Estado derivado de custodia pendiente; la observación individual «No llegó»
+                            aún requiere persistencia auditada en el servidor.
+                          </p>
+                        </div>
+                      ) : null}
                     </div>
                   ) : null}
 
