@@ -10,21 +10,36 @@ import {
   PREPARATION_STEPS,getLaunchReadiness,
   type LaunchReadiness,type PreparationStep,
 } from "@/lib/nexora-launch-readiness";
+import {
+  fetchWarehouse6APreflight,type Warehouse6APreflight,
+} from "@/lib/nexora-warehouse-6a-opening";
 
 const fmt=(value:number)=>new Intl.NumberFormat("es-CO").format(value);
 const metricIcons=[MapPin,Building2,Warehouse,Store,Users,ClipboardCheck,Fingerprint,LockKeyhole];
 
 export const PreparacionOperacionTab=()=>{
   const [data,setData]=useState<LaunchReadiness|null>(null);
+  const [warehouse6A,setWarehouse6A]=useState<Warehouse6APreflight|null>(null);
   const [loading,setLoading]=useState(true);
   const [,setParams]=useSearchParams();
   const generation=useRef(0);
   const refresh=useCallback(async()=>{
     const current=++generation.current;
     setLoading(true);
+    setWarehouse6A(null);
     try{
       const result=await getLaunchReadiness();
-      if(current===generation.current)setData(result);
+      if(current!==generation.current)return;
+      setData(result);
+      if(!result.initialApproved){
+        try{
+          const preflight=await fetchWarehouse6APreflight();
+          if(current===generation.current)setWarehouse6A(preflight);
+        }catch{
+          // La evaluación de 6A es independiente; nunca presentar un permiso supuesto.
+          if(current===generation.current)setWarehouse6A(null);
+        }
+      }
     }catch(e){
       if(current===generation.current){
         setData(null);
@@ -58,8 +73,9 @@ export const PreparacionOperacionTab=()=>{
           </span>
           <h2 className="mt-4 text-2xl font-bold tracking-tight sm:text-3xl">Preparar la operación multisede</h2>
           <p className="mt-2 text-sm leading-relaxed text-slate-600 dark:text-slate-300">
-            Configura sedes, vincula empleados, concilia los IMEI y completa las autorizaciones.
-            Cada avance se comprueba directamente en Supabase, sin simular existencias ni activar ventas.
+            Configura sedes, vincula empleados y formaliza el inventario inicial antes de activar
+            operaciones. Bodega 6A admite declaración administrativa cuando su existencia física
+            ya fue revisada; no se inventan escaneos ni se habilitan ventas automáticamente.
           </p>
         </div>
         <Button size="sm" variant="outline" disabled={loading} onClick={()=>void refresh()}
@@ -88,11 +104,41 @@ export const PreparacionOperacionTab=()=>{
       </div>
     </div>
 
+    {data&&!data.initialApproved?<section aria-label="Certificación administrativa de Bodega 6A"
+      className="rounded-2xl border border-sky-200 bg-sky-50/60 p-5 text-slate-900 dark:border-sky-400/20 dark:bg-sky-400/[0.07] dark:text-white sm:p-6">
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div className="max-w-2xl">
+          <h3 className="flex items-center gap-2 text-base font-bold">
+            <ClipboardCheck className="h-5 w-5"/> Certificación del inventario de Bodega 6A
+          </h3>
+          <p className="mt-2 text-sm leading-relaxed">
+            Si el Administrador ya verificó físicamente todos los equipos elegibles de
+            Bodega 6A, puede registrar esa declaración mediante un acta excepcional.
+            La firma no inventa escaneos, no modifica costos y no certifica inventarios
+            de iPhone America ni de otras sedes.
+          </p>
+          <p className="mt-2 text-sm font-semibold">
+            {warehouse6A?.canCertify
+              ? `Prevalidación técnica favorable: ${fmt(warehouse6A.eligible)} IMEI elegibles y ${fmt(warehouse6A.soldHistorical)} vendidos históricos separados.`
+              : "No hay prevalidación favorable confirmada. Revisa los requisitos en el formulario de Bodega 6A."}
+          </p>
+          <p className="mt-1 text-xs">
+            Solo tu cuenta de Administrador puede firmar el acta, de forma expresa y auditable.
+            La preparación de roles, el costo individual y las ventas continúan sujetos a sus controles.
+          </p>
+        </div>
+        <Button variant="outline" disabled={loading} onClick={()=>openTab("sites")}
+          className="border-sky-300 bg-white text-slate-900 hover:bg-sky-100 dark:border-sky-400/30 dark:bg-white/10 dark:text-white">
+          Abrir acta en Ciudades y sedes <ArrowRight className="h-4 w-4"/>
+        </Button>
+      </div>
+    </section>:null}
+
     <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
       {[
         {label:"Locales activos",value:data?.stores??0,icon:Store},
         {label:"Personal vinculado",value:data?.activeAssignments??0,icon:Users},
-        {label:"IMEI por ubicar",value:data?.unmappedUnits??0,icon:Fingerprint},
+        {label:"IMEI sin acta inicial",value:data?.unmappedUnits??0,icon:Fingerprint},
         {label:"Perfiles preparados",value:data?.plannedRoles??0,icon:ShieldCheck},
       ].map(({label,value,icon:Icon})=>(
         <div key={label} className="rounded-2xl border bg-card p-4 text-card-foreground shadow-sm">
@@ -128,7 +174,7 @@ export const PreparacionOperacionTab=()=>{
                 </div>
                 <h4 className="mt-1 font-semibold">{meta.title}</h4>
                 <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{meta.detail}</p>
-                {step?.total!==undefined?<p className="mt-2 text-xs font-semibold tabular-nums">{fmt(step.current)} de {fmt(step.total)} IMEI conciliados</p>:null}
+                {step?.total!==undefined?<p className="mt-2 text-xs font-semibold tabular-nums">{fmt(step.current)} de {fmt(step.total)} IMEI incorporados al acta</p>:null}
               </div>
             </div>
             <Button variant="outline" size="sm" disabled={loading} onClick={()=>openTab(meta.tab)}
