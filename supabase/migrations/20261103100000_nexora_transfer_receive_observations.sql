@@ -189,8 +189,8 @@ create or replace function public.nexora_transfer_action(
   p_note text default null
 )
 returns jsonb
-language plpgsql security invoker
-set search_path = pg_catalog,public
+language plpgsql security definer
+set search_path = pg_catalog
 as $$
 begin
   if p_action='receive' then
@@ -201,6 +201,25 @@ begin
   );
 end;
 $$;
+
+-- Importante: la RPC interna original era ejecutable por authenticated,
+-- que podía saltarse el nuevo requisito de observaciones llamando a
+-- execute_transfer('receive',...) directamente. El esquema nexora_internal
+-- no es API pública, pero revocamos EXECUTE para cerrar el bypass incluso
+-- desde clientes SQL con USAGE en ese esquema.
+--
+-- El wrapper público es ahora SECURITY DEFINER y revalida identidad/rol
+-- en el ejecutor original para las demás etapas (create/dispatch/return/cancel).
+-- El recibo con notas también es SECURITY DEFINER y usa la función privada.
+revoke all on function nexora_internal.execute_transfer(
+  text,uuid,uuid,uuid,text[],text
+) from public,anon,authenticated;
+revoke all on function public.nexora_transfer_action(
+  text,uuid,uuid,uuid,text[],text
+) from public,anon,authenticated;
+grant execute on function public.nexora_transfer_action(
+  text,uuid,uuid,uuid,text[],text
+) to authenticated;
 
 comment on table public.nexora_transfer_missing_receipt_notes is
   'Observación escrita y confirmación explícita del receptor para cada IMEI que no llegó. Historial inmutable, vinculado a la observación automática del PR #144.';
