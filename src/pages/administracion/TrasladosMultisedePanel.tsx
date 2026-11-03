@@ -5,9 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { getInitialInventoryProgress } from "@/lib/nexora-initial-approval";
 import {
-  getNexoraTransferDetail, getReceivingSummary, lineStatusLabel,
+  getNexoraTransferDetail, getNexoraTransferReadiness, getReceivingSummary, lineStatusLabel,
   listNexoraTransfers, parseTransferSerials, runNexoraTransferAction,
   transferStatusLabel, validateTransferSerials,
   type NexoraTransfer, type NexoraTransferLine, type TransferDetail, type TransferAction,
@@ -58,11 +57,11 @@ export const TrasladosMultisedePanel = ({ sites }: { sites: readonly NexoraSite[
     const request = ++req.current;
     setLoading(true);
     try {
-      const [progress, records] = await Promise.all([
-        getInitialInventoryProgress(), listNexoraTransfers(),
+      const [isReady, records] = await Promise.all([
+        getNexoraTransferReadiness(), listNexoraTransfers(),
       ]);
       if (request !== req.current) return;
-      setApproved(progress.isApproved);
+      setApproved(isReady);
       setTransfers(records);
     } catch (error) {
       if (request === req.current) {
