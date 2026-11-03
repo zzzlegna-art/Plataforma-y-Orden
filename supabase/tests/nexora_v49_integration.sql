@@ -153,6 +153,36 @@ begin
  if not denied then raise exception 'Acta duplicada permitida'; end if;
 end $$;
 
+-- Un Encargado asignado SOLO al Local A no puede operar el Local B.
+select set_config('test.uid','11111111-1111-4111-8111-111111111111',false);
+do $
+declare denied boolean:=false;
+begin
+ begin
+   perform public.nexora_cash_operation(
+    'open','cccccccc-cccc-4ccc-8ccc-cccccccccccc',1000,null);
+ exception when others then
+   if position('sin Encargado habilitado en esta sede' in sqlerrm)>0
+      or position('No tienes permisos para operar' in sqlerrm)>0 then denied:=true;
+   else raise; end if;
+ end;
+ if not denied then raise exception 'Encargado operó caja de otra sede'; end if;
+end $;
+select set_config('test.uid','aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',false);
+
+-- La RPC pública tampoco debe ser ejecutable por anon.
+do $
+begin
+ if has_function_privilege('anon',
+   'public.nexora_set_cash_limits(uuid,numeric,numeric)','EXECUTE') then
+   raise exception 'Anon tiene acceso a configurar topes';
+ end if;
+ if has_function_privilege('anon',
+   'public.nexora_approve_local_initial(uuid,text,text)','EXECUTE') then
+   raise exception 'Anon tiene acceso a firmar inventario local';
+ end if;
+end $;
+
 -- Abrir caja vía RPC original de Nexora, con Encargado de prueba asignado.
 select public.nexora_cash_operation(
  'open','bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',10000,null);
