@@ -11,6 +11,7 @@ export type Permission =
   | "orders.manage"
   | "customers.manage"
   | "warranties.manage"
+  | "transfers.manage"
   | "users.manage"
   | "audit.view";
 
@@ -22,6 +23,7 @@ const BODEGUERO_PERMISSIONS: Permission[] = [
   "orders.manage",
   "customers.manage",
   "warranties.manage",
+  "transfers.manage",
 ];
 
 const PERMISSIONS_BY_ROLE: Record<Role, Permission[]> = {
