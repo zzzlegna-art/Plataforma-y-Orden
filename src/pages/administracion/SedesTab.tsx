@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AprobacionInventarioInicialPanel } from "./AprobacionInventarioInicialPanel";
-import { TrasladosMultisedePanel } from "./TrasladosMultisedePanel";
 import { DisponibilidadPorSedePanel } from "./DisponibilidadPorSedePanel";
 import { PosPreflightPanel } from "./PosPreflightPanel";
 import { Building2, CheckCircle2, CircleHelp, MapPin, Pencil, Plus, RefreshCw, Store, Warehouse } from "lucide-react";
@@ -277,7 +276,6 @@ export const SedesTab = () => {
       <CostEvidencePanel />
       <ConciliacionImeiPanel cities={cities} sites={sites} approvalLocked={approvalLocked} />
       <AprobacionInventarioInicialPanel onApproved={markApproved} />
-      <TrasladosMultisedePanel sites={sites} />
       <DisponibilidadPorSedePanel />
       <PosPreflightPanel sites={sites} />
 
