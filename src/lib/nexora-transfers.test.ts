@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
-  getReceivingSummary, parseTransferSerials, validateTransferSerials,
+  getReceivingSummary, parseTransferSerials, validateMissingTransferNotes, validateTransferSerials,
   type NexoraTransferLine,
 } from "./nexora-transfers";
 
@@ -61,5 +61,27 @@ describe("Nexora Multisede · traslado y recepción parcial", () => {
     getReceivingSummary(manifest, manifest.slice(0, 15).map((l) => l.serial));
     expect(manifest).toEqual(before);
     expect(manifest.every((line) => line.state === "in_transit")).toBe(true);
+  });
+});
+
+describe("Nexora V4 · observaciones individuales de faltantes", () => {
+  it("exige una observación por cada serial faltante", () => {
+    expect(validateMissingTransferNotes([
+      { serial: "IMEI-001", note: "No llegó en el paquete recibido." },
+      { serial: "IMEI-002", note: "Caja vacía según revisión en destino." },
+    ])).toBeNull();
+  });
+
+  it("rechaza notas vacías, demasiado cortas o mayores a 300 caracteres", () => {
+    expect(validateMissingTransferNotes([{ serial: "IMEI-001", note: " " }])).toMatch(/3 a 300/);
+    expect(validateMissingTransferNotes([{ serial: "IMEI-001", note: "No" }])).toMatch(/3 a 300/);
+    expect(validateMissingTransferNotes([{ serial: "IMEI-001", note: "x".repeat(301) }])).toMatch(/3 a 300/);
+  });
+
+  it("rechaza seriales repetidos en el detalle de faltantes", () => {
+    expect(validateMissingTransferNotes([
+      { serial: " imei-001 ", note: "No llegó." },
+      { serial: "IMEI-001", note: "No llegó tampoco." },
+    ])).toMatch(/No repitas/);
   });
 });
