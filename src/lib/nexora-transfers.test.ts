@@ -9,6 +9,7 @@ const lines = (total: number): NexoraTransferLine[] => Array.from({ length: tota
   unitId: `unit-${i}`,
   serial: `IMEI-${String(i + 1).padStart(4, "0")}`,
   state: "in_transit",
+  missingNote: null,
 }));
 
 describe("Nexora Multisede · traslado y recepción parcial", () => {
