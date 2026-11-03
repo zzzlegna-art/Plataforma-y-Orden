@@ -15,10 +15,12 @@ create table public.bodega_profiles (
   id uuid primary key, role text not null, is_active boolean not null
 );
 create function public.bodega_is_admin()
-returns boolean language sql stable as $admin$
+returns boolean language sql stable security definer set search_path=pg_catalog as $admin$
   select exists(select 1 from public.bodega_profiles p
     where p.id=auth.uid() and p.role='admin' and p.is_active)
 $admin$;
+-- El rol de API puede invocar auth.uid y leer solo filas habilitadas por RLS.
+grant usage on schema auth,public to authenticated;
 
 create table public.nexora_sites (
   id uuid primary key, parent_site_id uuid, is_active boolean not null
@@ -276,5 +278,34 @@ begin
   raise notice 'PASS: RPC real 20 enviados -> 15 recibidos -> 5 No llegó -> 1+4 retornados.';
 end;
 $test$;
+
+-- Comprobación RLS real como rol API sin privilegios de dueño de tabla.
+set local role authenticated;
+select set_config('request.jwt.claim.sub',
+  '00000000-0000-0000-0000-000000000001',true);
+do $rls$
+begin
+  if (select count(*) from public.nexora_transfer_missing_observations)<>5 then
+    raise exception 'RLS denegó al Administrador la lectura de sus observaciones.';
+  end if;
+  if has_table_privilege('authenticated',
+    'public.nexora_transfer_missing_observations','UPDATE')
+    or has_table_privilege('authenticated',
+    'public.nexora_transfer_missing_observations','INSERT') then
+    raise exception 'El historial no puede ser escrito por el cliente.';
+  end if;
+end;
+$rls$;
+
+select set_config('request.jwt.claim.sub',
+  '00000000-0000-0000-0000-000000000002',true);
+do $rls$
+begin
+  if exists(select 1 from public.nexora_transfer_missing_observations) then
+    raise exception 'Un Bodeguero no debe ver las observaciones globales de Admin.';
+  end if;
+end;
+$rls$;
+reset role;
 
 rollback;
