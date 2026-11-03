@@ -280,6 +280,36 @@ begin
 end;
 $test$;
 
+-- Ni siquiera el dueño de las tablas puede reescribir un incidente
+-- mediante DML normal. El historial 20→15→5 permanece intacto.
+do $immutability$
+begin
+  begin
+    update public.nexora_transfer_missing_observations
+       set observation='No llegó' where serial_snapshot='IMEI-0016';
+    raise exception 'Se permitió UPDATE contra la auditoría.';
+  exception when others then
+    if sqlerrm not like '%Auditoría inmutable:%' then raise; end if;
+  end;
+  begin
+    delete from public.nexora_transfer_missing_observations
+      where serial_snapshot='IMEI-0016';
+    raise exception 'Se permitió DELETE contra la auditoría.';
+  exception when others then
+    if sqlerrm not like '%Auditoría inmutable:%' then raise; end if;
+  end;
+  begin
+    truncate table public.nexora_transfer_missing_observations;
+    raise exception 'Se permitió TRUNCATE contra la auditoría.';
+  exception when others then
+    if sqlerrm not like '%Auditoría inmutable:%' then raise; end if;
+  end;
+  if (select count(*) from public.nexora_transfer_missing_observations)<>5 then
+    raise exception 'Los incidentes históricos fueron alterados.';
+  end if;
+end;
+$immutability$;
+
 -- Comprobación RLS real como rol API sin privilegios de dueño de tabla.
 set local role authenticated;
 select set_config('request.jwt.claim.sub',
