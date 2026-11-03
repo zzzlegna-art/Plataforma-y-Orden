@@ -388,4 +388,58 @@ end;
 $api$;
 reset role;
 
+-- Caso de borde: recepción completa de veinte IMEI, cero «No llegó»,
+-- cero notas y cero devoluciones. La validación del Plan V4 NO obliga
+-- a inventar incidentes cuando la entrega física es íntegra.
+select set_config('request.jwt.claim.sub',
+  '00000000-0000-0000-0000-000000000001',true);
+insert into public.bodega_units(id,serial,status,cost)
+select gen_random_uuid(),'IMEI-FULL-'||lpad(i::text,4,'0'),
+  'en_bodega',200 from generate_series(1,20) i;
+insert into public.nexora_initial_unit_sites
+  (unit_id,site_id,serial_snapshot,cost_snapshot)
+select id,'00000000-0000-0000-0000-000000000100'::uuid,serial,cost
+from public.bodega_units
+where serial like 'IMEI-FULL-%';
+
+do $complete$
+declare
+  v_origin constant uuid := '00000000-0000-0000-0000-000000000100';
+  v_dest constant uuid := '00000000-0000-0000-0000-000000000200';
+  v_serials text[];
+  v_id uuid;
+  v_response jsonb;
+begin
+  select array_agg(serial order by serial) into v_serials
+  from public.bodega_units where serial like 'IMEI-FULL-%';
+  v_response:=nexora_internal.execute_transfer(
+    'create',null,v_origin,v_dest,v_serials,'CI, lote completo sin faltantes');
+  v_id:=(v_response->>'transferId')::uuid;
+  perform nexora_internal.execute_transfer(
+    'dispatch',v_id,null,null,array[]::text[],null);
+  v_response:=public.nexora_transfer_receive_with_notes(
+    v_id,v_serials,'[]'::jsonb);
+
+  if (v_response->>'received')::integer<>20
+    or (v_response->>'missing')::integer<>0
+    or (v_response->>'observationsRecorded')::integer<>0
+    or (v_response->>'status')<>'closed'
+    or (select count(*) from public.nexora_transfer_lines
+       where transfer_id=v_id and state='received')<>20
+    or exists(select 1 from public.nexora_transfer_return_documents
+       where transfer_id=v_id)
+    or exists(select 1 from public.nexora_transfer_missing_observations
+       where transfer_id=v_id)
+    or exists(select 1 from public.nexora_transfer_missing_receipt_notes
+       where transfer_id=v_id)
+    or (select count(*) from public.nexora_unit_custody c
+       join public.nexora_transfer_lines l on l.unit_id=c.unit_id
+       where l.transfer_id=v_id
+         and c.site_id=v_dest and c.custody_status='at_site')<>20 then
+    raise exception 'Recepción completa inventó faltantes o dejó custodia incorrecta.';
+  end if;
+  raise notice 'PASS: recepción completa 20 recibidos, 0 faltantes, 0 notas.';
+end;
+$complete$;
+
 rollback;
