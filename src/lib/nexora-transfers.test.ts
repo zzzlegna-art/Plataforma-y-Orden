@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
-  getReceivingSummary, parseTransferSerials, validateTransferSerials,
+  getMissingReceiptSerials, getReceivingSummary, parseTransferSerials, validateTransferSerials,
   type NexoraTransferLine,
 } from "./nexora-transfers";
 
@@ -18,6 +18,31 @@ describe("Nexora Multisede · traslado y recepción parcial", () => {
     expect(getReceivingSummary(manifest, received)).toEqual({
       received: 15, missing: 5, invalidSerials: [],
     });
+  });
+
+  it("identifica exactamente los cinco IMEI no llegados sin alterar la custodia", () => {
+    const manifest = lines(20);
+    const recorded = structuredClone(manifest);
+    const scanned = manifest.slice(0, 15).map((line) => line.serial);
+    expect(getMissingReceiptSerials(manifest, scanned)).toEqual(
+      manifest.slice(15).map((line) => line.serial),
+    );
+    expect(getMissingReceiptSerials(manifest, scanned.map((serial) => ` ${serial.toLowerCase()} `)))
+      .toEqual(manifest.slice(15).map((line) => line.serial));
+    expect(manifest).toEqual(recorded);
+  });
+
+  it("no suma un serial extraño ni escaneos repetidos como recepción válida", () => {
+    const manifest = lines(20);
+    const received = [...manifest.slice(0, 15).map((line) => line.serial),
+      "IMEI-AJENO", "imei-0001"];
+    expect(getReceivingSummary(manifest, received)).toEqual({
+      received: 15, missing: 5, invalidSerials: ["IMEI-AJENO"],
+    });
+    expect(getMissingReceiptSerials(manifest, received)).toEqual(
+      manifest.slice(15).map((line) => line.serial),
+    );
+    expect(validateTransferSerials(received)).toMatch(/duplicados/);
   });
 
   it("20 despachados, cero recibidos: 20 faltantes, sin stock ficticio", () => {
