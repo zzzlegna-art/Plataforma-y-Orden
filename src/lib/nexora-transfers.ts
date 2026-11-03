@@ -2,6 +2,7 @@ import {
   isMissingAuditTableNotDeployed, reconcileTransferMissingAudit,
   type TransferMissingAudit,
 } from "./nexora-transfer-missing-audit";
+import type { MissingReceiptMark } from "./nexora-missing-receipt-confirmation";
 
 /**
  * Nexora Multisede · Control de custodia, independiente del stock comercial.
@@ -204,6 +205,7 @@ export interface TransferActionResponse {
   returnedNow?: number;
   remaining?: number;
   returnDocumentCreated?: boolean;
+  observationsRecorded?: number;
 }
 
 export const runNexoraTransferAction = async (params: {
@@ -213,6 +215,7 @@ export const runNexoraTransferAction = async (params: {
   destination?: string;
   serials?: readonly string[];
   note?: string;
+  missingMarks?: readonly MissingReceiptMark[];
 }): Promise<TransferActionResponse> => {
   const serials = [...(params.serials ?? [])];
   const error = validateTransferSerials(
@@ -223,16 +226,33 @@ export const runNexoraTransferAction = async (params: {
   if (params.action === "create" && (!params.origin || !params.destination || params.origin === params.destination))
     throw new Error("Selecciona dos sedes distintas.");
   const { supabase } = await import("@/integrations/supabase/client");
+  // La recepción V4 no puede utilizar la RPC anterior que no guarda notas
+  // por línea. El servidor repite toda la validación bajo bloqueo transaccional.
+  if (params.action === "receive" &&
+    (!params.transferId || !Array.isArray(params.missingMarks))) {
+    throw new Error("La recepción exige las confirmaciones individuales por IMEI.");
+  }
+  const { rpcName, rpcArgs } = params.action === "receive" ? {
+    rpcName: "nexora_transfer_receive_with_notes",
+    rpcArgs: {
+      p_transfer_id: params.transferId,
+      p_received_serials: serials,
+      p_missing_marks: params.missingMarks,
+    },
+  } : {
+    rpcName: "nexora_transfer_action",
+    rpcArgs: {
+      p_action: params.action,
+      p_transfer_id: params.transferId ?? null,
+      p_origin: params.origin ?? null,
+      p_destination: params.destination ?? null,
+      p_serials: serials,
+      p_note: params.note?.trim() || null,
+    },
+  };
   const response = await (supabase as unknown as {
     rpc: (name: string, args: Record<string, unknown>) => Promise<Response<unknown>>;
-  }).rpc("nexora_transfer_action", {
-    p_action: params.action,
-    p_transfer_id: params.transferId ?? null,
-    p_origin: params.origin ?? null,
-    p_destination: params.destination ?? null,
-    p_serials: serials,
-    p_note: params.note?.trim() || null,
-  });
+  }).rpc(rpcName, rpcArgs);
   const row = checked(response);
   if (!row || typeof row !== "object" || Array.isArray(row))
     throw new Error("El servidor no confirmó el movimiento.");
@@ -254,5 +274,8 @@ export const runNexoraTransferAction = async (params: {
     ...(typeof result.returnDocumentCreated === "boolean" ? {
       returnDocumentCreated: result.returnDocumentCreated,
     } : {}),
+    ...(result.observationsRecorded == null ? {} : {
+      observationsRecorded: count(result.observationsRecorded),
+    }),
   };
 };
