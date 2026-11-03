@@ -7,6 +7,7 @@ on:
       - "supabase/migrations/20261103090000_nexora_transfer_missing_observations.sql"
       - "supabase/migrations/20261103100000_nexora_transfer_receive_observations.sql"
       - "supabase/tests/rls/nexora_transfer_receive_notes_ci_fixture.sql"
+      - "supabase/tests/rls/nexora_atomic_receipt_security_checks.sql"
       - "scripts/extract-nexora-receipt-fixture-setup.mjs"
       - "supabase/tests/rls/nexora_transfer_missing_ci_fixture.sql"
       - "supabase/tests/rls/nexora_transfer_full_flow_ci_fixture.sql"
