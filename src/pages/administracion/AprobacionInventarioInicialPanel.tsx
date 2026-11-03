@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { AlertTriangle, BadgeCheck, Building2, ClipboardCheck, LockKeyhole, RefreshCw, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import { Warehouse6ADeclarationPanel } from "./Warehouse6ADeclarationPanel";
+import { NexoraLocalInitialControls } from "./NexoraV49Controls";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -188,6 +189,7 @@ export const AprobacionInventarioInicialPanel = ({
         ) : null}
       </div>
 
+      <NexoraLocalInitialControls />
       <Warehouse6ADeclarationPanel
         alreadyApproved={Boolean(progress?.isApproved)}
         onApproved={()=>{onApproved();void refresh();}}
