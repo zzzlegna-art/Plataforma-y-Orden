@@ -67,3 +67,30 @@ comment on table public.nexora_transfer_missing_observations is
   'Historial inmutable: cada IMEI no recibido genera una observación "No llegó" automáticamente al pasar a retorno pendiente. El retorno posterior no borra el incidente.';
 comment on function nexora_internal.log_missing_transfer_line() is
   'Trigger privado; registra falta individual al recibir parcialmente. No confirma entrega física, no altera stock y no autoriza por sí mismo a operar traslados.';
+
+-- Defensa adicional: nadie puede reescribir o borrar incidentes ya observados,
+-- ni siquiera a través de un proceso administrativo con permisos de tabla.
+-- Un usuario con privilegios para modificar triggers requeriría una migración
+-- correctiva explícita; las operaciones diarias NUNCA alteran el historial.
+create function nexora_internal.reject_missing_audit_mutation()
+returns trigger
+language plpgsql security invoker
+set search_path = pg_catalog
+as $$
+begin
+  raise exception 'Auditoría inmutable: no se permite editar, borrar ni vaciar observaciones No llegó.';
+end;
+$$;
+revoke all on function nexora_internal.reject_missing_audit_mutation()
+  from public,anon,authenticated;
+
+create trigger nexora_transfer_missing_no_rewrite
+  before update or delete on public.nexora_transfer_missing_observations
+  for each row execute function nexora_internal.reject_missing_audit_mutation();
+
+create trigger nexora_transfer_missing_no_truncate
+  before truncate on public.nexora_transfer_missing_observations
+  for each statement execute function nexora_internal.reject_missing_audit_mutation();
+
+comment on function nexora_internal.reject_missing_audit_mutation() is
+  'Bloquea cambios, borrado y TRUNCATE de incidentes auditados. Cualquier corrección futura requiere migración explícita y revisión.';
