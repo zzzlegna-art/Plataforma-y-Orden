@@ -179,9 +179,12 @@ export const TrasladosMultisedePanel = ({ sites }: { sites: readonly NexoraSite[
   const missingNoteError = validateMissingTransferNotes(missingNotePayload);
   const pendingReturns = detail?.lines.filter((l) => l.state === "return_pending") ?? [];
   const setLineMissing = (serial: string, missing: boolean) => {
-    const remaining = receiveSerials.filter((value) => value.toLowerCase() !== serial.toLowerCase());
-    if (!missing) remaining.push(serial);
-    setReceiveText(remaining.join("\n"));
+    setReceiveText((previous) => {
+      const remaining = parseTransferSerials(previous)
+        .filter((value) => value.toLowerCase() !== serial.toLowerCase());
+      if (!missing) remaining.push(serial);
+      return remaining.join("\n");
+    });
     setConfirmReceive(false);
   };
   const returnError = validateTransferSerials(returnSerials);
