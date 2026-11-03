@@ -2,6 +2,7 @@ name: Nexora V4.9 - SQL integration (isolated)
 on:
   pull_request:
     paths:
+      - "supabase/migrations/20261102133000_nexora_cash_and_retail_foundation.sql"
       - "supabase/migrations/20261103180000_nexora_v49_cash_limits.sql"
       - "supabase/migrations/20261103181000_nexora_v49_local_initial_approval.sql"
       - "supabase/tests/nexora_v49_*"
@@ -47,6 +48,8 @@ jobs:
           psql --version
       - name: Create isolated mock of existing dependencies
         run: psql -X -v ON_ERROR_STOP=1 -f supabase/tests/nexora_v49_fixture.sql
+      - name: Install ORIGINAL Nexora cash/retail migration
+        run: psql -X -v ON_ERROR_STOP=1 -f supabase/migrations/20261102133000_nexora_cash_and_retail_foundation.sql
       - name: Execute V4.9 cash limits migration
         run: psql -X -v ON_ERROR_STOP=1 -f supabase/migrations/20261103180000_nexora_v49_cash_limits.sql
       - name: Execute V4.9 local approval migration
