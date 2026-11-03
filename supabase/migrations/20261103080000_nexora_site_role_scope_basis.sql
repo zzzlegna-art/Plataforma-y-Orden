@@ -25,6 +25,7 @@ begin
     return false;
   end if;
   if p_capability not in (
+    'inventory.view','inventory.imei.cost.view',
     'inventory.references.manage','inventory.imei.correct','inventory.adjust.authorize',
     'transfers.manage','transfers.edit.before_dispatch','transfers.cancel',
     'warranties.manage','reception.supplier.receive',
@@ -61,8 +62,23 @@ begin
     return false;
   end if;
 
-  -- El Administrador tiene alcance global. Para cualquier otro rol,
-  -- la vinculación a ESTA sede debe continuar activa en el servidor.
+  -- PLAN V4: los cuatro roles pueden VER inventario y costo por IMEI
+  -- en cualquier sede activa. La lectura global NO confiere control físico:
+  -- un rol no administrador debe conservar al menos una asignación real,
+  -- activa y vinculada a una sede activa. No se confía en el sitio del cliente.
+  -- Las RPC/RLS de inventario deben verificar esta base de solo lectura
+  -- antes de exponer información, sin permitir UPDATE ni movimientos.
+  if p_capability in ('inventory.view','inventory.imei.cost.view') then
+    return v_effective_role='admin' or exists (
+      select 1 from public.nexora_staff_sites a
+      join public.nexora_sites assigned on assigned.id=a.site_id
+      where a.user_id=v_actor and a.is_active and assigned.is_active
+    );
+  end if;
+
+  -- Las capacidades que ESCRIBEN o afectan una sede requieren su propia
+  -- asignación vigente. La lectura global anterior NO amplía este control.
+  -- El Administrador conserva el alcance operativo global.
   if v_effective_role<>'admin' and not exists (
     select 1 from public.nexora_staff_sites ss
     where ss.user_id=v_actor and ss.site_id=p_site_id and ss.is_active
