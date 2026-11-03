@@ -28,6 +28,11 @@ begin
        'nexora_internal.is_current_active_multisite_staff()','EXECUTE') is not true then
     raise exception 'El helper de lectura RLS debe ser ejecutable por authenticated.';
   end if;
+  if to_regprocedure('public.nexora_transfer_readiness()') is null
+     or has_function_privilege('authenticated','public.nexora_transfer_readiness()','EXECUTE') is not true
+     or has_function_privilege('anon','public.nexora_transfer_readiness()','EXECUTE') then
+    raise exception 'La lectura mínima de readiness debe estar disponible solo a personal autenticado.';
+  end if;
 
   select id into v_principal from public.nexora_sites
     where site_type='principal' and is_active order by name limit 1;
