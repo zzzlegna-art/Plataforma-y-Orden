@@ -20,6 +20,7 @@ export interface NexoraTransferLine {
   unitId: string;
   serial: string;
   state: TransferLineState;
+  missingNote: string | null;
 }
 export interface TransferReturnDocument {
   id: string;
@@ -62,6 +63,23 @@ export const validateTransferSerials = (
   const normalized = serials.map((s) => s.trim().toLocaleLowerCase("en-US"));
   if (new Set(normalized).size !== normalized.length)
     return "Hay IMEI duplicados en la lista.";
+  return null;
+};
+
+export interface MissingTransferNote {
+  serial: string;
+  note: string;
+}
+
+export const validateMissingTransferNotes = (
+  notes: readonly MissingTransferNote[],
+): string | null => {
+  if (notes.some(({ serial, note }) =>
+    !serial.trim() || serial.trim().length > 160 ||
+    note.trim().length < 3 || note.trim().length > 300
+  )) return "Cada IMEI faltante requiere una observación de 3 a 300 caracteres.";
+  const serials = notes.map(({ serial }) => serial.trim().toLocaleLowerCase("en-US"));
+  if (new Set(serials).size !== serials.length) return "No repitas IMEI en las observaciones.";
   return null;
 };
 
@@ -152,6 +170,7 @@ export const getNexoraTransferDetail = async (transferId: string): Promise<Trans
       unitId: str(r.unit_id),
       serial: str(r.serial_snapshot),
       state: r.state as TransferLineState,
+      missingNote: optional(r.missing_note),
     })),
     returnDocument: docs.length ? {
       id: str(docs[0].id),
@@ -183,8 +202,10 @@ export const runNexoraTransferAction = async (params: {
   destination?: string;
   serials?: readonly string[];
   note?: string;
+  missingNotes?: readonly MissingTransferNote[];
 }): Promise<TransferActionResponse> => {
   const serials = [...(params.serials ?? [])];
+  const missingNotes = [...(params.missingNotes ?? [])];
   const error = validateTransferSerials(
     serials,
     params.action === "receive" || params.action === "dispatch" || params.action === "cancel",
@@ -196,6 +217,10 @@ export const runNexoraTransferAction = async (params: {
     throw new Error("La observación no puede superar 300 caracteres.");
   if (params.action === "edit" && !params.transferId)
     throw new Error("Selecciona un borrador para corregirlo.");
+  const missingNoteError = validateMissingTransferNotes(missingNotes);
+  if (missingNoteError) throw new Error(missingNoteError);
+  if (params.action !== "receive" && missingNotes.length > 0)
+    throw new Error("Las observaciones de faltantes solo aplican a la recepción.");
   const { supabase } = await import("@/integrations/supabase/client");
   const response = await (supabase as unknown as {
     rpc: (name: string, args: Record<string, unknown>) => Promise<Response<unknown>>;
@@ -206,6 +231,7 @@ export const runNexoraTransferAction = async (params: {
     p_destination: params.destination ?? null,
     p_serials: serials,
     p_note: params.note?.trim() || null,
+    p_missing_notes: missingNotes,
   });
   const row = checked(response);
   if (!row || typeof row !== "object" || Array.isArray(row))
