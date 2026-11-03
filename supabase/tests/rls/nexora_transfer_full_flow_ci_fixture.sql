@@ -45,6 +45,7 @@ create table public.nexora_transfers (
   destination_site_id uuid not null references public.nexora_sites(id),
   note text, created_by uuid not null references public.bodega_profiles(id),
   status text not null default 'draft',
+  created_at timestamptz not null default now(),
   dispatched_at timestamptz,received_at timestamptz,closed_at timestamptz
 );
 create table public.nexora_unit_custody (
@@ -59,21 +60,29 @@ create table public.nexora_transfer_lines (
   transfer_id uuid not null references public.nexora_transfers(id),
   unit_id uuid not null references public.nexora_initial_unit_sites(unit_id),
   serial_snapshot text not null, cost_snapshot numeric,
-  state text not null default 'prepared',
+  state text not null default 'prepared'
+    check (state in ('prepared','in_transit','received','return_pending','returned','cancelled')),
   received_at timestamptz, returned_at timestamptz,
+  constraint nexora_line_receipt_shape check (state <> 'received' or received_at is not null),
+  constraint nexora_line_return_shape check (state <> 'returned' or returned_at is not null),
   unique (transfer_id,unit_id)
 );
 create unique index nexora_transfer_one_open_line_per_unit
   on public.nexora_transfer_lines(unit_id)
   where state in ('prepared','in_transit','return_pending');
 create table public.nexora_transfer_events (
-  transfer_id uuid references public.nexora_transfers(id),
+  id bigint generated always as identity primary key,
+  transfer_id uuid not null references public.nexora_transfers(id),
   event_type text not null,actor_id uuid not null,
-  detail jsonb not null default '{}'::jsonb
+  detail jsonb not null default '{}'::jsonb,
+  created_at timestamptz not null default now()
 );
 create table public.nexora_transfer_return_documents (
-  transfer_id uuid primary key references public.nexora_transfers(id),
-  expected_count integer not null, status text not null default 'pending',
+  id uuid primary key default gen_random_uuid(),
+  transfer_id uuid not null unique references public.nexora_transfers(id),
+  expected_count integer not null check (expected_count > 0),
+  status text not null default 'pending' check (status in ('pending','completed')),
+  created_at timestamptz not null default now(),
   completed_at timestamptz
 );
 create table public.bodega_orders (id uuid primary key,status text not null);
