@@ -121,6 +121,15 @@ begin
     v_id,v_scanned,
     jsonb_set(v_marks,'{0,observation}',to_jsonb('  '::text)),
     '%requiere una nota%');
+  -- Las notas con tabuladores/saltos de línea también deben rechazarse.
+  perform public.nexora_ci_expect_notes_denial(
+    v_id,v_scanned,
+    jsonb_set(v_marks,'{0,observation}',to_jsonb(E'\t\n \r '::text)),
+    '%requiere una nota%');
+  perform public.nexora_ci_expect_notes_denial(
+    v_id,v_scanned,
+    jsonb_set(v_marks,'{0,observation}',to_jsonb(E'\tAB\n'::text)),
+    '%requiere una nota%');
   perform public.nexora_ci_expect_notes_denial(
     v_id,v_scanned,
     jsonb_set(v_marks,'{0,serial}',to_jsonb('IMEI-AJENO'::text)),
