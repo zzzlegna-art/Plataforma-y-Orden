@@ -2,6 +2,8 @@ export interface DashboardMovement {
   createdAt: string;
   type: string;
   quantity: number;
+  referenceType?: string;
+  notes?: string | null;
 }
 
 export interface DashboardMovementPoint {
@@ -9,8 +11,14 @@ export interface DashboardMovementPoint {
   label: string;
   entradas: number;
   salidas: number;
+  asignaciones: number;
   devoluciones: number;
 }
+
+/** Un evento de asignacion no es una salida fisica ni una venta. */
+export const isPedidoSerialAssignment = (movement: DashboardMovement): boolean =>
+  movement.type === "ajuste" && movement.referenceType === "pedido" &&
+  typeof movement.notes === "string" && /\basignad[oa]\s+al\s+pedido\b/i.test(movement.notes);
 
 /** Formatea una fecha de calendario local para inputs HTML, sin convertirla a UTC. */
 export const getLocalDateInputValue = (date: Date = new Date()): string =>
@@ -87,6 +95,7 @@ export const buildDashboardMovementChartData = (
         .replace(/\.$/, ""),
       entradas: 0,
       salidas: 0,
+      asignaciones: 0,
       devoluciones: 0,
     });
   }
@@ -101,6 +110,7 @@ export const buildDashboardMovementChartData = (
     if (movement.type === "entrada") bucket.entradas += movement.quantity;
     else if (movement.type === "salida") bucket.salidas += movement.quantity;
     else if (movement.type === "devolucion") bucket.devoluciones += movement.quantity;
+    else if (isPedidoSerialAssignment(movement)) bucket.asignaciones += movement.quantity;
   }
 
   return [...buckets.values()];
