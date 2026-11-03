@@ -39,6 +39,7 @@ import {
   reportarNovedad,
 } from "@/lib/actions/units";
 import { formatCurrency, formatDateTime } from "@/lib/format";
+import { describeImeiOrderAssociation } from "@/lib/nexora-imei-order-state";
 import { findProductForReference } from "@/lib/product-reference";
 import { imprimirEtiquetas } from "@/lib/print-labels";
 import {
@@ -434,11 +435,18 @@ const HistorialSerial = ({ embedded = false }: { embedded?: boolean }) => {
             ) : null}
 
             {order ? (
-              <div className="mt-3 rounded-md bg-muted/50 px-3 py-2 text-sm">
-                <span className="text-muted-foreground">{t("serialHistory.sale")}: </span>
-                <CodeLink to={`/pedidos/${order.id}`}>{order.code}</CodeLink>
-                <span className="text-muted-foreground"> · </span>
-                <span className="font-medium">{customer?.name ?? "—"}</span>
+              <div className="mt-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-3 text-sm dark:border-amber-400/25 dark:bg-amber-400/10">
+                <p className="font-semibold text-foreground">
+                  {describeImeiOrderAssociation(order.status).label}
+                </p>
+                <p className="mt-1 text-muted-foreground">
+                  Pedido: <CodeLink to={`/pedidos/${order.id}`}>{order.code}</CodeLink>
+                  <span className="text-muted-foreground"> · </span>
+                  <span className="font-medium">{customer?.name ?? "—"}</span>
+                </p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {describeImeiOrderAssociation(order.status).note}
+                </p>
               </div>
             ) : null}
 
