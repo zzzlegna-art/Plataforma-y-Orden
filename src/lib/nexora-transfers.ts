@@ -280,6 +280,22 @@ export const runNexoraTransferAction = async (params: {
   if (!["draft","in_transit","awaiting_returns","closed","cancelled"].includes(status) ||
       typeof result.transferId !== "string")
     throw new Error("Respuesta del traslado inválida.");
+  if (params.action === "receive") {
+    // No mostrar una recepción como completada cuando la RPC devuelva un
+    // recibo incompleto, cifras inconsistentes o de otro traslado.
+    const received = count(result.received);
+    const missing = count(result.missing);
+    const written = count(result.observationsRecorded);
+    const expectedMissing = params.missingMarks?.length ?? -1;
+    if (result.received == null || result.missing == null ||
+      result.observationsRecorded == null ||
+      result.transferId !== params.transferId ||
+      received !== serials.length ||
+      missing !== expectedMissing || written !== missing ||
+      status !== (missing > 0 ? "awaiting_returns" : "closed")) {
+      throw new Error("La recepción no devolvió evidencia consistente por IMEI. Verifica el manifiesto en el servidor.");
+    }
+  }
   return {
     transferId: result.transferId,
     status,

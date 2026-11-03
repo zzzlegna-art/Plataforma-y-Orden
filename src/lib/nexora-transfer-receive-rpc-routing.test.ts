@@ -44,6 +44,47 @@ describe("Nexora V4 · ruta RPC segura de recepción con notas",()=>{
     expect(rpc).not.toHaveBeenCalled();
   });
 
+  it("acepta una recepción completa sin inventar notas ni faltantes",async()=>{
+    rpc.mockResolvedValue({data:{
+      transferId:"transfer-1",status:"closed",
+      received:1,missing:0,observationsRecorded:0,
+    },error:null});
+    const result=await runNexoraTransferAction({
+      action:"receive",transferId:"transfer-1",
+      serials:["IMEI-0015"],missingMarks:[],
+    });
+    expect(result).toMatchObject({
+      status:"closed",received:1,missing:0,observationsRecorded:0,
+    });
+  });
+
+  it("no muestra éxito si el servidor devuelve cinco faltantes pero menos notas",async()=>{
+    rpc.mockResolvedValue({data:{
+      transferId:"transfer-1",status:"awaiting_returns",
+      received:1,missing:2,observationsRecorded:1,
+    },error:null});
+    await expect(runNexoraTransferAction({
+      action:"receive",transferId:"transfer-1",
+      serials:["IMEI-0015"],missingMarks:marks,
+    })).rejects.toThrow(/evidencia consistente/);
+  });
+
+  it("rechaza identidades, estados o cantidades incompatibles con el manifiesto",async()=>{
+    const cases=[
+      {transferId:"otro-traslado",status:"awaiting_returns",received:1,missing:2,observationsRecorded:2},
+      {transferId:"transfer-1",status:"closed",received:1,missing:2,observationsRecorded:2},
+      {transferId:"transfer-1",status:"awaiting_returns",received:2,missing:2,observationsRecorded:2},
+      {transferId:"transfer-1",status:"awaiting_returns",received:1,missing:3,observationsRecorded:3},
+    ];
+    for(const response of cases){
+      rpc.mockResolvedValue({data:response,error:null});
+      await expect(runNexoraTransferAction({
+        action:"receive",transferId:"transfer-1",
+        serials:["IMEI-0015"],missingMarks:marks,
+      })).rejects.toThrow(/evidencia consistente/);
+    }
+  });
+
   it("mantiene dispatch, cancel y otros eventos en la RPC legacy",async()=>{
     rpc.mockResolvedValue({data:{transferId:"transfer-1",status:"in_transit",sent:3},error:null});
     const result=await runNexoraTransferAction({
