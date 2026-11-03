@@ -56,3 +56,5 @@ jobs:
         run: psql -X -v ON_ERROR_STOP=1 -f supabase/migrations/20261103181000_nexora_v49_local_initial_approval.sql
       - name: Test real SQL authorization, limits, RLS and audit
         run: psql -X -v ON_ERROR_STOP=1 -f supabase/tests/nexora_v49_integration.sql
+      - name: Test concurrent expenses do not exceed daily limit
+        run: bash supabase/tests/nexora_v49_concurrency.sh
