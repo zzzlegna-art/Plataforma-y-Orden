@@ -8,6 +8,12 @@ import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 
 vi.mock("@/lib/backend", () => ({}));
+vi.mock("@/lib/nexora-imei-timeline",()=>({
+  fetchMultisiteImeiTimeline: vi.fn(async (unitId:string)=>({
+    scope:"multisite_confirmed_only",unitId,serial:"354070964857184",
+    total:0,page:1,pageSize:25,items:[],
+  })),
+}));
 vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn(), warning: vi.fn() } }));
 
 import { emptyDb } from "@/lib/db";
@@ -93,4 +99,38 @@ describe("Historial de seriales", () => {
     expect(screen.getByText(/pertenece a una venta anterior a Nexora/)).toBeTruthy();
     expect(screen.getByText(/Venta antigua/)).toBeTruthy();
   });
+  it("muestra un IMEI comprometido con pedido sin confundir ubicación en bodega con venta", async () => {
+    const unit = {
+      id:"unit-1",productId:"product-1",serial:"354070964857184",
+      status:"en_bodega" as const,condition:"seminuevo" as const,
+      receivedAt:"2026-11-01T10:00:00.000Z",createdBy:"u1",
+    };
+    const order = {
+      id:"order-1",code:"PED-TEST-001",customerId:"customer-1",
+      status:"en_preparacion" as const,orderDate:"2026-11-03",
+      total:1000000,createdBy:"u1",createdAt:"2026-11-03T10:00:00.000Z",
+      updatedAt:"2026-11-03T10:00:00.000Z",
+    };
+    const db:Db={...emptyDb(),
+      units:[unit],
+      products:[{
+        id:"product-1",sku:"IP15P-256",name:"iPhone 15 Pro 256GB",
+        price:1000000,cost:700000,minStock:1,isActive:true,
+        createdAt:"2026-11-01T10:00:00.000Z",updatedAt:"2026-11-01T10:00:00.000Z",
+      }],
+      orders:[order],
+      customers:[{id:"customer-1",name:"Cliente de prueba",isActive:true,
+        createdAt:"2026-11-01T10:00:00.000Z"}],
+      orderItems:[{id:"item-1",orderId:order.id,productId:"product-1",
+        quantity:1,unitPrice:1000000,subtotal:1000000}],
+      orderItemUnits:[{id:"link-1",orderItemId:"item-1",unitId:unit.id,
+        createdAt:"2026-11-03T10:00:00.000Z"}],
+    };
+    render(<I18nextProvider i18n={i18n}><Almacen db={db} serial={unit.serial}/></I18nextProvider>);
+    expect(await screen.findByText("Asignado a pedido · En preparación")).toBeTruthy();
+    expect(screen.getByText("PED-TEST-001")).toBeTruthy();
+    expect(screen.getByText(/no disponible para asignarlo a otro/)).toBeTruthy();
+    expect(screen.getByText(/Cliente de prueba/)).toBeTruthy();
+  });
+
 });
