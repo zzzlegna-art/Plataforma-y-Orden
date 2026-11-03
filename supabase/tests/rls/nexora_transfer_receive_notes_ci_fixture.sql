@@ -268,12 +268,53 @@ begin
 end;
 $immutable$;
 
+-- El SQL antiguo tenía un bypass potencial: EXECUTE del motor interno
+-- directamente por authenticated con un JWT de Administrador.
+-- La nueva migración debe revocar ese acceso, pero conservar la RPC pública.
+do $privileges$
+begin
+  if has_function_privilege('authenticated',
+      'nexora_internal.execute_transfer(text,uuid,uuid,uuid,text[],text)','EXECUTE')
+    or has_function_privilege('anon',
+      'nexora_internal.execute_transfer(text,uuid,uuid,uuid,text[],text)','EXECUTE')
+    or not has_function_privilege('authenticated',
+      'public.nexora_transfer_action(text,uuid,uuid,uuid,text[],text)','EXECUTE')
+    or has_function_privilege('anon',
+      'public.nexora_transfer_action(text,uuid,uuid,uuid,text[],text)','EXECUTE') then
+    raise exception 'RPC interna expuesta o wrapper público con permisos erróneos.';
+  end if;
+end;
+$privileges$;
+
 -- La consulta RLS no permite que otro rol lea las notas.
 set local role authenticated;
 select set_config('request.jwt.claim.sub',
   '00000000-0000-0000-0000-000000000001',true);
 do $api$
 begin
+  -- Prohibido llamar a la función interna directamente desde authenticated,
+  -- incluso siendo Administrador. De lo contrario se evadirían las notas.
+  begin
+    perform nexora_internal.execute_transfer(
+      'receive',null,null,null,array[]::text[],null);
+    raise exception 'CI_DIRECT_INTERNAL_RPC_BYPASS';
+  exception when others then
+    if sqlerrm='CI_DIRECT_INTERNAL_RPC_BYPASS' or sqlstate<>'42501' then
+      raise;
+    end if;
+  end;
+
+  -- La RPC pública todavía delega create/dispatch/return/cancel en el
+  -- ejecutor original con el rol del usuario, sin conceder acceso directo.
+  begin
+    perform public.nexora_transfer_action(
+      'invalid',null,null,null,array[]::text[],null);
+    raise exception 'CI_PUBLIC_WRAPPER_BLOCKED';
+  exception when others then
+    if sqlerrm='CI_PUBLIC_WRAPPER_BLOCKED'
+      or sqlerrm not like '%Acción de traslado inválida%' then raise; end if;
+  end;
+
   -- Comprueba que la RPC realmente es ejecutable por el rol API, que
   -- atraviesa SECURITY DEFINER y llega a la validación, sin escribir nada.
   begin
@@ -301,6 +342,17 @@ select set_config('request.jwt.claim.sub',
   '00000000-0000-0000-0000-000000000002',true);
 do $api$
 begin
+  -- La RPC pública sigue siendo Admin-only incluso después de hacerse
+  -- SECURITY DEFINER: auth.uid() NO se sustituye por el dueño SQL.
+  begin
+    perform public.nexora_transfer_action(
+      'invalid',null,null,null,array[]::text[],null);
+    raise exception 'CI_BODEGUERO_LEGACY_BYPASS';
+  exception when others then
+    if sqlerrm='CI_BODEGUERO_LEGACY_BYPASS'
+      or sqlerrm not like '%Solo Administrador%' then raise; end if;
+  end;
+
   begin
     perform public.nexora_transfer_receive_with_notes(
       null,array[]::text[],'[]'::jsonb);
