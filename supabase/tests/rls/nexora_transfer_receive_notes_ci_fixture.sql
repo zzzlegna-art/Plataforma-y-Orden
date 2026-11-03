@@ -274,6 +274,17 @@ select set_config('request.jwt.claim.sub',
   '00000000-0000-0000-0000-000000000001',true);
 do $api$
 begin
+  -- Comprueba que la RPC realmente es ejecutable por el rol API, que
+  -- atraviesa SECURITY DEFINER y llega a la validación, sin escribir nada.
+  begin
+    perform public.nexora_transfer_receive_with_notes(
+      null,array[]::text[],'[]'::jsonb);
+    raise exception 'CI_ADMIN_RPC_WAS_NOT_VALIDATED';
+  exception when others then
+    if sqlerrm='CI_ADMIN_RPC_WAS_NOT_VALIDATED'
+      or sqlerrm not like '%lista de observaciones válidos%' then raise; end if;
+  end;
+
   if (select count(*) from public.nexora_transfer_missing_receipt_notes)<>5
     or has_table_privilege('authenticated',
       'public.nexora_transfer_missing_receipt_notes','INSERT')
@@ -290,6 +301,15 @@ select set_config('request.jwt.claim.sub',
   '00000000-0000-0000-0000-000000000002',true);
 do $api$
 begin
+  begin
+    perform public.nexora_transfer_receive_with_notes(
+      null,array[]::text[],'[]'::jsonb);
+    raise exception 'CI_BODEGUERO_WAS_NOT_REJECTED';
+  exception when others then
+    if sqlerrm='CI_BODEGUERO_WAS_NOT_REJECTED'
+      or sqlerrm not like '%Solo Administrador%' then raise; end if;
+  end;
+
   if exists(select 1 from public.nexora_transfer_missing_receipt_notes) then
     raise exception 'Bodeguero pudo leer las notas globales del Administrador.';
   end if;
