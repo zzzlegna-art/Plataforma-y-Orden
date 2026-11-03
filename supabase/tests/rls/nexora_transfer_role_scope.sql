@@ -89,7 +89,24 @@ begin
     raise exception 'El historial de traslados debe admitir el evento edited.';
   end if;
 
-  select pg_get_functiondef('nexora_internal.execute_transfer(text,uuid,uuid,uuid,text[],text)'::regprocedure)
+  if to_regprocedure('public.nexora_transfer_action(text,uuid,uuid,uuid,text[],text,jsonb)') is null
+     or to_regprocedure('nexora_internal.execute_transfer(text,uuid,uuid,uuid,text[],text,jsonb)') is null
+     or to_regprocedure('public.nexora_transfer_action(text,uuid,uuid,uuid,text[],text)') is not null then
+    raise exception 'La RPC debe exigir la firma nueva con detalle de faltantes y retirar la firma antigua.';
+  end if;
+  if not exists (
+    select 1 from information_schema.columns
+    where table_schema='public' and table_name='nexora_transfer_lines'
+      and column_name='missing_note'
+  ) or not exists (
+    select 1 from information_schema.columns
+    where table_schema='public' and table_name='nexora_transfer_lines'
+      and column_name='missing_reported_by'
+  ) then
+    raise exception 'Cada línea de traslado debe poder conservar la observación y el autor del faltante.';
+  end if;
+
+  select pg_get_functiondef('nexora_internal.execute_transfer(text,uuid,uuid,uuid,text[],text,jsonb)'::regprocedure)
     ilike '%site_role_scope_basis%' into v_exec;
   if not coalesce(v_exec,false) then
     raise exception 'El motor transaccional no consulta el alcance por sede.';
