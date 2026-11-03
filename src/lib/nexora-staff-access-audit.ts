@@ -46,6 +46,9 @@ export const parseStaffSiteAudit=(input:unknown):StaffSiteAudit=>{
       const r=object(v);
       if(!ACCESS_REASONS[String(r.reason)])
         throw Error("Causa de acceso desconocida.");
+      if(r.roleEnabled===true||r.canOperateStore===true||
+        r.canOperateCash===true||r.canSellRetail===true)
+        throw Error("La auditoría indica un permiso comercial activo cuando la activación global sigue bloqueada.");
       return {
         userId:requiredString(r.userId),fullName:requiredString(r.fullName),
         email:requiredString(r.email),legacyRole:requiredString(r.legacyRole),
@@ -62,6 +65,44 @@ export const parseStaffSiteAudit=(input:unknown):StaffSiteAudit=>{
     }),
   };
 };
+/**
+ * Diagnóstico preparatorio por local. No concede permisos ni sustituye a RLS/RPC.
+ * Incluye locales sin empleados para evitar que desaparezcan los pendientes.
+ */
+export interface StoreRoleReadiness {
+  siteId:string;siteName:string;assignedStaff:number;
+  plannedManagers:number;plannedSellers:number;
+  blockers:readonly string[];
+}
+export const summarizeStoreRoleReadiness=(
+  sites:readonly import("./nexora-sites").NexoraSite[],
+  audit:StaffSiteAudit,
+):StoreRoleReadiness[]=>{
+  if(audit.operationalRoleActivationSupported!==false)
+    throw new Error("No está verificada la protección global de perfiles.");
+  // El contrato actual de Supabase bloquea TODOS los accesos comerciales.
+  // Rechazar una respuesta contradictoria antes de mostrarla como preparación.
+  if(audit.staff.some(row=>row.roleEnabled||row.canOperateStore||
+    row.canOperateCash||row.canSellRetail))
+    throw new Error("La auditoría informa permisos comerciales incompatibles con el bloqueo global.");
+  return sites.filter(site=>site.siteType==="local"&&site.isActive).map(site=>{
+    const assigned=new Map(audit.staff.filter(row=>row.siteId===site.id&&
+      row.staffActive&&row.assignmentActive&&row.siteActive&&
+      row.legacyRole==="bodeguero").map(row=>[row.userId,row]));
+    const staff=[...assigned.values()];
+    const managers=staff.filter(row=>row.plannedRole==="encargado").length;
+    const sellers=staff.filter(row=>row.plannedRole==="vendedor").length;
+    const blockers:string[]=[];
+    if(staff.length===0)blockers.push("No hay personal operativo activo vinculado a este local.");
+    if(managers===0)blockers.push("Falta preparar al menos un Encargado para la caja.");
+    blockers.push("Activación de roles pendiente de controles RLS y pruebas por sede.");
+    return {
+      siteId:site.id,siteName:site.name,assignedStaff:staff.length,
+      plannedManagers:managers,plannedSellers:sellers,blockers,
+    };
+  });
+};
+
 export const getStaffSiteAudit=async():Promise<StaffSiteAudit>=>{
   const {supabase}=await import("@/integrations/supabase/client");
   const {data,error}=await (supabase as unknown as {
