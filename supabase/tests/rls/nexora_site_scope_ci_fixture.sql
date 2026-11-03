@@ -67,6 +67,20 @@ insert into public.nexora_staff_sites(user_id,site_id,is_active) values
 
 \ir ../../migrations/20261103080000_nexora_site_role_scope_basis.sql
 
+-- Exclusivamente en ESTE PostgreSQL efímero, un puente privado para
+-- simular cómo una RPC de servidor invocaría la guardia con la identidad JWT
+-- del solicitante. No forma parte de ninguna migración ni del frontend.
+create function public.nexora_ci_scope_probe(p_site uuid,p_capability text)
+returns boolean language sql stable security definer
+set search_path = pg_catalog
+as $probe$
+  select nexora_internal.site_role_scope_basis(p_site,p_capability);
+$probe$;
+revoke all on function public.nexora_ci_scope_probe(uuid,text)
+  from public,anon,authenticated;
+grant execute on function public.nexora_ci_scope_probe(uuid,text)
+  to authenticated;
+
 do $tests$
 declare
   v_main constant uuid := '00000000-0000-0000-0000-000000000100';
@@ -212,5 +226,38 @@ begin
   raise notice 'Nexora V4: pruebas SQL de rutas/roles pasaron (solo entorno ficticio).';
 end;
 $tests$;
+
+-- Prueba de extremo de sesión PostgreSQL real, bajo role authenticated
+-- y con el puente ficticio ejecutado con SECURITY DEFINER. La lectura
+-- global no debe convertirse en permiso de gestión de una sede ajena.
+set local role authenticated;
+select set_config('request.jwt.claim.sub',
+  '00000000-0000-0000-0000-000000000003',true);
+do $api$
+declare
+  v_warehouse constant uuid := '00000000-0000-0000-0000-000000000200';
+  v_own_store constant uuid := '00000000-0000-0000-0000-000000000300';
+begin
+  if not public.nexora_ci_scope_probe(v_warehouse,'inventory.view')
+    or not public.nexora_ci_scope_probe(v_warehouse,'inventory.imei.cost.view')
+    or public.nexora_ci_scope_probe(v_warehouse,'transfers.manage')
+    or public.nexora_ci_scope_probe(v_warehouse,'inventory.imei.correct')
+    or not public.nexora_ci_scope_probe(v_own_store,'sales.create') then
+    raise exception 'Error de aislamiento al invocar la guardia con rol authenticated real.';
+  end if;
+end;
+$api$;
+
+select set_config('request.jwt.claim.sub','',true);
+do $api$
+begin
+  if public.nexora_ci_scope_probe(
+    '00000000-0000-0000-0000-000000000200',
+    'inventory.imei.cost.view') then
+    raise exception 'La guardia permitió leer costos sin JWT.';
+  end if;
+end;
+$api$;
+reset role;
 
 rollback;
