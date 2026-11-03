@@ -149,3 +149,15 @@ Whenever a new module (such as a component, hook, or utility) or a new page is a
 - **Accessibility:** etiqueta los controles (`Label`, `aria-label`) y mantén contraste suficiente en tema claro y oscuro.
 - **Documentation:**  
   Add comments for complex logic and document the purpose of each module at the top of the file when it is not obvious.
+
+## Nexora Multisede V4.9 · ampliación de funciones (2026-11-03)
+
+- `src/lib/nexora-v49-controls.ts`: consulta y valida las RPC de aprobación inicial por local y topes monetarios de caja. Las reglas definitivas se ejecutan en PostgreSQL, no en el navegador.
+- `src/lib/nexora-v49-controls.test.ts`: pruebas de validación de respuestas, montos y conteos.
+- `src/pages/administracion/NexoraV49Controls.tsx`: paneles administrativos para firmar el inventario inicial de cada local y configurar límites de gastos.
+- `src/pages/administracion/AprobacionInventarioInicialPanel.tsx` y `CajaDiariaTab.tsx` integran esos controles, sin activar automáticamente caja ni POS.
+- `supabase/migrations/20261103180000_nexora_v49_cash_limits.sql`: topes por operación y por día, rechazo desde servidor y bitácora inmutable de cambios.
+- `supabase/migrations/20261103181000_nexora_v49_local_initial_approval.sql`: firma por Administrador para cada local después del acta global; la firma no crea inventario ni ventas.
+- Gráfica y reporte de movimientos: entradas, asignaciones a pedido y salidas físicas se contabilizan separadamente.
+
+**Regla de implementación:** nunca inventar un valor monetario predeterminado ni validar un IMEI que no fue escaneado. Los controles monetarios sin configuración bloquean gastos. Las actas no habilitan roles ni POS automáticamente. Integrar primero en prueba; completar pruebas SQL de permisos, doble firma y concurrencia antes de desplegar a producción.
