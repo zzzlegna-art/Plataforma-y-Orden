@@ -28,6 +28,15 @@ describe("Nexora V4 · fundamento privado de alcance por rol y sede",()=>{
     expect(migration).not.toMatch(/alter\s+table\s+public\.nexora_staff_role_plans/i);
     expect(migration).not.toMatch(/drop\s+constraint/i);
   });
+  it("separa despacho y recepción por sede, sin ejecución pública",()=>{
+    expect(migration).toContain("create or replace function nexora_internal.transfer_actor_scope_basis(");
+    expect(migration).toMatch(/revoke all on function nexora_internal\.transfer_actor_scope_basis\(text,uuid,uuid\)/);
+    expect(migration).toContain("when p_action='receive' then p_destination");
+    expect(migration).toContain("else p_origin");
+    expect(migration).toContain("p_action not in ('create','dispatch','receive','return','cancel')");
+    expect(migration).toContain("d.parent_site_id=o.id");
+    expect(migration).not.toMatch(/create or replace function nexora_internal\.execute_transfer/i);
+  });
   it("aplica sede activa, vinculación vigente y denegación para capacidad desconocida",()=>{
     expect(migration).toMatch(/s\.id=p_site_id and s\.is_active/);
     expect(migration).toMatch(/ss\.user_id=v_actor and ss\.site_id=p_site_id and ss\.is_active/);
