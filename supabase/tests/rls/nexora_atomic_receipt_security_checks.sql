@@ -55,9 +55,17 @@ begin
       and pg_get_constraintdef(c.oid) like '%transfer_line_id%')<>1
     or (select count(*) from pg_constraint c
       where c.conrelid=v_notes and c.contype='f'
+        and c.conname='nexora_missing_note_matches_original_incident'
         and c.confrelid='public.nexora_transfer_missing_observations'::regclass
-        and pg_get_constraintdef(c.oid) like '%transfer_line_id%')<>1 then
-    raise exception 'Cada nota debe corresponder a un incidente único.';
+        and pg_get_constraintdef(c.oid) like
+          '%FOREIGN KEY (transfer_line_id, transfer_id, serial_snapshot, recorded_by)%')<>1
+    or (select count(*) from pg_constraint c
+      where c.conrelid='public.nexora_transfer_missing_observations'::regclass
+        and c.contype='u'
+        and c.conname='nexora_missing_incident_evidence_identity_key'
+        and pg_get_constraintdef(c.oid) like
+          '%(transfer_line_id, transfer_id, serial_snapshot, reported_by)%')<>1 then
+    raise exception 'Cada nota debe cotejar línea, traslado, IMEI y autor del incidente.';
   end if;
 
   if has_function_privilege('authenticated',v_internal,'EXECUTE')
