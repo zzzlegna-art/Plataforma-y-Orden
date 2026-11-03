@@ -582,11 +582,11 @@ create function public.nexora_transfer_action(
 ) returns jsonb
 language sql volatile security invoker
 set search_path=pg_catalog,public
-as $
+as $nexora$
   select nexora_internal.execute_transfer(
     p_action,p_transfer_id,p_origin,p_destination,p_serials,p_note,p_missing_notes
   );
-$;
+$nexora$;
 revoke all on function public.nexora_transfer_action(text,uuid,uuid,uuid,text[],text,jsonb)
   from public,anon,authenticated;
 grant execute on function public.nexora_transfer_action(text,uuid,uuid,uuid,text[],text,jsonb)
