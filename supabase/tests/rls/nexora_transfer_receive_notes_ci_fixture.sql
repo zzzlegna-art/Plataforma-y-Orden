@@ -552,4 +552,77 @@ begin
 end;
 $zero$;
 
+-- La clave foránea compuesta debe impedir que procesos privilegiados
+-- asocien una nota real a un serial, traslado o autor diferentes. Se
+-- crea un único incidente sintético adicional, SOLO dentro del ROLLBACK CI.
+do $composite_fk$
+declare
+  v_origin constant uuid := '00000000-0000-0000-0000-000000000100';
+  v_dest constant uuid := '00000000-0000-0000-0000-000000000200';
+  v_actor constant uuid := '00000000-0000-0000-0000-000000000001';
+  v_wrong_actor constant uuid := '00000000-0000-0000-0000-000000000002';
+  v_tid uuid;
+  v_wrong_tid uuid;
+  v_line uuid;
+  v_serial constant text := 'IMEI-COMPOSITE-0001';
+  v_unit uuid := gen_random_uuid();
+  v_note constant text := 'El receptor registró una incidencia de prueba.';
+  v_created jsonb;
+begin
+  insert into public.bodega_units(id,serial,status,cost)
+    values(v_unit,v_serial,'en_bodega',200);
+  insert into public.nexora_initial_unit_sites
+    (unit_id,site_id,serial_snapshot,cost_snapshot)
+    values(v_unit,v_origin,v_serial,200);
+  v_created:=nexora_internal.execute_transfer(
+    'create',null,v_origin,v_dest,array[v_serial],'CI FK compuesto');
+  v_tid:=(v_created->>'transferId')::uuid;
+  perform nexora_internal.execute_transfer(
+    'dispatch',v_tid,null,null,array[]::text[],null);
+  -- Únicamente el motor ficticio ejecutado como dueño genera el incidente
+  -- antes de intentar asociar su nota, sin API ni datos productivos.
+  perform nexora_internal.execute_transfer(
+    'receive',v_tid,null,null,array[]::text[],null);
+  select l.id into v_line from public.nexora_transfer_lines l
+    where l.transfer_id=v_tid and l.serial_snapshot=v_serial;
+  select id into v_wrong_tid from public.nexora_transfers where id<>v_tid limit 1;
+  if v_line is null or v_wrong_tid is null then
+    raise exception 'La prueba FK no creó los identificadores necesarios.';
+  end if;
+
+  begin
+    insert into public.nexora_transfer_missing_receipt_notes
+      (transfer_line_id,transfer_id,serial_snapshot,recorded_by,receiver_observation)
+    values(v_line,v_wrong_tid,v_serial,v_actor,v_note);
+    raise exception 'CI_FK_WRONG_TRANSFER_ALLOWED';
+  exception when foreign_key_violation then null;
+  end;
+
+  begin
+    insert into public.nexora_transfer_missing_receipt_notes
+      (transfer_line_id,transfer_id,serial_snapshot,recorded_by,receiver_observation)
+    values(v_line,v_tid,'IMEI-AJENO-9999',v_actor,v_note);
+    raise exception 'CI_FK_WRONG_IMEI_ALLOWED';
+  exception when foreign_key_violation then null;
+  end;
+
+  begin
+    insert into public.nexora_transfer_missing_receipt_notes
+      (transfer_line_id,transfer_id,serial_snapshot,recorded_by,receiver_observation)
+    values(v_line,v_tid,v_serial,v_wrong_actor,v_note);
+    raise exception 'CI_FK_WRONG_ACTOR_ALLOWED';
+  exception when foreign_key_violation then null;
+  end;
+
+  insert into public.nexora_transfer_missing_receipt_notes
+    (transfer_line_id,transfer_id,serial_snapshot,recorded_by,receiver_observation)
+  values(v_line,v_tid,v_serial,v_actor,v_note);
+  if (select count(*) from public.nexora_transfer_missing_receipt_notes
+      where transfer_id=v_tid)<>1 then
+    raise exception 'La FK no permitió la nota auténtica del incidente.';
+  end if;
+  raise notice 'PASS: FK compuesta rechaza otro traslado, IMEI o autor.';
+end;
+$composite_fk$;
+
 rollback;
