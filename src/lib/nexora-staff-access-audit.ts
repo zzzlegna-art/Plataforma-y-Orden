@@ -46,6 +46,9 @@ export const parseStaffSiteAudit=(input:unknown):StaffSiteAudit=>{
       const r=object(v);
       if(!ACCESS_REASONS[String(r.reason)])
         throw Error("Causa de acceso desconocida.");
+      if(r.roleEnabled===true||r.canOperateStore===true||
+        r.canOperateCash===true||r.canSellRetail===true)
+        throw Error("La auditoría indica un permiso comercial activo cuando la activación global sigue bloqueada.");
       return {
         userId:requiredString(r.userId),fullName:requiredString(r.fullName),
         email:requiredString(r.email),legacyRole:requiredString(r.legacyRole),
