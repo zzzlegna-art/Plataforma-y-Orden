@@ -2,7 +2,11 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { BadgeCheck, LockKeyhole, MapPin, RefreshCw, ShieldAlert, ShieldCheck, Store, Users } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { ACCESS_REASONS,getStaffSiteAudit,type StaffSiteAudit } from "@/lib/nexora-staff-access-audit";
+import {
+  ACCESS_REASONS,getStaffSiteAudit,summarizeStoreRoleReadiness,
+  type StaffSiteAudit,type StoreRoleReadiness,
+} from "@/lib/nexora-staff-access-audit";
+import { listNexoraNetwork } from "@/lib/nexora-sites";
 
 const AccessStatus=({allowed}:{allowed:boolean})=>allowed
   ? <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-700 dark:text-emerald-300"><BadgeCheck className="h-4 w-4"/> Permitido</span>
@@ -10,17 +14,19 @@ const AccessStatus=({allowed}:{allowed:boolean})=>allowed
 
 export const StaffSiteAccessAuditPanel=()=>{
   const [data,setData]=useState<StaffSiteAudit|null>(null);
+  const [stores,setStores]=useState<StoreRoleReadiness[]|null>(null);
   const [loading,setLoading]=useState(true);
   const ref=useRef(0);
   const refresh=useCallback(async()=>{
     const id=++ref.current;
     setLoading(true);
     try{
-      const result=await getStaffSiteAudit();
-      if(ref.current===id)setData(result);
+      const [result,network]=await Promise.all([getStaffSiteAudit(),listNexoraNetwork()]);
+      const readiness=summarizeStoreRoleReadiness(network.sites,result);
+      if(ref.current===id){setData(result);setStores(readiness);}
     }catch(e){
       if(ref.current===id){
-        setData(null);
+        setData(null);setStores(null);
         toast.error(e instanceof Error?e.message:"No fue posible verificar los permisos.");
       }
     }finally{if(ref.current===id)setLoading(false);}
@@ -62,6 +68,40 @@ export const StaffSiteAccessAuditPanel=()=>{
       Los permisos comerciales están pendientes de activación global. La lectura de este diagnóstico
       nunca concede privilegios, abre caja ni permite ventas.
     </div>
+
+    {stores!==null&&data?<section className="overflow-hidden rounded-2xl border bg-card text-card-foreground shadow-sm"
+      aria-label="Bloqueos de roles por local">
+      <div className="border-b p-4 sm:p-5">
+        <h4 className="font-semibold">Preparación de personal por local</h4>
+        <p className="mt-1 text-xs text-muted-foreground">
+          Incluye locales sin personal, y separa perfiles planificados de permisos reales.
+          Ninguna tarjeta habilita usuarios, ventas ni cajas.
+        </p>
+      </div>
+      {stores.length===0?<p className="p-5 text-sm text-muted-foreground">No hay locales activos configurados.</p>:
+        <div className="grid gap-3 p-4 md:grid-cols-2 sm:p-5">
+          {stores.map(store=><article key={store.siteId} className="rounded-xl border bg-muted/10 p-4">
+            <div className="flex items-start justify-between gap-2">
+              <h5 className="font-semibold">{store.siteName}</h5>
+              <span className="text-xs font-medium text-amber-700 dark:text-amber-300">Sin activación comercial</span>
+            </div>
+            <div className="mt-3 grid grid-cols-3 gap-2 text-center text-xs">
+              {[
+                {label:"Personal activo",value:store.assignedStaff},
+                {label:"Encargados preparados",value:store.plannedManagers},
+                {label:"Vendedores preparados",value:store.plannedSellers},
+              ].map(item=><div key={item.label} className="rounded-lg border bg-background/70 p-2">
+                <p className="text-lg font-bold tabular-nums">{item.value}</p>
+                <p className="mt-1 text-muted-foreground">{item.label}</p>
+              </div>)}
+            </div>
+            <p className="mt-3 text-xs font-medium">Pendientes para este local</p>
+            <ul className="mt-1 space-y-1 pl-4 text-xs text-muted-foreground list-disc">
+              {store.blockers.map(text=><li key={text}>{text}</li>)}
+            </ul>
+          </article>)}
+        </div>}
+    </section>:null}
 
     <div className="overflow-hidden rounded-2xl border bg-card text-card-foreground shadow-sm">
       <div className="border-b p-4 sm:p-5">
