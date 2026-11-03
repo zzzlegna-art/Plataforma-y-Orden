@@ -148,7 +148,7 @@ export const getNexoraTransferDetail = async (transferId: string): Promise<Trans
   };
 };
 
-export type TransferAction = "create" | "dispatch" | "receive" | "return" | "cancel";
+export type TransferAction = "create" | "edit" | "dispatch" | "receive" | "return" | "cancel";
 export interface TransferActionResponse {
   transferId: string;
   status: TransferStatus;
@@ -178,6 +178,10 @@ export const runNexoraTransferAction = async (params: {
   if (error) throw new Error(error);
   if (params.action === "create" && (!params.origin || !params.destination || params.origin === params.destination))
     throw new Error("Selecciona dos sedes distintas.");
+  if ((params.action === "create" || params.action === "edit") && (params.note?.length ?? 0) > 300)
+    throw new Error("La observación no puede superar 300 caracteres.");
+  if (params.action === "edit" && !params.transferId)
+    throw new Error("Selecciona un borrador para corregirlo.");
   const { supabase } = await import("@/integrations/supabase/client");
   const response = await (supabase as unknown as {
     rpc: (name: string, args: Record<string, unknown>) => Promise<Response<unknown>>;
