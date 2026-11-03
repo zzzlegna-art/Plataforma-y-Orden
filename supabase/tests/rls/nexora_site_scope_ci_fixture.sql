@@ -35,7 +35,9 @@ insert into public.bodega_profiles(id,role,is_active) values
  ('00000000-0000-0000-0000-000000000004','bodeguero',true),
  ('00000000-0000-0000-0000-000000000005','bodeguero',false),
  ('00000000-0000-0000-0000-000000000006','bodeguero',true),
- ('00000000-0000-0000-0000-000000000007','bodeguero',true);
+ ('00000000-0000-0000-0000-000000000007','bodeguero',true),
+ ('00000000-0000-0000-0000-000000000008','bodeguero',true),
+ ('00000000-0000-0000-0000-000000000009','bodeguero',true);
 
 -- En el sistema real el CHECK impide activación comercial;
 -- aquí se simulan activaciones SOLO para comprobar la futura guardia SQL.
@@ -60,7 +62,8 @@ insert into public.nexora_staff_sites(user_id,site_id,is_active) values
  ('00000000-0000-0000-0000-000000000004','00000000-0000-0000-0000-000000000301',true),
  ('00000000-0000-0000-0000-000000000005','00000000-0000-0000-0000-000000000100',true),
  ('00000000-0000-0000-0000-000000000006','00000000-0000-0000-0000-000000000200',true),
- ('00000000-0000-0000-0000-000000000007','00000000-0000-0000-0000-000000000200',false);
+ ('00000000-0000-0000-0000-000000000007','00000000-0000-0000-0000-000000000200',false),
+ ('00000000-0000-0000-0000-000000000008','00000000-0000-0000-0000-000000000304',true);
 
 \ir ../../migrations/20261103080000_nexora_site_role_scope_basis.sql
 
@@ -98,6 +101,9 @@ begin
   if not nexora_internal.site_role_scope_basis(v_main,'reception.cost.approve')
     or not nexora_internal.site_role_scope_basis(v_iphone,'cash.open')
     or not nexora_internal.site_role_scope_basis(v_iphone,'sales.create')
+    or not nexora_internal.site_role_scope_basis(v_cali,'inventory.view')
+    or not nexora_internal.site_role_scope_basis(v_cali,'inventory.imei.cost.view')
+    or nexora_internal.site_role_scope_basis(v_inactive_store,'inventory.view')
     or nexora_internal.site_role_scope_basis(v_iphone,'cash.close')
     or nexora_internal.site_role_scope_basis(v_main,'cash.open')
     or nexora_internal.site_role_scope_basis(v_main,'sales.create') then
@@ -130,6 +136,9 @@ begin
   if not nexora_internal.site_role_scope_basis(v_main,'reception.supplier.receive')
     or nexora_internal.site_role_scope_basis(v_main,'reception.cost.approve')
     or nexora_internal.site_role_scope_basis(v_main,'sales.create')
+    or not nexora_internal.site_role_scope_basis(v_cali,'inventory.view')
+    or not nexora_internal.site_role_scope_basis(v_cali,'inventory.imei.cost.view')
+    or nexora_internal.site_role_scope_basis(v_cali,'inventory.imei.correct')
     or not nexora_internal.transfer_actor_scope_basis('dispatch',v_main,v_cali)
     or nexora_internal.transfer_actor_scope_basis('receive',v_main,v_cali)
     or nexora_internal.site_role_scope_basis(v_cali,'transfers.manage') then
@@ -153,6 +162,9 @@ begin
     or nexora_internal.site_role_scope_basis(v_iphone,'cash.open')
     or not nexora_internal.site_role_scope_basis(v_iphone,'sales.create')
     or nexora_internal.site_role_scope_basis(v_cali_store,'sales.create')
+    or not nexora_internal.site_role_scope_basis(v_cali_store,'inventory.view')
+    or not nexora_internal.site_role_scope_basis(v_cali_store,'inventory.imei.cost.view')
+    or nexora_internal.site_role_scope_basis(v_cali,'inventory.references.manage')
     or nexora_internal.site_role_scope_basis(v_iphone,'inventory.imei.correct')
     or nexora_internal.site_role_scope_basis(v_main,'reception.supplier.receive') then
     raise exception 'ERROR: Vendedor obtuvo permiso ajeno o no recibió su sede.';
@@ -163,6 +175,9 @@ begin
   if not nexora_internal.site_role_scope_basis(v_cali_store,'cash.open')
     or not nexora_internal.site_role_scope_basis(v_cali_store,'cash.close')
     or not nexora_internal.site_role_scope_basis(v_cali_store,'sales.create')
+    or not nexora_internal.site_role_scope_basis(v_main,'inventory.view')
+    or not nexora_internal.site_role_scope_basis(v_main,'inventory.imei.cost.view')
+    or nexora_internal.site_role_scope_basis(v_main,'transfers.manage')
     or not nexora_internal.site_role_scope_basis(v_cali_store,'cash.expense.record')
     or nexora_internal.site_role_scope_basis(v_cali_store,'finance.transfer.manage')
     or nexora_internal.site_role_scope_basis(v_iphone,'cash.open')
@@ -172,12 +187,26 @@ begin
   end if;
 
   perform set_config('request.jwt.claim.sub','00000000-0000-0000-0000-000000000005',true);
-  if nexora_internal.site_role_scope_basis(v_main,'transfers.manage') then
+  if nexora_internal.site_role_scope_basis(v_main,'transfers.manage')
+    or nexora_internal.site_role_scope_basis(v_main,'inventory.view')
+    or nexora_internal.site_role_scope_basis(v_main,'inventory.imei.cost.view') then
     raise exception 'ERROR: perfil inactivo autorizado.';
   end if;
   perform set_config('request.jwt.claim.sub','00000000-0000-0000-0000-000000000007',true);
-  if nexora_internal.site_role_scope_basis(v_cali,'transfers.manage') then
+  if nexora_internal.site_role_scope_basis(v_cali,'transfers.manage')
+    or nexora_internal.site_role_scope_basis(v_main,'inventory.view')
+    or nexora_internal.site_role_scope_basis(v_main,'inventory.imei.cost.view') then
     raise exception 'ERROR: asignación inactiva autorizada.';
+  end if;
+  perform set_config('request.jwt.claim.sub','00000000-0000-0000-0000-000000000008',true);
+  if nexora_internal.site_role_scope_basis(v_main,'inventory.view')
+    or nexora_internal.site_role_scope_basis(v_main,'inventory.imei.cost.view') then
+    raise exception 'ERROR: una asignación solo a sede inactiva no permite lectura global.';
+  end if;
+  perform set_config('request.jwt.claim.sub','00000000-0000-0000-0000-000000000009',true);
+  if nexora_internal.site_role_scope_basis(v_cali_store,'inventory.view')
+    or nexora_internal.site_role_scope_basis(v_cali_store,'inventory.imei.cost.view') then
+    raise exception 'ERROR: un empleado sin sede no puede consultar costos globales.';
   end if;
 
   raise notice 'Nexora V4: pruebas SQL de rutas/roles pasaron (solo entorno ficticio).';
