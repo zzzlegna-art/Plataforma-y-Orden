@@ -146,11 +146,28 @@ begin
   if p_action not in ('create','dispatch','receive','return','cancel') then
     return false;
   end if;
+  -- Matriz del Plan Maestro V4, página 5:
+  -- principal → bodega regional directa;
+  -- bodega regional → bodega de otra ciudad;
+  -- principal/bodega → local dependiente de la misma ciudad;
+  -- local → su bodega matriz de la misma ciudad.
+  -- Cualquier traslado local → local, bodega → principal o ruta
+  -- no reconocida se rechaza. El alcance en sedes ajenas sigue
+  -- pendiente de la decisión empresarial prevista en la página 28.
   if not exists (
     select 1 from public.nexora_sites o
-    join public.nexora_sites d on d.parent_site_id=o.id
-    where o.id=p_origin and d.id=p_destination
-      and o.is_active and d.is_active
+    join public.nexora_sites d on d.id=p_destination
+    where o.id=p_origin and o.is_active and d.is_active
+      and (
+        (o.site_type='principal' and d.site_type='bodega'
+          and d.parent_site_id=o.id)
+        or (o.site_type='bodega' and d.site_type='bodega'
+          and o.city_id<>d.city_id)
+        or (o.site_type in ('principal','bodega') and d.site_type='local'
+          and d.parent_site_id=o.id and o.city_id=d.city_id)
+        or (o.site_type='local' and d.site_type in ('principal','bodega')
+          and o.parent_site_id=d.id and o.city_id=d.city_id)
+      )
   ) then
     return false;
   end if;
@@ -168,4 +185,4 @@ revoke all on function nexora_internal.transfer_actor_scope_basis(text,uuid,uuid
   from public,anon,authenticated;
 
 comment on function nexora_internal.transfer_actor_scope_basis(text,uuid,uuid) is
-  'Alcance preparatorio de traslados por etapa. create/dispatch/return/cancel exigen sede origen; receive exige sede destino. No se llama desde execute_transfer hasta validación de RLS y pruebas E2E.';
+  'Alcance preparatorio de traslados por etapa y rutas del Plan V4: principal->regional, regional->regional de otra ciudad, bodega->local dependiente y local->bodega matriz. Origen: create/dispatch/return/cancel; destino: receive. No vinculado a execute_transfer.';
