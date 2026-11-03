@@ -1,0 +1,59 @@
+name: Nexora V4 - isolated site and transfer guards
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "supabase/migrations/20261103080000_nexora_site_role_scope_basis.sql"
+      - "supabase/tests/rls/nexora_site_scope_ci_fixture.sql"
+      - "src/lib/nexora-transfer-route-policy.ts"
+      - ".github/workflows/nexora-site-guard-sql.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  site-guard-sql:
+    name: SQL role/site isolation (ephemeral PostgreSQL)
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: nexora_ci
+          POSTGRES_PASSWORD: nexora_ci_ephemeral_only
+          POSTGRES_DB: nexora_test
+        ports:
+          - 54321:5432
+        options: >-
+          --health-cmd "pg_isready -U nexora_ci -d nexora_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      PGHOST: 127.0.0.1
+      PGPORT: "54321"
+      PGUSER: nexora_ci
+      PGPASSWORD: nexora_ci_ephemeral_only
+      PGDATABASE: nexora_test
+    steps:
+      - name: Checkout Nexora
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - name: Ensure PostgreSQL client is available
+        run: |
+          if ! command -v psql >/dev/null 2>&1; then
+            sudo apt-get update
+            sudo apt-get install -y postgresql-client
+          fi
+      - name: Validate SQL with synthetic sites and roles
+        run: |
+          psql -X -v ON_ERROR_STOP=1 \
+            -f supabase/tests/rls/nexora_site_scope_ci_fixture.sql
+      - name: Confirm that the SQL harness always rolled back
+        run: |
+          result="$(psql -X -At -c "select count(*) from pg_namespace where nspname in ('auth','nexora_internal')")"
+          test "$result" = "0"
