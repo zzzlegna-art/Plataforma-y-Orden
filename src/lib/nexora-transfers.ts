@@ -116,6 +116,20 @@ const readTransfer = (r: Row): NexoraTransfer => ({
   receivedAt: optional(r.received_at),
 });
 
+/** El servidor comparte solo el indicador de acta aprobada con el personal activo. */
+export const getNexoraTransferReadiness = async (): Promise<boolean> => {
+  const { supabase } = await import("@/integrations/supabase/client");
+  const response = await (supabase as unknown as {
+    rpc: (name: string) => Promise<Response<unknown>>;
+  }).rpc("nexora_transfer_readiness");
+  const raw = checked(response);
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)
+    || typeof (raw as Row).isApproved !== "boolean") {
+    throw new Error("El servidor no confirmó la aprobación inicial para traslados.");
+  }
+  return (raw as Row).isApproved as boolean;
+};
+
 export const listNexoraTransfers = async (): Promise<NexoraTransfer[]> => {
   const t = await from("nexora_transfers");
   return checked(await t.select("*").order("created_at", { ascending: false }).limit(40))
