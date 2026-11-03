@@ -9,6 +9,9 @@ declare
   v_bodeguero uuid;
   v_main uuid;
   v_store uuid;
+  v_regional uuid;
+  v_regional_store uuid;
+  v_other_store uuid;
   v_own_site uuid;
   v_foreign_site uuid;
 begin
@@ -50,6 +53,15 @@ begin
    where is_active and site_type='principal' order by name limit 1;
   select id into v_store from public.nexora_sites
    where is_active and site_type='local' order by name limit 1;
+  select id into v_regional from public.nexora_sites
+   where is_active and site_type='bodega' and parent_site_id=v_main
+   order by name limit 1;
+  select id into v_regional_store from public.nexora_sites
+   where is_active and site_type='local' and parent_site_id=v_regional
+   order by name limit 1;
+  select id into v_other_store from public.nexora_sites
+   where is_active and site_type='local' and id<>v_store
+   order by name limit 1;
 
   -- Los JWT se simulan SOLO dentro de esta transaccion y no se guardan.
   if v_admin is not null and v_main is not null then
@@ -61,12 +73,27 @@ begin
        or nexora_internal.site_role_scope_basis(v_main,'inventario.inventado') then
       raise exception 'No se permite caja en la sede principal ni capacidades desconocidas.';
     end if;
-    if v_store is not null then
-      if nexora_internal.transfer_actor_scope_basis('create',v_main,v_main)
-         or nexora_internal.transfer_actor_scope_basis('receive',v_store,v_main) then
-        raise exception 'El traslado no debe aceptar sedes iguales ni ruta invertida.';
+    if nexora_internal.transfer_actor_scope_basis('create',v_main,v_main) then
+      raise exception 'El traslado no debe aceptar la misma sede como origen y destino.';
+    end if;
+
+    if v_regional is not null then
+      if not nexora_internal.transfer_actor_scope_basis('create',v_main,v_regional)
+         or nexora_internal.transfer_actor_scope_basis('receive',v_regional,v_main) then
+        raise exception 'Se debe permitir principal a bodega dependiente, pero no bodega a principal.';
       end if;
-      -- El caso positivo requiere una relación activa principal→local.
+    end if;
+
+    if v_regional is not null and v_regional_store is not null then
+      if not nexora_internal.transfer_actor_scope_basis('create',v_regional,v_regional_store)
+         or not nexora_internal.transfer_actor_scope_basis('receive',v_regional_store,v_regional)
+         or nexora_internal.transfer_actor_scope_basis('create',v_main,v_regional_store) then
+        raise exception 'La bodega regional debe abastecer a su local y admitir su retorno; 6A no debe omitir la bodega matriz.';
+      end if;
+    end if;
+
+    if v_store is not null then
+      -- Una devolución local→bodega matriz SÍ es válida en el Plan V4.
       if exists (
         select 1 from public.nexora_sites d
         where d.id=v_store and d.parent_site_id=v_main
@@ -75,9 +102,15 @@ begin
            or not nexora_internal.transfer_actor_scope_basis('dispatch',v_main,v_store)
            or not nexora_internal.transfer_actor_scope_basis('receive',v_main,v_store)
            or not nexora_internal.transfer_actor_scope_basis('return',v_main,v_store)
-           or not nexora_internal.transfer_actor_scope_basis('cancel',v_main,v_store) then
-          raise exception 'El Administrador debe superar alcance de las cinco etapas en rutas válidas.';
+           or not nexora_internal.transfer_actor_scope_basis('cancel',v_main,v_store)
+           or not nexora_internal.transfer_actor_scope_basis('create',v_store,v_main) then
+          raise exception 'El Administrador debe superar las cinco etapas y la devolucion local a origen.';
         end if;
+      end if;
+      if v_other_store is not null and
+        (nexora_internal.transfer_actor_scope_basis('create',v_store,v_other_store)
+         or nexora_internal.transfer_actor_scope_basis('create',v_other_store,v_store)) then
+        raise exception 'El Plan Maestro prohíbe siempre traslados de local a local.';
       end if;
       if not nexora_internal.site_role_scope_basis(v_store,'cash.open')
          or nexora_internal.site_role_scope_basis(v_store,'cash.close')
