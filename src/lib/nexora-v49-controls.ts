@@ -74,7 +74,7 @@ export const parseCashLimits = (raw: unknown): NexoraCashLimit[] => {
 };
 export const validateCashLimits = (perExpense: number, perDay: number): string|null => {
   for(const value of [perExpense,perDay]){
-    if (!Number.isFinite(value) || value < 0 || value > 99999999999999.99 ||
+    if (!Number.isFinite(value) || value < 0 || value > Number.MAX_SAFE_INTEGER / 100 ||
       Math.round(value*100)/100 !== value)
       return "Los límites deben ser montos no negativos y tener máximo dos decimales.";
   }
