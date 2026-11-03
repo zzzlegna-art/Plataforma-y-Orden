@@ -6,6 +6,9 @@ on:
     paths:
       - "supabase/migrations/20261103090000_nexora_transfer_missing_observations.sql"
       - "supabase/tests/rls/nexora_transfer_missing_ci_fixture.sql"
+      - "supabase/tests/rls/nexora_transfer_full_flow_ci_fixture.sql"
+      - "supabase/migrations/20261102110000_nexora_site_availability_and_order_guards.sql"
+      - "scripts/extract-nexora-transfer-rpc.mjs"
       - ".github/workflows/nexora-transfer-missing-sql.yml"
   workflow_dispatch:
 
@@ -52,6 +55,12 @@ jobs:
         run: |
           psql -X -v ON_ERROR_STOP=1 \
             -f supabase/tests/rls/nexora_transfer_missing_ci_fixture.sql
+      - name: Extract the real production transfer function from migration
+        run: node scripts/extract-nexora-transfer-rpc.mjs
+      - name: Exercise 20→15→5 with the real transfer function
+        run: |
+          psql -X -v ON_ERROR_STOP=1 \
+            -f supabase/tests/rls/nexora_transfer_full_flow_ci_fixture.sql
       - name: Confirm automatic transaction rollback
         run: |
           result="$(psql -X -At -c "select count(*) from pg_namespace where nspname in ('auth','nexora_internal')")"
