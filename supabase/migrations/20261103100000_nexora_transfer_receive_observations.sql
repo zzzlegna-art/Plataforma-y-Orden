@@ -13,7 +13,8 @@ create table public.nexora_transfer_missing_receipt_notes (
   transfer_id uuid not null references public.nexora_transfers(id) on delete restrict,
   serial_snapshot text not null,
   receiver_observation text not null
-    check (length(btrim(receiver_observation)) between 3 and 500),
+    check (length(regexp_replace(receiver_observation,
+      '^[[:space:]]+|[[:space:]]+$','','g')) between 3 and 500),
   recorded_by uuid not null references public.bodega_profiles(id) on delete restrict,
   recorded_at timestamptz not null default now()
 );
@@ -118,7 +119,10 @@ begin
       or jsonb_typeof(v_mark->'observation')<>'string' then
       raise exception 'Falta la casilla No llegó o la observación individual.';
     end if;
-    v_note:=btrim(v_mark->>'observation');
+    -- Incluye tabuladores, saltos de línea y otras clases Unicode
+    -- reconocidas por PostgreSQL como espacios; no basta con btrim(' ').
+    v_note:=regexp_replace(v_mark->>'observation',
+      '^[[:space:]]+|[[:space:]]+$','','g');
     if length(v_note)<3 or length(v_note)>500 then
       raise exception 'Cada IMEI faltante requiere una nota de 3 a 500 caracteres.';
     end if;
@@ -158,7 +162,8 @@ begin
   insert into public.nexora_transfer_missing_receipt_notes
     (transfer_line_id,transfer_id,serial_snapshot,receiver_observation,recorded_by)
   select a.transfer_line_id,a.transfer_id,a.serial_snapshot,
-    btrim(mark.value->>'observation'),v_actor
+    regexp_replace(mark.value->>'observation',
+      '^[[:space:]]+|[[:space:]]+$','','g'),v_actor
   from public.nexora_transfer_missing_observations a
   join lateral jsonb_array_elements(p_missing_marks) as mark(value)
     on mark.value->>'lineId'=a.transfer_line_id::text
