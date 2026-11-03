@@ -82,6 +82,17 @@ begin
     raise exception 'Las RPC públicas no fijan search_path seguro.';
   end if;
 
+  -- Una RPC expuesta como SECURITY DEFINER debe comprobar directamente
+  -- JWT y rol en el cuerpo, además de la autorización del motor interno.
+  if exists (
+    select 1 from pg_proc p
+    where p.oid in (v_wrapper,v_receive)
+      and (position('auth.uid()' in p.prosrc)=0
+        or position('public.bodega_is_admin()' in p.prosrc)=0)
+  ) then
+    raise exception 'Falta validación explícita de identidad y Administrador en RPC pública.';
+  end if;
+
   if has_function_privilege('authenticated',
       'nexora_internal.reject_missing_audit_mutation()','EXECUTE') then
     raise exception 'Función privada de inmutabilidad expuesta a clientes.';

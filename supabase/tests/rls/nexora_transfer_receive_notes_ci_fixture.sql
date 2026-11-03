@@ -395,6 +395,29 @@ begin
   end if;
 end;
 $api$;
+
+-- Tener el rol SQL authenticated sin JWT de usuario no otorga autoridad.
+select set_config('request.jwt.claim.sub','',true);
+do $no_identity$
+begin
+  begin
+    perform public.nexora_transfer_action(
+      'invalid',null,null,null,array[]::text[],null);
+    raise exception 'CI_UNAUTHENTICATED_WRAPPER_ALLOWED';
+  exception when others then
+    if sqlerrm='CI_UNAUTHENTICATED_WRAPPER_ALLOWED'
+      or sqlerrm not like '%Solo Administrador%' then raise; end if;
+  end;
+  begin
+    perform public.nexora_transfer_receive_with_notes(
+      null,array[]::text[],'[]'::jsonb);
+    raise exception 'CI_UNAUTHENTICATED_RECEIPT_ALLOWED';
+  exception when others then
+    if sqlerrm='CI_UNAUTHENTICATED_RECEIPT_ALLOWED'
+      or sqlerrm not like '%Solo Administrador%' then raise; end if;
+  end;
+end;
+$no_identity$;
 reset role;
 
 -- Caso de borde: recepción completa de veinte IMEI, cero «No llegó»,
