@@ -36,6 +36,7 @@ describe("Nexora V4 · cotejo de notas individuales realmente persistidas",()=>{
       notes.map((r,i)=>i===0?{...r,serial_snapshot:"IMEI-AJENO"}:r),
       notes.map((r,i)=>i===0?{...r,receiver_observation:"  "}:r),
       notes.map((r,i)=>i===0?{...r,recorded_by:""}:r),
+      notes.map((r,i)=>i===0?{...r,recorded_by:"otro-usuario"}:r),
       notes.map((r,i)=>i===0?{...r,recorded_at:"fecha imposible"}:r),
     ];
     for(const sample of changed){
