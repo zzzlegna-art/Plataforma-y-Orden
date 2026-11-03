@@ -8,6 +8,13 @@ create temporary table nexora_ci_receipt_case (
   scanned_serials text[] not null,
   missing_marks jsonb not null
 );
+create temporary table nexora_ci_receipt_result (
+  result jsonb not null
+);
+-- Solo para la prueba efímera: la sesión API puede leer el caso sintético
+-- y almacenar la respuesta, pero no recibe privilegios de tablas reales.
+grant select on pg_temp.nexora_ci_receipt_case to authenticated;
+grant insert on pg_temp.nexora_ci_receipt_result to authenticated;
 
 select set_config('request.jwt.claim.sub',
   '00000000-0000-0000-0000-000000000001',true);
@@ -192,6 +199,17 @@ drop trigger nexora_ci_force_note_failure
   on public.nexora_transfer_missing_receipt_notes;
 drop function public.nexora_ci_simulated_write_failure();
 
+-- CRÍTICO: ejecutar una recepción V4 EXITOSA bajo el mismo rol de API
+-- de producción (authenticated) y JWT falso de Administrador. La RPC
+-- SECURITY DEFINER debe conservar identidad de auth.uid() y acceso a las
+-- tablas privadas, aunque el cliente no pueda escribirlas directamente.
+set local role authenticated;
+insert into pg_temp.nexora_ci_receipt_result(result)
+select public.nexora_transfer_receive_with_notes(
+  transfer_id,scanned_serials,missing_marks)
+from pg_temp.nexora_ci_receipt_case;
+reset role;
+
 do $success$
 declare
   v_id uuid;
@@ -201,7 +219,7 @@ declare
 begin
   select transfer_id,scanned_serials,missing_marks
   into v_id,v_scanned,v_marks from pg_temp.nexora_ci_receipt_case;
-  v_result:=public.nexora_transfer_receive_with_notes(v_id,v_scanned,v_marks);
+  select result into v_result from pg_temp.nexora_ci_receipt_result;
   if (v_result->>'received')::integer<>15
     or (v_result->>'missing')::integer<>5
     or (v_result->>'observationsRecorded')::integer<>5
