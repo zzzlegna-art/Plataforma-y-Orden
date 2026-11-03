@@ -2,6 +2,7 @@
 -- TODO ES FICTICIO: veinte IMEI generados en PostgreSQL efímero y ROLLBACK.
 -- Reutiliza la RPC de traslado del código original, más migraciones #144/#147.
 \ir .nexora-receipt-notes-setup.generated.sql
+\ir nexora_atomic_receipt_security_checks.sql
 
 create temporary table nexora_ci_receipt_case (
   transfer_id uuid not null,
