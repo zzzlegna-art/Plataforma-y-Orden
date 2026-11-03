@@ -6,17 +6,28 @@
 -- Mantiene intacto nexora_internal.execute_transfer: conserva su lock, control
 -- Administrador, custodia, documento de retorno y reversión transaccional.
 
+-- Clave compuesta redundante pero deliberada: evita asociar una nota de
+-- recepción a un traslado, IMEI o autor distinto del incidente original,
+-- incluso si un mantenimiento privilegiado intenta escribir una fila errónea.
+-- La clave individual transfer_line_id de la auditoría sigue siendo UNIQUE.
+alter table public.nexora_transfer_missing_observations
+  add constraint nexora_missing_incident_evidence_identity_key
+  unique (transfer_line_id,transfer_id,serial_snapshot,reported_by);
+
 create table public.nexora_transfer_missing_receipt_notes (
-  transfer_line_id uuid primary key
-    references public.nexora_transfer_missing_observations(transfer_line_id)
-    on delete restrict,
+  transfer_line_id uuid primary key,
   transfer_id uuid not null references public.nexora_transfers(id) on delete restrict,
   serial_snapshot text not null,
   receiver_observation text not null
     check (length(regexp_replace(receiver_observation,
       '^[[:space:]]+|[[:space:]]+$','','g')) between 3 and 500),
   recorded_by uuid not null references public.bodega_profiles(id) on delete restrict,
-  recorded_at timestamptz not null default now()
+  recorded_at timestamptz not null default now(),
+  constraint nexora_missing_note_matches_original_incident
+    foreign key (transfer_line_id,transfer_id,serial_snapshot,recorded_by)
+    references public.nexora_transfer_missing_observations
+      (transfer_line_id,transfer_id,serial_snapshot,reported_by)
+    on delete restrict
 );
 create index nexora_transfer_missing_notes_by_transfer
   on public.nexora_transfer_missing_receipt_notes(transfer_id,recorded_at);
