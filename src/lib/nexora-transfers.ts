@@ -2,6 +2,10 @@ import {
   isMissingAuditTableNotDeployed, reconcileTransferMissingAudit,
   type TransferMissingAudit,
 } from "./nexora-transfer-missing-audit";
+import type { MissingReceiptMark } from "./nexora-missing-receipt-confirmation";
+import {
+  reconcileReceiverNotes,type ReceiverNotesAudit,
+} from "./nexora-transfer-receiver-notes";
 
 /**
  * Nexora Multisede · Control de custodia, independiente del stock comercial.
@@ -36,6 +40,7 @@ export interface TransferDetail {
   lines: NexoraTransferLine[];
   returnDocument: TransferReturnDocument | null;
   missingAudit: TransferMissingAudit;
+  receiverNotes: ReceiverNotesAudit;
 }
 
 export const transferStatusLabel: Record<TransferStatus, string> = {
@@ -149,16 +154,19 @@ export const listNexoraTransfers = async (): Promise<NexoraTransfer[]> => {
 };
 
 export const getNexoraTransferDetail = async (transferId: string): Promise<TransferDetail> => {
-  const [lines, returns, audit] = await Promise.all([
+  const [lines, returns, audit, writtenNotes] = await Promise.all([
     from("nexora_transfer_lines"),
     from("nexora_transfer_return_documents"),
     from("nexora_transfer_missing_observations"),
+    from("nexora_transfer_missing_receipt_notes"),
   ]);
-  const [found, doc, observations] = await Promise.all([
+  const [found, doc, observations, receiverObservations] = await Promise.all([
     lines.select("*").eq("transfer_id", transferId).order("serial_snapshot"),
     returns.select("*").eq("transfer_id", transferId).limit(1),
     audit.select("transfer_line_id,unit_id,serial_snapshot,observation,reported_by,reported_at")
       .eq("transfer_id",transferId).order("reported_at",{ascending:true}).limit(100),
+    writtenNotes.select("transfer_line_id,serial_snapshot,receiver_observation,recorded_by,recorded_at")
+      .eq("transfer_id",transferId).order("recorded_at",{ascending:true}).limit(100),
   ]);
   const rows = checked(found);
   const docs = checked(doc);
@@ -180,6 +188,17 @@ export const getNexoraTransferDetail = async (transferId: string): Promise<Trans
       checked(observations), mappedLines, expectedCount,
     );
   }
+  let receiverNotes: ReceiverNotesAudit;
+  if (receiverObservations.error) {
+    if (!isMissingAuditTableNotDeployed(receiverObservations.error)) throw new Error(
+      "No se pudo consultar las notas auditadas del receptor: "+receiverObservations.error.message,
+    );
+    receiverNotes={state:"unavailable",entries:[]};
+  } else {
+    receiverNotes=reconcileReceiverNotes(
+      checked(receiverObservations),missingAudit,expectedCount,
+    );
+  }
   return {
     lines: mappedLines,
     returnDocument: docs.length ? {
@@ -189,6 +208,7 @@ export const getNexoraTransferDetail = async (transferId: string): Promise<Trans
       createdAt: str(docs[0].created_at),
     } : null,
     missingAudit,
+    receiverNotes,
   };
 };
 
@@ -204,6 +224,7 @@ export interface TransferActionResponse {
   returnedNow?: number;
   remaining?: number;
   returnDocumentCreated?: boolean;
+  observationsRecorded?: number;
 }
 
 export const runNexoraTransferAction = async (params: {
@@ -213,6 +234,7 @@ export const runNexoraTransferAction = async (params: {
   destination?: string;
   serials?: readonly string[];
   note?: string;
+  missingMarks?: readonly MissingReceiptMark[];
 }): Promise<TransferActionResponse> => {
   const serials = [...(params.serials ?? [])];
   const error = validateTransferSerials(
@@ -223,16 +245,33 @@ export const runNexoraTransferAction = async (params: {
   if (params.action === "create" && (!params.origin || !params.destination || params.origin === params.destination))
     throw new Error("Selecciona dos sedes distintas.");
   const { supabase } = await import("@/integrations/supabase/client");
+  // La recepción V4 no puede utilizar la RPC anterior que no guarda notas
+  // por línea. El servidor repite toda la validación bajo bloqueo transaccional.
+  if (params.action === "receive" &&
+    (!params.transferId || !Array.isArray(params.missingMarks))) {
+    throw new Error("La recepción exige las confirmaciones individuales por IMEI.");
+  }
+  const { rpcName, rpcArgs } = params.action === "receive" ? {
+    rpcName: "nexora_transfer_receive_with_notes",
+    rpcArgs: {
+      p_transfer_id: params.transferId,
+      p_received_serials: serials,
+      p_missing_marks: params.missingMarks,
+    },
+  } : {
+    rpcName: "nexora_transfer_action",
+    rpcArgs: {
+      p_action: params.action,
+      p_transfer_id: params.transferId ?? null,
+      p_origin: params.origin ?? null,
+      p_destination: params.destination ?? null,
+      p_serials: serials,
+      p_note: params.note?.trim() || null,
+    },
+  };
   const response = await (supabase as unknown as {
     rpc: (name: string, args: Record<string, unknown>) => Promise<Response<unknown>>;
-  }).rpc("nexora_transfer_action", {
-    p_action: params.action,
-    p_transfer_id: params.transferId ?? null,
-    p_origin: params.origin ?? null,
-    p_destination: params.destination ?? null,
-    p_serials: serials,
-    p_note: params.note?.trim() || null,
-  });
+  }).rpc(rpcName, rpcArgs);
   const row = checked(response);
   if (!row || typeof row !== "object" || Array.isArray(row))
     throw new Error("El servidor no confirmó el movimiento.");
@@ -254,5 +293,8 @@ export const runNexoraTransferAction = async (params: {
     ...(typeof result.returnDocumentCreated === "boolean" ? {
       returnDocumentCreated: result.returnDocumentCreated,
     } : {}),
+    ...(result.observationsRecorded == null ? {} : {
+      observationsRecorded: count(result.observationsRecorded),
+    }),
   };
 };

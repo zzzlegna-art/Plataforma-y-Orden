@@ -13,6 +13,9 @@ import {
   type NexoraTransfer, type NexoraTransferLine, type TransferDetail, type TransferAction,
 } from "@/lib/nexora-transfers";
 import type { NexoraSite } from "@/lib/nexora-sites";
+import {
+  validateMissingReceiptConfirmation, type MissingReceiptMark,
+} from "@/lib/nexora-missing-receipt-confirmation";
 
 const selectStyle = "flex h-10 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50";
 const nr = (n: number) => new Intl.NumberFormat("es-CO").format(n);
@@ -29,6 +32,9 @@ export const TrasladosMultisedePanel = ({ sites }: { sites: readonly NexoraSite[
   const [manifest, setManifest] = useState("");
   const [note, setNote] = useState("");
   const [receiveText, setReceiveText] = useState("");
+  const [missingByLine, setMissingByLine] = useState<Record<string, {
+    markedNotArrived: boolean; observation: string;
+  }>>({});
   const [returnText, setReturnText] = useState("");
   const [confirmReceive, setConfirmReceive] = useState(false);
   const [confirmReturn, setConfirmReturn] = useState(false);
@@ -87,6 +93,7 @@ export const TrasladosMultisedePanel = ({ sites }: { sites: readonly NexoraSite[
   useEffect(() => {
     void loadDetail(activeId);
     setReceiveText("");
+    setMissingByLine({});
     setReturnText("");
     setConfirmReceive(false);
     setConfirmReturn(false);
@@ -95,7 +102,10 @@ export const TrasladosMultisedePanel = ({ sites }: { sites: readonly NexoraSite[
     return () => { detailReq.current += 1; };
   }, [activeId, loadDetail]);
 
-  const operate = async (action: TransferAction, serials: string[] = []) => {
+  const operate = async (
+    action: TransferAction, serials: string[] = [],
+    marks: MissingReceiptMark[] = [],
+  ) => {
     if (!approved || locked.current) return;
     locked.current = true;
     setWorking(true);
@@ -107,6 +117,7 @@ export const TrasladosMultisedePanel = ({ sites }: { sites: readonly NexoraSite[
         destination: action === "create" ? actualDestination : undefined,
         serials,
         note: action === "create" ? note : undefined,
+        missingMarks: action === "receive" ? marks : undefined,
       });
       if (action === "create") {
         setManifest(""); setNote("");
@@ -123,7 +134,7 @@ export const TrasladosMultisedePanel = ({ sites }: { sites: readonly NexoraSite[
       } else {
         toast.success("Borrador cancelado sin mover equipos");
       }
-      setReceiveText(""); setReturnText("");
+      setReceiveText(""); setMissingByLine({}); setReturnText("");
       setConfirmReceive(false); setConfirmReturn(false);
       setConfirmDispatch(false); setConfirmCancel(false);
       await load();
@@ -143,8 +154,18 @@ export const TrasladosMultisedePanel = ({ sites }: { sites: readonly NexoraSite[
   const receipt = detail ? getReceivingSummary(detail.lines, receiveSerials) : null;
   const receiveError = validateTransferSerials(receiveSerials, true);
   const missingPreview = detail && !receiveError && (receipt?.invalidSerials.length ?? 0)===0
-    && (receiveSerials.length>0 || confirmReceive)
+    && (receiveSerials.length>0 || confirmReceive || Object.keys(missingByLine).length>0)
     ? getMissingReceiptSerials(detail.lines,receiveSerials) : [];
+  const missingPreviewSet = new Set(missingPreview.map((s)=>s.trim().toLowerCase()));
+  const missingLines = detail?.lines.filter((line)=>
+    line.state==="in_transit" && missingPreviewSet.has(line.serial.trim().toLowerCase()))??[];
+  const missingMarks: MissingReceiptMark[] = missingLines.map((line)=>({
+    lineId:line.id, serial:line.serial,
+    markedNotArrived:missingByLine[line.id]?.markedNotArrived??false,
+    observation:missingByLine[line.id]?.observation??"",
+  }));
+  const receiptConfirmation = detail && !receiveError && (receipt?.invalidSerials.length??0)===0
+    ? validateMissingReceiptConfirmation(detail.lines,receiveSerials,missingMarks) : null;
   const pendingReturns = detail?.lines.filter((l) => l.state === "return_pending") ?? [];
   const returnError = validateTransferSerials(returnSerials);
   const matchingReturnSet = new Set(pendingReturns.map((l) => l.serial.toLowerCase()));
@@ -363,7 +384,11 @@ export const TrasladosMultisedePanel = ({ sites }: { sites: readonly NexoraSite[
                         Los que falten generarán automáticamente un documento de devolución pendiente.
                       </p>
                       <Textarea rows={5} value={receiveText} disabled={working} placeholder="Un IMEI recibido por línea"
-                        onChange={(event) => { setReceiveText(event.target.value); setConfirmReceive(false); }} />
+                        onChange={(event) => {
+                          setReceiveText(event.target.value);
+                          setMissingByLine({});
+                          setConfirmReceive(false);
+                        }} />
                       <div className="flex flex-wrap gap-3 text-sm">
                         <p className="font-semibold text-emerald-700 dark:text-emerald-300">{receipt?.received ?? 0} recibidos</p>
                         <p className="font-semibold text-amber-700 dark:text-amber-300">{receipt?.missing ?? 0} faltantes / retorno pendiente</p>
@@ -379,12 +404,51 @@ export const TrasladosMultisedePanel = ({ sites }: { sites: readonly NexoraSite[
                             Vista previa: {missingPreview.length} IMEI sin confirmar en destino
                           </p>
                           <p className="mt-1 text-xs text-muted-foreground">
-                            No llegaron según el cotejo actual. Esta lista es provisional hasta confirmar
-                            la recepción; no certifica una pérdida ni registra observaciones individuales.
+                            Marca «No llegó» para cada IMEI y escribe lo que ocurrió.
+                            Las notas se enviarán al servidor con la recepción; este formulario
+                            no certifica un incidente hasta que el servidor confirme la transacción.
                           </p>
-                          <ul className="mt-2 max-h-36 list-disc space-y-1 overflow-y-auto pl-5 text-xs">
-                            {missingPreview.map((serial)=><li key={serial} className="font-mono">{serial}</li>)}
-                          </ul>
+                          <div className="mt-3 max-h-72 space-y-3 overflow-y-auto">
+                            {missingLines.map((line)=>{
+                              const entry=missingByLine[line.id];
+                              return (
+                                <div key={line.id} className="space-y-2 rounded-md border bg-background/75 p-3">
+                                  <label className="flex items-center gap-2 text-xs font-semibold">
+                                    <input type="checkbox" disabled={working}
+                                      checked={entry?.markedNotArrived??false}
+                                      onChange={(event)=>{
+                                        const markedNotArrived=event.target.checked;
+                                        setMissingByLine((previous)=>({
+                                          ...previous,
+                                          [line.id]:{
+                                            markedNotArrived,
+                                            observation:previous[line.id]?.observation??"",
+                                          },
+                                        }));
+                                        setConfirmReceive(false);
+                                      }}/>
+                                    <span className="font-mono">{line.serial}</span>
+                                    <span> · No llegó</span>
+                                  </label>
+                                  <Textarea rows={2} maxLength={500} disabled={working}
+                                    aria-label={`Observación para ${line.serial}`}
+                                    placeholder="Describe lo sucedido con este IMEI (3 a 500 caracteres)"
+                                    value={entry?.observation??""}
+                                    onChange={(event)=>{
+                                      const observation=event.target.value;
+                                      setMissingByLine((previous)=>({
+                                        ...previous,
+                                        [line.id]:{
+                                          markedNotArrived:previous[line.id]?.markedNotArrived??false,
+                                          observation,
+                                        },
+                                      }));
+                                      setConfirmReceive(false);
+                                    }}/>
+                                </div>
+                              );
+                            })}
+                          </div>
                         </div>
                       ) : null}
                       <label className="flex items-start gap-2 text-sm">
@@ -392,9 +456,21 @@ export const TrasladosMultisedePanel = ({ sites }: { sites: readonly NexoraSite[
                           onChange={(e) => setConfirmReceive(e.target.checked)} />
                         Confirmo que he comprobado físicamente estos IMEI en el destino.
                       </label>
-                      <Button className="w-full" disabled={working || !confirmReceive || Boolean(receiveError) || (receipt?.invalidSerials.length ?? 0)>0}
-                        onClick={() => void operate("receive", receiveSerials)}>
-                        <CheckCircle2 className="h-4 w-4" /> Registrar recepción y documentar faltantes
+                      {confirmReceive && !receiptConfirmation?.ok ? (
+                        <p role="alert" className="text-xs text-amber-800 dark:text-amber-300">
+                          {receiptConfirmation?.errors[0] ??
+                            "Confirma cada IMEI faltante y su observación individual."}
+                        </p>
+                      ) : null}
+                      <Button className="w-full" disabled={working || !confirmReceive ||
+                          !receiptConfirmation?.ok || Boolean(receiveError) ||
+                          (receipt?.invalidSerials.length ?? 0)>0}
+                        onClick={() => {
+                          if (receiptConfirmation?.ok) {
+                            void operate("receive",receiveSerials,missingMarks);
+                          }
+                        }}>
+                        <CheckCircle2 className="h-4 w-4" /> Registrar recepción y notas por IMEI
                       </Button>
                     </div>
                   ) : null}
@@ -437,6 +513,36 @@ export const TrasladosMultisedePanel = ({ sites }: { sites: readonly NexoraSite[
                             : "Historial incompleto o inconsistente con el manifiesto. No se puede certificar la observación individual hasta corregir los registros del servidor."}
                         </p>
                       )}
+                      {detail.receiverNotes.state === "verified" ? (
+                        <div className="mt-3 rounded-lg border border-emerald-300/50 bg-emerald-50/40 p-3 dark:bg-emerald-500/5">
+                          <p className="text-sm font-semibold text-emerald-800 dark:text-emerald-300">
+                            Notas escritas del receptor: {detail.receiverNotes.entries.length} verificadas
+                          </p>
+                          <ul className="mt-2 max-h-48 list-disc space-y-3 overflow-y-auto pl-5 text-xs">
+                            {detail.receiverNotes.entries.map((entry)=>(
+                              <li key={entry.lineId}>
+                                <span className="font-mono font-semibold">{entry.serial}</span>
+                                <p className="mt-1 whitespace-pre-wrap break-words">{entry.observation}</p>
+                                <p className="text-muted-foreground">
+                                  Registrado por <span className="font-mono">{entry.recordedBy}</span>
+                                  {" · "}
+                                  <time dateTime={entry.recordedAt}>
+                                    {new Date(entry.recordedAt).toLocaleString("es-CO",{
+                                      dateStyle:"medium",timeStyle:"short",timeZone:"America/Bogota",
+                                    })}
+                                  </time>
+                                </p>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      ) : (
+                        <p role="status" className="mt-3 rounded-md border border-amber-300/50 p-3 text-xs text-muted-foreground">
+                          {detail.receiverNotes.state==="unavailable"
+                            ? "Las notas individuales del receptor todavía no están disponibles en Supabase."
+                            : "Las notas escritas no coinciden completamente con el historial de IMEI. No se certifica su contenido."}
+                        </p>
+                      )}
                       {pendingReturns.length>0 ? (
                         <div className="mt-3 rounded-lg border bg-background/70 p-3">
                           <p className="text-xs font-semibold">IMEI con estado «No llegó» / retorno pendiente</p>
@@ -444,8 +550,8 @@ export const TrasladosMultisedePanel = ({ sites }: { sites: readonly NexoraSite[
                             {pendingReturns.map((line)=><li key={line.id} className="font-mono">{line.serial}</li>)}
                           </ul>
                           <p className="mt-2 text-xs text-muted-foreground">
-                            Estado derivado de custodia pendiente; la observación individual «No llegó»
-                            aún requiere persistencia auditada en el servidor.
+                            Lista basada en la custodia física pendiente. Los incidentes y
+                            las notas del receptor se verifican por separado contra Supabase.
                           </p>
                         </div>
                       ) : null}
