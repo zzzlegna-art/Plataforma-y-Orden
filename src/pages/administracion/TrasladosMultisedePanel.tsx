@@ -153,8 +153,9 @@ export const TrasladosMultisedePanel = ({ sites }: { sites: readonly NexoraSite[
   const createError = validateTransferSerials(createSerials);
   const receipt = detail ? getReceivingSummary(detail.lines, receiveSerials) : null;
   const receiveError = validateTransferSerials(receiveSerials, true);
+  // Mostrar los faltantes aun cuando el receptor no escaneó ninguno.
+  // «Campo vacío» significa 0 recibidos, NO una recepción completa.
   const missingPreview = detail && !receiveError && (receipt?.invalidSerials.length ?? 0)===0
-    && (receiveSerials.length>0 || confirmReceive || Object.keys(missingByLine).length>0)
     ? getMissingReceiptSerials(detail.lines,receiveSerials) : [];
   const missingPreviewSet = new Set(missingPreview.map((s)=>s.trim().toLowerCase()));
   const missingLines = detail?.lines.filter((line)=>
@@ -382,6 +383,7 @@ export const TrasladosMultisedePanel = ({ sites }: { sites: readonly NexoraSite[
                       <p className="text-sm text-muted-foreground">
                         Introduce exclusivamente los IMEI <strong>recibidos físicamente en destino</strong>.
                         Los que falten generarán automáticamente un documento de devolución pendiente.
+                        Si no llegó ninguno, deja el campo vacío y documenta cada IMEI como «No llegó».
                       </p>
                       <Textarea rows={5} value={receiveText} disabled={working} placeholder="Un IMEI recibido por línea"
                         onChange={(event) => {
@@ -393,6 +395,15 @@ export const TrasladosMultisedePanel = ({ sites }: { sites: readonly NexoraSite[
                         <p className="font-semibold text-emerald-700 dark:text-emerald-300">{receipt?.received ?? 0} recibidos</p>
                         <p className="font-semibold text-amber-700 dark:text-amber-300">{receipt?.missing ?? 0} faltantes / retorno pendiente</p>
                       </div>
+                      {receiveSerials.length===0 && !receiveError &&
+                        (receipt?.invalidSerials.length ?? 0)===0 && (receipt?.missing ?? 0)>0 ? (
+                        <p role="status" className="rounded-lg border border-amber-300/50 p-3 text-xs text-amber-800 dark:text-amber-200">
+                          No has registrado ningún IMEI recibido. Si confirmas este resultado,
+                          deberás marcar y explicar individualmente los {receipt?.missing ?? 0}
+                          faltantes; ninguno quedará disponible en destino ni volverá
+                          automáticamente al origen.
+                        </p>
+                      ) : null}
                       {receiveError || (receipt?.invalidSerials.length ?? 0) > 0 ? (
                         <p role="alert" className="text-xs text-red-700 dark:text-red-300">
                           {receiveError ?? "Hay IMEI que no pertenecen al manifiesto."}
@@ -454,7 +465,8 @@ export const TrasladosMultisedePanel = ({ sites }: { sites: readonly NexoraSite[
                       <label className="flex items-start gap-2 text-sm">
                         <input type="checkbox" className="mt-1" checked={confirmReceive}
                           onChange={(e) => setConfirmReceive(e.target.checked)} />
-                        Confirmo que he comprobado físicamente estos IMEI en el destino.
+                        Confirmo el cotejo físico en destino de los IMEI recibidos
+                        y la verificación individual de todos los faltantes.
                       </label>
                       {confirmReceive && !receiptConfirmation?.ok ? (
                         <p role="alert" className="text-xs text-amber-800 dark:text-amber-300">
