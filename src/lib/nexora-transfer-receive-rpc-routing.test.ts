@@ -85,6 +85,26 @@ describe("Nexora V4 · ruta RPC segura de recepción con notas",()=>{
     }
   });
 
+  it("permite cero escaneados solo con las confirmaciones de todos los faltantes",async()=>{
+    rpc.mockResolvedValue({data:{
+      transferId:"transfer-1",status:"awaiting_returns",
+      received:0,missing:2,observationsRecorded:2,
+    },error:null});
+    const result=await runNexoraTransferAction({
+      action:"receive",transferId:"transfer-1",
+      serials:[],missingMarks:marks,
+    });
+    expect(rpc).toHaveBeenCalledTimes(1);
+    expect(rpc).toHaveBeenCalledWith("nexora_transfer_receive_with_notes",{
+      p_transfer_id:"transfer-1",
+      p_received_serials:[],
+      p_missing_marks:marks,
+    });
+    expect(result).toMatchObject({
+      status:"awaiting_returns",received:0,missing:2,observationsRecorded:2,
+    });
+  });
+
   it("mantiene dispatch, cancel y otros eventos en la RPC legacy",async()=>{
     rpc.mockResolvedValue({data:{transferId:"transfer-1",status:"in_transit",sent:3},error:null});
     const result=await runNexoraTransferAction({
