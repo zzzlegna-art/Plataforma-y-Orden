@@ -32,7 +32,7 @@ begin
     'reception.cost.approve','reception.shortage.close',
     'reception.extra.approve','reception.supplier.credit.manage',
     'cash.open','cash.close','cash.reopen','cash.expense.record',
-    'sales.cancel','sales.refund.authorize','reports.view','finance.transfer.manage'
+    'sales.create','sales.cancel','sales.refund.authorize','reports.view','finance.transfer.manage'
   ) then
     return false;
   end if;
@@ -97,6 +97,10 @@ begin
 
   if p_capability='cash.open' then
     return v_site_type='local' and v_effective_role in ('admin','encargado');
+  end if;
+  if p_capability='sales.create' then
+    -- El motor POS deberá comprobar además caja, costo, custodia e idempotencia.
+    return v_site_type='local' and v_effective_role in ('admin','encargado','vendedor');
   end if;
   if p_capability in ('cash.close','cash.expense.record') then
     return v_site_type='local' and v_effective_role='encargado';
