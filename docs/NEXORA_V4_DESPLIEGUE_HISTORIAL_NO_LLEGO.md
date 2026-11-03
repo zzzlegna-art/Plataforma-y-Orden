@@ -9,6 +9,8 @@
 
 La migración añade una tabla de solo lectura para los clientes, una política RLS de Administrador y un trigger privado que registra automáticamente «No llegó» por IMEI al pasar de `in_transit` a `return_pending`. Guarda identificador de línea, unidad, serial, usuario real de la sesión y fecha, en la misma transacción de la RPC.
 
+Además instala dos triggers de **inmutabilidad** que rechazan `UPDATE`, `DELETE` y `TRUNCATE` de observaciones, incluso si un proceso con privilegios de dueño de tabla intenta ejecutarlos mediante DML normal. Las correcciones excepcionales requieren una migración expresamente revisada; no se elimina evidencia para cuadrar inventario.
+
 - **No** crea IMEI, ventas, caja, aprobaciones físicas, nuevas rutas ni transferencias de mercancía.
 - **No** abre permisos de Bodeguero, Encargado o Vendedor; el motor actual continúa exigiendo Administrador.
 - **No** devuelve IMEI faltantes a stock ni modifica `bodega_units`; solamente un retorno físico verificado actualiza su custodia.
