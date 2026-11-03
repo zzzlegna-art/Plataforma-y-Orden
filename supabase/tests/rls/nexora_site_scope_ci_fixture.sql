@@ -97,8 +97,10 @@ begin
   perform set_config('request.jwt.claim.sub','00000000-0000-0000-0000-000000000001',true);
   if not nexora_internal.site_role_scope_basis(v_main,'reception.cost.approve')
     or not nexora_internal.site_role_scope_basis(v_iphone,'cash.open')
+    or not nexora_internal.site_role_scope_basis(v_iphone,'sales.create')
     or nexora_internal.site_role_scope_basis(v_iphone,'cash.close')
-    or nexora_internal.site_role_scope_basis(v_main,'cash.open') then
+    or nexora_internal.site_role_scope_basis(v_main,'cash.open')
+    or nexora_internal.site_role_scope_basis(v_main,'sales.create') then
     raise exception 'ERROR: permisos de Administrador incorrectos.';
   end if;
   if not nexora_internal.transfer_actor_scope_basis('create',v_main,v_cali)
@@ -127,6 +129,7 @@ begin
   perform set_config('request.jwt.claim.sub','00000000-0000-0000-0000-000000000002',true);
   if not nexora_internal.site_role_scope_basis(v_main,'reception.supplier.receive')
     or nexora_internal.site_role_scope_basis(v_main,'reception.cost.approve')
+    or nexora_internal.site_role_scope_basis(v_main,'sales.create')
     or not nexora_internal.transfer_actor_scope_basis('dispatch',v_main,v_cali)
     or nexora_internal.transfer_actor_scope_basis('receive',v_main,v_cali)
     or nexora_internal.site_role_scope_basis(v_cali,'transfers.manage') then
@@ -148,6 +151,8 @@ begin
     or not nexora_internal.transfer_actor_scope_basis('create',v_iphone,v_main)
     or nexora_internal.transfer_actor_scope_basis('dispatch',v_main,v_iphone)
     or nexora_internal.site_role_scope_basis(v_iphone,'cash.open')
+    or not nexora_internal.site_role_scope_basis(v_iphone,'sales.create')
+    or nexora_internal.site_role_scope_basis(v_cali_store,'sales.create')
     or nexora_internal.site_role_scope_basis(v_iphone,'inventory.imei.correct')
     or nexora_internal.site_role_scope_basis(v_main,'reception.supplier.receive') then
     raise exception 'ERROR: Vendedor obtuvo permiso ajeno o no recibió su sede.';
@@ -157,6 +162,7 @@ begin
   perform set_config('request.jwt.claim.sub','00000000-0000-0000-0000-000000000004',true);
   if not nexora_internal.site_role_scope_basis(v_cali_store,'cash.open')
     or not nexora_internal.site_role_scope_basis(v_cali_store,'cash.close')
+    or not nexora_internal.site_role_scope_basis(v_cali_store,'sales.create')
     or not nexora_internal.site_role_scope_basis(v_cali_store,'cash.expense.record')
     or nexora_internal.site_role_scope_basis(v_cali_store,'finance.transfer.manage')
     or nexora_internal.site_role_scope_basis(v_iphone,'cash.open')
