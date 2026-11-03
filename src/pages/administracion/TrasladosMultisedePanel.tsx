@@ -513,6 +513,36 @@ export const TrasladosMultisedePanel = ({ sites }: { sites: readonly NexoraSite[
                             : "Historial incompleto o inconsistente con el manifiesto. No se puede certificar la observación individual hasta corregir los registros del servidor."}
                         </p>
                       )}
+                      {detail.receiverNotes.state === "verified" ? (
+                        <div className="mt-3 rounded-lg border border-emerald-300/50 bg-emerald-50/40 p-3 dark:bg-emerald-500/5">
+                          <p className="text-sm font-semibold text-emerald-800 dark:text-emerald-300">
+                            Notas escritas del receptor: {detail.receiverNotes.entries.length} verificadas
+                          </p>
+                          <ul className="mt-2 max-h-48 list-disc space-y-3 overflow-y-auto pl-5 text-xs">
+                            {detail.receiverNotes.entries.map((entry)=>(
+                              <li key={entry.lineId}>
+                                <span className="font-mono font-semibold">{entry.serial}</span>
+                                <p className="mt-1 whitespace-pre-wrap break-words">{entry.observation}</p>
+                                <p className="text-muted-foreground">
+                                  Registrado por <span className="font-mono">{entry.recordedBy}</span>
+                                  {" · "}
+                                  <time dateTime={entry.recordedAt}>
+                                    {new Date(entry.recordedAt).toLocaleString("es-CO",{
+                                      dateStyle:"medium",timeStyle:"short",timeZone:"America/Bogota",
+                                    })}
+                                  </time>
+                                </p>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      ) : (
+                        <p role="status" className="mt-3 rounded-md border border-amber-300/50 p-3 text-xs text-muted-foreground">
+                          {detail.receiverNotes.state==="unavailable"
+                            ? "Las notas individuales del receptor todavía no están disponibles en Supabase."
+                            : "Las notas escritas no coinciden completamente con el historial de IMEI. No se certifica su contenido."}
+                        </p>
+                      )}
                       {pendingReturns.length>0 ? (
                         <div className="mt-3 rounded-lg border bg-background/70 p-3">
                           <p className="text-xs font-semibold">IMEI con estado «No llegó» / retorno pendiente</p>
@@ -520,8 +550,8 @@ export const TrasladosMultisedePanel = ({ sites }: { sites: readonly NexoraSite[
                             {pendingReturns.map((line)=><li key={line.id} className="font-mono">{line.serial}</li>)}
                           </ul>
                           <p className="mt-2 text-xs text-muted-foreground">
-                            Estado derivado de custodia pendiente; la observación individual «No llegó»
-                            aún requiere persistencia auditada en el servidor.
+                            Lista basada en la custodia física pendiente. Los incidentes y
+                            las notas del receptor se verifican por separado contra Supabase.
                           </p>
                         </div>
                       ) : null}
