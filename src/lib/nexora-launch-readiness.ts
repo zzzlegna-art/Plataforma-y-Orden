@@ -35,9 +35,9 @@ export const PREPARATION_STEPS = [
     tab:"roles",action:"Preparar perfiles",
   },
   {
-    key:"reconciliation",title:"Conciliar y aprobar todos los IMEI",
-    detail:"Verifica ubicación real y acta de inventario antes de operar.",
-    tab:"sites",action:"Conciliar inventario",
+    key:"reconciliation",title:"Certificar el inventario inicial",
+    detail:"Bodega 6A ya revisada: declaración administrativa sin escaneos ficticios. Para otras sedes, cotejo físico por IMEI.",
+    tab:"sites",action:"Abrir acta inicial",
   },
   {
     key:"roleActivation",title:"Validar activación segura de roles",

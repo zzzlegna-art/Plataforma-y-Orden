@@ -94,8 +94,9 @@ export const AprobacionInventarioInicialPanel = ({
             <div>
               <h2 className="text-lg font-bold tracking-tight">Aprobación del inventario inicial</h2>
               <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
-                Cierre global con validación por IMEI, sede y estado. Cada ubicación queda confirmada
-                una sola vez en un acta auditable, sin duplicar las existencias.
+                El cierre inicial registra las ubicaciones con un acta auditable: por escaneo físico real
+                o, exclusivamente en Bodega 6A ya revisada, mediante declaración administrativa.
+                Ningún método inventa lecturas de IMEI.
               </p>
             </div>
           </div>
@@ -148,8 +149,9 @@ export const AprobacionInventarioInicialPanel = ({
                 <div>
                   <p className="text-sm font-semibold">{blocker ?? "Todos los IMEI físicos están conciliados"}</p>
                   <p className="mt-1 text-xs text-muted-foreground">
-                    La aprobación exige cotejar todos los equipos físicos y confirmar que ningún serial
-                    cambió de estado o quedó en una sede inactiva.
+                    El cierre ordinario exige cotejos individuales. Si ya verificaste físicamente las
+                    unidades elegibles de Bodega 6A, utiliza abajo la apertura excepcional por declaración.
+                    No necesita repetir escaneos, no inventa lecturas y no valida costos faltantes.
                   </p>
                 </div>
               </div>
