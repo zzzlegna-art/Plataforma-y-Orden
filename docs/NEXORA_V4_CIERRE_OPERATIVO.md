@@ -39,6 +39,7 @@ Plan Maestro de 29 páginas, versión 4, fechado 31-10-2026. Bodega 6A, Barranqu
 ## Avance técnico de permisos por sede (PR #141)
 
 - `nexora_internal.site_role_scope_basis(site_id, capability)`: función `SECURITY DEFINER` con `search_path` fijo y **sin EXECUTE para anon/authenticated**; no está enlazada a operaciones.
+- `nexora_internal.transfer_actor_scope_basis(action, origin, destination)`: condición preparatoria por etapa para rutas padre→hijo activas; `create/dispatch/return/cancel` comprueban la sede de **origen**, y `receive` la de **destino**. No está vinculada al ejecutor `execute_transfer` (que sigue siendo solo Administrador).
 - Evalúa identidad activa, sede activa, asignación vigente de empleados y capacidades operativas según los cuatro roles aprobados. Administrador global; demás perfiles acotados a su sede.
 - **Condición necesaria, nunca suficiente:** las futuras operaciones siguen necesitando sus controles de ruta, custodia, acta, estado, costos, idempotencia y autorización en el servidor.
 - `nexora_staff_role_plans.operationally_enabled` permanece invariablemente `false` por CHECK y trigger hasta una migración futura expresamente revisada.
