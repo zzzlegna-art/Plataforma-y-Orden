@@ -24,8 +24,16 @@ begin
   if has_function_privilege('anon',
        'nexora_internal.site_role_scope_basis(uuid,text)', 'EXECUTE')
     or has_function_privilege('authenticated',
-       'nexora_internal.site_role_scope_basis(uuid,text)', 'EXECUTE') then
-    raise exception 'La funcion interna no debe estar expuesta a clientes REST.';
+       'nexora_internal.site_role_scope_basis(uuid,text)', 'EXECUTE')
+    or has_function_privilege('anon',
+       'nexora_internal.transfer_actor_scope_basis(text,uuid,uuid)', 'EXECUTE')
+    or has_function_privilege('authenticated',
+       'nexora_internal.transfer_actor_scope_basis(text,uuid,uuid)', 'EXECUTE') then
+    raise exception 'Las funciones internas no deben estar expuestas a clientes REST.';
+  end if;
+  if nexora_internal.transfer_actor_scope_basis('create',null,null)
+    or nexora_internal.transfer_actor_scope_basis('inventado',gen_random_uuid(),gen_random_uuid()) then
+    raise exception 'Origen, destino y acción deben ser válidos.';
   end if;
 
   if nexora_internal.site_role_scope_basis(null, 'transfers.manage')
@@ -54,6 +62,23 @@ begin
       raise exception 'No se permite caja en la sede principal ni capacidades desconocidas.';
     end if;
     if v_store is not null then
+      if nexora_internal.transfer_actor_scope_basis('create',v_main,v_main)
+         or nexora_internal.transfer_actor_scope_basis('receive',v_store,v_main) then
+        raise exception 'El traslado no debe aceptar sedes iguales ni ruta invertida.';
+      end if;
+      -- El caso positivo requiere una relación activa principal→local.
+      if exists (
+        select 1 from public.nexora_sites d
+        where d.id=v_store and d.parent_site_id=v_main
+      ) then
+        if not nexora_internal.transfer_actor_scope_basis('create',v_main,v_store)
+           or not nexora_internal.transfer_actor_scope_basis('dispatch',v_main,v_store)
+           or not nexora_internal.transfer_actor_scope_basis('receive',v_main,v_store)
+           or not nexora_internal.transfer_actor_scope_basis('return',v_main,v_store)
+           or not nexora_internal.transfer_actor_scope_basis('cancel',v_main,v_store) then
+          raise exception 'El Administrador debe superar alcance de las cinco etapas en rutas válidas.';
+        end if;
+      end if;
       if not nexora_internal.site_role_scope_basis(v_store,'cash.open')
          or nexora_internal.site_role_scope_basis(v_store,'cash.close')
          or nexora_internal.site_role_scope_basis(v_store,'reception.supplier.receive') then
@@ -81,6 +106,15 @@ begin
       if v_foreign_site is not null and
          nexora_internal.site_role_scope_basis(v_foreign_site,'transfers.manage') then
         raise exception 'Se detecto acceso a una sede ajena.';
+      end if;
+      if v_foreign_site is not null and exists (
+        select 1 from public.nexora_sites d where d.id=v_foreign_site
+          and d.parent_site_id=v_own_site
+      ) then
+        if nexora_internal.transfer_actor_scope_basis('receive',v_own_site,v_foreign_site)
+           or not nexora_internal.transfer_actor_scope_basis('dispatch',v_own_site,v_foreign_site) then
+          raise exception 'El Bodeguero no debe recibir en la sede ajena aunque pueda despachar desde la propia.';
+        end if;
       end if;
     end if;
   end if;
