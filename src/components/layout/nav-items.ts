@@ -7,6 +7,7 @@ import {
   Settings,
   Boxes,
   ShieldCheck,
+  Truck,
   type LucideIcon,
 } from "lucide-react";
 
@@ -68,6 +69,12 @@ export const NAV_ITEMS: NavItem[] = [
     icon: ShieldCheck,
     permission: "warranties.manage",
     primary: true,
+  },
+  {
+    to: "/traslados",
+    labelKey: "nav.transfers",
+    icon: Truck,
+    permission: "transfers.manage",
   },
   {
     to: "/administracion",
