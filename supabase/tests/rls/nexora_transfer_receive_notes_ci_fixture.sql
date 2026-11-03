@@ -451,4 +451,82 @@ begin
 end;
 $complete$;
 
+-- Caso extremo: 20 despachados, cero entregados. Las veinte notas son
+-- obligatorias y los equipos quedan sin sede, en retorno pendiente.
+insert into public.bodega_units(id,serial,status,cost)
+select gen_random_uuid(),'IMEI-ZERO-'||lpad(i::text,4,'0'),
+  'en_bodega',200 from generate_series(1,20) i;
+insert into public.nexora_initial_unit_sites
+  (unit_id,site_id,serial_snapshot,cost_snapshot)
+select id,'00000000-0000-0000-0000-000000000100'::uuid,serial,cost
+from public.bodega_units
+where serial like 'IMEI-ZERO-%';
+
+do $zero$
+declare
+  v_origin constant uuid := '00000000-0000-0000-0000-000000000100';
+  v_dest constant uuid := '00000000-0000-0000-0000-000000000200';
+  v_serials text[];
+  v_id uuid;
+  v_marks jsonb;
+  v_result jsonb;
+begin
+  select array_agg(serial order by serial) into v_serials
+  from public.bodega_units where serial like 'IMEI-ZERO-%';
+
+  v_result:=nexora_internal.execute_transfer(
+    'create',null,v_origin,v_dest,v_serials,'CI, 20 no llegaron');
+  v_id:=(v_result->>'transferId')::uuid;
+  perform nexora_internal.execute_transfer(
+    'dispatch',v_id,null,null,array[]::text[],null);
+
+  select coalesce(jsonb_agg(jsonb_build_object(
+    'lineId',l.id::text,
+    'serial',l.serial_snapshot,
+    'markedNotArrived',true,
+    'observation','No apareció el IMEI '||l.serial_snapshot||' en destino'
+  ) order by l.serial_snapshot),'[]'::jsonb)
+  into v_marks from public.nexora_transfer_lines l
+    where l.transfer_id=v_id and l.state='in_transit';
+  if jsonb_array_length(v_marks)<>20 then
+    raise exception 'No se generaron las 20 marcas sintéticas de no entrega.';
+  end if;
+
+  v_result:=public.nexora_transfer_receive_with_notes(
+    v_id,array[]::text[],v_marks);
+  if (v_result->>'received')::integer<>0
+    or (v_result->>'missing')::integer<>20
+    or (v_result->>'observationsRecorded')::integer<>20
+    or (v_result->>'status')<>'awaiting_returns'
+    or (select expected_count from public.nexora_transfer_return_documents
+       where transfer_id=v_id)<>20
+    or (select count(*) from public.nexora_transfer_lines
+       where transfer_id=v_id and state='return_pending')<>20
+    or (select count(*) from public.nexora_unit_custody c
+       join public.nexora_transfer_lines l on l.unit_id=c.unit_id
+       where l.transfer_id=v_id and c.site_id is null
+         and c.custody_status='return_pending')<>20
+    or (select count(*) from public.nexora_transfer_missing_observations
+       where transfer_id=v_id)<>20
+    or (select count(*) from public.nexora_transfer_missing_receipt_notes
+       where transfer_id=v_id)<>20 then
+    raise exception 'No entrega: se acreditó stock inexistente o faltan observaciones.';
+  end if;
+
+  perform nexora_internal.execute_transfer(
+    'return',v_id,null,null,array[v_serials[1]],null);
+  if (select count(*) from public.nexora_unit_custody c
+       join public.nexora_transfer_lines l on l.unit_id=c.unit_id
+       where l.transfer_id=v_id and c.site_id=v_origin
+         and c.custody_status='at_site')<>1
+    or (select count(*) from public.nexora_transfer_lines
+       where transfer_id=v_id and state='return_pending')<>19
+    or (select count(*) from public.nexora_transfer_missing_receipt_notes
+       where transfer_id=v_id)<>20 then
+    raise exception 'Retorno parcial: no debe restaurar los otros 19 IMEI.';
+  end if;
+  raise notice 'PASS: 0 recibidos, 20 No llegó, stock cero en destino y retorno físico 1/20.';
+end;
+$zero$;
+
 rollback;
