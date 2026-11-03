@@ -20,7 +20,7 @@ Plan Maestro de 29 páginas, versión 4, fechado 31-10-2026. Bodega 6A, Barranqu
 | Costos unitarios | 2.758 IMEI en bodega sin costo | Recuperar soporte documental y aprobación administrativa; jamás imputar costos inventados |
 | Roles de cuatro perfiles | Vista/planificación, diagnóstico por local (PR #140) y guardia privada preparatoria (PR #141); Encargado/Vendedor inactivos | Aplicar y probar guardia privada, conectar RLS/RPC transaccionales por sede, revisar permisos de roles y habilitar solo tras pruebas positivas/negativas |
 | Inventario físico por local | Esquema de cotejo y aprobación | Conteos auténticos y aprobaciones, sin duplicar IMEI ni asignar sede ficticia |
-| Traslados físicos | Motor base; PR #142 prepara alcance por sede, rutas V4, edición previa y observación individual de faltantes | Ensayo SQL aislado; pruebas de roles en origen/destino; validar recepción 20→15→5 y retorno físico antes de fusionar |
+| Traslados físicos | Motor base; PR #142 prepara alcance por sede, rutas V4, edición previa y observación individual de faltantes | Ensayo SQL aislado; pruebas de roles en origen/destino; validar recepción 20→15→5 y retorno físico; completar cantidades no serializadas, rechazados, notificación e incidencias |
 | POS/caja | Motor y UI existentes, bloqueados | Validación por rol, local, caja, costo real, precio > costo e idempotencia |
 | Anulación y cambios | No habilitados | Cancelación y reintegro solo Administrador, auditoría e inventario físico correcto |
 | Recepción inteligente de factura | No validado como completo | PDF/JPG/PNG asistido, human-in-loop, costos solo Administrador |
@@ -45,6 +45,8 @@ Plan Maestro de 29 páginas, versión 4, fechado 31-10-2026. Bodega 6A, Barranqu
 - Se amplía la lectura RLS de manifiestos, líneas, devoluciones, eventos y custodia a personal activo asignado a una de las sedes participantes. Encargado/Vendedor siguen sin activarse mientras su bandera operativa continúe bloqueada.
 - Los borradores pueden corregirse antes del despacho; la auditoría conserva seriales y observación anterior/nueva.
 - En la recepción, cada IMEI no recibido requiere una observación individual de 3–300 caracteres; el servidor valida que la lista coincida exactamente con los IMEI faltantes y guarda autor y hora. El documento de retorno no devuelve stock hasta la comprobación física.
+- La pantalla muestra enviados, recibidos, no recibidos y pendientes de retorno; cada línea no escaneada como recibida queda marcada «No llegó» hasta corregirla con evidencia física.
+- **Pendiente de implementar en una etapa posterior:** recepción por cantidad de productos no serializados, estado separado de rechazados, aviso automático a la bodega de origen e incidencia formal cuando un faltante no aparece. El motor actual cubre IMEI serializados y retorno pendiente.
 - La RPC antigua de seis argumentos se sustituye por una firma que admite el detalle de faltantes. La migración aún **no se ha aplicado a Supabase**.
 
 ## Avance técnico de permisos por sede (PR #141)
