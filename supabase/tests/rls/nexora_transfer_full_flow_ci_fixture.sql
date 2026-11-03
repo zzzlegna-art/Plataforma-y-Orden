@@ -83,8 +83,9 @@ create table public.bodega_order_item_units (
   order_item_id uuid references public.bodega_order_items(id)
 );
 
-insert into public.bodega_profiles(id,role,is_active)
- values('00000000-0000-0000-0000-000000000001','admin',true);
+insert into public.bodega_profiles(id,role,is_active) values
+ ('00000000-0000-0000-0000-000000000001','admin',true),
+ ('00000000-0000-0000-0000-000000000002','bodeguero',true);
 insert into public.nexora_sites(id,parent_site_id,is_active) values
  ('00000000-0000-0000-0000-000000000100',null,true),
  ('00000000-0000-0000-0000-000000000200',
@@ -126,6 +127,25 @@ begin
   end if;
   v_accepted:=v_all[1:15];
   v_rest:=v_all[17:20];
+
+  -- La RPC actual debe permanecer en modo Administrador hasta que RLS
+  -- y el plan de roles estén aprobados. Un Bodeguero no puede saltar el bloqueo.
+  perform set_config('request.jwt.claim.sub',
+    '00000000-0000-0000-0000-000000000002',true);
+  begin
+    perform nexora_internal.execute_transfer(
+      'create',null,v_origin,v_destination,v_all,'Intento prohibido');
+    raise exception 'La función actual permitió traslado de Bodeguero.';
+  exception when others then
+    if sqlerrm not like '%Solo Administrador puede operar traslados multisede%' then
+      raise;
+    end if;
+  end;
+  perform set_config('request.jwt.claim.sub',
+    '00000000-0000-0000-0000-000000000001',true);
+  if exists(select 1 from public.nexora_transfers) then
+    raise exception 'El acceso denegado creó un manifiesto ficticio.';
+  end if;
 
   v_result:=nexora_internal.execute_transfer(
     'create',null,v_origin,v_destination,v_all,'CI solo datos ficticios');
@@ -178,6 +198,17 @@ begin
     raise exception 'Recepción: custodias no corresponden a 15 aceptados y 5 faltantes.';
   end if;
 
+  -- Reintentar recepción no puede generar un incidente duplicado.
+  begin
+    perform nexora_internal.execute_transfer(
+      'receive',v_transfer,null,null,v_accepted,null);
+    raise exception 'La RPC admitió dos recepciones del mismo traslado.';
+  exception when others then
+    if sqlerrm not like '%Esta recepción ya fue procesada%' then
+      raise;
+    end if;
+  end;
+
   if (select expected_count from public.nexora_transfer_return_documents
       where transfer_id=v_transfer)<>5
     or (select status from public.nexora_transfer_return_documents
@@ -214,6 +245,16 @@ begin
       where transfer_id=v_transfer)<>5 then
     raise exception 'El primer retorno no puede borrar el historial ni liberar los otros cuatro.';
   end if;
+
+  begin
+    perform nexora_internal.execute_transfer(
+      'return',v_transfer,null,null,array[v_all[16]],null);
+    raise exception 'La RPC admitió dos retornos del mismo IMEI.';
+  exception when others then
+    if sqlerrm not like '%El retorno contiene IMEI ajenos%' then
+      raise;
+    end if;
+  end;
 
   v_result:=nexora_internal.execute_transfer(
     'return',v_transfer,null,null,v_rest,null);
