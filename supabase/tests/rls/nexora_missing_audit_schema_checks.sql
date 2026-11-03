@@ -52,6 +52,20 @@ begin
     raise exception 'Falta el trigger activo y único sobre las líneas de traslado.';
   end if;
 
+  select count(*) into v_trigger_count from pg_catalog.pg_trigger t
+  where t.tgrelid=v_table and not t.tgisinternal and t.tgenabled='O'
+    and t.tgname in ('nexora_transfer_missing_no_rewrite',
+      'nexora_transfer_missing_no_truncate');
+  if v_trigger_count<>2 then
+    raise exception 'Faltan triggers activos de protección UPDATE/DELETE/TRUNCATE.';
+  end if;
+  if has_function_privilege('anon',
+      'nexora_internal.reject_missing_audit_mutation()','EXECUTE')
+    or has_function_privilege('authenticated',
+      'nexora_internal.reject_missing_audit_mutation()','EXECUTE') then
+    raise exception 'El bloqueador de modificaciones no puede ejecutarse como API.';
+  end if;
+
   select count(*) into v_policy_count from pg_catalog.pg_policy p
   where p.polrelid=v_table and p.polname='nexora_transfer_missing_admin_read'
     and p.polcmd='r';
