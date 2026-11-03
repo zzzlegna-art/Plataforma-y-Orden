@@ -20,6 +20,26 @@ grant execute on function nexora_internal.is_current_active_multisite_staff()
 comment on function nexora_internal.is_current_active_multisite_staff() is
   'Solo lectura RLS: confirma el perfil legacy activo del usuario actual, incluidos los roles multisede planificados. No concede escrituras.';
 
+create or replace function public.nexora_transfer_readiness()
+returns jsonb language plpgsql stable security definer
+set search_path=pg_catalog,public
+as $
+begin
+  if auth.uid() is null
+    or not nexora_internal.is_current_active_multisite_staff() then
+    raise exception 'Solo personal activo puede consultar la preparación de traslados.';
+  end if;
+  return jsonb_build_object(
+    'isApproved',exists(select 1 from public.nexora_initial_inventory_approvals)
+  );
+end;
+$;
+revoke all on function public.nexora_transfer_readiness()
+  from public,anon,authenticated;
+grant execute on function public.nexora_transfer_readiness() to authenticated;
+comment on function public.nexora_transfer_readiness() is
+  'Lectura mínima para traslados: devuelve solo si el acta inicial está aprobada. No revela IMEI ni datos de conciliación y no autoriza movimientos.';
+
 create or replace function nexora_internal.is_allowed_transfer_route(
   p_origin uuid,p_destination uuid
 )
