@@ -88,7 +88,7 @@ export const summarizeStoreRoleReadiness=(
   return sites.filter(site=>site.siteType==="local"&&site.isActive).map(site=>{
     const assigned=new Map(audit.staff.filter(row=>row.siteId===site.id&&
       row.staffActive&&row.assignmentActive&&row.siteActive&&
-      row.legacyRole!=="admin").map(row=>[row.userId,row]));
+      row.legacyRole==="bodeguero").map(row=>[row.userId,row]));
     const staff=[...assigned.values()];
     const managers=staff.filter(row=>row.plannedRole==="encargado").length;
     const sellers=staff.filter(row=>row.plannedRole==="vendedor").length;
