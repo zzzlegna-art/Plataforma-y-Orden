@@ -68,6 +68,42 @@ export const siteTypeLabel: Record<SiteType, string> = {
   local: "Local comercial",
 };
 
+export interface NexoraTransferRoute {
+  origin: NexoraSite;
+  destination: NexoraSite;
+}
+
+/**
+ * Rutas aprobadas por el Plan Maestro V4.
+ * Los locales solo devuelven a su bodega de origen; nunca transfieren a otro local.
+ */
+export const isAllowedTransferRoute = (
+  origin: NexoraSite,
+  destination: NexoraSite,
+): boolean => {
+  if (!origin.isActive || !destination.isActive || origin.id === destination.id) return false;
+  if (origin.siteType === "principal" && destination.siteType === "bodega")
+    return destination.parentSiteId === origin.id;
+  if (origin.siteType === "bodega" && destination.siteType === "bodega")
+    return origin.cityId !== destination.cityId;
+  if ((origin.siteType === "principal" || origin.siteType === "bodega")
+    && destination.siteType === "local")
+    return destination.parentSiteId === origin.id;
+  if (origin.siteType === "local"
+    && (destination.siteType === "principal" || destination.siteType === "bodega"))
+    return origin.parentSiteId === destination.id;
+  return false;
+};
+
+export const listAllowedTransferRoutes = (
+  sites: readonly NexoraSite[],
+): NexoraTransferRoute[] => {
+  const active = sites.filter((site) => site.isActive);
+  return active.flatMap((origin) => active
+    .filter((destination) => isAllowedTransferRoute(origin, destination))
+    .map((destination) => ({ origin, destination })));
+};
+
 export const allowedParents = (
   kind: SiteType,
   cityId: string,
