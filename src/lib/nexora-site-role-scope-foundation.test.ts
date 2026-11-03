@@ -7,17 +7,20 @@ const migration=readFileSync(
   "utf8",
 );
 
-/** Las dos consultas globales requieren su propia política de lectura RLS. */
-const globalReadOnly=new Set([
-  "inventory.view", "inventory.imei.cost.view",
-]);
-
 describe("Nexora V4 · fundamento privado de alcance por rol y sede",()=>{
-  it("contempla todas las capacidades que requieren alcance operativo",()=>{
+  it("incluye TODAS las capacidades del Plan, también lectura global y costos",()=>{
     for(const capability of MULTISITE_CAPABILITIES){
-      if(globalReadOnly.has(capability.key))continue;
       expect(migration,capability.key).toContain(`'${capability.key}'`);
     }
+  });
+  it("separa lectura global del permiso de operar y no concede escritura implícita",()=>{
+    expect(migration).toContain(
+      "if p_capability in ('inventory.view','inventory.imei.cost.view') then",
+    );
+    expect(migration).toContain("where a.user_id=v_actor and a.is_active and assigned.is_active");
+    expect(migration).toContain("ss.user_id=v_actor and ss.site_id=p_site_id and ss.is_active");
+    expect(migration).not.toMatch(/create\s+policy\s+.*\s+for\s+update/i);
+    expect(migration).not.toMatch(/grant\s+(?:all|update|insert|delete)\s+on/i);
   });
   it("no expone SECURITY DEFINER a usuarios API ni activa roles",()=>{
     expect(migration).toMatch(/security definer/i);
