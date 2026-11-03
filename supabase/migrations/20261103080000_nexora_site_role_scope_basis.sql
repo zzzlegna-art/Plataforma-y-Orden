@@ -134,7 +134,7 @@ create or replace function nexora_internal.transfer_actor_scope_basis(
 )
 returns boolean language plpgsql stable security definer
 set search_path = pg_catalog
-as $
+as $$
 declare
   v_responsible_site uuid;
 begin
@@ -180,7 +180,7 @@ begin
     v_responsible_site,'transfers.manage'
   );
 end;
-$;
+$$;
 revoke all on function nexora_internal.transfer_actor_scope_basis(text,uuid,uuid)
   from public,anon,authenticated;
 
