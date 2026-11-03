@@ -232,7 +232,7 @@ export const TrasladosMultisedePanel = ({ sites }: { sites: readonly NexoraSite[
               <span className="rounded-xl bg-primary/10 p-2.5 text-primary"><Plus className="h-5 w-5" /></span>
               <div>
                 <h3 className="font-semibold">Nuevo manifiesto de traslado</h3>
-                <p className="mt-1 text-xs text-muted-foreground">Cada operación admite hasta 100 seriales únicos. Solo rutas de abastecimiento configuradas.</p>
+                <p className="mt-1 text-xs text-muted-foreground">Hasta 100 seriales únicos por operación. Rutas V4: abastecimiento entre sedes y retorno a la bodega de origen; local a local está prohibido.</p>
               </div>
             </div>
             <div className="mt-5 grid gap-4 md:grid-cols-2">
