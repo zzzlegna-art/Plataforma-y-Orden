@@ -211,6 +211,7 @@ declare
   v_origin uuid;
   v_destination uuid;
   v_status text;
+  v_previous_note text;
   v_result jsonb;
   v_missing_notes jsonb := coalesce(p_missing_notes,'[]'::jsonb);
   v_missing_count integer;
@@ -304,8 +305,8 @@ begin
     return jsonb_build_object('transferId',v_tid,'number',v_number,'status','draft','units',v_wanted);
   end if;
 
-  select t.id,t.transfer_number,t.origin_site_id,t.destination_site_id,t.status
-    into v_tid,v_number,v_origin,v_destination,v_status
+  select t.id,t.transfer_number,t.origin_site_id,t.destination_site_id,t.status,t.note
+    into v_tid,v_number,v_origin,v_destination,v_status,v_previous_note
     from public.nexora_transfers t where t.id=p_transfer_id for update;
   if not found then raise exception 'Traslado no encontrado.'; end if;
   select count(*) into v_total from public.nexora_transfer_lines where transfer_id=v_tid;
@@ -393,6 +394,8 @@ begin
       values(v_tid,'edited',auth.uid(),jsonb_build_object(
         'previousSerials',v_result,
         'currentSerials',to_jsonb(v_serials),
+        'previousNote',v_previous_note,
+        'currentNote',nullif(btrim(p_note),''),
         'units',v_wanted
       ));
     return jsonb_build_object('transferId',v_tid,'status','draft','units',v_wanted,'edited',true);
