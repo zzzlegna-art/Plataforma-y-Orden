@@ -39,11 +39,13 @@ Plan Maestro de 29 páginas, versión 4, fechado 31-10-2026. Bodega 6A, Barranqu
 ## Avance técnico de permisos por sede (PR #141)
 
 - `nexora_internal.site_role_scope_basis(site_id, capability)`: función `SECURITY DEFINER` con `search_path` fijo y **sin EXECUTE para anon/authenticated**; no está enlazada a operaciones.
-- `nexora_internal.transfer_actor_scope_basis(action, origin, destination)`: condición preparatoria por etapa para rutas padre→hijo activas; `create/dispatch/return/cancel` comprueban la sede de **origen**, y `receive` la de **destino**. No está vinculada al ejecutor `execute_transfer` (que sigue siendo solo Administrador).
+- `nexora_internal.transfer_actor_scope_basis(action, origin, destination)`: condición preparatoria por etapa para las rutas V4: **principal→bodega regional dependiente**, **bodega regional→otra regional de distinta ciudad**, **principal/bodega→local propio** y **local→su bodega matriz**. Se rechaza local→local y bodega→principal. `create/dispatch/return/cancel` comprueban la sede de **origen** y `receive` la de **destino**. No está vinculada al ejecutor `execute_transfer` (que sigue siendo solo Administrador y únicamente admite rutas padre→hijo).
 - Evalúa identidad activa, sede activa, asignación vigente de empleados y capacidades operativas según los cuatro roles aprobados. Administrador global; demás perfiles acotados a su sede.
 - **Condición necesaria, nunca suficiente:** las futuras operaciones siguen necesitando sus controles de ruta, custodia, acta, estado, costos, idempotencia y autorización en el servidor.
 - `nexora_staff_role_plans.operationally_enabled` permanece invariablemente `false` por CHECK y trigger hasta una migración futura expresamente revisada.
 - Prueba SQL transaccional manual: `supabase/tests/rls/nexora_site_scope_basis.sql`; revisión de permisos positivos/negativos y no exposición del esquema interno. Ninguna simulación sustituye pruebas con sesiones auténticas.
+- Política pura de rutas `src/lib/nexora-transfer-route-policy.ts` y pruebas Vitest cubren las cuatro rutas, ciudades distintas, dependencias, sedes inactivas y prohibición local→local. Es diseño preparatorio, **no habilita destinos nuevos en la interfaz ni en el ejecutor SQL existente**.
+- La devolución local→bodega se acota conservadoramente a su propia bodega matriz; la página 28 deja pendiente el alcance del trabajador sobre sedes ajenas.
 - No ejecutar el SQL nuevo directamente en producción antes de superar la validación aislada y los chequeos de seguridad.
 
 Este documento reporta estado y criterios de aceptación; **no certifica que todo el Plan V4 esté implementado**.
