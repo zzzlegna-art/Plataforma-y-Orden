@@ -65,15 +65,35 @@ export const validateTransferSerials = (
   return null;
 };
 
+const normalizeScannedSerial = (serial: string): string => serial.trim().toLocaleLowerCase("en-US");
+
+/**
+ * Vista provisional de los IMEI no escaneados en destino.
+ * No acredita pérdida física ni registra una observación definitiva.
+ */
+export const getMissingReceiptSerials = (
+  lines: readonly NexoraTransferLine[],
+  enteredSerials: readonly string[],
+): string[] => {
+  const received = new Set(enteredSerials.map(normalizeScannedSerial));
+  return lines
+    .filter((line) => line.state === "in_transit" && !received.has(normalizeScannedSerial(line.serial)))
+    .map((line) => line.serial);
+};
+
 export const getReceivingSummary = (
   lines: readonly NexoraTransferLine[],
   enteredSerials: readonly string[],
 ): { received: number; missing: number; invalidSerials: string[] } => {
-  const expected = new Set(lines.filter((l) => l.state === "in_transit").map((l) => l.serial.toLowerCase()));
-  const invalidSerials = enteredSerials.filter((s) => !expected.has(s.toLowerCase()));
+  const expected = new Set(lines.filter((l) => l.state === "in_transit")
+    .map((l) => normalizeScannedSerial(l.serial)));
+  const validReceived = new Set(enteredSerials
+    .map(normalizeScannedSerial).filter((serial) => expected.has(serial)));
+  const invalidSerials = enteredSerials.filter((serial) =>
+    !expected.has(normalizeScannedSerial(serial)));
   return {
-    received: enteredSerials.length,
-    missing: Math.max(0, expected.size - enteredSerials.length),
+    received: validReceived.size,
+    missing: Math.max(0, expected.size - validReceived.size),
     invalidSerials,
   };
 };
