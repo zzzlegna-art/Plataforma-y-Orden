@@ -67,7 +67,7 @@ describe("panel premium sin cambiar la barra lateral", () => {
     for (const label of ["Críticas", "Estancadas", "Pendientes de entrega", "En servicio técnico"]) {
       expect(screen.getByRole("heading", { name: label })).toBeTruthy();
     }
-    expect(screen.getByLabelText("Gráfica de entradas y salidas de inventario")).toBeTruthy();
+    expect(screen.getByLabelText("Gráfica de entradas, asignaciones a pedidos y salidas físicas de inventario")).toBeTruthy();
     expect(screen.getByLabelText("Gráfica de estado de operaciones")).toBeTruthy();
   });
 
