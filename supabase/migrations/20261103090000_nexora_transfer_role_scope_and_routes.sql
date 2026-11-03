@@ -166,13 +166,35 @@ alter table public.nexora_transfer_events
   add constraint nexora_transfer_events_event_type_check
   check(event_type in ('created','edited','dispatched','received','return_confirmed','cancelled'));
 
+-- Nexora V4: observaciones individuales obligatorias para cada IMEI faltante.
+alter table public.nexora_transfer_lines
+  add column missing_note text,
+  add column missing_reported_at timestamptz,
+  add column missing_reported_by uuid references public.bodega_profiles(id) on delete restrict;
+alter table public.nexora_transfer_lines
+  add constraint nexora_transfer_missing_note_shape
+  check (
+    (missing_note is null and missing_reported_at is null and missing_reported_by is null)
+    or (
+      state in ('return_pending','returned')
+      and length(btrim(missing_note)) between 3 and 300
+      and missing_reported_at is not null
+      and missing_reported_by is not null
+    )
+  );
+
+-- Cambia la firma RPC para exigir el detalle de cada IMEI que no llegó.
+drop function if exists public.nexora_transfer_action(text,uuid,uuid,uuid,text[],text);
+drop function if exists nexora_internal.execute_transfer(text,uuid,uuid,uuid,text[],text);
+
 create or replace function nexora_internal.execute_transfer(
   p_action text,
   p_transfer_id uuid default null,
   p_origin uuid default null,
   p_destination uuid default null,
   p_serials text[] default array[]::text[],
-  p_note text default null
+  p_note text default null,
+  p_missing_notes jsonb default '[]'::jsonb
 ) returns jsonb
 language plpgsql security definer
 set search_path = pg_catalog, public
@@ -190,6 +212,8 @@ declare
   v_destination uuid;
   v_status text;
   v_result jsonb;
+  v_missing_notes jsonb := coalesce(p_missing_notes,'[]'::jsonb);
+  v_missing_count integer;
 begin
   if auth.uid() is null then
     raise exception 'Inicia sesión para operar traslados multisede.';
@@ -202,6 +226,12 @@ begin
   end if;
   if p_action not in ('create','edit','dispatch','receive','return','cancel') or p_action is null then
     raise exception 'Acción de traslado inválida.';
+  end if;
+  if jsonb_typeof(v_missing_notes)<>'array' then
+    raise exception 'Las observaciones de IMEI faltantes deben enviarse como una lista.';
+  end if;
+  if p_action<>'receive' and jsonb_array_length(v_missing_notes)>0 then
+    raise exception 'Las observaciones de faltantes solo aplican a la recepción.';
   end if;
 
   select coalesce(array_agg(lower(btrim(x.serial))),array[]::text[])
@@ -412,6 +442,47 @@ begin
       raise exception 'Solo personal autorizado de la sede de destino puede confirmar la recepción.';
     end if;
     if v_status <> 'in_transit' then raise exception 'Esta recepción ya fue procesada o no ha sido despachada.'; end if;
+    v_missing := v_total-v_wanted;
+    if jsonb_array_length(v_missing_notes)<>v_missing then
+      raise exception 'Debes documentar individualmente cada IMEI que no llegó.';
+    end if;
+    if exists(
+      select 1 from jsonb_array_elements(v_missing_notes) x(value)
+      where jsonb_typeof(x.value)<>'object'
+        or coalesce(jsonb_typeof(x.value->'serial'),'')<>'string'
+        or coalesce(jsonb_typeof(x.value->'note'),'')<>'string'
+        or length(btrim(coalesce(x.value->>'serial',''))) not between 1 and 160
+        or length(btrim(coalesce(x.value->>'note',''))) not between 3 and 300
+    ) then
+      raise exception 'Cada IMEI faltante requiere un serial y una observación de 3 a 300 caracteres.';
+    end if;
+    select count(distinct lower(btrim(x.value->>'serial'))) into v_missing_count
+      from jsonb_array_elements(v_missing_notes) x(value);
+    if v_missing_count<>jsonb_array_length(v_missing_notes) then
+      raise exception 'No repitas IMEI en las observaciones de faltantes.';
+    end if;
+    if exists(
+      select 1 from jsonb_array_elements(v_missing_notes) x(value)
+      where not exists(
+        select 1 from public.nexora_transfer_lines l
+        where l.transfer_id=v_tid and l.state='in_transit'
+          and lower(btrim(l.serial_snapshot))=lower(btrim(x.value->>'serial'))
+          and not (lower(btrim(l.serial_snapshot))=any(v_serials))
+      )
+    ) then
+      raise exception 'Una observación corresponde a un IMEI recibido, ajeno o no pendiente.';
+    end if;
+    if exists(
+      select 1 from public.nexora_transfer_lines l
+      where l.transfer_id=v_tid and l.state='in_transit'
+        and not (lower(btrim(l.serial_snapshot))=any(v_serials))
+        and not exists(
+          select 1 from jsonb_array_elements(v_missing_notes) x(value)
+          where lower(btrim(x.value->>'serial'))=lower(btrim(l.serial_snapshot))
+        )
+    ) then
+      raise exception 'Falta una observación individual para uno de los IMEI no recibidos.';
+    end if;
     select count(*) into v_matched
       from public.nexora_transfer_lines l join public.bodega_units u on u.id=l.unit_id
       where l.transfer_id=v_tid and l.state='in_transit'
@@ -427,14 +498,18 @@ begin
     update public.nexora_unit_custody c
       set site_id=v_destination,custody_status='at_site',transfer_id=null,updated_at=now()
       from public.nexora_transfer_lines l where l.transfer_id=v_tid and l.unit_id=c.unit_id and l.state='received';
-    update public.nexora_transfer_lines
-      set state='return_pending'
-      where transfer_id=v_tid and state='in_transit';
+    update public.nexora_transfer_lines l
+      set state='return_pending',
+          missing_note=btrim(x.value->>'note'),
+          missing_reported_at=now(),
+          missing_reported_by=auth.uid()
+      from jsonb_array_elements(v_missing_notes) x(value)
+      where l.transfer_id=v_tid and l.state='in_transit'
+        and lower(btrim(l.serial_snapshot))=lower(btrim(x.value->>'serial'));
     update public.nexora_unit_custody c
       set site_id=null,custody_status='return_pending',transfer_id=v_tid,updated_at=now()
       from public.nexora_transfer_lines l
       where l.transfer_id=v_tid and l.unit_id=c.unit_id and l.state='return_pending';
-    v_missing := v_total-v_wanted;
     if v_missing>0 then
       insert into public.nexora_transfer_return_documents(transfer_id,expected_count)
         values(v_tid,v_missing);
@@ -444,7 +519,7 @@ begin
         status=case when v_missing=0 then 'closed' else 'awaiting_returns' end,
         closed_at=case when v_missing=0 then now() else null end where id=v_tid;
     insert into public.nexora_transfer_events(transfer_id,event_type,actor_id,detail)
-      values(v_tid,'received',auth.uid(),jsonb_build_object('received',v_wanted,'missing',v_missing));
+      values(v_tid,'received',auth.uid(),jsonb_build_object('received',v_wanted,'missing',v_missing,'missingNotes',v_missing_notes));
     return jsonb_build_object('transferId',v_tid,
       'status',case when v_missing=0 then 'closed' else 'awaiting_returns' end,
       'received',v_wanted,'missing',v_missing,'returnDocumentCreated',v_missing>0);
@@ -494,10 +569,33 @@ begin
 end;
 $$;
 
-revoke all on function nexora_internal.execute_transfer(text,uuid,uuid,uuid,text[],text)
+
+
+create function public.nexora_transfer_action(
+  p_action text,
+  p_transfer_id uuid default null,
+  p_origin uuid default null,
+  p_destination uuid default null,
+  p_serials text[] default array[]::text[],
+  p_note text default null,
+  p_missing_notes jsonb default '[]'::jsonb
+) returns jsonb
+language sql volatile security invoker
+set search_path=pg_catalog,public
+as $
+  select nexora_internal.execute_transfer(
+    p_action,p_transfer_id,p_origin,p_destination,p_serials,p_note,p_missing_notes
+  );
+$;
+revoke all on function public.nexora_transfer_action(text,uuid,uuid,uuid,text[],text,jsonb)
   from public,anon,authenticated;
-grant execute on function nexora_internal.execute_transfer(text,uuid,uuid,uuid,text[],text)
+grant execute on function public.nexora_transfer_action(text,uuid,uuid,uuid,text[],text,jsonb)
   to authenticated;
 
-comment on function nexora_internal.execute_transfer(text,uuid,uuid,uuid,text[],text) is
-  'Motor transaccional de traslados V4: permisos por sede, rutas aprobadas, edición solo antes del despacho, custodia y auditoría física.';
+revoke all on function nexora_internal.execute_transfer(text,uuid,uuid,uuid,text[],text,jsonb)
+  from public,anon,authenticated;
+grant execute on function nexora_internal.execute_transfer(text,uuid,uuid,uuid,text[],text,jsonb)
+  to authenticated;
+
+comment on function nexora_internal.execute_transfer(text,uuid,uuid,uuid,text[],text,jsonb) is
+  'Motor transaccional de traslados V4: permisos por sede, rutas aprobadas, corrección previa, observaciones individuales de faltantes, custodia y auditoría física.';
