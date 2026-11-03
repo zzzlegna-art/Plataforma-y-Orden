@@ -155,7 +155,7 @@ end $$;
 
 -- Un Encargado asignado SOLO al Local A no puede operar el Local B.
 select set_config('test.uid','11111111-1111-4111-8111-111111111111',false);
-do $
+do $v49$
 declare denied boolean:=false;
 begin
  begin
@@ -167,11 +167,11 @@ begin
    else raise; end if;
  end;
  if not denied then raise exception 'Encargado operó caja de otra sede'; end if;
-end $;
+end $v49$;
 select set_config('test.uid','aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',false);
 
 -- La RPC pública tampoco debe ser ejecutable por anon.
-do $
+do $v49$
 begin
  if has_function_privilege('anon',
    'public.nexora_set_cash_limits(uuid,numeric,numeric)','EXECUTE') then
@@ -181,7 +181,7 @@ begin
    'public.nexora_approve_local_initial(uuid,text,text)','EXECUTE') then
    raise exception 'Anon tiene acceso a firmar inventario local';
  end if;
-end $;
+end $v49$;
 
 -- Abrir caja vía RPC original de Nexora, con Encargado de prueba asignado.
 select public.nexora_cash_operation(
