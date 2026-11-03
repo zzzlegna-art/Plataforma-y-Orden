@@ -198,6 +198,12 @@ language plpgsql security definer
 set search_path = pg_catalog
 as $$
 begin
+  -- Defensa en profundidad: esta RPC es pública en la Data API. Antes
+  -- de delegar a cualquier función privilegiada debe comprobar una
+  -- identidad real y el rol Administrador en la base de datos.
+  if auth.uid() is null or not public.bodega_is_admin() then
+    raise exception 'Solo Administrador puede operar traslados multisede.';
+  end if;
   if p_action='receive' then
     raise exception 'Esta recepción requiere las notas individuales por IMEI y la RPC correspondiente.';
   end if;
