@@ -111,6 +111,15 @@ begin
     raise exception 'Cada línea de traslado debe poder conservar la observación y el autor del faltante.';
   end if;
 
+  if not exists (
+    select 1 from pg_constraint
+    where conrelid='public.nexora_transfer_lines'::regclass
+      and conname='nexora_transfer_missing_note_shape'
+      and pg_get_constraintdef(oid) ilike '%missing_reported_at%'
+  ) then
+    raise exception 'La observación del faltante debe conservar autor y fecha de registro.';
+  end if;
+
   select pg_get_functiondef('nexora_internal.execute_transfer(text,uuid,uuid,uuid,text[],text,jsonb)'::regprocedure)
     ilike '%site_role_scope_basis%' into v_exec;
   if not coalesce(v_exec,false) then
