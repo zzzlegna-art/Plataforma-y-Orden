@@ -21,13 +21,15 @@ returns boolean language sql stable security definer set search_path=pg_catalog 
 $admin$;
 -- Fixture PostgreSQL aislado: reproduce roles y sedes sin otorgar permisos nuevos.
 create function public.bodega_is_staff()
-returns boolean language sql stable as $staff_fixture$
+returns boolean language sql stable security definer as $staff_fixture$
   select exists(select 1 from public.bodega_profiles p
     where p.id=auth.uid() and p.is_active and p.role in ('admin','bodeguero'))
 $staff_fixture$;
 create table public.nexora_staff_sites (
   user_id uuid not null, site_id uuid not null, is_active boolean not null default true
 );
+-- Refleja SELECT concedido a authenticated en el esquema real.
+grant select on public.nexora_staff_sites to authenticated;
 create function nexora_internal.worker_session()
 returns jsonb language sql stable as $session_fixture$
   select null::jsonb
