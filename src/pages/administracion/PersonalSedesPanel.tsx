@@ -9,6 +9,7 @@ import {
   type StaffMember, type StaffSiteAssignment,
 } from "@/lib/nexora-staff-sites";
 import { siteTypeLabel, type NexoraCity, type NexoraSite } from "@/lib/nexora-sites";
+import { listRolePlans, type RolePlan } from "@/lib/nexora-role-plans";
 
 const selectStyle = "flex h-10 min-w-0 w-full rounded-md border border-input bg-background px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50";
 
@@ -19,6 +20,7 @@ export const PersonalSedesPanel = ({
   sites: readonly NexoraSite[];
 }) => {
   const [people, setPeople] = useState<StaffMember[]>([]);
+  const [rolePlans, setRolePlans] = useState<RolePlan[]>([]);
   const [assignments, setAssignments] = useState<StaffSiteAssignment[]>([]);
   const [pendingStock, setPendingStock] = useState<number | null>(null);
   const [busy, setBusy] = useState(false);
@@ -31,8 +33,8 @@ export const PersonalSedesPanel = ({
   const refresh = useCallback(async () => {
     const current = ++requestRef.current;
     setLoading(true);
-    const [staff, stock] = await Promise.allSettled([
-      listStaffSiteAssignments(), countLegacyInventoryToReconcile(),
+    const [staff, stock, roles] = await Promise.allSettled([
+      listStaffSiteAssignments(), countLegacyInventoryToReconcile(), listRolePlans(),
     ]);
     if (current !== requestRef.current) return;
 
@@ -41,6 +43,11 @@ export const PersonalSedesPanel = ({
       setAssignments(staff.value.assignments);
     } else {
       toast.error(staff.reason instanceof Error ? staff.reason.message : "No se pudo cargar el personal.");
+    }
+    if (roles.status === "fulfilled") {
+      setRolePlans(roles.value);
+    } else {
+      setRolePlans([]);
     }
     if (stock.status === "fulfilled") {
       setPendingStock(stock.value);
@@ -57,9 +64,25 @@ export const PersonalSedesPanel = ({
   }, [refresh]);
 
   const activeSites = sites.filter((site) => site.isActive);
-  const activePeople = people;
+  const activePeople = people; // Incluye cuentas preparadas e inactivas.
+  const roleByUser = new Map(rolePlans.map((p) => [p.userId, p]));
+  const roleLabel = (person: StaffMember): string => {
+    const plan = roleByUser.get(person.id);
+    if (plan && (plan.plannedRole === "encargado" || plan.plannedRole === "vendedor")) {
+      return plan.plannedRole === "encargado" ? "Encargado" : "Vendedor";
+    }
+    return person.role === "admin" ? "Administrador" : "Bodeguero";
+  };
+  const isPendingWorker = (person: StaffMember) => !person.isActive &&
+    (roleByUser.get(person.id)?.plannedRole === "encargado" ||
+     roleByUser.get(person.id)?.plannedRole === "vendedor");
   const effectiveUser = activePeople.some((p) => p.id === userId) ? userId : activePeople[0]?.id ?? "";
-  const effectiveSite = activeSites.some((s) => s.id === siteId) ? siteId : activeSites[0]?.id ?? "";
+  const selectedPerson = activePeople.find((p) => p.id === effectiveUser);
+  // Los trabajadores pendientes solo pueden vincularse a un LOCAL (no a la principal).
+  // Si la lista de roles no cargó, restringimos de igual manera a todo usuario inactivo.
+  const siteChoices = activeSites.filter((site) =>
+    selectedPerson?.isActive !== false || site.siteType === "local");
+  const effectiveSite = siteChoices.some((s) => s.id === siteId) ? siteId : siteChoices[0]?.id ?? "";
   const issue = canAssignStaffToSite(effectiveUser, effectiveSite, people, sites, assignments);
   const siteById = useMemo(() => new Map(sites.map((site) => [site.id, site])), [sites]);
   const cityById = useMemo(() => new Map(cities.map((city) => [city.id, city.name])), [cities]);
@@ -116,8 +139,8 @@ export const PersonalSedesPanel = ({
           <div className="flex items-start gap-3">
             <span className="rounded-xl bg-amber-500/10 p-3 text-amber-600"><PackageSearch className="h-5 w-5" /></span>
             <div>
-              <h3 className="font-semibold">Inventario pendiente de conciliación</h3>
-              <p className="mt-1 text-sm text-muted-foreground">Equipos físicos del sistema anterior todavía sin sede multisede validada.</p>
+              <h3 className="font-semibold">Inventario histórico de Bodega 6A</h3>
+              <p className="mt-1 text-sm text-muted-foreground">Unidades históricas registradas como en bodega. Su procedencia Bodega 6A ya está documentada: no exige repetir el conteo por referencia.</p>
             </div>
           </div>
           <div className="mt-5 flex items-end justify-between gap-3 border-t pt-4">
@@ -125,7 +148,7 @@ export const PersonalSedesPanel = ({
               <p className="text-3xl font-bold tabular-nums">
                 {pendingStock === null ? "—" : new Intl.NumberFormat("es-CO").format(pendingStock)}
               </p>
-              <p className="text-xs text-muted-foreground">Unidades existentes, sin contar las vendidas</p>
+              <p className="text-xs text-muted-foreground">Unidades registradas en bodega, excluyendo las vendidas</p>
             </div>
             <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 px-3 py-1 text-xs font-semibold text-amber-700 dark:text-amber-300">
               <LockKeyhole className="h-3.5 w-3.5" /> Solo lectura
@@ -137,7 +160,7 @@ export const PersonalSedesPanel = ({
       <div className="rounded-xl border bg-muted/20 p-4 text-sm text-muted-foreground">
         <p className="flex items-start gap-2">
           <ClipboardCheck className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-          <span><strong className="text-foreground">Inventario protegido:</strong> estas asignaciones no cambian cantidades, disponibilidad, propietarios del IMEI, costos ni accesos operativos. La distribución real se habilitará solo después de conciliar físicamente cada unidad con su sede.</span>
+          <span><strong className="text-foreground">Inventario protegido:</strong> estas asignaciones no cambian cantidades, disponibilidad, propietarios del IMEI, costos ni accesos operativos. La procedencia de los registros históricos ya pertenece a Bodega 6A; las operaciones nuevas se controlan por local.</span>
         </p>
       </div>
 
@@ -145,7 +168,7 @@ export const PersonalSedesPanel = ({
         <div className="flex flex-wrap items-start justify-between gap-3 border-b px-5 py-4">
           <div>
             <h3 className="font-semibold">Asignar personal a un punto</h3>
-            <p className="mt-1 text-xs text-muted-foreground">Un empleado puede estar vinculado a varios puntos, con historial de altas y desvinculaciones.</p>
+            <p className="mt-1 text-xs text-muted-foreground">Un Encargado o Vendedor pendiente debe tener un único local asignado antes de activarlo. Asignarlo no activa su cuenta.</p>
           </div>
           <Button size="sm" variant="outline" disabled={loading} onClick={() => void refresh()}>
             <RefreshCw className="h-4 w-4" /> Actualizar
@@ -157,19 +180,19 @@ export const PersonalSedesPanel = ({
             <select id="nexora-personal-select" className={selectStyle} value={effectiveUser}
               disabled={busy || loading || activePeople.length === 0}
               onChange={(event) => setUserId(event.target.value)}>
-              {activePeople.length === 0 ? <option value="">Sin empleados activos</option> : null}
+              {activePeople.length === 0 ? <option value="">Sin empleados registrados</option> : null}
               {activePeople.map((p) => (
-                <option value={p.id} key={p.id}>{p.name} · {p.role}</option>
+                <option value={p.id} key={p.id}>{p.name} · {roleLabel(p)}{isPendingWorker(p) ? " (pendiente)" : ""}</option>
               ))}
             </select>
           </div>
           <div className="space-y-2">
             <label className="text-xs font-semibold" htmlFor="nexora-site-assignment-select">Sede</label>
             <select id="nexora-site-assignment-select" className={selectStyle} value={effectiveSite}
-              disabled={busy || loading || activeSites.length === 0}
+              disabled={busy || loading || siteChoices.length === 0}
               onChange={(event) => setSiteId(event.target.value)}>
-              {activeSites.length === 0 ? <option value="">Primero configura una sede</option> : null}
-              {activeSites.map((site) => (
+              {siteChoices.length === 0 ? <option value="">Primero configura un local activo</option> : null}
+              {siteChoices.map((site) => (
                 <option value={site.id} key={site.id}>{site.name} · {cityById.get(site.cityId) ?? "Ciudad"}</option>
               ))}
             </select>
@@ -195,8 +218,8 @@ export const PersonalSedesPanel = ({
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
                     <h5 className="font-semibold">{person.name}</h5>
-                    <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] font-semibold uppercase">{person.role}</span>
-                    {!person.isActive ? <span className="text-xs text-amber-600">Usuario inactivo</span> : null}
+                    <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] font-semibold uppercase">{roleLabel(person)}</span>
+                    {!person.isActive ? <span className="text-xs text-amber-600">{isPendingWorker(person) ? "Pendiente: asignar local y luego activar rol" : "Usuario inactivo"}</span> : null}
                   </div>
                   <p className="mt-1 break-all text-xs text-muted-foreground">{person.email}</p>
                   {assignmentsPerUser(person.id).length === 0 ? (
@@ -212,7 +235,7 @@ export const PersonalSedesPanel = ({
                               <p className="truncate text-xs font-semibold">{site?.name ?? "Punto no encontrado"}</p>
                               <p className="truncate text-[11px] text-muted-foreground">{site ? siteTypeLabel[site.siteType] : "Sin ubicación"} · {record.isActive ? "Vinculado" : "Desvinculado"}</p>
                             </div>
-                            <Button variant="outline" size="sm" disabled={busy || (!record.isActive && (!person.isActive || !site?.isActive))}
+                            <Button variant="outline" size="sm" disabled={busy || (!record.isActive && !site?.isActive)}
                               aria-label={record.isActive ? `Desvincular ${person.name} de ${site?.name ?? "sede"}` : `Reactivar ${person.name} en ${site?.name ?? "sede"}`}
                               onClick={() => toggle(record)}>
                               {record.isActive ? "Desvincular" : "Reactivar"}
@@ -231,7 +254,7 @@ export const PersonalSedesPanel = ({
 
       <p className="flex items-start gap-2 text-xs text-muted-foreground">
         <Link2 className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-        La asignación personal no habilita por sí sola los nuevos roles Encargado y Vendedor. La seguridad operativa por sede se activará con RLS/RPC específicas en una fase posterior.
+        Asignar un local a una cuenta pendiente NO la activa ni le concede privilegios. Después de asignarla, entra a Roles y permisos para activar al trabajador.
       </p>
     </section>
   );
