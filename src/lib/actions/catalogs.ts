@@ -320,7 +320,7 @@ const validarVariantesColor = (variantes: ProductColorVariant[] | undefined): Pr
 };
 
 export const createProduct = (db: Db, actor: Actor, input: ProductInput): Product => {
-  requirePermission(actor, "inventory.manage");
+  requirePermission(actor, "users.manage");
   const name = requireText(input.name, "errors.productNameRequired");
   const sku = (input.sku?.trim().toUpperCase() || generarSkuProducto(db, name, undefined, undefined, input.categoria, db.brands.find((brand) => brand.id === input.brandId)?.name)).slice(0, 40);
   if (db.products.some((product) => product.sku.trim().toUpperCase() === sku)) {
@@ -361,7 +361,7 @@ export const updateProduct = (
   actor: Actor,
   input: ProductInput & { id: string },
 ): Product => {
-  requirePermission(actor, "inventory.manage");
+  requirePermission(actor, "users.manage");
   const product = db.products.find((item) => item.id === input.id);
   if (!product) throw new DomainError("errors.notFound");
   const categoriaAnterior = product.categoria;
@@ -427,7 +427,7 @@ export const setProductActive = (
   actor: Actor,
   input: { id: string; isActive: boolean },
 ) => {
-  requirePermission(actor, "inventory.manage");
+  requirePermission(actor, "users.manage");
   const product = db.products.find((item) => item.id === input.id);
   if (!product) throw new DomainError("errors.notFound");
   product.isActive = input.isActive;
@@ -447,7 +447,7 @@ export const setProductActive = (
  * huérfanos el historial de movimientos, pedidos y garantías que la referencian.
  */
 export const deleteProduct = (db: Db, actor: Actor, input: { id: string }) => {
-  requirePermission(actor, "inventory.manage");
+  requirePermission(actor, "users.manage");
   const product = db.products.find((item) => item.id === input.id);
   if (!product) throw new DomainError("errors.notFound");
   const tieneUnidades = db.units.some((unit) => unit.productId === product.id);
