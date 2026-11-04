@@ -135,9 +135,6 @@ begin
   update public.nexora_staff_role_plans
     set operationally_enabled=true where user_id=p_user_id;
   update public.bodega_profiles set is_active=true where id=p_user_id;
-  insert into public.nexora_worker_activation_events
-    (user_id,site_id,role,action,actor_id)
-    values(p_user_id,p_site_id,v_prepared,'activated',auth.uid());
   return jsonb_build_object('userId',p_user_id,'siteId',p_site_id,
     'role',v_prepared,'activated',true);
 end;
@@ -179,9 +176,6 @@ begin
   update public.nexora_staff_role_plans set operationally_enabled=false
     where user_id=p_user_id;
   if not found then raise exception 'No existe el plan del trabajador.'; end if;
-  insert into public.nexora_worker_activation_events
-    (user_id,site_id,role,action,actor_id)
-    values(p_user_id,v_site,v_role,'deactivated',auth.uid());
   return jsonb_build_object('userId',p_user_id,'activated',false);
 end;
 $$;
@@ -274,3 +268,38 @@ returns jsonb language sql stable security invoker set search_path=pg_catalog,pu
 as $$select nexora_internal.worker_site_snapshot();$$;
 revoke all on function public.nexora_worker_site_snapshot() from public,anon,authenticated;
 grant execute on function public.nexora_worker_site_snapshot() to authenticated;
+
+-- Cualquier cambio directo en operationally_enabled queda auditado (no sólo
+-- los realizados por el formulario), para evitar rutas administrativas ocultas.
+create function nexora_internal.audit_worker_enabled_change()
+returns trigger language plpgsql security definer
+set search_path=pg_catalog,public
+as $$
+declare v_site uuid; v_count integer; v_marker text;
+begin
+  if new.operationally_enabled is not distinct from old.operationally_enabled
+     then return new; end if;
+  select count(*),min(site_id) into v_count,v_site
+    from public.nexora_staff_sites ss
+    where ss.user_id=new.user_id and ss.is_active;
+  if v_count<>1 or v_site is null then
+    raise exception 'Para cambiar el acceso se requiere una única sede activa.';
+  end if;
+  select au.raw_app_meta_data->>'nexora_prepared_role' into v_marker
+    from auth.users au where au.id=new.user_id;
+  if v_marker<>new.planned_role or v_marker not in ('encargado','vendedor') then
+    raise exception 'La activación no corresponde a la identidad de Auth.';
+  end if;
+  insert into public.nexora_worker_activation_events
+    (user_id,site_id,role,action,actor_id)
+  values(new.user_id,v_site,new.planned_role,
+    case when new.operationally_enabled then 'activated' else 'deactivated' end,
+    auth.uid());
+  return new;
+end;
+$$;
+revoke all on function nexora_internal.audit_worker_enabled_change()
+from public,anon,authenticated;
+create trigger nexora_02_worker_enabled_audit
+after update of operationally_enabled on public.nexora_staff_role_plans
+for each row execute function nexora_internal.audit_worker_enabled_change();
