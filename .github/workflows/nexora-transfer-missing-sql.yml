@@ -4,8 +4,8 @@ on:
   pull_request:
     branches: [main, feat/nexora-v4-observaciones-no-llego-20261103]
     paths:
-      - "supabase/migrations/20261104190000_nexora_transfer_missing_observations.sql"
-      - "supabase/migrations/20261104191000_nexora_transfer_receive_observations.sql"
+      - "supabase/migrations/20261104182506_nexora_transfer_missing_observations.sql"
+      - "supabase/migrations/20261104182517_nexora_transfer_receive_observations.sql"
       - "supabase/tests/rls/nexora_transfer_receive_notes_ci_fixture.sql"
       - "supabase/tests/rls/nexora_atomic_receipt_security_checks.sql"
       - "scripts/extract-nexora-receipt-fixture-setup.mjs"

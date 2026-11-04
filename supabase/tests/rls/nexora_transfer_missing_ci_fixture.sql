@@ -51,7 +51,7 @@ select format('00000000-0000-0000-0002-%s',lpad(i::text,12,'0'))::uuid,
   'IMEI-'||lpad(i::text,4,'0'),'in_transit'
 from generate_series(1,20) i;
 
-\ir ../../migrations/20261104190000_nexora_transfer_missing_observations.sql
+\ir ../../migrations/20261104182506_nexora_transfer_missing_observations.sql
 
 do $test$
 declare v_count int;

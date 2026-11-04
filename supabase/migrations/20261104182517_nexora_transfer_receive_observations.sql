@@ -1,5 +1,5 @@
 -- Nexora Multisede V4 · recepción parcial con nota escrita por IMEI.
--- REQUIERE la migración 20261104190000_nexora_transfer_missing_observations.sql.
+-- REQUIERE la migración 20261104182506_nexora_transfer_missing_observations.sql.
 -- BORRADOR, NO APLICADO EN PRODUCCIÓN. Desplegar solo junto con la UI
 -- compatible, después de pruebas Supabase aisladas y revisión de respaldo.
 --

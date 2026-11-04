@@ -17,5 +17,5 @@ if(cut<1000 || sql.indexOf(anchor,cut+anchor.length)<0 ||
 writeFileSync(target,
   "-- Preparación derivada de fixture real, transacción aún abierta.\n"+
   sql.slice(0,cut)+
-  "\\ir ../../migrations/20261104191000_nexora_transfer_receive_observations.sql\n"
+  "\\ir ../../migrations/20261104182517_nexora_transfer_receive_observations.sql\n"
 );
