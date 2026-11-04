@@ -9,7 +9,7 @@ import {useStore} from "@/hooks/use-store";
 import {useApp} from "@/hooks/use-app";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {listSuppliers,type Supplier} from "@/lib/suppliers";
-import {parseInvoiceText,type InvoiceSuggestion,type InvoiceLineSuggestion} from "@/lib/nexora-invoice-parser";
+import {parseInvoiceText,validateInvoiceApproval,type InvoiceSuggestion,type InvoiceLineSuggestion} from "@/lib/nexora-invoice-parser";
 import {readInvoiceDocument} from "@/lib/nexora-invoice-reader";
 
 // Los tipos autogenerados de Nexora no incluyen todavía las tablas nuevas.
@@ -161,6 +161,10 @@ const InvoiceCapture=()=>{
  };
  const finalize=async(action:"approve"|"prepare")=>{
    if(!active||!admin||lock.current)return;
+   if(action==="approve"&&fields){
+     const issues=validateInvoiceApproval(fields.lines,supplierId,fields.invoiceNo);
+     if(issues.length){setError(issues[0]);return;}
+   }
    lock.current=true;setBusy(true);setError("");
    try{
      const supabase=await getClient();
@@ -197,7 +201,7 @@ const InvoiceCapture=()=>{
    </div>
    <section className="space-y-3 rounded-xl border bg-card p-4">
      <div className="flex flex-wrap items-center justify-between gap-2">
-       <h2 className="font-semibold">Lectura de PDF o fotografía</h2>
+       <h2 className="font-semibold">Recepción asistida · PDF o fotografía</h2>
        <Button size="sm" variant="outline" onClick={clear}>Nueva factura</Button>
      </div>
      <Input aria-label="Seleccionar factura" type="file" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png"
@@ -238,11 +242,11 @@ const InvoiceCapture=()=>{
      </div>
      {fields.warnings.length>0?<p className="text-sm text-amber-600">Revisar: {fields.warnings.join(" · ")}</p>:null}
      <div className="overflow-x-auto rounded-lg border">
-       <table className="w-full min-w-[820px] text-sm">
+       <table className="w-full min-w-[940px] text-sm">
          <thead className="bg-muted/30"><tr>
            <th className="p-2 text-left">Descripción de factura</th><th className="p-2 text-left">Referencia Nexora</th>
            <th className="p-2 text-right">Cantidad</th><th className="p-2 text-right">Costo unitario</th>
-           <th className="p-2 text-left">Revisión</th><th className="p-2"></th>
+           <th className="p-2 text-right">Subtotal factura</th><th className="p-2 text-left">Revisión</th><th className="p-2"></th>
          </tr></thead>
          <tbody>{fields.lines.map((line,i)=><tr className="border-t" key={i}>
            <td className="p-2">{editable?<Input aria-label={"Descripción "+(i+1)} value={line.description}
@@ -261,7 +265,12 @@ const InvoiceCapture=()=>{
              value={line.quantity} onChange={e=>editLine(i,{quantity:Number(e.target.value)})}/>:line.quantity}</td>
            <td className="p-2 text-right">{editable?<Input aria-label={"Costo "+(i+1)} type="number" min="0.01" step="0.01" className="w-36 ml-auto"
              value={line.unitCost??""} onChange={e=>editLine(i,{unitCost:e.target.value?Number(e.target.value):null})}/>:money(line.unitCost)}</td>
-           <td className="p-2 text-xs text-amber-600">{line.warning??(!line.productId?"Sin referencia":line.unitCost===null?"Sin costo":"")}</td>
+           <td className="p-2 text-right">{editable?<Input aria-label={"Subtotal "+(i+1)} type="number" min="0.01" step="0.01" className="w-36 ml-auto"
+             value={line.total??""} onChange={e=>editLine(i,{total:e.target.value?Number(e.target.value):null})}/>:money(line.total)}</td>
+           <td className="p-2 text-xs text-amber-600">{line.total!==null&&line.unitCost!==null&&
+             Math.abs(line.quantity*line.unitCost-line.total)>Math.max(2,line.total*.02)
+             ?"Cantidad × costo no coincide con subtotal":
+             line.warning??(!line.productId?"Sin referencia":line.unitCost===null?"Sin costo":"")}</td>
            <td className="p-2">{editable?<Button size="icon" variant="ghost" aria-label={"Eliminar línea "+(i+1)}
              onClick={()=>edit({lines:fields.lines.filter((_,n)=>n!==i)})}><Trash2 className="size-4"/></Button>:null}</td>
          </tr>)}</tbody>
