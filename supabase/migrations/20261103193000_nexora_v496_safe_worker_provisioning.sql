@@ -79,3 +79,34 @@ from public,anon,authenticated;
 
 -- Auditoría: las cuentas nuevas no se crean con privilegios activos.
 -- Esta migración NO habilita todavía el inicio de sesión del trabajador.
+
+-- Ni siquiera un cambio manual en Usuarios puede transformar una cuenta
+-- preparada en Administrador o activarla antes de completar la política.
+create function nexora_internal.guard_prepared_worker_profile()
+returns trigger language plpgsql security definer
+set search_path=pg_catalog,public
+as $$
+declare v_role text;
+begin
+  select au.raw_app_meta_data->>'nexora_prepared_role' into v_role
+  from auth.users au where au.id=new.id;
+  if v_role not in ('encargado','vendedor') then return new; end if;
+  if new.role<>'bodeguero' then
+    raise exception 'Las cuentas multisede preparadas no pueden heredar Administrador.';
+  end if;
+  if new.is_active and not old.is_active and not exists(
+    select 1 from public.nexora_staff_role_plans rp
+    where rp.user_id=new.id and rp.operationally_enabled
+      and rp.planned_role=v_role
+  ) then
+    raise exception 'Primero activa el perfil operativo con el procedimiento seguro.';
+  end if;
+  return new;
+end;
+$$;
+revoke all on function nexora_internal.guard_prepared_worker_profile()
+from public,anon,authenticated;
+create trigger nexora_01_prepared_worker_profile_guard
+before update of role,is_active on public.bodega_profiles
+for each row execute function nexora_internal.guard_prepared_worker_profile();
+
