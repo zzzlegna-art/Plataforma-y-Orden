@@ -3,8 +3,8 @@
 -- BORRADOR, NO APLICADO EN PRODUCCIÓN. Desplegar solo junto con la UI
 -- compatible, después de pruebas Supabase aisladas y revisión de respaldo.
 --
--- Mantiene intacto nexora_internal.execute_transfer y conserva su bloqueo,
--- permisos actuales por sede, custodia, retorno y reversión transaccional.
+-- Mantiene intacto nexora_internal.execute_transfer: conserva su lock, control
+-- Administrador, custodia, documento de retorno y reversión transaccional.
 
 -- Clave compuesta redundante pero deliberada: evita asociar una nota de
 -- recepción a un traslado, IMEI o autor distinto del incidente original,
@@ -63,8 +63,6 @@ set search_path = pg_catalog
 as $$
 declare
   v_actor uuid := auth.uid();
-  v_worker jsonb;
-  v_destination uuid;
   v_status text;
   v_received text[];
   v_total integer;
@@ -78,11 +76,10 @@ declare
   v_result jsonb;
   v_inserted integer;
 begin
-  -- No confiar en rol ni sede de un cliente. El motor vigente valida de nuevo
-  -- la identidad, asignación y estado en la misma transacción.
-  v_worker:=nexora_internal.worker_session();
-  if v_actor is null or not (public.bodega_is_staff() or v_worker is not null) then
-    raise exception 'No tienes permiso para operar traslados multisede.';
+  -- La guardia no confía en actor, rol, sede o IMEI enviado por el navegador.
+  -- Es intencional conservar el bloqueo Admin-only del ejecutor actual.
+  if v_actor is null or not public.bodega_is_admin() then
+    raise exception 'Solo Administrador puede operar traslados multisede.';
   end if;
   if p_transfer_id is null or p_missing_marks is null
      or jsonb_typeof(p_missing_marks)<>'array'
@@ -94,19 +91,8 @@ begin
   -- incluido el flujo legacy de pedidos. En PostgreSQL este RPC completo
   -- se ejecuta como una sola transacción de base de datos.
   perform pg_advisory_xact_lock(78192346);
-  select t.status,t.destination_site_id into v_status,v_destination
-    from public.nexora_transfers t where t.id=p_transfer_id for update;
-  -- El Administrador tiene alcance global; los demás solamente reciben
-  -- en su sede activa (Bodeguero) o en su único local (Encargado/Vendedor).
-  if not public.bodega_is_admin() and
-      ((v_worker is not null and
-         (v_worker->>'siteId')::uuid is distinct from v_destination)
-       or (v_worker is null and not exists (
-         select 1 from public.nexora_staff_sites ss
-         where ss.user_id=v_actor and ss.site_id=v_destination and ss.is_active
-       ))) then
-    raise exception 'No tienes permiso para recibir en la sede de destino.';
-  end if;
+  select t.status into v_status from public.nexora_transfers t
+    where t.id=p_transfer_id for update;
   if v_status is distinct from 'in_transit' then
     raise exception 'Solo se pueden recibir traslados en tránsito.';
   end if;
@@ -223,12 +209,11 @@ language plpgsql security definer
 set search_path = pg_catalog
 as $$
 begin
-  -- El wrapper conserva las cuatro autorizaciones operativas vigentes.
-  -- El motor interno comprueba por separado la sede y etapa del traslado.
-  if auth.uid() is null or not
-    (public.bodega_is_admin() or public.bodega_is_staff()
-     or nexora_internal.worker_session() is not null) then
-    raise exception 'No tienes permiso para operar traslados multisede.';
+  -- Defensa en profundidad: esta RPC es pública en la Data API. Antes
+  -- de delegar a cualquier función privilegiada debe comprobar una
+  -- identidad real y el rol Administrador en la base de datos.
+  if auth.uid() is null or not public.bodega_is_admin() then
+    raise exception 'Solo Administrador puede operar traslados multisede.';
   end if;
   if p_action='receive' then
     raise exception 'Esta recepción requiere las notas individuales por IMEI y la RPC correspondiente.';
@@ -261,4 +246,4 @@ grant execute on function public.nexora_transfer_action(
 comment on table public.nexora_transfer_missing_receipt_notes is
   'Observación escrita y confirmación explícita del receptor para cada IMEI que no llegó. Historial inmutable, vinculado a la observación automática del PR #144.';
 comment on function public.nexora_transfer_receive_with_notes(uuid,text[],jsonb) is
-  'Única entrada API de recepción: Admin global, demás roles únicamente en destino asignado. Conserva notas, custodia y retorno físico en la misma transacción.';
+  'Única entrada API de recepción con IMEI faltantes y notas individuales; valida todo, ejecuta custodia y guarda evidencia en la misma transacción. Admin-only hasta aprobación de permisos RLS por sede.';
