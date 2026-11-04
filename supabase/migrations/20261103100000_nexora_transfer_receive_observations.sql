@@ -307,24 +307,53 @@ create or replace function public.nexora_transfer_action(
 returns jsonb
 language plpgsql security definer
 set search_path = pg_catalog
-as $$
+as $
+declare
+  v_actor uuid := auth.uid();
+  v_worker jsonb := nexora_internal.worker_session();
+  v_required_site uuid;
 begin
-  -- Cualquiera de los cuatro roles activos puede operar, pero la RPC
-  -- interna sigue verificando la sede de origen/destino, ruta, IMEI y custodia.
-  if auth.uid() is null or not (
-      public.bodega_is_staff() or
-      nexora_internal.worker_session() is not null
+  -- Autoriza por identidad y rol real en DB, nunca por datos de la interfaz.
+  if v_actor is null or not (
+      public.bodega_is_staff() or v_worker is not null
     ) then
     raise exception 'No tienes permiso para operar traslados multisede.';
   end if;
   if p_action='receive' then
     raise exception 'Esta recepción requiere las notas individuales por IMEI y la RPC correspondiente.';
   end if;
+
+  -- Origen autoriza create/dispatch/return/cancel; receive se valida en
+  -- la RPC atómica de notas usando el DESTINO. El Administrador es global.
+  if p_action='create' then
+    v_required_site:=p_origin;
+  elsif p_action in ('dispatch','return','cancel') then
+    select t.origin_site_id into v_required_site
+    from public.nexora_transfers t where t.id=p_transfer_id;
+  end if;
+
+  if v_required_site is not null and not public.bodega_is_admin() then
+    if v_worker is not null then
+      if (v_worker->>'siteId')::uuid is distinct from v_required_site then
+        raise exception 'Solo puedes enviar mercancía de tu local asignado.';
+      end if;
+    elsif not exists (
+      select 1 from public.nexora_staff_sites assigned
+      join public.nexora_sites site on site.id=assigned.site_id
+      where assigned.user_id=v_actor and assigned.is_active
+        and site.is_active and assigned.site_id=v_required_site
+    ) then
+      raise exception 'Bodeguero: no puedes operar un traslado de una sede no asignada.';
+    end if;
+  end if;
+
+  -- La RPC interna revalida la ruta, titularidad física por IMEI,
+  -- documento, estado y custodia bajo una sola transacción.
   return nexora_internal.execute_transfer(
     p_action,p_transfer_id,p_origin,p_destination,p_serials,p_note
   );
 end;
-$$;
+$;
 
 -- Importante: la RPC interna original era ejecutable por authenticated,
 -- que podía saltarse el nuevo requisito de observaciones llamando a
