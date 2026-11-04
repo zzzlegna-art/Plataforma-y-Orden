@@ -29,10 +29,13 @@ describe("permisos por rol", () => {
     expect(canManageCatalogs("bodeguero")).toBe(false);
   });
 
-  it("a Encargado y Vendedor sólo concede el portal de su sede", () => {
+  it("a Encargado y Vendedor concede consulta de inventario y traslados sin administrar", () => {
     for (const role of ["encargado", "vendedor"] as const) {
-      expect(can(role,"workspace.view")).toBe(true);
+      for (const permission of ["workspace.view","inventory.view","transfers.manage"] as Permission[]) {
+        expect(can(role,permission)).toBe(true);
+      }
       for (const permission of [...permisosOperativos,"users.manage","audit.view"] as Permission[]) {
+        if (permission==="inventory.view") continue;
         expect(can(role,permission)).toBe(false);
       }
       expect(canManageCatalogs(role)).toBe(false);

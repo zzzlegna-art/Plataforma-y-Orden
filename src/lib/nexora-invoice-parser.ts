@@ -40,7 +40,7 @@ const dateValue=(text:string):string=>{
   if(mo<1||mo>12||d<1||d>31)return "";
   const test=new Date(Date.UTC(y,mo-1,d));
   return test.getUTCFullYear()===y&&test.getUTCMonth()===mo-1&&test.getUTCDate()===d
-    ?\`\${y}-\${String(mo).padStart(2,"0")}-\${String(d).padStart(2,"0")}\`:"";
+    ?`${y}-${String(mo).padStart(2,"0")}-${String(d).padStart(2,"0")}`:"";
 };
 export const parseInvoiceText=(input:string,products:readonly CatalogMatch[]):InvoiceSuggestion=>{
   const rawText=input.slice(0,35000);
