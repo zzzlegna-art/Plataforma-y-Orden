@@ -59,8 +59,8 @@ const InvoiceCapture=()=>{
  const catalog=db.products.filter(x=>x.isActive);
  const load=useCallback(async()=>{
    setLoadingList(true);
-   const supabase=await getClient();
    try{
+     const supabase=await getClient();
      const [listed,providers]=await Promise.all([
        supabase.from("nexora_invoice_drafts").select("*").order("created_at",{ascending:false}).limit(30),
        listSuppliers(),
@@ -132,7 +132,10 @@ const InvoiceCapture=()=>{
      toast.success("Factura guardada para revisión, sin crear existencias.");
      await load();
    }catch(e){
-     if(path)await supabase.storage.from("nexora-invoices").remove([path]);
+     if(path){
+       try{(await getClient()).storage.from("nexora-invoices").remove([path]);}
+       catch{ /* El documento se mantiene privado; se permite limpieza administrativa. */ }
+     }
      setError(e instanceof Error?e.message:"No se pudo guardar.");
    }finally{setBusy(false);lock.current=false;}
  };
