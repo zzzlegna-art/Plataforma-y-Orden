@@ -94,3 +94,73 @@ create trigger nexora_transfer_missing_no_truncate
 
 comment on function nexora_internal.reject_missing_audit_mutation() is
   'Bloquea cambios, borrado y TRUNCATE de incidentes auditados. Cualquier corrección futura requiere migración explícita y revisión.';
+
+-- Lectura de manifiestos y evidencias del Bodeguero únicamente en sus sedes
+-- activas. Encargado/Vendedor conservan la política worker por local activo.
+create policy nexora_transfers_bodeguero_site_read
+  on public.nexora_transfers for select to authenticated
+  using (
+    (select public.bodega_is_staff()) and exists (
+      select 1 from public.nexora_staff_sites assigned
+      join public.nexora_sites site on site.id=assigned.site_id
+      where assigned.user_id=(select auth.uid()) and assigned.is_active
+        and site.is_active
+        and assigned.site_id in (origin_site_id,destination_site_id)
+    )
+  );
+
+create policy nexora_transfer_lines_bodeguero_site_read
+  on public.nexora_transfer_lines for select to authenticated
+  using (
+    (select public.bodega_is_staff()) and exists (
+      select 1 from public.nexora_transfers transfer
+      where transfer.id=nexora_transfer_lines.transfer_id
+    )
+  );
+
+create policy nexora_transfer_returns_bodeguero_site_read
+  on public.nexora_transfer_return_documents for select to authenticated
+  using (
+    (select public.bodega_is_staff()) and exists (
+      select 1 from public.nexora_transfers transfer
+      where transfer.id=nexora_transfer_return_documents.transfer_id
+    )
+  );
+
+create policy nexora_transfer_events_bodeguero_site_read
+  on public.nexora_transfer_events for select to authenticated
+  using (
+    (select public.bodega_is_staff()) and exists (
+      select 1 from public.nexora_transfers transfer
+      where transfer.id=nexora_transfer_events.transfer_id
+    )
+  );
+
+-- Las incidencias siguen siendo inmutables. Visibles para quien participa
+-- en origen o destino, sin exponer manifiestos de otras sedes.
+create policy nexora_transfer_missing_participant_read
+  on public.nexora_transfer_missing_observations for select to authenticated
+  using (
+    ((select public.bodega_is_staff()) or
+      nexora_internal.worker_session() is not null)
+    and exists (
+      select 1 from public.nexora_transfers transfer
+      where transfer.id=nexora_transfer_missing_observations.transfer_id
+    )
+  );
+
+-- Booleano mínimo; NO revela la cantidad/costo de IMEI ni el acta Admin.
+create function public.nexora_transfer_ready()
+returns boolean language sql stable security definer
+set search_path = pg_catalog
+as $ready$
+  select auth.uid() is not null
+    and (public.bodega_is_staff() or
+      nexora_internal.worker_session() is not null)
+    and exists (select 1 from public.nexora_initial_inventory_approvals);
+$ready$;
+revoke all on function public.nexora_transfer_ready()
+  from public,anon,authenticated;
+grant execute on function public.nexora_transfer_ready() to authenticated;
+comment on function public.nexora_transfer_ready() is
+  'Estado booleano de habilitación para traslados de cuatro roles sin revelar actas ni inventario. No autoriza un movimiento sin validaciones de sede, ruta, IMEI y custodia.';
