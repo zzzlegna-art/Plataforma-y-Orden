@@ -57,7 +57,7 @@ export const PersonalSedesPanel = ({
   }, [refresh]);
 
   const activeSites = sites.filter((site) => site.isActive);
-  const activePeople = people.filter((person) => person.isActive);
+  const activePeople = people;
   const effectiveUser = activePeople.some((p) => p.id === userId) ? userId : activePeople[0]?.id ?? "";
   const effectiveSite = activeSites.some((s) => s.id === siteId) ? siteId : activeSites[0]?.id ?? "";
   const issue = canAssignStaffToSite(effectiveUser, effectiveSite, people, sites, assignments);
