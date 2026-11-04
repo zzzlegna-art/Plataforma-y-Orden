@@ -8,9 +8,9 @@ import { RolesTab } from "./RolesTab";
 afterEach(cleanup);
 
 describe("Pantalla premium de permisos multisede", () => {
-  it("muestra los cuatro roles y reconoce que aún no están activados en servidor", () => {
+  it("muestra cuatro perfiles sin auditoría visible del empleado", () => {
     render(<RolesTab />);
-    expect(screen.getByText("Pendiente de activación")).toBeTruthy();
+    expect(screen.queryByText("Auditoría por empleado y sede")).toBeNull();
     for (const role of ["Administrador", "Bodeguero", "Encargado", "Vendedor"]) {
       expect(screen.getByRole("button", { name: `Ver permisos de ${role}` })).toBeTruthy();
     }

@@ -15,6 +15,7 @@ import MiSede from "./pages/mi-sede";
 import Pedidos from "./pages/pedidos";
 import NuevoPedido from "./pages/pedidos/nuevo";
 import PedidoDetalle from "./pages/pedidos/detalle";
+import Traslados from "./pages/traslados";
 import Recepciones from "./pages/recepcion";
 import NuevaRecepcion from "./pages/recepcion/nueva";
 import TrazabilidadSeriales from "./pages/trazabilidad";
@@ -61,6 +62,11 @@ export const routers = [
             path: "recepcion/nueva/:receptionId",
             name: "recepcion-captura",
             element: <RequirePermission permission="receptions.manage"><NuevaRecepcion /></RequirePermission>,
+          },
+          {
+            path: "traslados",
+            name: "traslados",
+            element: <RequirePermission permission="receptions.manage"><Traslados /></RequirePermission>,
           },
           {
             path: "inventario",

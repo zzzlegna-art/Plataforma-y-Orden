@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Building2, ClipboardCheck, Link2, LockKeyhole, PackageSearch, Plus, RefreshCw, ShieldCheck, Users } from "lucide-react";
+import { Building2, Plus, RefreshCw, ShieldCheck, Users } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import {
-  canAssignStaffToSite, countLegacyInventoryToReconcile,
+  canAssignStaffToSite,
   createStaffSiteAssignment, listStaffSiteAssignments, setStaffSiteActive,
   type StaffMember, type StaffSiteAssignment,
 } from "@/lib/nexora-staff-sites";
@@ -22,7 +22,6 @@ export const PersonalSedesPanel = ({
   const [people, setPeople] = useState<StaffMember[]>([]);
   const [rolePlans, setRolePlans] = useState<RolePlan[]>([]);
   const [assignments, setAssignments] = useState<StaffSiteAssignment[]>([]);
-  const [pendingStock, setPendingStock] = useState<number | null>(null);
   const [busy, setBusy] = useState(false);
   const [loading, setLoading] = useState(true);
   const [userId, setUserId] = useState("");
@@ -33,8 +32,8 @@ export const PersonalSedesPanel = ({
   const refresh = useCallback(async () => {
     const current = ++requestRef.current;
     setLoading(true);
-    const [staff, stock, roles] = await Promise.allSettled([
-      listStaffSiteAssignments(), countLegacyInventoryToReconcile(), listRolePlans(),
+    const [staff, roles] = await Promise.allSettled([
+      listStaffSiteAssignments(), listRolePlans(),
     ]);
     if (current !== requestRef.current) return;
 
@@ -48,12 +47,6 @@ export const PersonalSedesPanel = ({
       setRolePlans(roles.value);
     } else {
       setRolePlans([]);
-    }
-    if (stock.status === "fulfilled") {
-      setPendingStock(stock.value);
-    } else {
-      setPendingStock(null);
-      toast.error("No fue posible consultar el inventario anterior.");
     }
     setLoading(false);
   }, []);
@@ -115,53 +108,10 @@ export const PersonalSedesPanel = ({
   });
 
   return (
-    <section className="space-y-5" aria-label="Personal e inventario por sede">
-      <div className="grid gap-4 lg:grid-cols-2">
-        <div className="rounded-2xl border bg-card p-5 shadow-sm">
-          <div className="flex items-start gap-3">
-            <span className="rounded-xl bg-primary/10 p-3 text-primary"><Users className="h-5 w-5" /></span>
-            <div>
-              <h3 className="font-semibold">Personal vinculado a sedes</h3>
-              <p className="mt-1 text-sm text-muted-foreground">Asignaciones administrativas y rastreables, sin alterar el rol actual de cada empleado.</p>
-            </div>
-          </div>
-          <div className="mt-5 flex items-end justify-between gap-3 border-t pt-4">
-            <div>
-              <p className="text-3xl font-bold tabular-nums">{activeAssignments}</p>
-              <p className="text-xs text-muted-foreground">Vínculos activos</p>
-            </div>
-            <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
-              <ShieldCheck className="h-3.5 w-3.5" /> Solo Administrador
-            </span>
-          </div>
-        </div>
-        <div className="rounded-2xl border bg-card p-5 shadow-sm">
-          <div className="flex items-start gap-3">
-            <span className="rounded-xl bg-amber-500/10 p-3 text-amber-600"><PackageSearch className="h-5 w-5" /></span>
-            <div>
-              <h3 className="font-semibold">Inventario histórico de Bodega 6A</h3>
-              <p className="mt-1 text-sm text-muted-foreground">Unidades históricas registradas como en bodega. Su procedencia Bodega 6A ya está documentada: no exige repetir el conteo por referencia.</p>
-            </div>
-          </div>
-          <div className="mt-5 flex items-end justify-between gap-3 border-t pt-4">
-            <div>
-              <p className="text-3xl font-bold tabular-nums">
-                {pendingStock === null ? "—" : new Intl.NumberFormat("es-CO").format(pendingStock)}
-              </p>
-              <p className="text-xs text-muted-foreground">Unidades registradas en bodega, excluyendo las vendidas</p>
-            </div>
-            <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 px-3 py-1 text-xs font-semibold text-amber-700 dark:text-amber-300">
-              <LockKeyhole className="h-3.5 w-3.5" /> Solo lectura
-            </span>
-          </div>
-        </div>
-      </div>
-
-      <div className="rounded-xl border bg-muted/20 p-4 text-sm text-muted-foreground">
-        <p className="flex items-start gap-2">
-          <ClipboardCheck className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-          <span><strong className="text-foreground">Inventario protegido:</strong> estas asignaciones no cambian cantidades, disponibilidad, propietarios del IMEI, costos ni accesos operativos. La procedencia de los registros históricos ya pertenece a Bodega 6A; las operaciones nuevas se controlan por local.</span>
-        </p>
+    <section className="space-y-5" aria-label="Personal por sede">
+      <div className="flex items-center justify-between rounded-xl border bg-card px-4 py-3">
+        <span className="font-semibold">Personal vinculado a locales</span>
+        <span className="text-sm text-muted-foreground">{activeAssignments} vínculos activos</span>
       </div>
 
       <div className="overflow-hidden rounded-2xl border bg-card shadow-sm">
@@ -252,10 +202,7 @@ export const PersonalSedesPanel = ({
         )}
       </div>
 
-      <p className="flex items-start gap-2 text-xs text-muted-foreground">
-        <Link2 className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-        Asignar un local a una cuenta pendiente NO la activa ni le concede privilegios. Después de asignarla, entra a Roles y permisos para activar al trabajador.
-      </p>
+
     </section>
   );
 };

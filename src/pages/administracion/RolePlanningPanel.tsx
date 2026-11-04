@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { BadgeCheck, ClipboardList, LockKeyhole, RefreshCw, Save, ShieldAlert, Users } from "lucide-react";
+import { BadgeCheck, ClipboardList, LockKeyhole, RefreshCw, Save, Users } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
@@ -56,7 +56,7 @@ export const RolePlanningPanel = () => {
     setBusy(user.id);
     try {
       await saveRolePlan(user, role);
-      toast.success("Perfil preparado y registrado en auditoría");
+      toast.success("Perfil guardado.");
       await refresh();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "No se pudo guardar el perfil.");
@@ -83,30 +83,20 @@ export const RolePlanningPanel = () => {
     finally{busyRef.current=false;setBusy(null);}
   };
   return (
-    <section aria-label="Preparación de perfiles por empleado" className="overflow-hidden rounded-2xl border bg-card shadow-sm">
+    <section aria-label="Activación de trabajadores" className="overflow-hidden rounded-2xl border bg-card shadow-sm">
       <div className="flex flex-wrap items-start justify-between gap-3 border-b px-5 py-5 sm:px-6">
         <div className="flex items-start gap-3">
           <span className="rounded-xl bg-primary/10 p-3 text-primary"><Users className="h-5 w-5" /></span>
           <div>
-            <h3 className="text-lg font-bold">Asignación de perfiles futuros</h3>
+            <h3 className="text-lg font-bold">Activar personal</h3>
             <p className="mt-1 max-w-xl text-sm text-muted-foreground">
-              Prepara al Bodeguero, Encargado o Vendedor y activa las cuentas de local
-              únicamente después de aprobar inventario, sede y límites correspondientes.
+              Asigna un único local y activa el acceso del Encargado o Vendedor.
             </p>
           </div>
         </div>
         <Button size="sm" variant="outline" onClick={() => void refresh()} disabled={loading || busy !== null}>
           <RefreshCw className="h-4 w-4" /> Actualizar
         </Button>
-      </div>
-      <div className="flex items-start gap-3 border-b bg-amber-500/5 px-5 py-4 sm:px-6">
-        <ShieldAlert className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
-        <p className="text-sm text-muted-foreground">
-          <strong className="text-foreground">Activación protegida:</strong> las cuentas nuevas
-          permanecen inactivas hasta que el Administrador confirme su única sede y el servidor
-          valide el inventario inicial, el rol y los topes de caja cuando correspondan.
-          Ningún trabajador hereda los permisos anteriores de Bodeguero.
-        </p>
       </div>
       {loading && managed.length === 0 ? (
         <p role="status" className="p-5 text-sm text-muted-foreground">Consultando personal...</p>
@@ -162,7 +152,7 @@ export const RolePlanningPanel = () => {
                     <ConfirmDialog
                       trigger={<Button disabled={busy!==null}>Activar acceso</Button>}
                       title="Activar trabajador del local"
-                      description="Supabase verificará inventario inicial, sede, rol y topes. La cuenta no tendrá permisos de Bodeguero."
+                      description="Se verificará el rol autorizado y un único local activo. El trabajador no tendrá permisos de Bodeguero."
                       onConfirm={()=>void changeActivation(user.id,true)}
                     />
                   ) : (

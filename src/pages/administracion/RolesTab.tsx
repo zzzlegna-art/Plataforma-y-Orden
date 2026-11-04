@@ -1,8 +1,7 @@
 import { useMemo, useState, type ReactNode } from "react";
 import { RolePlanningPanel } from "./RolePlanningPanel";
-import { StaffSiteAccessAuditPanel } from "./StaffSiteAccessAuditPanel";
 import {
-  Building2, Check, CircleHelp, ClipboardCheck, LockKeyhole,
+  Building2, Check, ClipboardCheck, LockKeyhole,
   PackageCheck, ShieldCheck, ShoppingBag, Store, Warehouse,
 } from "lucide-react";
 
@@ -60,42 +59,10 @@ export const RolesTab = () => {
   );
   return (
     <section aria-label="Roles y permisos multisede" className="space-y-6">
-      <div className="relative overflow-hidden rounded-2xl border border-indigo-200 bg-gradient-to-br from-white via-indigo-50 to-sky-100 px-5 py-6 text-slate-900 shadow-lg shadow-indigo-950/5 dark:border-slate-800 dark:from-slate-950 dark:via-slate-900 dark:to-indigo-950 dark:text-white dark:shadow-black/20 sm:px-7 sm:py-7">
-        <div aria-hidden="true" className="pointer-events-none absolute -right-12 -top-12 h-56 w-56 rounded-full bg-sky-500/20 blur-3xl" />
-        <div className="relative flex flex-wrap items-start justify-between gap-4">
-          <div className="max-w-2xl">
-            <span className="inline-flex items-center gap-2 rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-sky-800 dark:border-sky-400/25 dark:bg-sky-400/10 dark:text-sky-200">
-              <ShieldCheck className="h-3.5 w-3.5" /> Gobierno multisede
-            </span>
-            <h2 className="mt-4 text-2xl font-bold tracking-tight sm:text-3xl">Roles y permisos</h2>
-            <p className="mt-2 text-sm leading-relaxed text-slate-600 dark:text-slate-300">
-              Cuatro perfiles con reglas aprobadas para cada área de Nexora.
-              Consulta quién puede operar sin confundir acceso a la información con autorización para modificarla.
-            </p>
-          </div>
-          <span className="relative rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-900 dark:border-amber-300/30 dark:bg-amber-300/10 dark:text-amber-100">
-            Pendiente de activación
-          </span>
-        </div>
-        <div className="relative mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <div className="rounded-xl border border-indigo-200 bg-white/75 p-3 shadow-sm dark:border-white/10 dark:bg-white/[0.06] dark:shadow-none">
-            <p className="text-2xl font-bold tabular-nums">4</p>
-            <p className="mt-1 text-xs text-slate-600 dark:text-slate-300">Perfiles definidos</p>
-          </div>
-          <div className="rounded-xl border border-white/10 bg-white/[0.06] p-3">
-            <p className="text-2xl font-bold tabular-nums">{MULTISITE_CAPABILITIES.length}</p>
-            <p className="mt-1 text-xs text-slate-300">Operaciones controladas</p>
-          </div>
-          <div className="rounded-xl border border-white/10 bg-white/[0.06] p-3">
-            <p className="text-2xl font-bold tabular-nums">100%</p>
-            <p className="mt-1 text-xs text-slate-300">Acceso a costos para los 4 roles</p>
-          </div>
-          <div className="rounded-xl border border-white/10 bg-white/[0.06] p-3">
-            <p className="text-2xl font-bold tabular-nums">0</p>
-            <p className="mt-1 text-xs text-slate-300">Roles financieros adicionales</p>
-          </div>
-        </div>
-      </div>
+      <header>
+        <h2 className="text-xl font-semibold">Roles y permisos</h2>
+        <p className="mt-1 text-sm text-muted-foreground">Permisos y acceso del personal.</p>
+      </header>
 
       <div className="space-y-3">
         <div className="flex flex-wrap items-end justify-between gap-2">
@@ -201,17 +168,7 @@ export const RolesTab = () => {
 
       <RolePlanningPanel />
 
-      <StaffSiteAccessAuditPanel />
 
-      <div className="flex gap-3 rounded-xl border border-amber-500/25 bg-amber-500/[0.07] p-4">
-        <CircleHelp className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" aria-hidden="true" />
-        <p className="text-xs leading-relaxed text-muted-foreground">
-          <strong className="text-foreground">Activación controlada:</strong> esta pantalla documenta los permisos aprobados.
-          Actualmente los usuarios operan con los perfiles anteriores. Los perfiles Encargado y Vendedor se habilitarán
-          cuando se comprueben los permisos reales por sede en Supabase, las operaciones RPC y las pruebas de migración.
-          Ningún permiso de esta vista sustituye las validaciones del servidor.
-        </p>
-      </div>
     </section>
   );
 };

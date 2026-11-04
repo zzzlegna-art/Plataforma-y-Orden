@@ -48,6 +48,7 @@
   "auth.featureReceptions": "Recepción de mercancía por serial o IMEI",
   "auth.featureInventory": "Inventario con trazabilidad por unidad",
   "auth.featureWarranties": "Garantías y devoluciones bajo control",
+  "nav.transfers": "Traslados",
   "nav.dashboard": "Panel",
   "nav.mySite": "Mi sede",
   "nav.receptions": "Recepción",
