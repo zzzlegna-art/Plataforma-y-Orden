@@ -8,6 +8,11 @@ export interface ReferenceSiteCount {
 }
 export interface ReferenceStockRow extends Omit<ReferenceSiteCount,"siteId"|"siteName"|"cityName">, CatalogMedia {
   productId:string;name:string;sku:string;sites:ReferenceSiteCount[];
+  brandName:string|null;
+  salePrice:number|null;
+  referenceCost:number|null;
+  newUnits:number;
+  usedUnits:number;
 }
 export interface ReferenceStockResult {
   initialApproved:boolean;scope:"serialized_imei_only";
@@ -20,6 +25,12 @@ const asRecord=(raw:unknown):Record<string,unknown>=>{
 };
 const asText=(value:unknown):string=>{
   if(typeof value!=="string")throw new Error("Falta una identificación de referencia.");
+  return value;
+};
+const asMoneyOrNull=(value:unknown):number|null=>{
+  if(value===null || value===undefined)return null;
+  if(typeof value!=="number"||!Number.isFinite(value)||value<0)
+    throw new Error("El catálogo devolvió un importe de referencia inválido.");
   return value;
 };
 const asInt=(value:unknown):number=>{
@@ -61,8 +72,16 @@ export const parseReferenceStock=(data:unknown):ReferenceStockResult=>{
       if(sites.reduce((sum,site)=>sum+site[key],0)!==counts[key])
         throw new Error("Los subtotales por sede no coinciden con la referencia.");
     }
+    const newUnits=asInt(row.newUnits??0);
+    const usedUnits=asInt(row.usedUnits??0);
+    if(newUnits+usedUnits>counts.physicallyVerified)
+      throw new Error("El inventario por condición supera las unidades verificadas.");
     return {...counts,productId:asText(row.productId),name:asText(row.name),
-      sku:asText(row.sku),sites,...parseCatalogMedia(row)};
+      sku:asText(row.sku),sites,...parseCatalogMedia(row),
+      brandName:asNullableText(row.brandName??null),
+      salePrice:asMoneyOrNull(row.salePrice),
+      referenceCost:asMoneyOrNull(row.referenceCost),
+      newUnits,usedUnits};
   });
   const page=asInt(input.page),pageSize=asInt(input.pageSize),matched=asInt(input.matched);
   if(page===0||pageSize===0||pageSize>50||items.length>pageSize||items.length>matched)
