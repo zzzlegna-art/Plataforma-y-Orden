@@ -6,6 +6,8 @@ on:
       - "supabase/migrations/20261103180000_nexora_v49_cash_limits.sql"
       - "supabase/migrations/20261103181000_nexora_v49_local_initial_approval.sql"
       - "supabase/tests/nexora_v49_*"
+      - "supabase/tests/nexora_v496_*"
+      - "supabase/migrations/20261103193000_nexora_v496_safe_worker_provisioning.sql"
       - ".github/workflows/nexora-v49-sql.yml"
   workflow_dispatch:
 
@@ -58,3 +60,7 @@ jobs:
         run: psql -X -v ON_ERROR_STOP=1 -f supabase/tests/nexora_v49_integration.sql
       - name: Test concurrent expenses do not exceed daily limit
         run: bash supabase/tests/nexora_v49_concurrency.sh
+      - name: Install V4.9.6 protected worker provisioning
+        run: psql -X -v ON_ERROR_STOP=1 -f supabase/migrations/20261103193000_nexora_v496_safe_worker_provisioning.sql
+      - name: Test prepared worker cannot become Bodeguero or Administrator
+        run: psql -X -v ON_ERROR_STOP=1 -f supabase/tests/nexora_v496_prepared_worker.sql
