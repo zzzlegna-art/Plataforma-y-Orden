@@ -19,7 +19,11 @@ vi.mock("recharts", () => {
   return {
     ResponsiveContainer: WithChildren,
     AreaChart: WithChildren,
-    Area: Shape,
+    Area: ({ dataKey, type, strokeWidth, fill, dot }: {
+      dataKey: string; type: string; strokeWidth: number; fill: string; dot: boolean;
+    }) => <div data-testid="inventory-curve" data-key={dataKey}
+      data-curve={type} data-width={strokeWidth} data-fill={fill}
+      data-no-dots={dot === false ? "true" : "false"} />,
     Line: Shape,
     CartesianGrid: Shape,
     XAxis: Shape,
@@ -69,6 +73,21 @@ describe("panel premium sin cambiar la barra lateral", () => {
     }
     expect(screen.getByLabelText("Gráfica de entradas, asignaciones a pedidos y salidas físicas de inventario")).toBeTruthy();
     expect(screen.getByLabelText("Gráfica de estado de operaciones")).toBeTruthy();
+  });
+
+  it("dibuja entradas, salidas y asignaciones con líneas uniformes y áreas separadas", () => {
+    const { container } = open();
+    const chart = container.querySelector(".nx-dashboard-block--movement .nx-analytics-chart");
+    expect(chart).toBeTruthy();
+    const curves = [...(chart?.querySelectorAll('[data-testid="inventory-curve"]') ?? [])];
+    expect(curves).toHaveLength(3);
+    expect(curves.map((el) => el.getAttribute("data-key")).sort()).toEqual([
+      "asignaciones", "entradas", "salidas",
+    ]);
+    expect(curves.every((el) => el.getAttribute("data-curve") === "monotone"
+      && el.getAttribute("data-width") === "2.6"
+      && el.getAttribute("data-no-dots") === "true")).toBe(true);
+    expect(new Set(curves.map((el) => el.getAttribute("data-fill"))).size).toBe(3);
   });
 
   it("mantiene indicadores, rankings y exportaciones sin restaurar la sección eliminada de últimos seriales", () => {
