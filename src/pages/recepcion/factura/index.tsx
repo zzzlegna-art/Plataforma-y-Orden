@@ -7,10 +7,15 @@ import {Input} from "@/components/ui/input";
 import {Label} from "@/components/ui/label";
 import {useStore} from "@/hooks/use-store";
 import {useApp} from "@/hooks/use-app";
-const getClient=async()=> (await import("@/integrations/supabase/client")).supabase;
+import type { SupabaseClient } from "@supabase/supabase-js";
 import {listSuppliers,type Supplier} from "@/lib/suppliers";
 import {parseInvoiceText,type InvoiceSuggestion,type InvoiceLineSuggestion} from "@/lib/nexora-invoice-parser";
 import {readInvoiceDocument} from "@/lib/nexora-invoice-reader";
+
+// Los tipos autogenerados de Nexora no incluyen todavía las tablas nuevas.
+// Acceso aislado a las tablas de facturas; permisos comprobados en RLS.
+const getClient=async():Promise<SupabaseClient> =>
+  (await import("@/integrations/supabase/client")).supabase as unknown as SupabaseClient;
 
 type InvoiceStatus="pending"|"reviewed"|"prepared";
 type InvoiceDraft={
@@ -112,7 +117,7 @@ const InvoiceCapture=()=>{
    let path="";
    try{
      const supabase=await getClient();
-    const sha=await readHash(file);
+     const sha=await readHash(file);
      const extension=file.type==="application/pdf"?"pdf":file.type==="image/png"?"png":"jpg";
      path=user.id+"/"+crypto.randomUUID()+"."+extension;
      const upload=await supabase.storage.from("nexora-invoices").upload(path,file,
@@ -133,7 +138,7 @@ const InvoiceCapture=()=>{
      await load();
    }catch(e){
      if(path){
-       try{(await getClient()).storage.from("nexora-invoices").remove([path]);}
+       try{await (await getClient()).storage.from("nexora-invoices").remove([path]);}
        catch{ /* El documento se mantiene privado; se permite limpieza administrativa. */ }
      }
      setError(e instanceof Error?e.message:"No se pudo guardar.");

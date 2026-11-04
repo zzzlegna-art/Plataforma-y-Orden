@@ -38,6 +38,7 @@ import { SupplierFormDialog } from "@/pages/proveedores/SupplierFormDialog";
 import { listSuppliers, type Supplier } from "@/lib/suppliers";
 
 import type { InvoiceLineSuggestion } from "@/lib/nexora-invoice-parser";
+import type { SupabaseClient } from "@supabase/supabase-js";
 
 /**
  * Captura de una recepción: se elige producto y condición y cada lectura agrega
@@ -87,7 +88,8 @@ const NuevaRecepcion = () => {
     let active=true;
     void (async()=>{
       try{
-        const {supabase}=await import("@/integrations/supabase/client");
+        const {supabase:typed}=await import("@/integrations/supabase/client");
+        const supabase=typed as unknown as SupabaseClient;
         const {data,error}=await supabase.from("nexora_invoice_drafts")
           .select("invoice_no,lines").eq("reception_id",receptionId)
           .limit(1).maybeSingle();
