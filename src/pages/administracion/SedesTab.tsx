@@ -17,6 +17,7 @@ import { ConciliacionImeiPanel } from "./ConciliacionImeiPanel";
 import { InitialCountWorklistPanel } from "./InitialCountWorklistPanel";
 import { ReferenceReconciliationProgressPanel } from "./ReferenceReconciliationProgressPanel";
 import { CostEvidencePanel } from "./CostEvidencePanel";
+import { getInitialInventoryProgress } from "@/lib/nexora-initial-approval";
 import {
   allowedParents, createNexoraCity, createNexoraSite, listNexoraNetwork,
   siteTypeLabel, updateNexoraSiteDetails, validateSiteDraft,
@@ -30,6 +31,7 @@ const selectClass = "flex h-10 w-full rounded-md border border-input bg-backgrou
 export const SedesTab = () => {
   const [cities, setCities] = useState<NexoraCity[]>([]);
   const [approvalLocked, setApprovalLocked] = useState(false);
+  const [legacy6ARegistered, setLegacy6ARegistered] = useState(false);
   const markApproved = useCallback(() => setApprovalLocked(true), []);
   const [sites, setSites] = useState<NexoraSite[]>([]);
   const [loading, setLoading] = useState(true);
@@ -49,10 +51,14 @@ export const SedesTab = () => {
     const token = ++refreshToken.current;
     setLoading(true);
     try {
-      const result = await listNexoraNetwork();
+      const [result, importedFrom6A] = await Promise.all([
+        listNexoraNetwork(),
+        getInitialInventoryProgress().then(p => p.isApproved && p.approvalMethod === "owner_legacy_origin_6a").catch(() => false),
+      ]);
       if (token === refreshToken.current) {
         setCities(result.cities);
         setSites(result.sites);
+        setLegacy6ARegistered(importedFrom6A);
       }
     } catch (error) {
       if (token === refreshToken.current)
@@ -272,10 +278,22 @@ export const SedesTab = () => {
       )}
 
       <PersonalSedesPanel cities={cities} sites={sites} />
-      <InitialCountWorklistPanel />
-      <ReferenceReconciliationProgressPanel />
+      {legacy6ARegistered ? (
+        <section aria-label="Origen histórico Bodega 6A registrado"
+          className="rounded-2xl border border-emerald-300 bg-emerald-50 p-5 text-sm text-emerald-950 dark:border-emerald-400/20 dark:bg-emerald-400/10 dark:text-emerald-100">
+          <strong>Inventario histórico asignado a Bodega 6A.</strong>
+          <p className="mt-1">Los seriales anteriores se tomaron de los registros de Nexora. No se requiere volver a contarlos
+          ni escanearlos por referencia para establecer su origen. Los vendidos permanecen en el historial.
+          Este registro no afirma que se haya efectuado un conteo físico.</p>
+        </section>
+      ) : (
+        <>
+          <InitialCountWorklistPanel />
+          <ReferenceReconciliationProgressPanel />
+          <ConciliacionImeiPanel cities={cities} sites={sites} approvalLocked={approvalLocked} />
+        </>
+      )}
       <CostEvidencePanel />
-      <ConciliacionImeiPanel cities={cities} sites={sites} approvalLocked={approvalLocked} />
       <AprobacionInventarioInicialPanel onApproved={markApproved} />
       <TrasladosMultisedePanel sites={sites} />
       <DisponibilidadPorSedePanel />
