@@ -35,9 +35,9 @@ export const PREPARATION_STEPS = [
     tab:"roles",action:"Preparar perfiles",
   },
   {
-    key:"reconciliation",title:"Certificar el inventario inicial",
-    detail:"Bodega 6A ya revisada: declaración administrativa sin escaneos ficticios. Para otras sedes, cotejo físico por IMEI.",
-    tab:"sites",action:"Abrir acta inicial",
+    key:"reconciliation",title:"Formalizar el corte inicial de Bodega 6A",
+    detail:"No se recrean seriales ni productos heredados. Para 6A hay un acta administrativa opcional al escaneo individual; solo puede firmarse tras comprobar físicamente las existencias. Las otras sedes requieren cotejo real.",
+    tab:"sites",action:"Revisar corte y acta",
   },
   {
     key:"roleActivation",title:"Validar activación segura de roles",
