@@ -13,7 +13,7 @@ export interface InitialInventoryProgress {
   isApproved: boolean;
   ready: boolean;
   /** La declaración administrativa no se confunde con escaneo físico. */
-  approvalMethod?: "imei_scan" | "admin_declaration_6a" | null;
+  approvalMethod?: "imei_scan" | "admin_declaration_6a" | "owner_legacy_origin_6a" | null;
   certifiedByDeclaration?: number;
 }
 
@@ -65,7 +65,7 @@ export const parseInitialInventoryProgress = (payload: unknown): InitialInventor
     throw new Error("Estado de aprobación incompleto.");
   }
   const method=p.approvalMethod===undefined||p.approvalMethod===null?null:
-    p.approvalMethod==="imei_scan"||p.approvalMethod==="admin_declaration_6a"?
+    p.approvalMethod==="imei_scan"||p.approvalMethod==="admin_declaration_6a"||p.approvalMethod==="owner_legacy_origin_6a"?
       p.approvalMethod:null;
   if(p.approvalMethod!==undefined&&p.approvalMethod!==null&&method===null)
     throw new Error("Método de aprobación inválido.");
