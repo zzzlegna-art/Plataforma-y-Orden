@@ -34,6 +34,13 @@ export const MULTISITE_CAPABILITIES = [
     category: "Inventario",
   },
   {
+    key: "inventory.imei.cost.update",
+    label: "Modificar costo individual por IMEI",
+    description: "Exclusivo de Administrador y sujeto a auditoría.",
+    roles: ["admin"],
+    category: "Inventario",
+  },
+  {
     key: "inventory.references.manage",
     label: "Crear y modificar referencias",
     description: "Administración central del catálogo de productos.",
@@ -157,6 +164,13 @@ export const MULTISITE_CAPABILITIES = [
     label: "Registrar y autorizar gasto de caja",
     description: "Encargado; el Administrador revisa posteriormente en arqueo.",
     roles: ["encargado"],
+    category: "Ventas y caja",
+  },
+  {
+    key: "sales.retail",
+    label: "Registrar venta al detal",
+    description: "Administrador, Encargado o Vendedor; local autorizado, caja abierta y precio mayor al costo.",
+    roles: ["admin", "encargado", "vendedor"],
     category: "Ventas y caja",
   },
   {
