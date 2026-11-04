@@ -26,9 +26,9 @@ describe("Nexora · lanzamiento multisede sin privilegios heredados",()=>{
   });
   it("permite identificar la declaración administrativa de 6A sin fingir un conteo",()=>{
     const step=PREPARATION_STEPS.find(s=>s.key==="reconciliation");
-    expect(step?.title).toMatch(/Formalizar el corte inicial/);
+    expect(step?.title).toMatch(/Origen histórico de Bodega 6A/);
     expect(step?.detail).toMatch(/Bodega 6A/);
-    expect(step?.detail).toMatch(/escaneo individual/);
+    expect(step?.detail).toMatch(/sin volver a escanear ni contar/);
     const state=parseLaunchReadiness(status());
     expect(state.initialApproved).toBe(false);
     expect(state.steps.find(s=>s.key==="reconciliation")?.ready).toBe(false);
