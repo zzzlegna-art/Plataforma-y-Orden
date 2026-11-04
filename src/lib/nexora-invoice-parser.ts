@@ -47,14 +47,14 @@ const dateValue=(text:string):string=>{
  * Si falta un dato, nunca infiere un costo del total general. */
 const readItemRow=(row:string):{description:string;quantity:number;cost:number|null;total:number|null}|null=>{
   const formats=[
-    /^(.{4,140}?)\s+(\d{1,4})\s+([$€]?\s*\d[\d.,]*)\s+([$€]?\s*\d[\d.,]*)\s*$/,
     /^(\d{1,4})\s+(.{4,140}?)\s+([$€]?\s*\d[\d.,]*)\s+([$€]?\s*\d[\d.,]*)\s*$/,
+    /^(.{4,140}?)\s+(\d{1,4})\s+([$€]?\s*\d[\d.,]*)\s+([$€]?\s*\d[\d.,]*)\s*$/,
   ];
   for(let index=0;index<formats.length;index++){
     const match=formats[index].exec(row);
     if(!match)continue;
-    const description=(index===0?match[1]:match[2]).trim();
-    const quantity=Number(index===0?match[2]:match[1]);
+    const description=(index===0?match[2]:match[1]).trim();
+    const quantity=Number(index===0?match[1]:match[2]);
     const cost=readMoney(match[3]);
     const total=readMoney(match[4]);
     if(!/[a-zA-ZÁÉÍÓÚÑáéíóúñ]/.test(description)
