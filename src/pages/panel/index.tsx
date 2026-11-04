@@ -33,7 +33,6 @@ import {
   Tooltip,
   XAxis,
   YAxis,
-  Line,
 } from "recharts";
 
 import { OrderStatusBadge, UnitStatusBadge, WarrantyStatusBadge } from "@/components/shared/status-badge";
@@ -330,14 +329,23 @@ const Panel = () => {
               <AreaChart data={movementChartData} margin={{ top: 8, right: 14, left: -13, bottom: 3 }}>
                 <defs>
                   <linearGradient id="movementEntriesPremiumFill" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#05b9d5" stopOpacity={0.20} />
+                    <stop offset="0%" stopColor="#05b9d5" stopOpacity={0.17} />
                     <stop offset="95%" stopColor="#05b9d5" stopOpacity={0.01} />
+                  </linearGradient>
+                  <linearGradient id="movementAssignmentsPremiumFill" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#f59e0b" stopOpacity={0.09} />
+                    <stop offset="95%" stopColor="#f59e0b" stopOpacity={0} />
+                  </linearGradient>
+                  <linearGradient id="movementExitsPremiumFill" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#8655fa" stopOpacity={0.12} />
+                    <stop offset="95%" stopColor="#8655fa" stopOpacity={0} />
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 5" stroke="hsl(var(--border))" vertical={false} />
                 <XAxis dataKey="label" interval={Math.max(0, Math.ceil(movementChartData.length / 8) - 1)}
                   tickLine={false} axisLine={false} tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} />
                 <YAxis allowDecimals={false} width={46} tickLine={false} axisLine={false}
+                  padding={{ top: 5, bottom: 10 }}
                   tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} />
                 <Tooltip
                   contentStyle={{ borderRadius: 12, border: "1px solid hsl(var(--border))",
@@ -345,13 +353,21 @@ const Panel = () => {
                   labelStyle={{ fontWeight: 700, color: "hsl(var(--foreground))" }}
                   formatter={(value, name) => [formatNumber(Number(value)), String(name)]}
                 />
-                <Area type="monotone" dataKey="entradas" name="Entradas" stroke="#05b9d5"
-                  strokeWidth={2.6} fill="url(#movementEntriesPremiumFill)"
-                  activeDot={{ r: 4, strokeWidth: 0 }} />
-                <Line type="monotone" dataKey="salidas" name="Salidas" stroke="#8655fa"
-                  strokeWidth={2.5} dot={false} activeDot={{ r: 4, fill: "#8655fa", strokeWidth: 0 }} />
-                <Line type="monotone" dataKey="asignaciones" name="Asignaciones" stroke="#f59e0b"
-                  strokeWidth={2.5} dot={false} activeDot={{ r: 4, fill: "#f59e0b", strokeWidth: 0 }} />
+                {/* Las tres series usan la misma curva, grosor y acabado. Las áreas
+                    se dibujan de mayor a menor amplitud con rellenos sutiles
+                    para no tapar las curvas ni alterar sus valores reales. */}
+                <Area type="monotone" dataKey="asignaciones" name="Asignaciones"
+                  stroke="#f59e0b" strokeWidth={2.6} dot={false}
+                  fill="url(#movementAssignmentsPremiumFill)"
+                  activeDot={{ r: 4, fill: "#f59e0b", strokeWidth: 0 }} />
+                <Area type="monotone" dataKey="entradas" name="Entradas"
+                  stroke="#05b9d5" strokeWidth={2.6} dot={false}
+                  fill="url(#movementEntriesPremiumFill)"
+                  activeDot={{ r: 4, fill: "#05b9d5", strokeWidth: 0 }} />
+                <Area type="monotone" dataKey="salidas" name="Salidas"
+                  stroke="#8655fa" strokeWidth={2.6} dot={false}
+                  fill="url(#movementExitsPremiumFill)"
+                  activeDot={{ r: 4, fill: "#8655fa", strokeWidth: 0 }} />
               </AreaChart>
             </ResponsiveContainer>
           </div>
