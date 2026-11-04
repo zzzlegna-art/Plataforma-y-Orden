@@ -73,9 +73,10 @@ export const PreparacionOperacionTab=()=>{
           </span>
           <h2 className="mt-4 text-2xl font-bold tracking-tight sm:text-3xl">Preparar la operación multisede</h2>
           <p className="mt-2 text-sm leading-relaxed text-slate-600 dark:text-slate-300">
-            Configura sedes, vincula empleados y formaliza el inventario inicial antes de activar
-            operaciones. Bodega 6A admite declaración administrativa cuando su existencia física
-            ya fue revisada; no se inventan escaneos ni se habilitan ventas automáticamente.
+            Bodega 6A de Barranquilla es el origen de los registros heredados. No necesitas
+            crear de nuevo los productos ni escanear individualmente todos los seriales históricos.
+            Antes de activar operaciones nuevas, el Administrador debe formalizar el corte inicial
+            y distinguir los equipos existentes de los vendidos. Ninguna operación se habilita automáticamente.
           </p>
         </div>
         <Button size="sm" variant="outline" disabled={loading} onClick={()=>void refresh()}
@@ -112,10 +113,11 @@ export const PreparacionOperacionTab=()=>{
             <ClipboardCheck className="h-5 w-5"/> Certificación del inventario de Bodega 6A
           </h3>
           <p className="mt-2 text-sm leading-relaxed">
-            Si el Administrador ya verificó físicamente todos los equipos elegibles de
-            Bodega 6A, puede registrar esa declaración mediante un acta excepcional.
-            La firma no inventa escaneos, no modifica costos y no certifica inventarios
-            de iPhone America ni de otras sedes.
+            Los productos y seriales anteriores ya están cargados: este paso no los
+            vuelve a ingresar. Para dejar constancia del corte histórico en Bodega 6A,
+            el Administrador puede elegir la declaración excepcional, sin escanear
+            IMEI por IMEI, únicamente si ha verificado las existencias físicas.
+            La declaración no inventa conteos, no modifica costos ni valida otros locales.
           </p>
           <p className="mt-2 text-sm font-semibold">
             {warehouse6A?.canCertify
