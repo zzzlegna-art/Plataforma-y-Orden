@@ -6,7 +6,7 @@ create role authenticated;
 create schema auth;
 create schema nexora_internal;
 grant usage on schema auth,nexora_internal to authenticated;
-create table auth.users(id uuid primary key);
+create table auth.users(id uuid primary key, raw_app_meta_data jsonb not null default '{}'::jsonb);
 create function auth.uid() returns uuid language sql stable
 as $$ select nullif(current_setting('test.uid',true),'')::uuid $$;
 
