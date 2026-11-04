@@ -83,7 +83,7 @@ export const AprobacionInventarioInicialPanel = ({
   };
 
   const percent = progress && progress.total > 0
-    ? (progress.isApproved && progress.approvalMethod === "admin_declaration_6a" ? 100 : Math.min(100, Math.round((progress.verified / progress.total) * 100)))
+    ? (progress.isApproved && (progress.approvalMethod === "admin_declaration_6a" || progress.approvalMethod === "owner_legacy_origin_6a") ? 100 : Math.min(100, Math.round((progress.verified / progress.total) * 100)))
     : 0;
   const blocker = progress ? getInitialApprovalBlocker(progress) : "Sin datos verificados";
   return (
@@ -108,9 +108,9 @@ export const AprobacionInventarioInicialPanel = ({
         <div className="space-y-5 p-5 sm:p-6">
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
             {[
-              { title: "Unidades físicas", value: progress?.total },
+              { title: progress?.approvalMethod === "owner_legacy_origin_6a" ? "Unidades históricas vigentes" : "Unidades físicas", value: progress?.total },
               { title: "IMEI escaneados y válidos", value: progress?.verified },
-              { title: "Sin escaneo individual", value: progress?.pending },
+              { title: progress?.approvalMethod === "owner_legacy_origin_6a" ? "Sin escaneo físico (no requerido para el origen)" : "Sin escaneo individual", value: progress?.pending },
               { title: "Cotejos desactualizados", value: progress?.stale },
             ].map((stat) => (
               <div key={stat.title} className="rounded-xl border bg-muted/20 p-4">
@@ -121,7 +121,7 @@ export const AprobacionInventarioInicialPanel = ({
           </div>
           <div className="space-y-2">
             <div className="flex items-center justify-between gap-3 text-xs">
-              <span className="font-semibold">{progress?.approvalMethod === "admin_declaration_6a" ? "Apertura certificada por declaración (sin escaneo)" : "Conciliación física del inventario"}</span>
+              <span className="font-semibold">{progress?.approvalMethod === "owner_legacy_origin_6a" ? "Origen histórico Bodega 6A registrado (sin conteo nuevo)" : progress?.approvalMethod === "admin_declaration_6a" ? "Apertura certificada por declaración (sin escaneo)" : "Conciliación física del inventario"}</span>
               <span className="font-bold tabular-nums">{percent}%</span>
             </div>
             <div role="progressbar" aria-label="Avance de la conciliación inicial"
@@ -135,11 +135,11 @@ export const AprobacionInventarioInicialPanel = ({
             <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-4">
               <div className="flex items-center gap-2 text-emerald-700 dark:text-emerald-300">
                 <BadgeCheck className="h-5 w-5" />
-                <p className="font-semibold">{progress.approvalMethod === "admin_declaration_6a" ? "Acta administrativa de Bodega 6A firmada" : "Acta definitiva aprobada por escaneo"}</p>
+                <p className="font-semibold">{progress.approvalMethod === "owner_legacy_origin_6a" ? "Origen de inventario histórico: Bodega 6A" : progress.approvalMethod === "admin_declaration_6a" ? "Acta administrativa de Bodega 6A firmada" : "Acta definitiva aprobada por escaneo"}</p>
               </div>
               <p className="mt-1 text-sm text-muted-foreground">
-                {number(progress.approved)} IMEI quedaron vinculados a una sede.\n                {progress.approvalMethod === "admin_declaration_6a" ? " Certificación por declaración del Administrador; no se realizó escaneo individual. Los costos pendientes permanecen sin validar." : ""}
-                Fecha de aprobación: {progress.approvedAt
+                {number(progress.approved)} IMEI quedaron vinculados a una sede.\n                {progress.approvalMethod === "owner_legacy_origin_6a" ? " Procedencia declarada por el propietario y registrada desde los datos existentes. No representa conteo físico ni validación de costos." : progress.approvalMethod === "admin_declaration_6a" ? " Certificación por declaración del Administrador; no se realizó escaneo individual. Los costos pendientes permanecen sin validar." : ""}
+                Fecha de registro: {progress.approvedAt
                   ? new Date(progress.approvedAt).toLocaleString("es-CO") : "sin fecha"}.
               </p>
             </div>
