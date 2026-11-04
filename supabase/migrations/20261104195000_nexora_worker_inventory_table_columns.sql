@@ -42,7 +42,7 @@ begin
     ))));
 
   with paged as (
-    select p.id,p.name,p.sku,p.categoria,p.image_url,p.color_variants,p.price,p.brand_id from public.bodega_products p
+    select p.id,p.name,p.sku,p.categoria,p.image_url,p.color_variants,p.price,p.cost,p.brand_id from public.bodega_products p
     where (v_query='' or strpos(lower(p.name),v_query)>0 or strpos(lower(p.sku),v_query)>0)
       and (not v_retail_only or (coalesce(lower(p.categoria),'') <> 'repuesto'
     and not exists (
