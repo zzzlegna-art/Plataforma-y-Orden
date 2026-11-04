@@ -142,6 +142,12 @@ const CreateUserDialog = () => {
                 { value: "bodeguero", label: t("role.bodeguero") },
               ]}
             />
+            <p role="note" className="rounded-lg border border-amber-200 bg-amber-50 p-2 text-xs leading-relaxed text-amber-950 dark:border-amber-400/30 dark:bg-amber-400/10 dark:text-amber-100">
+              Encargado y Vendedor están definidos para Nexora Multisede, pero aún no pueden
+              crearse como cuentas activas. Se habilitarán después de verificar los permisos
+              reales por sede en el servidor. No crees a un Vendedor como Bodeguero para
+              sustituir su rol: tendría acceso a operaciones que no le corresponden.
+            </p>
           </div>
         </div>
         <DialogFooter>
