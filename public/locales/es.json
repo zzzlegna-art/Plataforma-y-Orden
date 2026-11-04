@@ -49,6 +49,7 @@
   "auth.featureInventory": "Inventario con trazabilidad por unidad",
   "auth.featureWarranties": "Garantías y devoluciones bajo control",
   "nav.dashboard": "Panel",
+  "nav.mySite": "Mi sede",
   "nav.receptions": "Recepción",
   "nav.inventory": "Inventario",
   "nav.units": "Seriales",
