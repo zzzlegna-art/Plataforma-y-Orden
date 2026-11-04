@@ -45,7 +45,7 @@ const crearCuenta = async (body: {
   email: string;
   password: string;
   nombre: string;
-  rol: Role;
+  rol: Role | "encargado" | "vendedor";
 }) => {
   const { data, error } = await supabase.functions.invoke("bodega-gestion-usuarios", { body });
   if (error || !data?.ok) {
@@ -61,7 +61,7 @@ const CreateUserDialog = () => {
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [role, setRole] = useState<Role>("bodeguero");
+  const [role, setRole] = useState<Role | "encargado" | "vendedor">("bodeguero");
   const [saving, setSaving] = useState(false);
   const savingRef = useRef(false);
 
@@ -77,7 +77,9 @@ const CreateUserDialog = () => {
         accion: "crear", email: email.trim(), password, nombre: fullName.trim(), rol: role,
       });
       if (!result.ok) { toast.error(t(result.error)); return; }
-      toast.success(t("user.created"));
+      toast.success(role === "encargado" || role === "vendedor"
+        ? "Cuenta creada como pendiente: no podrá iniciar sesión hasta la activación segura."
+        : t("user.created"));
       setOpen(false);
       setFullName("");
       setEmail("");
@@ -136,18 +138,24 @@ const CreateUserDialog = () => {
             <Label>{t("user.role")}</Label>
             <OptionSelect
               value={role}
-              onChange={(value) => setRole(value === "admin" ? "admin" : "bodeguero")}
+              onChange={(value) => setRole(
+                value === "admin" || value === "bodeguero" ||
+                value === "encargado" || value === "vendedor" ? value : "bodeguero",
+              )}
               options={[
                 { value: "admin", label: t("role.admin") },
                 { value: "bodeguero", label: t("role.bodeguero") },
+                { value: "encargado", label: "Encargado (cuenta pendiente)" },
+                { value: "vendedor", label: "Vendedor (cuenta pendiente)" },
               ]}
             />
-            <p role="note" className="rounded-lg border border-amber-200 bg-amber-50 p-2 text-xs leading-relaxed text-amber-950 dark:border-amber-400/30 dark:bg-amber-400/10 dark:text-amber-100">
-              Encargado y Vendedor están definidos para Nexora Multisede, pero aún no pueden
-              crearse como cuentas activas. Se habilitarán después de verificar los permisos
-              reales por sede en el servidor. No crees a un Vendedor como Bodeguero para
-              sustituir su rol: tendría acceso a operaciones que no le corresponden.
-            </p>
+            {(role === "encargado" || role === "vendedor") ? (
+              <p role="note" className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs leading-relaxed text-amber-950 dark:border-amber-400/30 dark:bg-amber-400/10 dark:text-amber-100">
+                Esta cuenta se creará INACTIVA, sin permisos heredados de Bodeguero.
+                La autorización futura requerirá sede asignada, inventario aprobado y
+                controles del servidor. No podrá ingresar ni vender antes de activarse.
+              </p>
+            ) : null}
           </div>
         </div>
         <DialogFooter>
@@ -155,7 +163,7 @@ const CreateUserDialog = () => {
             {t("common.cancel")}
           </Button>
           <Button type="button" loading={saving} onClick={() => void save()}>
-            {t("common.save")}
+            {role === "encargado" || role === "vendedor" ? "Crear cuenta pendiente" : t("common.save")}
           </Button>
         </DialogFooter>
       </DialogContent>
