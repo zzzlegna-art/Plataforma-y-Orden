@@ -1,5 +1,5 @@
 -- Nexora V4 · comprobaciones SOLO LECTURA de la migración «No llegó».
--- Ejecutar después de aplicar 20261103090000_nexora_transfer_missing_observations
+-- Ejecutar después de aplicar 20261104190000_nexora_transfer_missing_observations
 -- en una instancia AISLADA, y opcionalmente tras una aplicación autorizada.
 -- No requiere datos reales, no crea registros, no cambia permisos.
 do $test$
@@ -76,7 +76,7 @@ begin
   if (select count(*) from pg_catalog.pg_constraint c
        where c.conrelid=v_table and c.contype='u'
          and pg_catalog.pg_get_constraintdef(c.oid)
-           like '%transfer_line_id%')<>1 then
+           = 'UNIQUE (transfer_line_id)')<>1 then
     raise exception 'Falta la unicidad de la observación por línea de IMEI.';
   end if;
 
