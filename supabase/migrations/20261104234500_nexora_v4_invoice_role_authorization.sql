@@ -286,9 +286,7 @@ begin
   end if;
   raise exception 'Acción inválida.';
 end;
-$function$
-
-
+$function$;
 CREATE OR REPLACE FUNCTION nexora_internal.finalize_invoice_draft(p_id uuid, p_action text)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -349,9 +347,7 @@ BEGIN
  RETURNING id INTO v_receipt;
  UPDATE public.nexora_invoice_drafts SET status='prepared',reception_id=v_receipt WHERE id=v.id;
  RETURN jsonb_build_object('id',v.id,'status','prepared','receptionId',v_receipt,'receptionCode',v_code);
-END $function$
-
-
+END $function$;
 CREATE OR REPLACE FUNCTION nexora_internal.invoice_draft_guard()
  RETURNS trigger
  LANGUAGE plpgsql
@@ -402,7 +398,5 @@ BEGIN
   new.updated_at:=now();
  END IF;
  RETURN new;
-END $function$
-
-
+END $function$;
 COMMIT;
