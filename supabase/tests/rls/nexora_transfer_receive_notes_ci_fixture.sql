@@ -11,7 +11,17 @@ grant select on public.nexora_transfers to authenticated;
 create policy nexora_transfers_read_admin
   on public.nexora_transfers for select to authenticated
   using ((select public.bodega_is_admin()));
-
+-- Igual que la RLS vigente: Encargado y Vendedor ven el manifiesto
+-- cuando la sede asignada participa como origen o destino.
+create policy nexora_transfers_worker_read
+  on public.nexora_transfers for select to authenticated
+  using (
+    nexora_internal.worker_session() is not null
+    and (
+      origin_site_id=(nexora_internal.worker_session()->>'siteId')::uuid
+      or destination_site_id=(nexora_internal.worker_session()->>'siteId')::uuid
+    )
+  );
 
 create temporary table nexora_ci_receipt_case (
   transfer_id uuid not null,
@@ -218,16 +228,20 @@ drop trigger nexora_ci_force_note_failure
   on public.nexora_transfer_missing_receipt_notes;
 drop function public.nexora_ci_simulated_write_failure();
 
--- CRÍTICO: ejecutar una recepción V4 EXITOSA bajo el mismo rol de API
--- de producción (authenticated) y JWT falso de Administrador. La RPC
--- SECURITY DEFINER debe conservar identidad de auth.uid() y acceso a las
--- tablas privadas, aunque el cliente no pueda escribirlas directamente.
+-- CRÍTICO: probar una recepción V4 EXITOSA desde un VENDEDOR con
+-- local de destino asignado y rol SQL authenticated. El vendedor jamás
+-- puede recibir compras de proveedores, pero SÍ traslados a su local.
+-- La evidencia debe conservar su UID y seguir siendo inmutable.
+select set_config('request.jwt.claim.sub',
+  '00000000-0000-0000-0000-000000000004',true);
 set local role authenticated;
 insert into pg_temp.nexora_ci_receipt_result(result)
 select public.nexora_transfer_receive_with_notes(
   transfer_id,scanned_serials,missing_marks)
 from pg_temp.nexora_ci_receipt_case;
 reset role;
+select set_config('request.jwt.claim.sub',
+  '00000000-0000-0000-0000-000000000001',true);
 
 do $success$
 declare
@@ -255,7 +269,7 @@ begin
     or (select count(distinct receiver_observation)
       from public.nexora_transfer_missing_receipt_notes where transfer_id=v_id)<>5
     or (select count(*) from public.nexora_transfer_missing_receipt_notes
-      where recorded_by='00000000-0000-0000-0000-000000000001'::uuid)<>5 then
+      where recorded_by='00000000-0000-0000-0000-000000000004'::uuid)<>5 then
     raise exception 'La RPC no dejó exactamente 15 recibidos, 5 faltantes y 5 notas.';
   end if;
 
