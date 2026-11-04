@@ -24,7 +24,7 @@ import { useRunAction } from "@/hooks/use-run-action";
 import { useStore } from "@/hooks/use-store";
 import { updateUser } from "@/lib/actions/users";
 import { formatDate } from "@/lib/format";
-import { listRolePlans, type PreparatoryRole } from "@/lib/nexora-role-plans";
+import { listRolePlans, type RolePlan } from "@/lib/nexora-role-plans";
 import type { Role, User } from "@/lib/types";
 import { useAuth } from "@/hooks/use-auth";
 
@@ -317,23 +317,27 @@ export const UsersTab = () => {
   const { db } = useStore();
   const { user: currentUser } = useAuth();
   const runAction = useRunAction();
-  const [plans, setPlans] = useState<Record<string, PreparatoryRole>>({});
+  const [plans, setPlans] = useState<Record<string, RolePlan>>({});
   const [refreshPlans, setRefreshPlans] = useState(0);
   useEffect(() => {
     let mounted = true;
     void listRolePlans().then((items) => {
-      if (mounted) setPlans(Object.fromEntries(items.map((p) => [p.userId, p.plannedRole])));
+      if (mounted) setPlans(Object.fromEntries(items.map((p) => [p.userId, p])));
     }).catch(() => {
       if (mounted) setPlans({});
     });
     return () => { mounted = false; };
   }, [refreshPlans, db.users.length]);
 
-  const prepared = (u: User) => !u.isActive &&
-    (plans[u.id] === "encargado" || plans[u.id] === "vendedor");
+  const prepared = (u: User) => {
+    const plan = plans[u.id];
+    return Boolean(plan && (plan.plannedRole === "encargado" || plan.plannedRole === "vendedor")
+      && (!u.isActive || plan.operationallyEnabled));
+  };
   const roleBadge = (u: User) => prepared(u) ? (
     <span role="status" className="rounded-full border border-amber-300 bg-amber-50 px-2 py-1 text-xs font-semibold text-amber-900">
-      {plans[u.id] === "encargado" ? "Encargado" : "Vendedor"} · Pendiente de activación
+      {plans[u.id]?.plannedRole === "encargado" ? "Encargado" : "Vendedor"} ·
+      {u.isActive && plans[u.id]?.operationallyEnabled ? " Activo" : " Pendiente de activación"}
     </span>
   ) : <RoleBadge role={u.role} />;
   const rows = db.users.slice().sort((a, b) => a.fullName.localeCompare(b.fullName));
@@ -385,7 +389,7 @@ export const UsersTab = () => {
               ) : null}
             </div>
             {user.id === currentUser?.id ? null : prepared(user) ? (
-              <p className="text-xs text-amber-800">Cuenta protegida: la activación se realizará desde Roles y permisos.</p>
+              <p className="text-xs text-amber-800">Cuenta protegida: gestiona su acceso desde Roles y permisos.</p>
             ) : (
               <div className="flex flex-wrap gap-2">
                 <EditUserDialog user={user} onSave={(role) => changeRole(user, role)} />
@@ -441,7 +445,7 @@ export const UsersTab = () => {
               user.id === currentUser?.id ? (
                 <span className="text-xs text-muted-foreground">{t("user.itsYou")}</span>
               ) : prepared(user) ? (
-                <span className="text-xs text-amber-800">Pendiente de activación segura</span>
+                <span className="text-xs text-amber-800">Gestionar desde Roles y permisos</span>
               ) : (
                 <div className="flex flex-wrap justify-end gap-1">
                   <EditUserDialog user={user} onSave={(role) => changeRole(user, role)} />
