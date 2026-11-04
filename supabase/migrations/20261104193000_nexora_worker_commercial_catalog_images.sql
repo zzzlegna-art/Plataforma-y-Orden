@@ -127,7 +127,14 @@ begin
   select coalesce(jsonb_agg(jsonb_build_object(
     'productId',p.id,'name',p.name,'sku',p.sku,
     'categoryKey',p.categoria,'imageUrl',p.image_url,
-    'colorVariants',coalesce(p.color_variants,'[]'::jsonb),
+    'colorVariants',coalesce((
+      select jsonb_agg(jsonb_build_object(
+        'color',variant.photo->>'color',
+        'imageUrl',variant.photo->>'imageUrl',
+        'swatchHex',variant.photo->>'swatchHex'
+      ))
+      from jsonb_array_elements(coalesce(p.color_variants,'[]'::jsonb)) as variant(photo)
+    ),'[]'::jsonb),
     'total',t.total,'physicallyVerified',t.physically_verified,
     'available',t.available,'unverified',t.unverified,
     'inTransit',t.in_transit,'pendingReturn',t.pending_return,'sold',t.sold,
@@ -377,7 +384,14 @@ begin
   select coalesce(jsonb_agg(jsonb_build_object(
     'unitId',id,'serial',serial,'productName',product_name,'sku',sku,
     'categoryKey',category_key,'imageUrl',image_url,
-    'colorVariants',coalesce(color_variants,'[]'::jsonb),
+    'colorVariants',coalesce((
+      select jsonb_agg(jsonb_build_object(
+        'color',variant.photo->>'color',
+        'imageUrl',variant.photo->>'imageUrl',
+        'swatchHex',variant.photo->>'swatchHex'
+      ))
+      from jsonb_array_elements(coalesce(color_variants,'[]'::jsonb)) as variant(photo)
+    ),'[]'::jsonb),
     'cost',cost,'unitStatus',status,'custodyState',custody_state,
     'siteId',effective_site_id,'siteName',site_name,'cityName',city_name,
     'historicalLocation',location,
