@@ -2,6 +2,7 @@
 import { afterEach,describe,expect,it,vi } from "vitest";
 import { cleanup,render,screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+vi.mock("@/hooks/use-store",()=>({useStore:()=>({db:{units:[],products:[],receptions:[]}})}));
 vi.mock("@/lib/nexora-cost-evidence",async(importOriginal)=>{
   const original=await importOriginal<typeof import("@/lib/nexora-cost-evidence")>();
   return {...original,fetchCostEvidenceReport:vi.fn(async()=>({
