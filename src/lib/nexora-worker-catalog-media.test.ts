@@ -103,9 +103,63 @@ describe("Inventario comercial de Encargado/Vendedor", () => {
     expect(catalogCoverPhoto(parsed.items[0])).toBe("https://example.test/phone.png");
   });
 
+  it("lee las 7 especificaciones originales del iPhone 11 sin inventar información", () => {
+    const details = {
+      storage: "128 GB", ram: "4 GB", processor: "Apple A13 Bionic",
+      rearCamera: "Sistema dual de 12 MP", frontCamera: "12 MP TrueDepth",
+      connectivity: "4G LTE, WI-FI 6, Bluetooth 5.0",
+      compatibility: "Dual SIM: nano-SIM + eSIM",
+    };
+    const media = parseCatalogMedia({
+      categoryKey: "celular",
+      imageUrl: "https://example.test/iphone11.png",
+      technicalSpecs: { ...details, secret: "no se debe mostrar" },
+      description: "Descripción de catálogo.",
+    });
+    expect(media.technicalSpecs).toEqual(details);
+    expect(Object.keys(media.technicalSpecs ?? {})).toHaveLength(7);
+    expect(media.description).toBe("Descripción de catálogo.");
+    expect("secret" in (media.technicalSpecs ?? {})).toBe(false);
+  });
+
+  it("no fabrica especificaciones vacías ni acepta datos técnicos corruptos", () => {
+    expect(parseCatalogMedia({ technicalSpecs: null }).technicalSpecs).toBeNull();
+    expect(parseCatalogMedia({ technicalSpecs: {} }).technicalSpecs).toBeNull();
+    expect(() => parseCatalogMedia({ technicalSpecs: { ram: 4 } })).toThrow(/especificaciones/i);
+    expect(() => parseCatalogMedia({ technicalSpecs: [] })).toThrow(/especificaciones/i);
+  });
+
+  it("conserva las especificaciones originales tanto por referencia como por IMEI", () => {
+    const specs = { storage: "128 GB", processor: "Apple A13 Bionic" };
+    const ref = parseReferenceStock({
+      scope: "serialized_imei_only", initialApproved: true, page: 1,
+      pageSize: 20, matched: 1,
+      items: [{
+        productId: "ip11", name: "iPhone 11", sku: "IP11-128",
+        ...counters, technicalSpecs: specs,
+        sites: [{ ...counters, siteId: "s1", siteName: "Local", cityName: "Barranquilla" }],
+      }],
+    });
+    expect(ref.items[0].technicalSpecs).toEqual(specs);
+    const imei = parseImeiDirectory({
+      initialApproved: true, page: 1, pageSize: 25, matched: 1, sites: [],
+      summary: { sinConciliar: 0, enSede: 1, enTransito: 0,
+        retornoPendiente: 0, vendidos: 0, sinCosto: 0, total: 1 },
+      items: [{
+        unitId: "i1", serial: "123456789012345", productName: "iPhone 11",
+        sku: "IP11-128", technicalSpecs: specs, cost: 900000, unitStatus: "en_bodega",
+        custodyState: "en_sede", siteId: "s1", siteName: "Local",
+        cityName: "Barranquilla", historicalLocation: null,
+        committedOrder: false, committedTransfer: false, commercialCandidate: true,
+      }],
+    });
+    expect(imei.items[0].technicalSpecs).toEqual(specs);
+  });
+
   it("tolera el contrato RPC anterior sin imagen mientras se publica la migración", () => {
     expect(parseCatalogMedia({})).toEqual({
       imageUrl: null, categoryKey: null, colorVariants: [],
+      technicalSpecs: null, description: null,
     });
   });
 });
