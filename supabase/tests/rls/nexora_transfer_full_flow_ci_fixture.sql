@@ -129,6 +129,7 @@ insert into public.nexora_sites(id,parent_site_id,is_active,site_type) values
  ('00000000-0000-0000-0000-000000000200',
   '00000000-0000-0000-0000-000000000100',true,'local');
 insert into public.nexora_staff_sites (user_id,site_id,is_active) values
+ ('00000000-0000-0000-0000-000000000002','00000000-0000-0000-0000-000000000100',true),
  ('00000000-0000-0000-0000-000000000003','00000000-0000-0000-0000-000000000200',true),
  ('00000000-0000-0000-0000-000000000004','00000000-0000-0000-0000-000000000200',true);
 -- Simulación de acta autorizada SOLO en este PostgreSQL temporal.
