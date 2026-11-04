@@ -1,3 +1,4 @@
+import { parseCatalogMedia, type CatalogMedia } from "./nexora-worker-catalog-media";
 /**
  * Inventario global por IMEI y sede.
  * Lectura exclusiva desde RPC. No actualiza stock, costos ni ubicación física.
@@ -6,7 +7,7 @@ export type CustodyState =
   | "sin_conciliar" | "en_sede" | "en_transito" | "retorno_pendiente" | "vendido";
 export type CustodyFilter = CustodyState | "all";
 
-export interface ImeiDirectoryRow {
+export interface ImeiDirectoryRow extends CatalogMedia {
   unitId: string;
   serial: string;
   productName: string;
@@ -121,6 +122,7 @@ export const parseImeiDirectory=(data:unknown):ImeiDirectoryResponse=>{
         cityName:optional(x.cityName),historicalLocation:optional(x.historicalLocation),
         committedOrder:bool(x.committedOrder),committedTransfer:bool(x.committedTransfer),
         commercialCandidate:bool(x.commercialCandidate),
+        ...parseCatalogMedia(x),
       };
       if(row.custodyState!=="en_sede" && (row.siteId!==null||row.commercialCandidate))
         throw new Error("No se puede atribuir un IMEI no conciliado a una sede comercial.");
