@@ -39,8 +39,10 @@ $session_fixture$;
 grant usage on schema auth,public to authenticated;
 
 create table public.nexora_sites (
-  id uuid primary key, parent_site_id uuid, is_active boolean not null
+  id uuid primary key, parent_site_id uuid, is_active boolean not null,
+  site_type text not null default 'bodega'
 );
+grant select on public.nexora_sites to authenticated;
 create table public.nexora_initial_inventory_approvals (
   id uuid primary key
 );
@@ -113,10 +115,10 @@ create table public.bodega_order_item_units (
 insert into public.bodega_profiles(id,role,is_active) values
  ('00000000-0000-0000-0000-000000000001','admin',true),
  ('00000000-0000-0000-0000-000000000002','bodeguero',true);
-insert into public.nexora_sites(id,parent_site_id,is_active) values
- ('00000000-0000-0000-0000-000000000100',null,true),
+insert into public.nexora_sites(id,parent_site_id,is_active,site_type) values
+ ('00000000-0000-0000-0000-000000000100',null,true,'principal'),
  ('00000000-0000-0000-0000-000000000200',
-  '00000000-0000-0000-0000-000000000100',true);
+  '00000000-0000-0000-0000-000000000100',true,'local');
 -- Simulación de acta autorizada SOLO en este PostgreSQL temporal.
 insert into public.nexora_initial_inventory_approvals(id)
  values('00000000-0000-0000-0000-000000000999');
@@ -165,7 +167,7 @@ begin
       'create',null,v_origin,v_destination,v_all,'Intento prohibido');
     raise exception 'La función actual permitió traslado de Bodeguero.';
   exception when others then
-    if sqlerrm not like '%Solo Administrador puede operar traslados multisede%' then
+    if sqlerrm not like '%no puedes despachar desde una sede que no tienes asignada%' then
       raise;
     end if;
   end;
