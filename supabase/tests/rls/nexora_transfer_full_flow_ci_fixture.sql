@@ -146,7 +146,7 @@ select u.id,'00000000-0000-0000-0000-000000000100'::uuid,
 
 -- Instala el trigger real de observación y la RPC real (extraída del
 -- artefacto de migración; no una reproducción manual del algoritmo).
-\ir ../../migrations/20261103090000_nexora_transfer_missing_observations.sql
+\ir ../../migrations/20261104190000_nexora_transfer_missing_observations.sql
 \ir nexora_missing_audit_schema_checks.sql
 \ir .nexora-execute-transfer.generated.sql
 

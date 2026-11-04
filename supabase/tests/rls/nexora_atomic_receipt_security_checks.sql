@@ -102,6 +102,17 @@ begin
     raise exception 'Falta validación explícita de identidad y rol operativo en RPC pública.';
   end if;
 
+  -- El wrapper público debe volver a comprobar la sede de origen del
+  -- Bodeguero/Trabajador incluso si la función interna cambia en el futuro.
+  if exists (
+    select 1 from pg_proc p where p.oid=v_wrapper
+      and (position('nexora_staff_sites' in p.prosrc)=0
+           or position('v_required_site' in p.prosrc)=0
+           or position('site.is_active' in p.prosrc)=0)
+  ) then
+    raise exception 'El wrapper de traslados no comprueba sede asignada y activa.';
+  end if;
+
   if has_function_privilege('authenticated',
       'nexora_internal.reject_missing_audit_mutation()','EXECUTE') then
     raise exception 'Función privada de inmutabilidad expuesta a clientes.';
