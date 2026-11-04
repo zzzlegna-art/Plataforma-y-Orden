@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import {
-  ArrowLeft, ArrowRight, BadgeCheck, Boxes, Fingerprint, History, ImageIcon,
+  ArrowLeft, ArrowRight, BadgeCheck, Boxes, Eye, Fingerprint, History, ImageIcon,
   MapPin, PackageCheck, RefreshCw, Search, Smartphone, ZoomIn,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -92,77 +92,191 @@ const CatalogPhoto = ({
   </Dialog>;
 };
 
-const Metric = ({ label, value, tone = "" }: { label: string; value: number; tone?: string }) =>
-  <div className="rounded-xl border bg-muted/15 px-3 py-2.5">
-    <p className={`text-lg font-bold tabular-nums ${tone}`}>{number(value)}</p>
-    <p className="text-[11px] text-muted-foreground">{label}</p>
-  </div>;
 
-const ReferenceCard = ({ item }: { item: ReferenceStockRow }) => {
-  const activeSites = commercialSiteGroups(item.sites);
-  return <article className="overflow-hidden rounded-2xl border bg-card shadow-sm">
-    <div className="flex items-start gap-4 p-4 sm:p-5">
-      <CatalogPhoto name={item.name} sku={item.sku} media={item}/>
-      <div className="min-w-0 flex-1">
-        <h2 className="font-semibold leading-snug tracking-tight sm:text-lg">{item.name}</h2>
-        <span className="mt-1.5 inline-flex rounded-md border bg-muted/50 px-2 py-0.5 font-mono text-xs text-muted-foreground">{item.sku}</span>
-        <p className="mt-2 text-xs text-muted-foreground">Existencias por sede, sin mezclar equipos vendidos con el stock físico.</p>
-      </div>
+/** La tabla conserva el aspecto y las columnas del inventario principal,
+ * pero nunca ofrece edición o acceso a los repuestos desde locales. */
+const ReferenceTable = ({ items }: { items: ReferenceStockRow[] }) =>
+  <section aria-label="Inventario de referencias comerciales" className="overflow-hidden rounded-2xl border border-border/70 bg-card shadow-sm">
+    <div className="overflow-x-auto">
+      <table className="w-full min-w-[1040px] text-sm">
+        <thead className="bg-muted/40 text-xs font-semibold text-muted-foreground">
+          <tr>
+            <th scope="col" className="px-4 py-3 text-left">Producto</th>
+            <th scope="col" className="px-3 py-3 text-left">Marca</th>
+            <th scope="col" className="px-3 py-3 text-left">Condición</th>
+            <th scope="col" className="px-3 py-3 text-right">Precio de venta</th>
+            <th scope="col" className="px-3 py-3 text-right">Costo de referencia</th>
+            <th scope="col" className="px-3 py-3 text-right">Disponibles</th>
+            <th scope="col" className="px-3 py-3 text-right">En sedes</th>
+            <th scope="col" className="px-4 py-3 text-right">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          {items.map((item) => (
+            <tr key={item.productId} className="border-t border-border/80 transition-colors hover:bg-muted/35">
+              <td className="px-4 py-2.5">
+                <div className="flex min-w-[220px] items-center gap-3">
+                  <CatalogPhoto name={item.name} sku={item.sku} media={item} small/>
+                  <div className="min-w-0">
+                    <p className="font-semibold leading-snug text-foreground">{item.name}</p>
+                    <span className="mt-1 inline-flex rounded-md border bg-muted/50 px-1.5 py-0.5 font-mono text-[11px] text-muted-foreground">{item.sku}</span>
+                  </div>
+                </div>
+              </td>
+              <td className="px-3 py-2.5 text-xs text-muted-foreground">{item.brandName ?? "—"}</td>
+              <td className="px-3 py-2.5">
+                <div className="flex min-w-[110px] flex-col items-start gap-1">
+                  {item.newUnits > 0 ? <span className="rounded-full border border-sky-200 bg-sky-50 px-2 py-0.5 text-[11px] font-medium text-sky-800 dark:border-sky-800 dark:bg-sky-500/10 dark:text-sky-200">
+                    Nuevo <strong className="ml-1 tabular-nums">{number(item.newUnits)}</strong>
+                  </span> : null}
+                  {item.usedUnits > 0 ? <span className="rounded-full border border-slate-200 bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-700 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200">
+                    Seminuevo <strong className="ml-1 tabular-nums">{number(item.usedUnits)}</strong>
+                  </span> : null}
+                  {item.newUnits === 0 && item.usedUnits === 0 ? <span className="text-xs text-muted-foreground">—</span> : null}
+                </div>
+              </td>
+              <td className="whitespace-nowrap px-3 py-2.5 text-right">
+                {item.salePrice !== null && item.salePrice > 0
+                  ? <span className="font-semibold tabular-nums">{money(item.salePrice)}</span>
+                  : <span className="text-xs italic text-muted-foreground">Sin precio</span>}
+              </td>
+              <td className="whitespace-nowrap px-3 py-2.5 text-right">
+                {item.referenceCost !== null && item.referenceCost > 0
+                  ? <span className="rounded-lg border border-border/60 bg-muted/35 px-2 py-1 text-xs font-medium tabular-nums">{money(item.referenceCost)}</span>
+                  : <span className="text-xs italic text-muted-foreground">Sin costo</span>}
+              </td>
+              <td className="px-3 py-2.5 text-right">
+                <div className="flex items-center justify-end gap-1.5">
+                  {item.available > 0 && item.available < 10
+                    ? <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-semibold text-amber-800 dark:bg-amber-500/10 dark:text-amber-300">Stock bajo</span>
+                    : null}
+                  <span className={`min-w-6 font-semibold tabular-nums ${item.available === 0 ? "text-destructive" : "text-foreground"}`}>{number(item.available)}</span>
+                </div>
+              </td>
+              <td className="px-3 py-2.5 text-right tabular-nums text-muted-foreground">{number(item.physicallyVerified)}</td>
+              <td className="px-4 py-2.5 text-right">
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <Button size="sm" variant="outline" className="h-8 rounded-full">
+                      <Eye className="size-4"/> Ver
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
+                    <DialogHeader>
+                      <DialogTitle>{item.name}</DialogTitle>
+                      <DialogDescription>{item.sku} · Resumen de unidades reales y ubicación por sede.</DialogDescription>
+                    </DialogHeader>
+                    <div className="flex items-start gap-4 rounded-xl border bg-muted/15 p-3">
+                      <CatalogPhoto name={item.name} sku={item.sku} media={item}/>
+                      <div className="space-y-1 text-sm">
+                        <p className="font-semibold">{item.brandName ?? "Referencia comercial"}</p>
+                        <p className="text-muted-foreground">Precio: {item.salePrice !== null && item.salePrice > 0 ? money(item.salePrice) : "Sin precio"}</p>
+                        <p className="text-muted-foreground">Costo de referencia: {item.referenceCost !== null && item.referenceCost > 0 ? money(item.referenceCost) : "Sin costo"}</p>
+                        <p className="text-xs text-muted-foreground">El costo real para vender se comprueba por cada IMEI.</p>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 text-sm sm:grid-cols-4">
+                      {[
+                        ["En sedes",item.physicallyVerified],
+                        ["Disponibles",item.available],
+                        ["Vendidos históricos",item.sold],
+                        ["Sin conciliar",item.unverified],
+                      ].map(([label,value])=><div key={label} className="rounded-xl border bg-muted/10 p-3">
+                        <p className="text-xl font-semibold tabular-nums">{number(value as number)}</p>
+                        <p className="mt-1 text-[11px] text-muted-foreground">{label}</p>
+                      </div>)}
+                    </div>
+                    <section className="space-y-2">
+                      <h3 className="flex items-center gap-2 text-sm font-semibold"><MapPin className="size-4"/> Distribución física verificada</h3>
+                      {commercialSiteGroups(item.sites).map(site => (
+                        <div key={site.siteId} className="flex items-center justify-between gap-3 rounded-lg border px-3 py-2 text-sm">
+                          <div>
+                            <p className="font-medium">{site.siteName}</p>
+                            {site.cityName ? <p className="text-xs text-muted-foreground">{site.cityName}</p> : null}
+                          </div>
+                          <p className="text-right text-xs tabular-nums">
+                            {number(site.physicallyVerified)} en sede · <strong>{number(site.available)}</strong> disponibles
+                          </p>
+                        </div>
+                      ))}
+                      {commercialSiteGroups(item.sites).length === 0 ? <p className="rounded-lg border p-3 text-xs text-muted-foreground">Sin unidades físicas verificadas en sedes.</p> : null}
+                      {item.inTransit > 0 || item.pendingReturn > 0 ? <p className="text-xs text-muted-foreground">
+                        {number(item.inTransit)} en tránsito · {number(item.pendingReturn)} retornos pendientes
+                      </p> : null}
+                    </section>
+                  </DialogContent>
+                </Dialog>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
-    <div className="grid grid-cols-2 gap-2 px-4 pb-4 sm:px-5">
-      <Metric label="En sedes verificadas" value={item.physicallyVerified}/>
-      <Metric label="Disponibles para venta" value={item.available} tone="text-emerald-700 dark:text-emerald-300"/>
-      <Metric label="Histórico de vendidos" value={item.sold}/>
-      <Metric label="Total histórico registrado" value={item.total}/>
-    </div>
-    <div className="space-y-2 border-t bg-muted/10 px-4 py-3 sm:px-5">
-      <p className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
-        <MapPin className="size-3.5"/> Distribución física
-      </p>
-      {activeSites.map((site) => <div key={site.siteId}
-        className="flex flex-wrap items-center justify-between gap-2 rounded-lg border bg-background px-3 py-2 text-sm">
-        <div className="min-w-0">
-          <p className="font-medium">{site.siteName}</p>
-          {site.cityName ? <p className="text-xs text-muted-foreground">{site.cityName}</p> : null}
-        </div>
-        <span className="text-xs tabular-nums">
-          <strong>{number(site.physicallyVerified)}</strong> en sede · <strong className="text-emerald-700 dark:text-emerald-300">{number(site.available)}</strong> disponibles
-        </span>
-      </div>)}
-      {activeSites.length === 0 ? <p className="text-xs text-muted-foreground">Sin unidades físicas verificadas en sedes.</p> : null}
-      {item.unverified > 0 ? <p className="text-xs text-amber-700 dark:text-amber-300">
-        {number(item.unverified)} unidades pendientes de conciliación; no están disponibles para vender.
-      </p> : null}
-      {item.inTransit || item.pendingReturn ? <p className="text-xs text-muted-foreground">
-        {number(item.inTransit)} en tránsito · {number(item.pendingReturn)} con retorno pendiente
-      </p> : null}
-    </div>
-  </article>;
-};
+  </section>;
 
-const ImeiCard = ({ item }: { item: ImeiDirectoryRow }) =>
-  <article className="flex items-start gap-3 rounded-2xl border bg-card p-4 shadow-sm">
-    <CatalogPhoto name={item.productName} sku={item.sku} media={item} small/>
-    <div className="min-w-0 flex-1 space-y-1.5">
-      <p className="text-sm font-semibold">{item.productName}</p>
-      <p className="break-all font-mono text-xs font-semibold text-primary">{item.serial}</p>
-      <p className="text-xs text-muted-foreground">{item.sku}</p>
-      <div className="flex flex-wrap gap-1.5">
-        <span className="inline-flex items-center gap-1 rounded-md border bg-muted/40 px-2 py-0.5 text-xs">
-          {item.custodyState === "vendido" ? <History className="size-3"/> : <MapPin className="size-3"/>}
-          {item.custodyState === "vendido"
-            ? "Vendido · historial"
-            : item.siteName ? `${item.siteName}${item.cityName ? " · " + item.cityName : ""}` : "Sin sede verificada"}
-        </span>
-        <span className="inline-flex rounded-md border px-2 py-0.5 text-xs">{CUSTODY_LABEL[item.custodyState]}</span>
-        {item.commercialCandidate ? <span className="inline-flex items-center gap-1 rounded-md bg-emerald-50 px-2 py-0.5 text-xs text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300">
-          <BadgeCheck className="size-3"/> Disponible
-        </span> : null}
-      </div>
-      <p className="text-xs font-medium">{money(item.cost)} <span className="font-normal text-muted-foreground">· costo individual</span></p>
+const ImeiTable = ({ items }: { items: ImeiDirectoryRow[] }) =>
+  <section aria-label="Inventario individual por IMEI" className="overflow-hidden rounded-2xl border border-border/70 bg-card shadow-sm">
+    <div className="overflow-x-auto">
+      <table className="w-full min-w-[850px] text-sm">
+        <thead className="bg-muted/40 text-xs font-semibold text-muted-foreground">
+          <tr>
+            <th scope="col" className="px-4 py-3 text-left">Producto / IMEI</th>
+            <th scope="col" className="px-3 py-3 text-left">Sede o historial</th>
+            <th scope="col" className="px-3 py-3 text-left">Estado</th>
+            <th scope="col" className="px-3 py-3 text-right">Costo individual</th>
+            <th scope="col" className="px-3 py-3 text-right">Disponibilidad</th>
+            <th scope="col" className="px-4 py-3 text-right">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          {items.map((item) => <tr key={item.unitId} className="border-t border-border/80 transition-colors hover:bg-muted/35">
+            <td className="px-4 py-2.5">
+              <div className="flex min-w-[240px] items-center gap-3">
+                <CatalogPhoto name={item.productName} sku={item.sku} media={item} small/>
+                <div className="min-w-0">
+                  <p className="font-semibold leading-snug">{item.productName}</p>
+                  <p className="mt-0.5 font-mono text-[11px] font-semibold text-primary">{item.serial}</p>
+                  <span className="mt-0.5 inline-flex rounded border bg-muted/50 px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground">{item.sku}</span>
+                </div>
+              </div>
+            </td>
+            <td className="px-3 py-2.5 text-xs text-muted-foreground">
+              {item.custodyState === "vendido" ? <span className="flex items-center gap-1"><History className="size-3.5"/> Vendido · historial</span> :
+                item.siteName ? <span className="flex items-center gap-1"><MapPin className="size-3.5"/>{item.siteName}</span> : "Sin sede verificada"}
+            </td>
+            <td className="px-3 py-2.5"><span className="rounded-full border bg-muted/50 px-2 py-1 text-xs">{CUSTODY_LABEL[item.custodyState]}</span></td>
+            <td className="whitespace-nowrap px-3 py-2.5 text-right font-medium tabular-nums">{money(item.cost)}</td>
+            <td className="px-3 py-2.5 text-right">
+              {item.commercialCandidate ? <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-700 dark:text-emerald-300"><BadgeCheck className="size-3.5"/> Disponible</span> : <span className="text-xs text-muted-foreground">No disponible</span>}
+            </td>
+            <td className="px-4 py-2.5 text-right">
+              <Dialog>
+                <DialogTrigger asChild>
+                  <Button size="sm" variant="outline" className="h-8 rounded-full"><Eye className="size-4"/> Ver</Button>
+                </DialogTrigger>
+                <DialogContent className="max-h-[90vh] max-w-xl overflow-y-auto">
+                  <DialogHeader>
+                    <DialogTitle>{item.productName}</DialogTitle>
+                    <DialogDescription>{item.sku} · Detalle individual del equipo</DialogDescription>
+                  </DialogHeader>
+                  <div className="flex items-start gap-3">
+                    <CatalogPhoto name={item.productName} sku={item.sku} media={item}/>
+                    <div className="space-y-2 text-sm">
+                      <p><span className="text-muted-foreground">IMEI:</span> <strong className="break-all font-mono">{item.serial}</strong></p>
+                      <p><span className="text-muted-foreground">Estado:</span> {CUSTODY_LABEL[item.custodyState]}</p>
+                      <p><span className="text-muted-foreground">Ubicación:</span> {item.custodyState==="vendido" ? "Vendido · historial" : item.siteName ?? "Sin sede verificada"}</p>
+                      <p><span className="text-muted-foreground">Costo del IMEI:</span> <strong>{money(item.cost)}</strong></p>
+                      <p className="text-xs text-muted-foreground">{item.commercialCandidate ? "Candidato a disponibilidad comercial." : "No disponible para venta."}</p>
+                    </div>
+                  </div>
+                </DialogContent>
+              </Dialog>
+            </td>
+          </tr>)}
+        </tbody>
+      </table>
     </div>
-  </article>;
-
+  </section>;
 export const WorkerGlobalInventory = ({ serials = false }: { serials?: boolean }) => {
   const [kind, setKind] = useState<"imei" | "ref">(serials ? "imei" : "ref");
   const [query, setQuery] = useState("");
@@ -197,22 +311,12 @@ export const WorkerGlobalInventory = ({ serials = false }: { serials?: boolean }
   const pages = Math.max(1, Math.ceil(total / perPage));
 
   return <main className="space-y-5">
-    <header className="rounded-2xl border bg-gradient-to-r from-sky-50 via-card to-cyan-50 p-5 shadow-sm dark:from-slate-900 dark:via-card dark:to-slate-800 sm:p-6">
-      <div className="flex items-start gap-3">
-        <span className="grid size-12 shrink-0 place-items-center rounded-2xl bg-primary/10 text-primary">
-          <Smartphone className="size-6"/>
-        </span>
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Inventario global de equipos</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Consulta celulares y tecnología por referencia o IMEI, con fotografías, costos individuales y existencias por sede.
-          </p>
-          <p className="mt-1 text-xs text-muted-foreground">
-            Los repuestos se administran exclusivamente desde la sede principal.
-          </p>
-        </div>
+    <header className="space-y-4">
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight">Inventario global</h1>
+        <p className="mt-1 text-sm text-muted-foreground">Referencias, fotografías y existencias de equipos, con el mismo formato del inventario principal.</p>
       </div>
-      <div className="mt-5 flex flex-wrap gap-2">
+      <div className="flex flex-wrap gap-2">
         <Button className="rounded-full" variant={kind === "ref" ? "default" : "outline"}
           onClick={() => { setKind("ref"); setPage(1); }}><Boxes className="size-4"/> Referencias</Button>
         <Button className="rounded-full" variant={kind === "imei" ? "default" : "outline"}
@@ -239,14 +343,8 @@ export const WorkerGlobalInventory = ({ serials = false }: { serials?: boolean }
       <p className="mt-2 font-semibold">No se encontraron equipos.</p>
       <p className="mt-1 text-sm text-muted-foreground">Revisa el nombre del modelo, el IMEI o la referencia buscada.</p>
     </div> : null}
-    {kind === "ref" && total > 0 ? <section aria-label="Catálogo de referencias"
-      className="grid gap-4 lg:grid-cols-2">
-      {reference?.items.map((item) => <ReferenceCard key={item.productId} item={item}/>)}
-    </section> : null}
-    {kind === "imei" && total > 0 ? <section aria-label="Equipos individuales por IMEI"
-      className="grid gap-3 lg:grid-cols-2">
-      {imei?.items.map((item) => <ImeiCard key={item.unitId} item={item}/>)}
-    </section> : null}
+    {kind === "ref" && reference?.items.length ? <ReferenceTable items={reference.items}/> : null}
+    {kind === "imei" && imei?.items.length ? <ImeiTable items={imei.items}/> : null}
     <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border bg-card px-4 py-3 text-sm">
       <p className="text-muted-foreground">
         {number(total)} {kind === "ref" ? "referencias de equipos" : "seriales / IMEI"} · página {page} de {pages}
