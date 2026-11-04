@@ -4,6 +4,15 @@
 \ir .nexora-receipt-notes-setup.generated.sql
 \ir nexora_atomic_receipt_security_checks.sql
 
+-- Simula las reglas RLS efectivas en Supabase: los manifiestos ajenos
+-- no son consultables, incluso cuando el rol legacy es Bodeguero.
+alter table public.nexora_transfers enable row level security;
+grant select on public.nexora_transfers to authenticated;
+create policy nexora_transfers_read_admin
+  on public.nexora_transfers for select to authenticated
+  using ((select public.bodega_is_admin()));
+
+
 create temporary table nexora_ci_receipt_case (
   transfer_id uuid not null,
   scanned_serials text[] not null,
