@@ -223,8 +223,24 @@ begin
     raise exception 'Un error de recepción cambió custodia.';
   end if;
 
+  -- Un Bodeguero asignado al ORIGEN no puede confirmar llegada en destino.
+  perform set_config('request.jwt.claim.sub',
+    '00000000-0000-0000-0000-000000000002',true);
+  begin
+    perform nexora_internal.execute_transfer(
+      'receive',v_transfer,null,null,v_accepted,null);
+    raise exception 'Se autorizó recepción en sede no asignada.';
+  exception when others then
+    if sqlerrm not like '%no pertenece a una sede asignada%' then raise; end if;
+  end;
+
+  -- Vendedor de DESTINO sí puede confirmar físicamente la recepción.
+  perform set_config('request.jwt.claim.sub',
+    '00000000-0000-0000-0000-000000000004',true);
   v_result:=nexora_internal.execute_transfer(
     'receive',v_transfer,null,null,v_accepted,null);
+  perform set_config('request.jwt.claim.sub',
+    '00000000-0000-0000-0000-000000000001',true);
   if (v_result->>'received')::int<>15
     or (v_result->>'missing')::int<>5
     or v_result->>'status'<>'awaiting_returns' then
@@ -265,7 +281,7 @@ begin
     or (select count(*) from public.nexora_transfer_missing_observations
       where transfer_id=v_transfer
         and (observation<>'No llegó'
-        or reported_by<>'00000000-0000-0000-0000-000000000001'::uuid))<>0 then
+        or reported_by<>'00000000-0000-0000-0000-000000000004'::uuid))<>0 then
     raise exception 'Faltan cinco observaciones inmutables y documento de retorno.';
   end if;
 
