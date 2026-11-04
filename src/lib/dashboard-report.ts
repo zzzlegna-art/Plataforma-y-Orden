@@ -1,5 +1,5 @@
 import type { ExcelSheet } from "@/lib/export";
-import { isWithinDateRange } from "./dashboard-date-range";
+import { isWithinDateRange, isPedidoSerialAssignment } from "./dashboard-date-range";
 import type {
   Db,
   MovementReference,
@@ -126,7 +126,8 @@ export const buildOperationalReportSheets = (
     ["Generado el", generado, "Fecha y hora de creación de este archivo"],
     ["Movimientos registrados", movimientos.length, "Incluye entradas, salidas, ajustes y demás movimientos"],
     ["Entradas (unidades)", cantidadMovimientos("entrada"), "Suma de las cantidades registradas como entrada"],
-    ["Salidas (unidades)", cantidadMovimientos("salida"), "Suma de las cantidades registradas como salida"],
+    ["Salidas (unidades)", cantidadMovimientos("salida"), "Salidas físicas, no asignaciones de IMEI"],
+    ["Asignaciones a pedidos (eventos)", movimientos.filter(isPedidoSerialAssignment).reduce((total, item) => total + item.quantity, 0), "Unidades vinculadas a pedidos; no implica venta ni salida física"],
     ["Devoluciones (unidades)", cantidadMovimientos("devolucion"), "Suma de las cantidades registradas como devolución"],
     ["Otros movimientos (unidades)", movimientos
       .filter((item) => !["entrada", "salida", "devolucion"].includes(item.type))

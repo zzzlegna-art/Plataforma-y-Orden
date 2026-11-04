@@ -3,6 +3,7 @@ import { AlertTriangle, Banknote, CalendarClock, CheckCircle2, CircleDollarSign,
 import { toast } from "sonner";
 import { PageHeader } from "@/components/shared/page-header";
 import { RetailSiteFinancePanel } from "./RetailSiteFinancePanel";
+import { NexoraCashLimitControls } from "./NexoraV49Controls";
 import { CashClosureAuditPanel } from "./CashClosureAuditPanel";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -80,6 +81,7 @@ const CajaDiariaTab = () => {
   return (
     <section className="space-y-5" aria-label="Caja diaria multisede">
       <PageHeader title="Caja diaria" description="Aperturas, efectivo, transferencias, arqueo y auditoría por local." />
+      <NexoraCashLimitControls />
       <div className="relative overflow-hidden rounded-2xl border border-emerald-200 bg-gradient-to-br from-white via-emerald-50 to-cyan-100 p-5 text-slate-900 shadow-xl shadow-emerald-950/5 dark:border-slate-800 dark:from-slate-950 dark:via-slate-900 dark:to-emerald-950 dark:text-white dark:shadow-black/20 sm:p-7">
         <div aria-hidden="true" className="pointer-events-none absolute -right-14 -top-16 h-60 w-60 rounded-full bg-emerald-400/15 blur-3xl" />
         <div className="relative flex flex-wrap items-start justify-between gap-3">

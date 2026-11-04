@@ -4,7 +4,7 @@ export type PreparatoryRole = "bodeguero" | "encargado" | "vendedor";
 export interface RolePlan {
   userId: string;
   plannedRole: PreparatoryRole;
-  operationallyEnabled: false;
+  operationallyEnabled: boolean;
 }
 
 export const rolePlanOptions: { value: PreparatoryRole; label: string }[] = [
@@ -40,12 +40,12 @@ const getTable = async (): Promise<Table> => {
 };
 const parsePlan = (row: Row): RolePlan => {
   if (!rolePlanOptions.some((r) => r.value === row.planned_role) ||
-      row.operationally_enabled !== false)
-    throw new Error("Estado de rol inválido: el perfil no puede estar activado todavía.");
+      typeof row.operationally_enabled !== "boolean")
+    throw new Error("El servidor devolvió un estado de rol inválido.");
   return {
     userId: String(row.user_id),
     plannedRole: row.planned_role as PreparatoryRole,
-    operationallyEnabled: false,
+    operationallyEnabled: row.operationally_enabled as boolean,
   };
 };
 export const listRolePlans = async (): Promise<RolePlan[]> => {

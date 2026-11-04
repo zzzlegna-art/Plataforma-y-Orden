@@ -68,7 +68,12 @@ Deno.serve(async (req) => {
     const email = texto(body.email)?.toLowerCase();
     const password = typeof body.password === "string" ? body.password : "";
     const nombre = texto(body.nombre) ?? email ?? "Usuario";
-    const rol = body.rol === "admin" ? "admin" : "bodeguero";
+    const rolSolicitado = texto(body.rol) ?? "bodeguero";
+    if (!["admin", "bodeguero", "encargado", "vendedor"].includes(rolSolicitado)) {
+      return responder({ ok: false, error: "rol_invalido" }, 400);
+    }
+    const rol = rolSolicitado === "admin" ? "admin" : "bodeguero";
+    const perfilPendiente = rolSolicitado === "encargado" || rolSolicitado === "vendedor";
 
     if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       return responder({ ok: false, error: "email_invalido" });
@@ -82,6 +87,10 @@ Deno.serve(async (req) => {
       password,
       email_confirm: true,
       user_metadata: { full_name: nombre },
+      // Control de acceso inmediato: esta metadata solo la altera Auth Admin.
+      // La función SQL bodega_is_staff la utiliza para impedir que esta cuenta
+      // herede permisos de Bodeguero, incluso antes de quedar inactiva.
+      ...(perfilPendiente ? { app_metadata: { nexora_prepared_role: rolSolicitado } } : {}),
     });
     if (error || !data?.user) {
       console.error("No se pudo crear la cuenta", error?.message ?? "");
@@ -91,7 +100,7 @@ Deno.serve(async (req) => {
     // El disparador de alta ya creó el perfil; aquí se fija el rol elegido.
     const { error: perfilUpdate } = await admin
       .from("bodega_profiles")
-      .update({ role: rol, full_name: nombre, email, is_active: true })
+      .update({ role: rol, full_name: nombre, email, is_active: !perfilPendiente })
       .eq("id", data.user.id);
     if (perfilUpdate) {
       console.error("No se pudo fijar el perfil", perfilUpdate.message);
@@ -104,8 +113,32 @@ Deno.serve(async (req) => {
       return responder({ ok: false, error: "perfil_no_actualizado" }, 500);
     }
 
+    if (perfilPendiente) {
+      const anonKey = Deno.env.get("SUPABASE_ANON_KEY");
+      if (!anonKey) {
+        await admin.auth.admin.deleteUser(data.user.id);
+        return responder({ ok: false, error: "sin_configuracion" }, 500);
+      }
+      // Crear el plan en contexto del Administrador autenticado: el trigger
+      // verifica su identidad. Nunca usar la llave service_role para saltar
+      // auditoría o falsificar el actor del plan.
+      const firmado = createClient(url, anonKey, {
+        global: { headers: { Authorization: `Bearer ${token}` } },
+        auth: { persistSession: false, autoRefreshToken: false },
+      });
+      const { error: planError } = await firmado.from("nexora_staff_role_plans")
+        .insert({ user_id: data.user.id, planned_role: rolSolicitado });
+      if (planError) {
+        console.error("No fue posible crear el perfil pendiente", planError.message);
+        const { error: deleteError } = await admin.auth.admin.deleteUser(data.user.id);
+        if (deleteError) console.error("No se pudo eliminar la cuenta incompleta", deleteError.message);
+        return responder({ ok: false, error: "perfil_no_actualizado" }, 500);
+      }
+      console.log("Cuenta de personal creada sin permisos activos");
+      return responder({ ok: true, id: data.user.id, prepared: true });
+    }
     console.log(`Cuenta creada: ${email} (${rol})`);
-    return responder({ ok: true, id: data.user.id });
+    return responder({ ok: true, id: data.user.id, prepared: false });
   }
 
   if (accion === "clave") {

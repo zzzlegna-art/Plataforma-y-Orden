@@ -1,0 +1,74 @@
+name: Nexora V4.9 - SQL integration (isolated)
+on:
+  pull_request:
+    paths:
+      - "supabase/migrations/20261102133000_nexora_cash_and_retail_foundation.sql"
+      - "supabase/migrations/20261103180000_nexora_v49_cash_limits.sql"
+      - "supabase/migrations/20261103181000_nexora_v49_local_initial_approval.sql"
+      - "supabase/tests/nexora_v49_*"
+      - "supabase/tests/nexora_v496_*"
+      - "supabase/tests/nexora_v497_*"
+      - "supabase/migrations/20261103200000_nexora_v497_worker_activation.sql"
+      - "supabase/migrations/20261103193000_nexora_v496_safe_worker_provisioning.sql"
+      - ".github/workflows/nexora-v49-sql.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  sql-isolated:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_DB: nexora_ci
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: nexora_test_only
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d nexora_ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    env:
+      PGHOST: 127.0.0.1
+      PGPORT: "5432"
+      PGUSER: postgres
+      PGPASSWORD: nexora_test_only
+      PGDATABASE: nexora_ci
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+      - name: Install PostgreSQL client if missing
+        run: |
+          if ! command -v psql >/dev/null 2>&1; then
+            sudo apt-get update -qq
+            sudo apt-get install -y -qq postgresql-client
+          fi
+          psql --version
+      - name: Create isolated mock of existing dependencies
+        run: psql -X -v ON_ERROR_STOP=1 -f supabase/tests/nexora_v49_fixture.sql
+      - name: Install ORIGINAL Nexora cash/retail migration
+        run: psql -X -v ON_ERROR_STOP=1 -f supabase/migrations/20261102133000_nexora_cash_and_retail_foundation.sql
+      - name: Execute V4.9 cash limits migration
+        run: psql -X -v ON_ERROR_STOP=1 -f supabase/migrations/20261103180000_nexora_v49_cash_limits.sql
+      - name: Execute V4.9 local approval migration
+        run: psql -X -v ON_ERROR_STOP=1 -f supabase/migrations/20261103181000_nexora_v49_local_initial_approval.sql
+      - name: Test real SQL authorization, limits, RLS and audit
+        run: psql -X -v ON_ERROR_STOP=1 -f supabase/tests/nexora_v49_integration.sql
+      - name: Test concurrent expenses do not exceed daily limit
+        run: bash supabase/tests/nexora_v49_concurrency.sh
+      - name: Install V4.9.6 protected worker provisioning
+        run: psql -X -v ON_ERROR_STOP=1 -f supabase/migrations/20261103193000_nexora_v496_safe_worker_provisioning.sql
+      - name: Test prepared worker cannot become Bodeguero or Administrator
+        run: psql -X -v ON_ERROR_STOP=1 -f supabase/tests/nexora_v496_prepared_worker.sql
+      - name: Prepare worker activation test schema
+        run: psql -X -v ON_ERROR_STOP=1 -f supabase/tests/nexora_v497_activation_fixture.sql
+      - name: Install restricted worker activation RPCs
+        run: psql -X -v ON_ERROR_STOP=1 -f supabase/migrations/20261103200000_nexora_v497_worker_activation.sql
+      - name: Test employee activation, role boundaries and audit
+        run: psql -X -v ON_ERROR_STOP=1 -f supabase/tests/nexora_v497_worker_activation.sql

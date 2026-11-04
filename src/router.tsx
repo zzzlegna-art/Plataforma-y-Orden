@@ -11,6 +11,7 @@ import ProductoDetalle from "./pages/inventario/detalle";
 import Login from "./pages/login";
 import NotFound from "./pages/NotFound";
 import Panel from "./pages/panel";
+import MiSede from "./pages/mi-sede";
 import Pedidos from "./pages/pedidos";
 import NuevoPedido from "./pages/pedidos/nuevo";
 import PedidoDetalle from "./pages/pedidos/detalle";
@@ -39,32 +40,37 @@ export const routers = [
           {
             path: "panel",
             name: "panel",
-            element: <Panel />,
+            element: <RequirePermission permission="dashboard.view"><Panel /></RequirePermission>,
+          },
+          {
+            path: "mi-sede",
+            name: "mi-sede",
+            element: <RequirePermission permission="workspace.view"><MiSede /></RequirePermission>,
           },
           {
             path: "recepcion",
             name: "recepciones",
-            element: <Recepciones />,
+            element: <RequirePermission permission="receptions.manage"><Recepciones /></RequirePermission>,
           },
           {
             path: "recepcion/nueva",
             name: "recepcion-nueva",
-            element: <NuevaRecepcion />,
+            element: <RequirePermission permission="receptions.manage"><NuevaRecepcion /></RequirePermission>,
           },
           {
             path: "recepcion/nueva/:receptionId",
             name: "recepcion-captura",
-            element: <NuevaRecepcion />,
+            element: <RequirePermission permission="receptions.manage"><NuevaRecepcion /></RequirePermission>,
           },
           {
             path: "inventario",
             name: "inventario",
-            element: <Inventario />,
+            element: <RequirePermission permission="inventory.view"><Inventario /></RequirePermission>,
           },
           {
             path: "inventario/:productId",
             name: "inventario-detalle",
-            element: <ProductoDetalle />,
+            element: <RequirePermission permission="inventory.view"><ProductoDetalle /></RequirePermission>,
           },
           {
             path: "unidades",
@@ -74,7 +80,7 @@ export const routers = [
           {
             path: "seriales",
             name: "trazabilidad-seriales",
-            element: <TrazabilidadSeriales />,
+            element: <RequirePermission permission="inventory.view"><TrazabilidadSeriales /></RequirePermission>,
           },
           {
             path: "liberar",
@@ -93,22 +99,22 @@ export const routers = [
           {
             path: "pedidos",
             name: "pedidos",
-            element: <Pedidos />,
+            element: <RequirePermission permission="orders.manage"><Pedidos /></RequirePermission>,
           },
           {
             path: "pedidos/nuevo",
             name: "pedido-nuevo",
-            element: <NuevoPedido />,
+            element: <RequirePermission permission="orders.manage"><NuevoPedido /></RequirePermission>,
           },
           {
             path: "pedidos/:orderId",
             name: "pedido-detalle",
-            element: <PedidoDetalle />,
+            element: <RequirePermission permission="orders.manage"><PedidoDetalle /></RequirePermission>,
           },
           {
             path: "clientes",
             name: "clientes",
-            element: <Clientes />,
+            element: <RequirePermission permission="customers.manage"><Clientes /></RequirePermission>,
           },
           {
             path: "proveedores",
@@ -122,12 +128,12 @@ export const routers = [
           {
             path: "garantias",
             name: "garantias",
-            element: <Garantias />,
+            element: <RequirePermission permission="warranties.manage"><Garantias /></RequirePermission>,
           },
           {
             path: "garantias/:warrantyId",
             name: "garantia-detalle",
-            element: <GarantiaDetalle />,
+            element: <RequirePermission permission="warranties.manage"><GarantiaDetalle /></RequirePermission>,
           },
           {
             path: "administracion",

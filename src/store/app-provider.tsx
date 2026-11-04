@@ -34,6 +34,7 @@ import {
   type CambioRemoto,
 } from "@/lib/backend";
 import { cloneDb, DomainError, emptyDb } from "@/lib/db";
+import { getWorkerSession } from "@/lib/nexora-worker";
 import { APP_CURRENCY, setAppCurrency } from "@/lib/format";
 import type { Actor, Db, Role } from "@/lib/types";
 import { AppContext, type AppValue } from "./contexts";
@@ -259,12 +260,29 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
           return;
         }
 
+        // Una cuenta de local jamás descarga la base legacy completa.
+        // La RPC exige el plan operativo activo y la sede autorizada.
+        let localWorker: Awaited<ReturnType<typeof getWorkerSession>> = null;
+        if (perfil.role === "bodeguero") {
+          try { localWorker = await getWorkerSession(); }
+          catch (error) {
+            // Compatibilidad con instancias anteriores a esta migración.
+            // La RLS legacy sigue denegando acceso a trabajadores preparados.
+            console.warn("La sesión multisede no está disponible todavía.", error);
+          }
+        }
+        if (intentoSesionRef.current !== intento) return;
         const actor: Actor = {
           id,
           email: String(perfil.email ?? sesion?.user.email ?? ""),
           fullName: String(perfil.full_name ?? perfil.email ?? "Usuario"),
-          role: perfil.role === "admin" ? "admin" : "bodeguero",
+          role: localWorker?.role ?? (perfil.role === "admin" ? "admin" : "bodeguero"),
         };
+        if (localWorker) {
+          aplicarDb(emptyDb());
+          aplicarUsuario(actor);
+          return;
+        }
 
         try {
           const cargada = await pullDb();
@@ -345,6 +363,7 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
    */
   const refrescar = useCallback(async () => {
     if (!userRef.current || refrescandoRef.current) return;
+    if (userRef.current.role === "encargado" || userRef.current.role === "vendedor") return;
     refrescandoRef.current = true;
     try {
       for (let intento = 0; intento < 3; intento += 1) {
@@ -385,6 +404,9 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
       if (!dbRef.current) throw new DomainError("errors.notReady");
       const actor = userRef.current;
       if (!actor) throw new DomainError("errors.notAuthenticated");
+      if (actor.role === "encargado" || actor.role === "vendedor") {
+        throw new DomainError("errors.forbidden");
+      }
 
       setGuardando((n) => n + 1);
       try {
@@ -558,11 +580,22 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
       const actorActual = userRef.current;
       if (!actorActual || actorActual.id !== actorInicial.id) return;
 
+      const trabajador = actorActual.role === "encargado" || actorActual.role === "vendedor";
+      let effectiveRole: Role = perfil.role === "admin" ? "admin" : "bodeguero";
+      if (trabajador) {
+        const session = await getWorkerSession();
+        if (!session || session.role !== actorActual.role) {
+          toast.error("El acceso a la sede fue revocado.");
+          await logout();
+          return;
+        }
+        effectiveRole = session.role;
+      }
       const actualizado: Actor = {
         id: actorActual.id,
         email: String(perfil.email ?? actorActual.email),
         fullName: String(perfil.full_name ?? perfil.email ?? actorActual.fullName),
-        role: perfil.role === "admin" ? "admin" : "bodeguero",
+        role: effectiveRole,
       };
       if (
         actualizado.email !== actorActual.email ||
@@ -581,7 +614,7 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
 
   /** Actualiza permisos inmediatamente por tiempo real y también al volver a la pestaña. */
   useEffect(() => {
-    if (!user) return;
+    if (!user || user.role === "encargado" || user.role === "vendedor") return;
 
     let cancelado = false;
     let desuscribir: (() => void) | undefined;

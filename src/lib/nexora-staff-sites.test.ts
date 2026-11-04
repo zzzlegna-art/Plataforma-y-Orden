@@ -18,9 +18,9 @@ describe("Asignaciones Nexora Multisede 2.0", () => {
   it("permite a un empleado activo vincularse a una sede activa", () => {
     expect(canAssignStaffToSite("u1", "s1", people, sites, [])).toBeNull();
   });
-  it("rechaza perfiles inactivos, desconocidos y puntos inactivos", () => {
-    expect(canAssignStaffToSite("u2", "s1", people, sites, [])).toMatch(/activo/);
-    expect(canAssignStaffToSite("u3", "s1", people, sites, [])).toMatch(/activo/);
+  it("permite preparar sedes para cuentas inactivas, pero no sedes cerradas", () => {
+    expect(canAssignStaffToSite("u2", "s1", people, sites, [])).toBeNull();
+    expect(canAssignStaffToSite("u3", "s1", people, sites, [])).toMatch(/registrado/);
     expect(canAssignStaffToSite("u1", "s2", people, sites, [])).toMatch(/sede activa/);
     expect(canAssignStaffToSite("u1", "s3", people, sites, [])).toMatch(/sede activa/);
   });

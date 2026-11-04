@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { KeyRound, Pencil, Plus, UserCog, UserPlus } from "lucide-react";
 import { toast } from "sonner";
@@ -24,6 +24,7 @@ import { useRunAction } from "@/hooks/use-run-action";
 import { useStore } from "@/hooks/use-store";
 import { updateUser } from "@/lib/actions/users";
 import { formatDate } from "@/lib/format";
+import { listRolePlans, type RolePlan } from "@/lib/nexora-role-plans";
 import type { Role, User } from "@/lib/types";
 import { useAuth } from "@/hooks/use-auth";
 
@@ -45,7 +46,7 @@ const crearCuenta = async (body: {
   email: string;
   password: string;
   nombre: string;
-  rol: Role;
+  rol: Role | "encargado" | "vendedor";
 }) => {
   const { data, error } = await supabase.functions.invoke("bodega-gestion-usuarios", { body });
   if (error || !data?.ok) {
@@ -55,13 +56,13 @@ const crearCuenta = async (body: {
   return { ok: true };
 };
 
-const CreateUserDialog = () => {
+const CreateUserDialog = ({ onCreated }: { onCreated: () => void }) => {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [role, setRole] = useState<Role>("bodeguero");
+  const [role, setRole] = useState<Role | "encargado" | "vendedor">("bodeguero");
   const [saving, setSaving] = useState(false);
   const savingRef = useRef(false);
 
@@ -77,7 +78,10 @@ const CreateUserDialog = () => {
         accion: "crear", email: email.trim(), password, nombre: fullName.trim(), rol: role,
       });
       if (!result.ok) { toast.error(t(result.error)); return; }
-      toast.success(t("user.created"));
+      toast.success(role === "encargado" || role === "vendedor"
+        ? "Cuenta creada como pendiente: no podrá iniciar sesión hasta la activación segura."
+        : t("user.created"));
+      onCreated();
       setOpen(false);
       setFullName("");
       setEmail("");
@@ -136,12 +140,24 @@ const CreateUserDialog = () => {
             <Label>{t("user.role")}</Label>
             <OptionSelect
               value={role}
-              onChange={(value) => setRole(value === "admin" ? "admin" : "bodeguero")}
+              onChange={(value) => setRole(
+                value === "admin" || value === "bodeguero" ||
+                value === "encargado" || value === "vendedor" ? value : "bodeguero",
+              )}
               options={[
                 { value: "admin", label: t("role.admin") },
                 { value: "bodeguero", label: t("role.bodeguero") },
+                { value: "encargado", label: "Encargado (cuenta pendiente)" },
+                { value: "vendedor", label: "Vendedor (cuenta pendiente)" },
               ]}
             />
+            {(role === "encargado" || role === "vendedor") ? (
+              <p role="note" className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs leading-relaxed text-amber-950 dark:border-amber-400/30 dark:bg-amber-400/10 dark:text-amber-100">
+                Esta cuenta se creará INACTIVA, sin permisos heredados de Bodeguero.
+                La autorización futura requerirá sede asignada, inventario aprobado y
+                controles del servidor. No podrá ingresar ni vender antes de activarse.
+              </p>
+            ) : null}
           </div>
         </div>
         <DialogFooter>
@@ -149,7 +165,7 @@ const CreateUserDialog = () => {
             {t("common.cancel")}
           </Button>
           <Button type="button" loading={saving} onClick={() => void save()}>
-            {t("common.save")}
+            {role === "encargado" || role === "vendedor" ? "Crear cuenta pendiente" : t("common.save")}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -301,7 +317,29 @@ export const UsersTab = () => {
   const { db } = useStore();
   const { user: currentUser } = useAuth();
   const runAction = useRunAction();
+  const [plans, setPlans] = useState<Record<string, RolePlan>>({});
+  const [refreshPlans, setRefreshPlans] = useState(0);
+  useEffect(() => {
+    let mounted = true;
+    void listRolePlans().then((items) => {
+      if (mounted) setPlans(Object.fromEntries(items.map((p) => [p.userId, p])));
+    }).catch(() => {
+      if (mounted) setPlans({});
+    });
+    return () => { mounted = false; };
+  }, [refreshPlans, db.users.length]);
 
+  const prepared = (u: User) => {
+    const plan = plans[u.id];
+    return Boolean(plan && (plan.plannedRole === "encargado" || plan.plannedRole === "vendedor")
+      && (!u.isActive || plan.operationallyEnabled));
+  };
+  const roleBadge = (u: User) => prepared(u) ? (
+    <span role="status" className="rounded-full border border-amber-300 bg-amber-50 px-2 py-1 text-xs font-semibold text-amber-900">
+      {plans[u.id]?.plannedRole === "encargado" ? "Encargado" : "Vendedor"} ·
+      {u.isActive && plans[u.id]?.operationallyEnabled ? " Activo" : " Pendiente de activación"}
+    </span>
+  ) : <RoleBadge role={u.role} />;
   const rows = db.users.slice().sort((a, b) => a.fullName.localeCompare(b.fullName));
 
   const changeRole = (target: User, role: Role) =>
@@ -325,7 +363,7 @@ export const UsersTab = () => {
             <UserPlus className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
             <p>{t("user.inviteHint")}</p>
           </div>
-          <CreateUserDialog />
+          <CreateUserDialog onCreated={() => setRefreshPlans((n) => n + 1)} />
         </div>
       </div>
 
@@ -345,12 +383,14 @@ export const UsersTab = () => {
               <ActiveBadge isActive={user.isActive} />
             </div>
             <div className="flex items-center gap-2">
-              <RoleBadge role={user.role} />
+              {roleBadge(user)}
               {user.id === currentUser?.id ? (
                 <span className="text-xs text-muted-foreground">{t("user.itsYou")}</span>
               ) : null}
             </div>
-            {user.id === currentUser?.id ? null : (
+            {user.id === currentUser?.id ? null : prepared(user) ? (
+              <p className="text-xs text-amber-800">Cuenta protegida: gestiona su acceso desde Roles y permisos.</p>
+            ) : (
               <div className="flex flex-wrap gap-2">
                 <EditUserDialog user={user} onSave={(role) => changeRole(user, role)} />
                 <ResetPasswordDialog user={user} />
@@ -383,7 +423,7 @@ export const UsersTab = () => {
           {
             key: "role",
             header: t("user.role"),
-            cell: (user) => <RoleBadge role={user.role} />,
+            cell: (user) => roleBadge(user),
           },
           {
             key: "status",
@@ -404,6 +444,8 @@ export const UsersTab = () => {
             cell: (user) =>
               user.id === currentUser?.id ? (
                 <span className="text-xs text-muted-foreground">{t("user.itsYou")}</span>
+              ) : prepared(user) ? (
+                <span className="text-xs text-amber-800">Gestionar desde Roles y permisos</span>
               ) : (
                 <div className="flex flex-wrap justify-end gap-1">
                   <EditUserDialog user={user} onSave={(role) => changeRole(user, role)} />

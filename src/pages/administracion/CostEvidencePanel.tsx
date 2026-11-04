@@ -1,12 +1,15 @@
 import { useEffect,useRef,useState } from "react";
 import { AlertCircle,BookOpenCheck,Download,FileSearch,LockKeyhole,RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useStore } from "@/hooks/use-store";
+import { buildMissingUnitCostsCsv } from "@/lib/nexora-unit-cost-template";
 import {
   buildCostEvidenceCsv,fetchCostEvidenceReport,type CostEvidenceReport,
 } from "@/lib/nexora-cost-evidence";
 const fmt=(value:number)=>new Intl.NumberFormat("es-CO").format(value);
 /** Lista de soportes: identifica recepciones prioritarias; no corrige costos automáticamente. */
 export const CostEvidencePanel=()=>{
+  const {db}=useStore();
   const [expanded,setExpanded]=useState(false);
   const [revision,setRevision]=useState(0);
   const [report,setReport]=useState<CostEvidenceReport|null>(null);
@@ -37,6 +40,22 @@ export const CostEvidencePanel=()=>{
       setError(null);
     }catch(e:unknown){
       setError(e instanceof Error?e.message:"No se pudo preparar el CSV.");
+    }
+  };
+  const downloadMissingUnitCsv=()=>{
+    try{
+      const csv=buildMissingUnitCostsCsv({
+        units:db.units,products:db.products,receptions:db.receptions,
+      });
+      const url=URL.createObjectURL(new Blob([csv],{type:"text/csv;charset=utf-8"}));
+      try{
+        const a=document.createElement("a");
+        a.href=url;
+        a.download="nexora-costos-reales-pendientes-por-imei.csv";
+        document.body.appendChild(a);a.click();a.remove();
+      }finally{URL.revokeObjectURL(url);}
+    }catch(error){
+      setError(error instanceof Error?error.message:"No se pudo generar la planilla de IMEI.");
     }
   };
   return <section aria-label="Diagnóstico documental de costos"
@@ -73,6 +92,10 @@ export const CostEvidencePanel=()=>{
         <Button size="sm" variant="outline" disabled={busy||!report}
           onClick={download}>
           <Download className="size-4"/> Descargar planilla de facturas CSV
+        </Button>
+        <Button size="sm" variant="outline" disabled={busy}
+          onClick={downloadMissingUnitCsv}>
+          <Download className="size-4"/> Planilla por IMEI sin costo
         </Button>
       </div>
       {busy?<p role="status" className="rounded-xl border bg-muted/20 p-4 text-sm text-muted-foreground">

@@ -4,6 +4,7 @@ import type { Role } from "./types";
  *  (recepción, inventario, pedidos, clientes y garantías), pero no toca
  *  usuarios, auditoría ni catálogos. */
 export type Permission =
+  | "workspace.view"
   | "dashboard.view"
   | "inventory.view"
   | "inventory.manage"
@@ -27,6 +28,8 @@ const BODEGUERO_PERMISSIONS: Permission[] = [
 const PERMISSIONS_BY_ROLE: Record<Role, Permission[]> = {
   admin: [...BODEGUERO_PERMISSIONS, "users.manage", "audit.view"],
   bodeguero: BODEGUERO_PERMISSIONS,
+  encargado: ["workspace.view"],
+  vendedor: ["workspace.view"],
 };
 
 /** Los catálogos (categorías/marcas) se editan solo por administradores: los
@@ -34,4 +37,4 @@ const PERMISSIONS_BY_ROLE: Record<Role, Permission[]> = {
 export const canManageCatalogs = (role?: Role) => role === "admin";
 
 export const can = (role: Role | undefined, permission: Permission) =>
-  role ? PERMISSIONS_BY_ROLE[role].includes(permission) : false;
+  role ? (PERMISSIONS_BY_ROLE[role] ?? []).includes(permission) : false;

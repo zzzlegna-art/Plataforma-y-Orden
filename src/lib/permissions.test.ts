@@ -29,6 +29,18 @@ describe("permisos por rol", () => {
     expect(canManageCatalogs("bodeguero")).toBe(false);
   });
 
+  it("a Encargado y Vendedor sólo concede el portal de su sede", () => {
+    for (const role of ["encargado", "vendedor"] as const) {
+      expect(can(role,"workspace.view")).toBe(true);
+      for (const permission of [...permisosOperativos,"users.manage","audit.view"] as Permission[]) {
+        expect(can(role,permission)).toBe(false);
+      }
+      expect(canManageCatalogs(role)).toBe(false);
+    }
+    expect(can("admin","workspace.view")).toBe(false);
+    expect(can("bodeguero","workspace.view")).toBe(false);
+  });
+
   it("deniega permisos si no hay un rol autenticado", () => {
     [...permisosOperativos, "users.manage", "audit.view"].forEach((permission) => {
       expect(can(undefined, permission)).toBe(false);

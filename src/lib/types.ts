@@ -10,7 +10,7 @@
 
 /** Roles del sistema: administrador o bodeguero (encargado de la operación diaria
  *  y de las garantías). */
-export type Role = "admin" | "bodeguero";
+export type Role = "admin" | "bodeguero" | "encargado" | "vendedor";
 
 export type UnitCondition = "nuevo" | "seminuevo";
 

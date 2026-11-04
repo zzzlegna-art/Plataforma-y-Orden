@@ -27,8 +27,10 @@ export const canAssignStaffToSite = (
   sites: readonly NexoraSite[],
   assignments: readonly StaffSiteAssignment[],
 ): string | null => {
-  if (!users.some((user) => user.id === userId && user.isActive))
-    return "Selecciona un empleado activo.";
+  // Vincular una cuenta pendiente no la activa: la autorización depende
+  // de la función central de activación y del cotejo de inventario.
+  if (!users.some((user) => user.id === userId))
+    return "Selecciona un empleado registrado.";
   if (!sites.some((site) => site.id === siteId && site.isActive))
     return "Selecciona una sede activa.";
   if (assignments.some((record) => record.userId === userId && record.siteId === siteId)) {

@@ -49,7 +49,7 @@ import { formatCurrency, formatNumber } from "@/lib/format";
 import { crearCsv } from "@/lib/csv";
 import { exportExcel } from "@/lib/export";
 import { buildOperationalReportSheets } from "@/lib/dashboard-report";
-import { buildDashboardMovementChartData, getLocalDateInputValue, isWithinDateRange } from "@/lib/dashboard-date-range";
+import { buildDashboardMovementChartData, getLocalDateInputValue, isWithinDateRange, isPedidoSerialAssignment } from "@/lib/dashboard-date-range";
 import {
   DIAS_GARANTIA_CRITICA,
   DIAS_GARANTIA_ESTANCADA,
@@ -160,6 +160,7 @@ const Panel = () => {
       ["Indicador", "Cantidad"],
       ["Entradas", movimientos.filter((m) => m.type === "entrada").reduce((n, m) => n + m.quantity, 0)],
       ["Salidas", movimientos.filter((m) => m.type === "salida").reduce((n, m) => n + m.quantity, 0)],
+       ["Asignaciones a pedidos", movimientos.filter(isPedidoSerialAssignment).reduce((n, m) => n + m.quantity, 0)],
       ["Devoluciones", movimientos.filter((m) => m.type === "devolucion").reduce((n, m) => n + m.quantity, 0)],
       ["Recepciones", db.receptions.filter((r) => dentroPeriodoReporte(r.receivedAt)).length],
       ["Pedidos", db.orders.filter((o) => dentroPeriodoReporte(o.orderDate)).length],
@@ -306,12 +307,13 @@ const Panel = () => {
               <span className="nx-analytics-icon" aria-hidden="true"><Boxes className="h-5 w-5" /></span>
               <div>
                 <h2 id="inventory-movement-heading">Movimiento de inventario</h2>
-                <p>Entradas y salidas en el período seleccionado.</p>
+                <p>Entradas, asignaciones de IMEI y salidas físicas. No mide ventas.</p>
               </div>
             </div>
             <div className="nx-analytics-controls">
               <span className="nx-analytics-legend"><span className="nx-analytics-dot bg-primary" /> Entradas</span>
               <span className="nx-analytics-legend"><span className="nx-analytics-dot bg-violet-500" /> Salidas</span>
+               <span className="nx-analytics-legend"><span className="nx-analytics-dot bg-amber-500" /> Asignaciones</span>
               <select className="nx-analytics-range" value={movementPreset}
                 aria-label="Período del gráfico de inventario"
                 onChange={(event) => changeMovementPreset(event.target.value as typeof movementPreset)}>
@@ -323,7 +325,7 @@ const Panel = () => {
               </select>
             </div>
           </div>
-          <div className="nx-analytics-chart" role="img" aria-label="Gráfica de entradas y salidas de inventario">
+          <div className="nx-analytics-chart" role="img" aria-label="Gráfica de entradas, asignaciones a pedidos y salidas físicas de inventario">
             <ResponsiveContainer width="100%" height="100%" debounce={150}>
               <AreaChart data={movementChartData} margin={{ top: 8, right: 14, left: -13, bottom: 3 }}>
                 <defs>
@@ -348,10 +350,12 @@ const Panel = () => {
                   activeDot={{ r: 4, strokeWidth: 0 }} />
                 <Line type="monotone" dataKey="salidas" name="Salidas" stroke="#8655fa"
                   strokeWidth={2.5} dot={false} activeDot={{ r: 4, fill: "#8655fa", strokeWidth: 0 }} />
+                <Line type="monotone" dataKey="asignaciones" name="Asignaciones" stroke="#f59e0b"
+                  strokeWidth={2.5} dot={false} activeDot={{ r: 4, fill: "#f59e0b", strokeWidth: 0 }} />
               </AreaChart>
             </ResponsiveContainer>
           </div>
-          {movementChartData.every((day) => day.entradas === 0 && day.salidas === 0 && day.devoluciones === 0) ? (
+          {movementChartData.every((day) => day.entradas === 0 && day.salidas === 0 && day.asignaciones === 0 && day.devoluciones === 0) ? (
             <p className="mt-2 text-center text-xs text-muted-foreground">Todavía no hay movimientos registrados en este período.</p>
           ) : null}
         </section>
