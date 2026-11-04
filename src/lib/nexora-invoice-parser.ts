@@ -42,6 +42,28 @@ const dateValue=(text:string):string=>{
   return test.getUTCFullYear()===y&&test.getUTCMonth()===mo-1&&test.getUTCDate()===d
     ?`${y}-${String(mo).padStart(2,"0")}-${String(d).padStart(2,"0")}`:"";
 };
+
+/** Reconoce filas con descripción antes o después de la cantidad.
+ * Si falta un dato, nunca infiere un costo del total general. */
+const readItemRow=(row:string):{description:string;quantity:number;cost:number|null;total:number|null}|null=>{
+  const formats=[
+    /^(.{4,140}?)\s+(\d{1,4})\s+([$€]?\s*\d[\d.,]*)\s+([$€]?\s*\d[\d.,]*)\s*$/,
+    /^(\d{1,4})\s+(.{4,140}?)\s+([$€]?\s*\d[\d.,]*)\s+([$€]?\s*\d[\d.,]*)\s*$/,
+  ];
+  for(let index=0;index<formats.length;index++){
+    const match=formats[index].exec(row);
+    if(!match)continue;
+    const description=(index===0?match[1]:match[2]).trim();
+    const quantity=Number(index===0?match[2]:match[1]);
+    const cost=readMoney(match[3]);
+    const total=readMoney(match[4]);
+    if(!/[a-zA-ZÁÉÍÓÚÑáéíóúñ]/.test(description)
+       ||!Number.isSafeInteger(quantity)||quantity<1||quantity>10000)continue;
+    return {description,quantity,cost,total};
+  }
+  return null;
+};
+
 export const parseInvoiceText=(input:string,products:readonly CatalogMatch[]):InvoiceSuggestion=>{
   const rawText=input.slice(0,35000);
   const rows=rawText.split(/\r?\n/).map(s=>s.replace(/\s+/g," ").trim()).filter(Boolean);
@@ -59,17 +81,19 @@ export const parseInvoiceText=(input:string,products:readonly CatalogMatch[]):In
   for(const row of rows){
     if(lines.length>=250)break;
     if(/(?:^|\s)(TOTAL|SUBTOTAL|IVA|IMPUEST|DESCUENTO|NIT|FACTURA|FECHA|TEL[ÉE]FONO|DIRECCI[OÓ]N)(?:\s|:|$)/i.test(row))continue;
-    const m=/^(.{4,140}?)\s+(\d{1,4})\s+(\$?\s*[\d.,]+)\s+(\$?\s*[\d.,]+)\s*$/.exec(row);
-    if(!m)continue;
-    const description=m[1].trim(),quantity=Number(m[2]),cost=readMoney(m[3]),total=readMoney(m[4]);
-    if(!/[a-zA-Z]/.test(description)||quantity<1||quantity>10000)continue;
+    const item=readItemRow(row);
+    if(!item)continue;
+    const {description,quantity,cost,total}=item;
     const key=normalized(description);
-    const hits=products.filter(p=>normalized(p.name)===key||normalized(p.sku)===key
-      ||key.split(" ").includes(normalized(p.sku))).slice(0,2);
+    const hits=products.filter(p=>{
+      const sku=normalized(p.sku);
+      return normalized(p.name)===key||Boolean(sku&&(" "+key+" ").includes(" "+sku+" "));
+    }).slice(0,2);
     const match=hits.length===1?hits[0]:null;
     const problems=[];
     if(!match)problems.push(hits.length>1?"Coincidencia ambigua":"Referencia sin coincidencia exacta");
     if(cost===null)problems.push("Costo ilegible");
+    if(total===null)problems.push("Subtotal ilegible; verificar factura");
     else if(total!==null&&Math.abs(quantity*cost-total)>Math.max(2,total*.02))
       problems.push("Cantidad × costo no coincide con total");
     lines.push({description,quantity,unitCost:cost,total,productId:match?.id??null,
