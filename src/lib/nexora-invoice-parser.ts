@@ -107,3 +107,27 @@ export const parseInvoiceText=(input:string,products:readonly CatalogMatch[]):In
   return {supplierName,invoiceNo:number,invoiceDate:dateValue(first),
     currency,lines,warnings,rawText};
 };
+
+/** Validación previa a la firma del Administrador; el servidor vuelve a comprobarlo. */
+export const validateInvoiceApproval=(
+  lines:readonly InvoiceLineSuggestion[],supplierId:string,invoiceNo:string,
+):string[]=>{
+  const errors:string[]=[];
+  if(!supplierId)errors.push("Selecciona un proveedor del catálogo.");
+  if(!invoiceNo.trim())errors.push("Escribe el número de la factura.");
+  if(!lines.length)errors.push("Incluye las referencias facturadas.");
+  for(const [index,line] of lines.entries()){
+    const label="Línea "+(index+1);
+    if(!line.productId)errors.push(label+": selecciona una referencia.");
+    if(!Number.isSafeInteger(line.quantity)||line.quantity<1||line.quantity>10000)
+      errors.push(label+": cantidad inválida.");
+    if(line.unitCost===null||!Number.isFinite(line.unitCost)||line.unitCost<=0)
+      errors.push(label+": falta costo válido.");
+    if(line.total!==null&&(!Number.isFinite(line.total)||line.total<=0))
+      errors.push(label+": subtotal inválido.");
+    if(line.total!==null&&line.unitCost!==null&&Number.isFinite(line.unitCost)&&
+      Math.abs(line.quantity*line.unitCost-line.total)>Math.max(2,line.total*.02))
+      errors.push(label+": la cantidad por costo no coincide con el subtotal; corrige antes de aprobar.");
+  }
+  return errors;
+};
