@@ -26,6 +26,16 @@ begin
 end
 $test$;
 
+-- La prueba anterior de concurrencia vinculó temporalmente al mismo
+-- Encargado con el Local B. Desactivar ese vínculo de ensayo para que
+-- el positivo de activación represente una sola sede, como exige Nexora.
+reset role;
+update public.nexora_staff_sites set is_active=false
+where user_id='11111111-1111-4111-8111-111111111111'
+  and site_id='cccccccc-cccc-4ccc-8ccc-cccccccccccc';
+select set_config('test.uid','aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',false);
+set role authenticated;
+
 -- Encargado preparado con sede, inventario aprobado y topes.
 select public.nexora_activate_worker(
  '11111111-1111-4111-8111-111111111111',
