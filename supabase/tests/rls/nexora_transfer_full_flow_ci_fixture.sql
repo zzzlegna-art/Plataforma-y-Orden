@@ -31,9 +31,16 @@ create table public.nexora_staff_sites (
 -- Refleja SELECT concedido a authenticated en el esquema real.
 grant select on public.nexora_staff_sites to authenticated;
 create function nexora_internal.worker_session()
-returns jsonb language sql stable as $session_fixture$
-  select null::jsonb
+returns jsonb language sql stable security definer as $session_fixture$
+  select jsonb_build_object('role',p.role,'siteId',ss.site_id::text,'siteName','Local CI')
+  from public.bodega_profiles p
+  join public.nexora_staff_sites ss on ss.user_id=p.id
+  where p.id=auth.uid() and p.is_active and ss.is_active
+    and p.role in ('encargado','vendedor')
+  limit 1
 $session_fixture$;
+grant usage on schema nexora_internal to authenticated;
+grant execute on function nexora_internal.worker_session() to authenticated;
 
 -- El rol de API puede invocar auth.uid y leer solo filas habilitadas por RLS.
 grant usage on schema auth,public to authenticated;
@@ -114,11 +121,16 @@ create table public.bodega_order_item_units (
 
 insert into public.bodega_profiles(id,role,is_active) values
  ('00000000-0000-0000-0000-000000000001','admin',true),
- ('00000000-0000-0000-0000-000000000002','bodeguero',true);
+ ('00000000-0000-0000-0000-000000000002','bodeguero',true),
+ ('00000000-0000-0000-0000-000000000003','encargado',true),
+ ('00000000-0000-0000-0000-000000000004','vendedor',true);
 insert into public.nexora_sites(id,parent_site_id,is_active,site_type) values
  ('00000000-0000-0000-0000-000000000100',null,true,'principal'),
  ('00000000-0000-0000-0000-000000000200',
   '00000000-0000-0000-0000-000000000100',true,'local');
+insert into public.nexora_staff_sites (user_id,site_id,is_active) values
+ ('00000000-0000-0000-0000-000000000003','00000000-0000-0000-0000-000000000200',true),
+ ('00000000-0000-0000-0000-000000000004','00000000-0000-0000-0000-000000000200',true);
 -- Simulación de acta autorizada SOLO en este PostgreSQL temporal.
 insert into public.nexora_initial_inventory_approvals(id)
  values('00000000-0000-0000-0000-000000000999');
