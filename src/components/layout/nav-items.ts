@@ -7,6 +7,7 @@ import {
   Settings,
   Boxes,
   ShieldCheck,
+  Store,
   type LucideIcon,
 } from "lucide-react";
 
@@ -22,6 +23,13 @@ export interface NavItem {
 }
 
 export const NAV_ITEMS: NavItem[] = [
+  {
+    to: "/mi-sede",
+    labelKey: "nav.mySite",
+    icon: Store,
+    permission: "workspace.view",
+    primary: true,
+  },
   {
     to: "/panel",
     labelKey: "nav.dashboard",
