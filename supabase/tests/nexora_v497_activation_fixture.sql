@@ -21,3 +21,4 @@ create table public.nexora_unit_custody(
  site_id uuid not null references public.nexora_sites(id),
  custody_status text not null
 );
+grant insert,update on public.nexora_staff_role_plans to authenticated;
