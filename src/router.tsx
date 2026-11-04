@@ -19,6 +19,7 @@ import NuevoPedido from "./pages/pedidos/nuevo";
 import PedidoDetalle from "./pages/pedidos/detalle";
 import Traslados from "./pages/traslados";
 import Recepciones from "./pages/recepcion";
+import InvoiceCapture from "./pages/recepcion/factura";
 import NuevaRecepcion from "./pages/recepcion/nueva";
 import TrazabilidadSeriales from "./pages/trazabilidad";
 
@@ -60,6 +61,11 @@ export const routers = [
             path: "recepcion",
             name: "recepciones",
             element: <RequirePermission permission="receptions.manage"><Recepciones /></RequirePermission>,
+          },
+          {
+            path: "recepcion/factura",
+            name: "factura-asistida",
+            element: <RequirePermission permission="receptions.manage"><InvoiceCapture /></RequirePermission>,
           },
           {
             path: "recepcion/nueva",

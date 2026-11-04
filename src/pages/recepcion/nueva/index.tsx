@@ -36,6 +36,8 @@ import type { Product, ProductCategory, UnitCondition } from "@/lib/types";
 import { ReceptionItemChip } from "./ReceptionItemChip";
 import { SupplierFormDialog } from "@/pages/proveedores/SupplierFormDialog";
 import { listSuppliers, type Supplier } from "@/lib/suppliers";
+import { supabase } from "@/integrations/supabase/client";
+import type { InvoiceLineSuggestion } from "@/lib/nexora-invoice-parser";
 
 /**
  * Captura de una recepción: se elige producto y condición y cada lectura agrega
@@ -77,6 +79,23 @@ const NuevaRecepcion = () => {
   const [suppliersLoading, setSuppliersLoading] = useState(true);
   const [receivedAt, setReceivedAt] = useState(todayIso());
   const [notes, setNotes] = useState("");
+  const [expectedInvoice,setExpectedInvoice]=useState<{
+    number:string;lines:InvoiceLineSuggestion[];
+  }|null>(null);
+  useEffect(()=>{
+    if(!receptionId)return;
+    let active=true;
+    void supabase.from("nexora_invoice_drafts")
+      .select("invoice_no,lines").eq("reception_id",receptionId)
+      .limit(1).maybeSingle().then(({data,error})=>{
+        if(!active)return;
+        if(error){console.warn("Factura vinculada no disponible",error.message);return;}
+        if(!data){setExpectedInvoice(null);return;}
+        setExpectedInvoice({number:typeof data.invoice_no==="string"?data.invoice_no:"",
+          lines:Array.isArray(data.lines)?data.lines as InvoiceLineSuggestion[]:[]});
+      });
+    return()=>{active=false;};
+  },[receptionId]);
   const [saving, setSaving] = useState(false);
   const [totalConfirmando, setTotalConfirmando] = useState(0);
   const [busy, setBusy] = useState(false);
@@ -498,6 +517,22 @@ const NuevaRecepcion = () => {
         }
       />
 
+      {expectedInvoice?<section aria-label="Factura de referencia" className="space-y-2 rounded-xl border bg-card p-4">
+        <h2 className="font-semibold">Factura {expectedInvoice.number} · Comparación de recepción</h2>
+        <div className="flex flex-wrap gap-2">
+          {expectedInvoice.lines.map((line,i)=>{
+            const received=items.filter(item=>item.productId===line.productId).length;
+            const product=products.find(p=>p.id===line.productId);
+            return <div key={i} className="flex flex-wrap items-center gap-2 rounded-lg border px-3 py-2 text-sm">
+              <span>{product?.name??line.description}: {received}/{line.quantity}</span>
+              {!confirmed&&product?<Button size="sm" variant="outline"
+                onClick={()=>{setProductId(product.id);setCost(line.unitCost?.toString()??"");setRepuestoQty(String(Math.max(1,line.quantity-received)));}}>
+                Usar referencia y costo aprobado
+              </Button>:null}
+            </div>;
+          })}
+        </div>
+      </section>:null}
       <div className="grid gap-5 lg:grid-cols-[minmax(21rem,26rem)_minmax(0,1fr)] lg:items-start">
         <div className="flex flex-col gap-4">
           <section className="order-2 space-y-3 rounded-xl border bg-card p-5 shadow-sm lg:order-2">
