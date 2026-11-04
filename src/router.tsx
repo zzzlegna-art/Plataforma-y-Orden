@@ -1,6 +1,7 @@
 import { Navigate } from "react-router-dom";
 
 import { RequireAuth, RequirePermission } from "./components/auth/require-auth";
+import { RequireSupplierReception } from "./components/auth/require-supplier-reception";
 import { AppLayout } from "./components/layout/app-layout";
 import Administracion from "./pages/administracion";
 import Clientes from "./pages/clientes";
@@ -60,22 +61,22 @@ export const routers = [
           {
             path: "recepcion",
             name: "recepciones",
-            element: <RequirePermission permission="receptions.manage"><Recepciones /></RequirePermission>,
+            element: <RequirePermission permission="receptions.manage"><RequireSupplierReception><Recepciones /></RequireSupplierReception></RequirePermission>,
           },
           {
             path: "recepcion/factura",
             name: "factura-asistida",
-            element: <RequirePermission permission="receptions.manage"><InvoiceCapture /></RequirePermission>,
+            element: <RequirePermission permission="receptions.manage"><RequireSupplierReception><InvoiceCapture /></RequireSupplierReception></RequirePermission>,
           },
           {
             path: "recepcion/nueva",
             name: "recepcion-nueva",
-            element: <RequirePermission permission="receptions.manage"><NuevaRecepcion /></RequirePermission>,
+            element: <RequirePermission permission="receptions.manage"><RequireSupplierReception><NuevaRecepcion /></RequireSupplierReception></RequirePermission>,
           },
           {
             path: "recepcion/nueva/:receptionId",
             name: "recepcion-captura",
-            element: <RequirePermission permission="receptions.manage"><NuevaRecepcion /></RequirePermission>,
+            element: <RequirePermission permission="receptions.manage"><RequireSupplierReception><NuevaRecepcion /></RequireSupplierReception></RequirePermission>,
           },
           {
             path: "traslados",
