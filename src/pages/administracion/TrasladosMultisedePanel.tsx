@@ -5,7 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { getInitialInventoryProgress } from "@/lib/nexora-initial-approval";
+import { useApp } from "@/hooks/use-app";
+import { getTransferAssignedSites, getTransferOperationReady } from "@/lib/nexora-transfer-site-access";
+import { transferDestinations, transferOrigins } from "@/lib/nexora-transfer-route-scopes";
 import {
   getMissingReceiptSerials, getNexoraTransferDetail, getReceivingSummary, lineStatusLabel,
   listNexoraTransfers, parseTransferSerials, runNexoraTransferAction,
@@ -21,7 +23,10 @@ const selectStyle = "flex h-10 w-full rounded-lg border border-input bg-backgrou
 const nr = (n: number) => new Intl.NumberFormat("es-CO").format(n);
 
 export const TrasladosMultisedePanel = ({ sites }: { sites: readonly NexoraSite[] }) => {
+  const { user, role } = useApp();
   const [approved, setApproved] = useState(false);
+  const [scopeLoading, setScopeLoading] = useState(true);
+  const [assignedSites, setAssignedSites] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [working, setWorking] = useState(false);
   const [transfers, setTransfers] = useState<NexoraTransfer[]>([]);
@@ -45,23 +50,39 @@ export const TrasladosMultisedePanel = ({ sites }: { sites: readonly NexoraSite[
   const locked = useRef(false);
 
   const network = sites.filter((s) => s.isActive);
-  const fromSites = network.filter((s) => network.some((d) => d.parentSiteId === s.id));
+  const fromSites = transferOrigins(network, assignedSites);
   const actualOrigin = fromSites.some((s) => s.id === originId) ? originId : fromSites[0]?.id ?? "";
-  const destinations = network.filter((s) => s.parentSiteId === actualOrigin);
+  const destinations = transferDestinations(network.find((s) => s.id === actualOrigin), network);
   const actualDestination = destinations.some((s) => s.id === destinationId)
     ? destinationId : destinations[0]?.id ?? "";
   const label = (id: string) => sites.find((s) => s.id === id)?.name ?? "Sede no disponible";
   const selected = transfers.find((t) => t.id === activeId) ?? null;
+  const canOperateOrigin = Boolean(selected && !scopeLoading && assignedSites.includes(selected.originSiteId));
+  const canOperateDestination = Boolean(selected && !scopeLoading && assignedSites.includes(selected.destinationSiteId));
+
+  useEffect(() => {
+    let active = true;
+    setScopeLoading(true);
+    setAssignedSites([]);
+    void getTransferAssignedSites(role,user?.id,sites).then((ids) => {
+      if (active) setAssignedSites(ids);
+    }).catch((error: unknown) => {
+      if (active) toast.error(error instanceof Error ? error.message : "No se pudo consultar tu sede autorizada.");
+    }).finally(() => {
+      if (active) setScopeLoading(false);
+    });
+    return () => { active = false; };
+  }, [role,user?.id,sites]);
 
   const load = useCallback(async () => {
     const request = ++req.current;
     setLoading(true);
     try {
       const [progress, records] = await Promise.all([
-        getInitialInventoryProgress(), listNexoraTransfers(),
+        getTransferOperationReady(), listNexoraTransfers(),
       ]);
       if (request !== req.current) return;
-      setApproved(progress.isApproved);
+      setApproved(progress);
       setTransfers(records);
     } catch (error) {
       if (request === req.current) {
@@ -106,7 +127,10 @@ export const TrasladosMultisedePanel = ({ sites }: { sites: readonly NexoraSite[
     action: TransferAction, serials: string[] = [],
     marks: MissingReceiptMark[] = [],
   ) => {
-    if (!approved || locked.current) return;
+    if (!approved || scopeLoading || locked.current) return;
+    if (action === "create" && !assignedSites.includes(actualOrigin)) return;
+    if (action === "receive" && !canOperateDestination) return;
+    if (action !== "create" && action !== "receive" && !canOperateOrigin) return;
     locked.current = true;
     setWorking(true);
     try {
@@ -238,15 +262,15 @@ export const TrasladosMultisedePanel = ({ sites }: { sites: readonly NexoraSite[
               <span className="rounded-xl bg-primary/10 p-2.5 text-primary"><Plus className="h-5 w-5" /></span>
               <div>
                 <h3 className="font-semibold">Nuevo manifiesto de traslado</h3>
-                <p className="mt-1 text-xs text-muted-foreground">Cada operación admite hasta 100 seriales únicos. Solo rutas de abastecimiento configuradas.</p>
+                <p className="mt-1 text-xs text-muted-foreground">Cada operación admite hasta 100 seriales únicos. Solo puedes despachar IMEI que estén físicamente en tu sede asignada, por rutas habilitadas.</p>
               </div>
             </div>
             <div className="mt-5 grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="nexora-transfer-from">Bodega de origen</Label>
+                <Label htmlFor="nexora-transfer-from">Sede o local de origen autorizado</Label>
                 <select className={selectStyle} id="nexora-transfer-from" value={actualOrigin} disabled={working}
                   onChange={(event) => { setOriginId(event.target.value); setDestinationId(""); }}>
-                  {fromSites.length === 0 ? <option value="">Sin rutas configuradas</option> : null}
+                  {fromSites.length === 0 ? <option value="">Sin sede de salida autorizada</option> : null}
                   {fromSites.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
                 </select>
               </div>
@@ -254,7 +278,7 @@ export const TrasladosMultisedePanel = ({ sites }: { sites: readonly NexoraSite[
                 <Label htmlFor="nexora-transfer-to">Punto de destino</Label>
                 <select className={selectStyle} id="nexora-transfer-to" value={actualDestination} disabled={working}
                   onChange={(event) => setDestinationId(event.target.value)}>
-                  {destinations.length === 0 ? <option value="">Sin destinos dependientes</option> : null}
+                  {destinations.length === 0 ? <option value="">Sin rutas habilitadas</option> : null}
                   {destinations.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
                 </select>
               </div>
@@ -272,7 +296,7 @@ export const TrasladosMultisedePanel = ({ sites }: { sites: readonly NexoraSite[
               </div>
             </div>
             <div className="mt-4 flex justify-end">
-              <Button disabled={working || Boolean(createError) || !actualOrigin || !actualDestination}
+              <Button disabled={working || scopeLoading || Boolean(createError) || !actualOrigin || !actualDestination}
                 onClick={() => void operate("create", createSerials)}>
                 <Plus className="h-4 w-4" /> Crear manifiesto
               </Button>
@@ -359,7 +383,7 @@ export const TrasladosMultisedePanel = ({ sites }: { sites: readonly NexoraSite[
                     </div>
                   </div>
 
-                  {selected.status === "draft" ? (
+                  {selected.status === "draft" && canOperateOrigin ? (
                     <div className="space-y-3 rounded-xl border bg-muted/15 p-4">
                       <h4 className="font-semibold">Confirmar despacho</h4>
                       <p className="text-sm text-muted-foreground">Comprueba físicamente los {detail.lines.length} equipos antes de enviarlos. Al despachar pasan a custodia «en tránsito».</p>
@@ -377,7 +401,7 @@ export const TrasladosMultisedePanel = ({ sites }: { sites: readonly NexoraSite[
                     </div>
                   ) : null}
 
-                  {selected.status === "in_transit" ? (
+                  {selected.status === "in_transit" && canOperateDestination ? (
                     <div className="space-y-3 rounded-xl border bg-muted/15 p-4">
                       <h4 className="flex items-center gap-2 font-semibold"><PackageCheck className="h-4 w-4 text-primary" /> Recepción por IMEI</h4>
                       <p className="text-sm text-muted-foreground">
@@ -570,7 +594,7 @@ export const TrasladosMultisedePanel = ({ sites }: { sites: readonly NexoraSite[
                     </div>
                   ) : null}
 
-                  {selected.status === "awaiting_returns" ? (
+                  {selected.status === "awaiting_returns" && canOperateOrigin ? (
                     <div className="space-y-3 rounded-xl border bg-muted/15 p-4">
                       <h4 className="flex items-center gap-2 font-semibold"><RotateCcw className="h-4 w-4 text-primary" /> Comprobar retorno físico al origen</h4>
                       <p className="text-sm text-muted-foreground">Escanea solo los IMEI faltantes que efectivamente hayan regresado a {label(selected.originSiteId)}.</p>
@@ -591,6 +615,15 @@ export const TrasladosMultisedePanel = ({ sites }: { sites: readonly NexoraSite[
                         <RotateCcw className="h-4 w-4" /> Registrar retorno comprobado
                       </Button>
                     </div>
+                  ) : null}
+
+                  {selected.status !== "closed" && !canOperateOrigin &&
+                    !(selected.status === "in_transit" && canOperateDestination) ? (
+                    <p role="status" className="rounded-lg border p-3 text-sm text-muted-foreground">
+                      Puedes consultar este traslado, pero solo la sede de origen puede
+                      despachar o confirmar retornos, y solo la sede de destino puede
+                      registrar la recepción física de sus IMEI.
+                    </p>
                   ) : null}
 
                   {selected.status === "closed" ? (
