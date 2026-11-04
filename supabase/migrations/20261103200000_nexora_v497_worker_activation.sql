@@ -279,7 +279,7 @@ declare v_site uuid; v_count integer; v_marker text;
 begin
   if new.operationally_enabled is not distinct from old.operationally_enabled
      then return new; end if;
-  select count(*),min(site_id) into v_count,v_site
+  select count(*),(array_agg(site_id))[1] into v_count,v_site
     from public.nexora_staff_sites ss
     where ss.user_id=new.user_id and ss.is_active;
   if v_count<>1 or v_site is null then
