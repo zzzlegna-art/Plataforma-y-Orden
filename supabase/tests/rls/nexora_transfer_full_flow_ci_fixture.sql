@@ -170,27 +170,28 @@ begin
   v_accepted:=v_all[1:15];
   v_rest:=v_all[17:20];
 
-  -- La RPC actual debe permanecer en modo Administrador hasta que RLS
-  -- y el plan de roles estén aprobados. Un Bodeguero no puede saltar el bloqueo.
+  -- Traslados: Bodeguero sí puede despachar desde su sede asignada.
+  -- Se rechaza una sede de origen ajena, aunque sea un usuario autenticado.
   perform set_config('request.jwt.claim.sub',
     '00000000-0000-0000-0000-000000000002',true);
   begin
     perform nexora_internal.execute_transfer(
-      'create',null,v_origin,v_destination,v_all,'Intento prohibido');
-    raise exception 'La función actual permitió traslado de Bodeguero.';
+      'create',null,v_destination,v_origin,v_all,'Origen no asignado');
+    raise exception 'La RPC permitió despachar desde una sede ajena.';
   exception when others then
     if sqlerrm not like '%no puedes despachar desde una sede que no tienes asignada%' then
       raise;
     end if;
   end;
-  perform set_config('request.jwt.claim.sub',
-    '00000000-0000-0000-0000-000000000001',true);
   if exists(select 1 from public.nexora_transfers) then
-    raise exception 'El acceso denegado creó un manifiesto ficticio.';
+    raise exception 'Un intento desde sede ajena creó un manifiesto ficticio.';
   end if;
 
+  -- Ahora el mismo Bodeguero envía los 20 IMEI que pertenecen a su origen.
   v_result:=nexora_internal.execute_transfer(
-    'create',null,v_origin,v_destination,v_all,'CI solo datos ficticios');
+    'create',null,v_origin,v_destination,v_all,'CI Bodeguero de origen autorizado');
+  perform set_config('request.jwt.claim.sub',
+    '00000000-0000-0000-0000-000000000001',true);
   v_transfer:=(v_result->>'transferId')::uuid;
   if v_result->>'status'<>'draft'
     or (select count(*) from public.nexora_transfer_lines
