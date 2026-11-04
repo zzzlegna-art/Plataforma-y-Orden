@@ -3,7 +3,7 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 
-const source = resolve("supabase/migrations/20261104185000_nexora_roles_inventory_transfer_permissions.sql");
+const source = resolve("supabase/migrations/20261104144040_nexora_v4_invoice_role_authorization.sql");
 const target = resolve("supabase/tests/rls/.nexora-execute-transfer.generated.sql");
 const sql = readFileSync(source,"utf8");
 const marker = "CREATE OR REPLACE FUNCTION nexora_internal.execute_transfer(";

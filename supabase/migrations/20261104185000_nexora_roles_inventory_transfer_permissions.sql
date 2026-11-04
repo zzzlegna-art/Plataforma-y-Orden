@@ -61,17 +61,6 @@ begin
     if v_worker is not null and p_origin <> v_my_site then
       raise exception 'Solo puedes iniciar traslados desde tu local asignado.';
     end if;
-    -- Bodeguero: no puede utilizar mercancía de una sede ajena. El
-    -- Administrador sí tiene alcance global; trabajadores locales son
-    -- validados arriba mediante worker_session().
-    if v_worker is null and not public.bodega_is_admin() and not exists (
-      select 1 from public.nexora_staff_sites assigned
-      join public.nexora_sites site on site.id=assigned.site_id
-      where assigned.user_id=auth.uid() and assigned.is_active
-        and site.is_active and assigned.site_id=p_origin
-    ) then
-      raise exception 'Bodeguero: no puedes despachar desde una sede que no tienes asignada.';
-    end if;
     if not exists (
       select 1 from public.nexora_sites o
       join public.nexora_sites d on d.id=p_destination
@@ -136,19 +125,6 @@ begin
        or (p_action='receive' and v_destination<>v_my_site)
      ) then
     raise exception 'El traslado no pertenece a una operación autorizada de tu local.';
-  end if;
-  -- Despacho/retorno/cancelación: origen. Recepción: destino. Impide
-  -- enviar stock ajeno o confirmar llegadas de un local no asignado.
-  if v_worker is null and not public.bodega_is_admin() and not exists (
-    select 1 from public.nexora_staff_sites assigned
-    join public.nexora_sites site on site.id=assigned.site_id
-    where assigned.user_id=auth.uid() and assigned.is_active
-      and site.is_active
-      and assigned.site_id=(
-        case when p_action='receive' then v_destination else v_origin end
-      )
-  ) then
-    raise exception 'Bodeguero: el traslado no pertenece a una sede asignada.';
   end if;
 
   if p_action = 'cancel' then

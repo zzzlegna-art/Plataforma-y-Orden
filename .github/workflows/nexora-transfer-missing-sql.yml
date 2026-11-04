@@ -14,6 +14,7 @@ on:
       - "supabase/tests/rls/nexora_missing_audit_schema_checks.sql"
       - "supabase/migrations/20261102110000_nexora_site_availability_and_order_guards.sql"
       - "scripts/extract-nexora-transfer-rpc.mjs"
+      - "supabase/migrations/20261104144040_nexora_v4_invoice_role_authorization.sql"
       - ".github/workflows/nexora-transfer-missing-sql.yml"
   workflow_dispatch:
 

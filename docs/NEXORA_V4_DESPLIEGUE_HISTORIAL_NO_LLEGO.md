@@ -15,7 +15,7 @@ Los faltantes marcados individualmente `No llegó` requieren observación de 3�
 1. `supabase/migrations/20261104190000_nexora_transfer_missing_observations.sql` — tabla y trigger automático de auditoría inmutable por IMEI.
 2. `supabase/migrations/20261104191000_nexora_transfer_receive_observations.sql` — notas individuales, validaciones atómicas, RLS de participantes y RPC `nexora_transfer_receive_with_notes`. La función pública para crear/despachar/retornar/cancelar valida explícitamente la sede activa asignada. La ejecución interna directa se revoca para `authenticated` para impedir saltarse las observaciones.
 
-**Importante:** `supabase/migrations/20261104185000_nexora_roles_inventory_transfer_permissions.sql` existe en el repositorio como representación del motor de traslados, pero la instancia productiva tiene su propia migración de rol `20261104131610`. No ejecutar indiscriminadamente todas las migraciones pendientes del repositorio ni sobreescribir la función real sin revisar el historial.
+**Importante:** las pruebas extraen el motor vigente de `supabase/migrations/20261104144040_nexora_v4_invoice_role_authorization.sql`, que coincide con `pg_get_functiondef` en Supabase productivo (salvo el punto y coma de SQL). El repositorio conserva `20261104185000_nexora_roles_inventory_transfer_permissions.sql`, cuyo contenido corresponde a la migración productiva histórica `20261104131610`; hay un desajuste de nombres/versiones pendiente de reconciliar. No ejecutar `supabase db push` indiscriminadamente ni reejecutar migraciones ya presentes; aplicar solo las dos nuevas, de forma explícita y controlada.
 
 ## Preflight sin cambios de datos
 
