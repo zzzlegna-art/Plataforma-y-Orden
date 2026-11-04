@@ -6,6 +6,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { getInitialInventoryProgress } from "@/lib/nexora-initial-approval";
+import { getWorkerSession } from "@/lib/nexora-worker";
+import { fetchImeiDirectory } from "@/lib/nexora-imei-directory";
+import { useApp } from "@/hooks/use-app";
 import {
   getMissingReceiptSerials, getNexoraTransferDetail, getReceivingSummary, lineStatusLabel,
   listNexoraTransfers, parseTransferSerials, runNexoraTransferAction,
@@ -18,6 +21,9 @@ const selectStyle = "flex h-10 w-full rounded-lg border border-input bg-backgrou
 const nr = (n: number) => new Intl.NumberFormat("es-CO").format(n);
 
 export const TrasladosMultisedePanel = ({ sites }: { sites: readonly NexoraSite[] }) => {
+  const {role}=useApp();
+  const workerRole=role==="vendedor"||role==="encargado";
+  const [mySite,setMySite]=useState<string|null>(null);
   const [approved, setApproved] = useState(false);
   const [loading, setLoading] = useState(true);
   const [working, setWorking] = useState(false);
@@ -39,9 +45,15 @@ export const TrasladosMultisedePanel = ({ sites }: { sites: readonly NexoraSite[
   const locked = useRef(false);
 
   const network = sites.filter((s) => s.isActive);
-  const fromSites = network.filter((s) => network.some((d) => d.parentSiteId === s.id));
+  const fromSites = network.filter((s) => workerRole ? s.id===mySite : true);
   const actualOrigin = fromSites.some((s) => s.id === originId) ? originId : fromSites[0]?.id ?? "";
-  const destinations = network.filter((s) => s.parentSiteId === actualOrigin);
+  const currentOrigin=network.find(s=>s.id===actualOrigin);
+  const destinations = network.filter((s) => s.id!==actualOrigin && (
+    (currentOrigin?.siteType==="principal" && (s.siteType==="bodega"||s.siteType==="local") && s.parentSiteId===actualOrigin)
+    ||(currentOrigin?.siteType==="bodega" && s.siteType==="bodega")
+    ||(currentOrigin?.siteType==="bodega" && s.siteType==="local" && s.parentSiteId===actualOrigin)
+    ||(currentOrigin?.siteType==="local" && s.id===currentOrigin.parentSiteId)
+  ));
   const actualDestination = destinations.some((s) => s.id === destinationId)
     ? destinationId : destinations[0]?.id ?? "";
   const label = (id: string) => sites.find((s) => s.id === id)?.name ?? "Sede no disponible";
@@ -51,11 +63,16 @@ export const TrasladosMultisedePanel = ({ sites }: { sites: readonly NexoraSite[
     const request = ++req.current;
     setLoading(true);
     try {
-      const [progress, records] = await Promise.all([
-        getInitialInventoryProgress(), listNexoraTransfers(),
+      const [progress, records, worker] = await Promise.all([
+        workerRole
+          ? fetchImeiDirectory({page:1,pageSize:1}).then(r=>r.initialApproved)
+          : getInitialInventoryProgress().then(r=>r.isApproved),
+        listNexoraTransfers(),
+        workerRole?getWorkerSession():Promise.resolve(null),
       ]);
       if (request !== req.current) return;
-      setApproved(progress.isApproved);
+      setApproved(progress);
+      setMySite(worker?.siteId??null);
       setTransfers(records);
     } catch (error) {
       if (request === req.current) {
@@ -65,7 +82,7 @@ export const TrasladosMultisedePanel = ({ sites }: { sites: readonly NexoraSite[
     } finally {
       if (request === req.current) setLoading(false);
     }
-  }, []);
+  }, [workerRole]);
 
   const loadDetail = useCallback(async (id: string) => {
     if (!id) { setDetail(null); return; }

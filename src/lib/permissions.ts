@@ -5,6 +5,7 @@ import type { Role } from "./types";
  *  usuarios, auditoría ni catálogos. */
 export type Permission =
   | "workspace.view"
+  | "transfers.manage"
   | "dashboard.view"
   | "inventory.view"
   | "inventory.manage"
@@ -20,6 +21,7 @@ const BODEGUERO_PERMISSIONS: Permission[] = [
   "inventory.view",
   "inventory.manage",
   "receptions.manage",
+  "transfers.manage",
   "orders.manage",
   "customers.manage",
   "warranties.manage",
@@ -28,8 +30,8 @@ const BODEGUERO_PERMISSIONS: Permission[] = [
 const PERMISSIONS_BY_ROLE: Record<Role, Permission[]> = {
   admin: [...BODEGUERO_PERMISSIONS, "users.manage", "audit.view"],
   bodeguero: BODEGUERO_PERMISSIONS,
-  encargado: ["workspace.view"],
-  vendedor: ["workspace.view"],
+  encargado: ["workspace.view", "inventory.view", "transfers.manage"],
+  vendedor: ["workspace.view", "inventory.view", "transfers.manage"],
 };
 
 /** Los catálogos (categorías/marcas) se editan solo por administradores: los

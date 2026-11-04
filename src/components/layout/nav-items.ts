@@ -49,7 +49,7 @@ export const NAV_ITEMS: NavItem[] = [
     to: "/traslados",
     labelKey: "nav.transfers",
     icon: Truck,
-    permission: "receptions.manage",
+    permission: "transfers.manage",
   },
   {
     to: "/inventario",

@@ -1,6 +1,7 @@
 import { useCallback,useEffect,useRef,useState } from "react";
 import { BadgeCheck,Building2,LockKeyhole,RefreshCw,ShoppingBag,Wallet } from "lucide-react";
 import { toast } from "sonner";
+import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -101,11 +102,14 @@ export const MiSede=()=>{
         </div>
       </div>
       <p className="mt-3 text-sm text-muted-foreground">
-        Solo puedes operar el local que el Administrador te asignó.
-        No tienes acceso al inventario general, costos de otras sedes ni usuarios.
+        Operación del local asignado: {snapshot?.siteName??"Mi local"}.
       </p>
-      <Button size="sm" variant="outline" className="mt-4" disabled={busy||loading}
-        onClick={()=>void refresh()}><RefreshCw className="size-4"/> Actualizar</Button>
+      <div className="mt-4 flex flex-wrap gap-2">
+        <Button asChild size="sm" variant="outline"><Link to="/inventario">Inventario global</Link></Button>
+        <Button asChild size="sm" variant="outline"><Link to="/traslados">Traslados</Link></Button>
+        <Button size="sm" variant="outline" disabled={busy||loading}
+          onClick={()=>void refresh()}><RefreshCw className="size-4"/> Actualizar</Button>
+      </div>
     </header>
     {loading?<p role="status">Verificando permisos e inventario del local...</p>:null}
     {!loading&&!snapshot?<div role="alert" className="rounded-xl border p-4 text-sm">

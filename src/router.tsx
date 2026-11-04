@@ -7,6 +7,8 @@ import Clientes from "./pages/clientes";
 import Garantias from "./pages/garantias";
 import GarantiaDetalle from "./pages/garantias/detalle";
 import Inventario from "./pages/inventario";
+import { WorkerGlobalInventory } from "./pages/inventario/WorkerGlobalInventory";
+import { useApp } from "./hooks/use-app";
 import ProductoDetalle from "./pages/inventario/detalle";
 import Login from "./pages/login";
 import NotFound from "./pages/NotFound";
@@ -19,6 +21,12 @@ import Traslados from "./pages/traslados";
 import Recepciones from "./pages/recepcion";
 import NuevaRecepcion from "./pages/recepcion/nueva";
 import TrazabilidadSeriales from "./pages/trazabilidad";
+
+const InventoryByRole=({ serials=false }:{serials?:boolean})=>{
+  const {role}=useApp();
+  return role==="vendedor"||role==="encargado" ? <WorkerGlobalInventory serials={serials}/>
+    : serials?<TrazabilidadSeriales/>:<Inventario/>;
+};
 
 export const routers = [
   {
@@ -66,12 +74,12 @@ export const routers = [
           {
             path: "traslados",
             name: "traslados",
-            element: <RequirePermission permission="receptions.manage"><Traslados /></RequirePermission>,
+            element: <RequirePermission permission="transfers.manage"><Traslados /></RequirePermission>,
           },
           {
             path: "inventario",
             name: "inventario",
-            element: <RequirePermission permission="inventory.view"><Inventario /></RequirePermission>,
+            element: <RequirePermission permission="inventory.view"><InventoryByRole /></RequirePermission>,
           },
           {
             path: "inventario/:productId",
@@ -86,7 +94,7 @@ export const routers = [
           {
             path: "seriales",
             name: "trazabilidad-seriales",
-            element: <RequirePermission permission="inventory.view"><TrazabilidadSeriales /></RequirePermission>,
+            element: <RequirePermission permission="inventory.view"><InventoryByRole serials /></RequirePermission>,
           },
           {
             path: "liberar",
