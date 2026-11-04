@@ -12,6 +12,7 @@ import { ActiveBadge, Badge } from "@/components/shared/status-badge";
 import { Button } from "@/components/ui/button";
 import { useRunAction } from "@/hooks/use-run-action";
 import { useStore } from "@/hooks/use-store";
+import { useApp } from "@/hooks/use-app";
 import { deleteProduct, setProductActive } from "@/lib/actions/catalogs";
 import { formatCurrency, formatDateTime } from "@/lib/format";
 import { getMovementRows, getProductRows, getUnitRows } from "@/lib/selectors";
@@ -23,6 +24,7 @@ import { SerialesSeccion } from "./seriales-section";
 const ProductoDetalle = () => {
   const { t } = useTranslation();
   const { db } = useStore();
+  const { role } = useApp();
   const runAction = useRunAction();
   const navigate = useNavigate();
   const { productId } = useParams();
@@ -97,7 +99,7 @@ const ProductoDetalle = () => {
             <ActiveBadge isActive={product.isActive} />
           </span>
         }
-        actions={
+        actions={role === "admin" ? (
           <>
             <ProductFormDialog
               product={product}
@@ -154,7 +156,7 @@ const ProductoDetalle = () => {
               />
             ) : null}
           </>
-        }
+        ) : undefined}
       />
 
       <div className="grid gap-3 sm:grid-cols-3">

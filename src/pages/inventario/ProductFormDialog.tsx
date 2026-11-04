@@ -91,7 +91,7 @@ export const ProductFormDialog = ({
 }) => {
   const { t } = useTranslation();
   const { db } = useStore();
-  const { user } = useApp();
+  const { user, role } = useApp();
   const runAction = useRunAction();
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState(EMPTY_PRODUCT_FORM);
@@ -414,6 +414,8 @@ export const ProductFormDialog = ({
       setSaving(false);
     }
   };
+
+  if (role !== "admin") return null;
 
   return (
     <Dialog open={open} onOpenChange={(next) => { if (!savingRef.current) setOpen(next); }}>

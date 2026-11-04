@@ -37,6 +37,7 @@ describe("Nexora Multisede 2.0 · cuatro roles aprobados", () => {
   });
 
   it("respetar apertura y cierre de caja, reapertura y gastos de Encargado", () => {
+    exclusivo("sales.retail", ["admin", "encargado", "vendedor"]);
     exclusivo("cash.open", ["admin", "encargado"]);
     exclusivo("cash.close", ["encargado"]);
     exclusivo("cash.reopen", ["admin"]);
@@ -49,6 +50,7 @@ describe("Nexora Multisede 2.0 · cuatro roles aprobados", () => {
 
   it("costos visibles a todos, pero ajustes y autorización solo Administrador", () => {
     exclusivo("inventory.references.manage", ["admin"]);
+    exclusivo("inventory.imei.cost.update", ["admin"]);
     exclusivo("inventory.adjust.authorize", ["admin"]);
     exclusivo("reception.invoice.edit", ["admin"]);
     exclusivo("reception.cost.approve", ["admin"]);

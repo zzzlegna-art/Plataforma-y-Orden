@@ -1,5 +1,5 @@
 import {describe,expect,it} from "vitest";
-import {parseInvoiceText,readMoney} from "./nexora-invoice-parser";
+import {parseInvoiceText,readMoney,validateInvoiceApproval} from "./nexora-invoice-parser";
 describe("facturas: capturar sin inventar costos",()=>{
  it("lee montos de distintos formatos",()=>{
   expect(readMoney("$2.500.000")).toBe(2500000);
@@ -18,6 +18,36 @@ describe("facturas: capturar sin inventar costos",()=>{
   expect(r.lines[0].unitCost).toBe(2500000);
   expect(r.lines[1].productId).toBeNull();
   expect(r.lines[1].warning).toMatch(/no coincide/);
+ });
+ it("detecta facturas con cantidad al principio sin confundir el modelo",()=>{
+  const r=parseInvoiceText("PROVEEDOR: Tech Global\nFACTURA FE-81234\n04/11/2026\n"+
+   "2 iPhone 13 128GB 1.250.000 2.500.000",[
+   {id:"p13",sku:"IP13-128",name:"iPhone 13 128GB"},
+  ]);
+  expect(r.lines).toHaveLength(1);
+  expect(r.lines[0]).toMatchObject({quantity:2,unitCost:1250000,total:2500000,productId:"p13"});
+ });
+ it("no asigna automáticamente un producto cuando el SKU es ambiguo",()=>{
+  const r=parseInvoiceText("FACTURA FE-777\n2 IP13 100.000 200.000",[
+   {id:"a",sku:"IP13",name:"iPhone 13 A"},
+   {id:"b",sku:"IP13",name:"iPhone 13 B"},
+  ]);
+  expect(r.lines[0].productId).toBeNull();
+  expect(r.lines[0].warning).toMatch(/ambigua/);
+ });
+ it("advierte una línea con subtotal diferente, sin corregirla silenciosamente",()=>{
+  const r=parseInvoiceText("FACTURA FE-123\n2 IP14 900.000 1.500.000",
+   [{id:"p14",sku:"IP14",name:"iPhone 14"}]);
+  expect(r.lines[0].warning).toMatch(/no coincide/);
+ });
+ it("impide aprobar una factura con subtotal distinto al costo",()=>{
+   const errors=validateInvoiceApproval([
+     {description:"iPhone 13",quantity:2,unitCost:1200000,total:2000000,productId:"p13",sku:"IP13"},
+   ],"supplier","FE-123");
+   expect(errors.join(" ")).toMatch(/no coincide/);
+   expect(validateInvoiceApproval([
+     {description:"iPhone 13",quantity:2,unitCost:1200000,total:2400000,productId:"p13",sku:"IP13"},
+   ],"supplier","FE-123")).toEqual([]);
  });
  it("no inventa cantidades ni productos cuando no detecta líneas",()=>{
   const r=parseInvoiceText("FACTURA 1234\nTOTAL 8000",[]);

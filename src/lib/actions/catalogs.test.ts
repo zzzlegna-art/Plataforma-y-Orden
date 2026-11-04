@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { DomainError, emptyDb } from "../db";
 import type { Actor, Db } from "../types";
-import { createProduct, createProductType, deleteProductType, generarSkuAlEditar, generarSkuProducto, updateProduct, updateProductType } from "./catalogs";
+import { createProduct, createProductType, deleteProduct, deleteProductType, generarSkuAlEditar, generarSkuProducto, setProductActive, updateProduct, updateProductType } from "./catalogs";
 
 const admin: Actor = { id: "u1", email: "a@x.com", fullName: "Admin", role: "admin" };
 const bodeguero: Actor = { id: "u2", email: "b@x.com", fullName: "Bodeguero", role: "bodeguero" };
@@ -20,6 +20,19 @@ const conLosCincoDeSiempre = (): Db => {
   ];
   return db;
 };
+
+describe("Nexora V4: sólo Administrador modifica referencias", () => {
+  const input={name:"iPhone 15",categoria:"celular" as const,price:1000,cost:800,minStock:0};
+  it("el Bodeguero no puede crear, modificar, activar ni eliminar referencias",()=>{
+    const db=emptyDb();
+    expect(()=>createProduct(db,bodeguero,input)).toThrow(DomainError);
+    const item=createProduct(db,admin,input);
+    expect(()=>updateProduct(db,bodeguero,{id:item.id,...input,name:"iPhone 15 Pro"})).toThrow(DomainError);
+    expect(()=>setProductActive(db,bodeguero,{id:item.id,isActive:false})).toThrow(DomainError);
+    expect(()=>deleteProduct(db,bodeguero,{id:item.id})).toThrow(DomainError);
+    expect(db.products.find(p=>p.id===item.id)?.isActive).toBe(true);
+  });
+});
 
 describe("createProductType", () => {
   it("solo un administrador puede crear un tipo nuevo", () => {
