@@ -226,7 +226,8 @@ begin
   -- El wrapper conserva las cuatro autorizaciones operativas vigentes.
   -- El motor interno comprueba por separado la sede y etapa del traslado.
   if auth.uid() is null or not
-    (public.bodega_is_staff() or nexora_internal.worker_session() is not null) then
+    (public.bodega_is_admin() or public.bodega_is_staff()
+     or nexora_internal.worker_session() is not null) then
     raise exception 'No tienes permiso para operar traslados multisede.';
   end if;
   if p_action='receive' then
