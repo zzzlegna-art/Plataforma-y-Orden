@@ -370,8 +370,8 @@ select set_config('request.jwt.claim.sub',
   '00000000-0000-0000-0000-000000000002',true);
 do $api$
 begin
-  -- Un Bodeguero sin sede asignada no puede recibir; el motor de la
-  -- prueba histórica también conserva su control de identidad.
+  -- La RPC pública sigue siendo Admin-only incluso después de hacerse
+  -- SECURITY DEFINER: auth.uid() NO se sustituye por el dueño SQL.
   begin
     perform public.nexora_transfer_action(
       'invalid',null,null,null,array[]::text[],null);
@@ -387,7 +387,7 @@ begin
     raise exception 'CI_BODEGUERO_WAS_NOT_REJECTED';
   exception when others then
     if sqlerrm='CI_BODEGUERO_WAS_NOT_REJECTED'
-      or sqlerrm not like '%No tienes permiso para recibir en la sede de destino%' then raise; end if;
+      or sqlerrm not like '%Solo Administrador%' then raise; end if;
   end;
 
   if exists(select 1 from public.nexora_transfer_missing_receipt_notes) then
@@ -406,7 +406,7 @@ begin
     raise exception 'CI_UNAUTHENTICATED_WRAPPER_ALLOWED';
   exception when others then
     if sqlerrm='CI_UNAUTHENTICATED_WRAPPER_ALLOWED'
-      or sqlerrm not like '%No tienes permiso para operar traslados multisede%' then raise; end if;
+      or sqlerrm not like '%Solo Administrador%' then raise; end if;
   end;
   begin
     perform public.nexora_transfer_receive_with_notes(
@@ -414,7 +414,7 @@ begin
     raise exception 'CI_UNAUTHENTICATED_RECEIPT_ALLOWED';
   exception when others then
     if sqlerrm='CI_UNAUTHENTICATED_RECEIPT_ALLOWED'
-      or sqlerrm not like '%No tienes permiso para operar traslados multisede%' then raise; end if;
+      or sqlerrm not like '%Solo Administrador%' then raise; end if;
   end;
 end;
 $no_identity$;
