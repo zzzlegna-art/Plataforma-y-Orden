@@ -126,7 +126,7 @@ begin
   )
   select coalesce(jsonb_agg(jsonb_build_object(
     'productId',p.id,'name',p.name,'sku',p.sku,
-    'salePrice',p.price,
+    'salePrice',p.price,'referenceCost',p.cost,
     'brandName',(select b.name from public.bodega_brands b where b.id=p.brand_id),
     'newUnits',t.new_units,'usedUnits',t.used_units,
     'categoryKey',p.categoria,'imageUrl',p.image_url,
