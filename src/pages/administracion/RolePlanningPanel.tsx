@@ -2,7 +2,9 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { BadgeCheck, ClipboardList, LockKeyhole, RefreshCw, Save, ShieldAlert, Users } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { listStaffSiteAssignments, type StaffMember } from "@/lib/nexora-staff-sites";
+import { ConfirmDialog } from "@/components/shared/confirm-dialog";
+import { activatePreparedWorker,deactivatePreparedWorker } from "@/lib/nexora-worker";
+import { listStaffSiteAssignments, type StaffMember, type StaffSiteAssignment } from "@/lib/nexora-staff-sites";
 import {
   listRolePlans, saveRolePlan, type RolePlan, type PreparatoryRole,
   rolePlanOptions,
@@ -11,6 +13,7 @@ import {
 export const RolePlanningPanel = () => {
   const [users, setUsers] = useState<StaffMember[]>([]);
   const [plans, setPlans] = useState<RolePlan[]>([]);
+  const [assignments, setAssignments] = useState<StaffSiteAssignment[]>([]);
   const [drafts, setDrafts] = useState<Record<string, PreparatoryRole>>({});
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
@@ -25,6 +28,7 @@ export const RolePlanningPanel = () => {
       ]);
       if (call !== request.current) return;
       setUsers(staff.users);
+      setAssignments(staff.assignments);
       setPlans(saved);
       setDrafts(Object.fromEntries(
         staff.users.map((user) => [
@@ -61,6 +65,23 @@ export const RolePlanningPanel = () => {
       setBusy(null);
     }
   };
+  const changeActivation = async (userId:string,enable:boolean) => {
+    if(busyRef.current)return;
+    busyRef.current=true;setBusy(userId);
+    try{
+      const sites=assignments.filter((s)=>s.userId===userId&&s.isActive);
+      if(enable){
+        if(sites.length!==1)throw new Error("Vincula una única sede local activa al trabajador.");
+        await activatePreparedWorker(userId,sites[0].siteId);
+        toast.success("Trabajador activado con permisos limitados a su sede.");
+      }else{
+        await deactivatePreparedWorker(userId);
+        toast.success("Acceso operativo del trabajador desactivado.");
+      }
+      await refresh();
+    }catch(e){toast.error(e instanceof Error?e.message:"No pudo actualizarse el acceso.");}
+    finally{busyRef.current=false;setBusy(null);}
+  };
   return (
     <section aria-label="Preparación de perfiles por empleado" className="overflow-hidden rounded-2xl border bg-card shadow-sm">
       <div className="flex flex-wrap items-start justify-between gap-3 border-b px-5 py-5 sm:px-6">
@@ -69,8 +90,8 @@ export const RolePlanningPanel = () => {
           <div>
             <h3 className="text-lg font-bold">Asignación de perfiles futuros</h3>
             <p className="mt-1 max-w-xl text-sm text-muted-foreground">
-              Prepara al Bodeguero, Encargado o Vendedor para cada empleado.
-              Las modificaciones se auditan y no alteran la sesión ni los permisos actuales.
+              Prepara al Bodeguero, Encargado o Vendedor y activa las cuentas de local
+              únicamente después de aprobar inventario, sede y límites correspondientes.
             </p>
           </div>
         </div>
@@ -81,9 +102,10 @@ export const RolePlanningPanel = () => {
       <div className="flex items-start gap-3 border-b bg-amber-500/5 px-5 py-4 sm:px-6">
         <ShieldAlert className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
         <p className="text-sm text-muted-foreground">
-          <strong className="text-foreground">Preparación, no activación:</strong> Encargado y Vendedor
-          permanecerán inactivos hasta integrar los controles de acceso al inventario, POS, caja y
-          operaciones anteriores. No se crea un acceso con privilegios heredados por accidente.
+          <strong className="text-foreground">Activación protegida:</strong> las cuentas nuevas
+          permanecen inactivas hasta que el Administrador confirme su única sede y el servidor
+          valide el inventario inicial, el rol y los topes de caja cuando correspondan.
+          Ningún trabajador hereda los permisos anteriores de Bodeguero.
         </p>
       </div>
       {loading && managed.length === 0 ? (
@@ -98,20 +120,28 @@ export const RolePlanningPanel = () => {
             const saved = plans.find((p) => p.userId === user.id);
             const draft = drafts[user.id] ?? "bodeguero";
             const changed = draft !== saved?.plannedRole;
+            const assigned = assignments.filter((s)=>s.userId===user.id&&s.isActive);
+            const protectedWorker = Boolean(saved &&
+              (saved.plannedRole==="encargado"||saved.plannedRole==="vendedor"));
+            const readyToAttempt = Boolean(protectedWorker && !user.isActive &&
+              !saved?.operationallyEnabled && assigned.length===1);
             return (
               <div key={user.id} className="grid gap-3 px-5 py-4 sm:grid-cols-[minmax(0,1fr)_minmax(180px,240px)_auto] sm:items-end sm:px-6">
                 <div className="min-w-0">
                   <p className="font-semibold">{user.name}</p>
                   <p className="break-all text-xs text-muted-foreground">{user.email}</p>
                   <p className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
-                    {saved ? <><ClipboardList className="h-3.5 w-3.5" /> Preparado y auditado</>
+                    {saved?.operationallyEnabled ? <><BadgeCheck className="h-3.5 w-3.5" /> Rol operativo activado</>
+                      : saved ? <><ClipboardList className="h-3.5 w-3.5" /> Perfil preparado, no activado</>
                       : <><LockKeyhole className="h-3.5 w-3.5" /> Sin asignación preparada</>}
                     {!user.isActive ? " · Cuenta inactiva" : ""}
+                    {protectedWorker ? ` · Sedes asignadas: ${assigned.length}` : ""}
                   </p>
                 </div>
                 <div className="space-y-2">
                   <label htmlFor={`role-draft-${user.id}`} className="text-xs font-semibold">Perfil propuesto</label>
-                  <select id={`role-draft-${user.id}`} value={draft} disabled={busy !== null || loading || !user.isActive}
+                  <select id={`role-draft-${user.id}`} value={draft}
+                    disabled={busy !== null || loading || !user.isActive || Boolean(saved?.operationallyEnabled)}
                     onChange={(e) => setDrafts((old) => ({
                       ...old, [user.id]: e.target.value as PreparatoryRole,
                     }))}
@@ -119,11 +149,33 @@ export const RolePlanningPanel = () => {
                     {rolePlanOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
                   </select>
                 </div>
-                <Button disabled={busy !== null || loading || !user.isActive || (!changed && Boolean(saved))}
-                  onClick={() => void persist(user)}>
-                  {saved && !changed ? <BadgeCheck className="h-4 w-4" /> : <Save className="h-4 w-4" />}
-                  {saved && !changed ? "Guardado" : "Guardar plan"}
-                </Button>
+                <div className="flex flex-wrap gap-2">
+                  {saved?.operationallyEnabled ? (
+                    <ConfirmDialog
+                      trigger={<Button variant="destructive" disabled={busy!==null}>Desactivar acceso</Button>}
+                      title="Desactivar cuenta operativa"
+                      description="La persona perderá el acceso a su sede. Los registros anteriores se conservan."
+                      destructive
+                      onConfirm={()=>void changeActivation(user.id,false)}
+                    />
+                  ) : readyToAttempt ? (
+                    <ConfirmDialog
+                      trigger={<Button disabled={busy!==null}>Activar acceso</Button>}
+                      title="Activar trabajador del local"
+                      description="Supabase verificará inventario inicial, sede, rol y topes. La cuenta no tendrá permisos de Bodeguero."
+                      onConfirm={()=>void changeActivation(user.id,true)}
+                    />
+                  ) : (
+                    <Button disabled={busy !== null || loading || !user.isActive ||
+                        (!changed && Boolean(saved))}
+                      onClick={() => void persist(user)}>
+                      {saved && !changed ? <BadgeCheck className="h-4 w-4" /> : <Save className="h-4 w-4" />}
+                      {saved && !changed ? "Guardado" : "Guardar plan"}
+                    </Button>
+                  )}
+                  {protectedWorker && !saved?.operationallyEnabled && assigned.length!==1
+                    ? <span className="text-xs text-amber-700">Asigna una sede local única antes de activar</span> : null}
+                </div>
               </div>
             );
           })}
