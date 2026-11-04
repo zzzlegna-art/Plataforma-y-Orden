@@ -1,10 +1,12 @@
+import { parseCatalogMedia, type CatalogMedia } from "./nexora-worker-catalog-media";
+
 /** Conteos de IMEI por referencia y sede, sin inventar ubicaciones ni unidades no serializadas. */
 export interface ReferenceSiteCount {
   siteId:string|null; siteName:string;cityName:string|null;
   total:number;physicallyVerified:number;available:number;
   unverified:number;inTransit:number;pendingReturn:number;sold:number;
 }
-export interface ReferenceStockRow extends Omit<ReferenceSiteCount,"siteId"|"siteName"|"cityName"> {
+export interface ReferenceStockRow extends Omit<ReferenceSiteCount,"siteId"|"siteName"|"cityName">, CatalogMedia {
   productId:string;name:string;sku:string;sites:ReferenceSiteCount[];
 }
 export interface ReferenceStockResult {
@@ -60,7 +62,7 @@ export const parseReferenceStock=(data:unknown):ReferenceStockResult=>{
         throw new Error("Los subtotales por sede no coinciden con la referencia.");
     }
     return {...counts,productId:asText(row.productId),name:asText(row.name),
-      sku:asText(row.sku),sites};
+      sku:asText(row.sku),sites,...parseCatalogMedia(row)};
   });
   const page=asInt(input.page),pageSize=asInt(input.pageSize),matched=asInt(input.matched);
   if(page===0||pageSize===0||pageSize>50||items.length>pageSize||items.length>matched)
