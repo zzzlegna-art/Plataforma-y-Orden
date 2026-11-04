@@ -378,10 +378,12 @@ $api$;
 select set_config('request.jwt.claim.sub',
   '00000000-0000-0000-0000-000000000002',true);
 do $api$
+declare
+  v_transfer uuid;
 begin
-  -- Un Bodeguero sin sede de destino asignada NO puede recibir.
-  -- Para el wrapper, la denegación real ocurre en origen/destino,
-  -- no por ser Bodeguero.
+  select transfer_id into v_transfer from pg_temp.nexora_ci_receipt_case;
+  -- El Bodeguero REMITENTE puede consultar el historial del envío,
+  -- pero no confirmar recepción en una sede de destino ajena.
   begin
     perform public.nexora_transfer_action(
       'invalid',null,null,null,array[]::text[],null);
@@ -393,15 +395,15 @@ begin
 
   begin
     perform public.nexora_transfer_receive_with_notes(
-      null,array[]::text[],'[]'::jsonb);
+      v_transfer,array[]::text[],'[]'::jsonb);
     raise exception 'CI_BODEGUERO_WAS_NOT_REJECTED';
   exception when others then
     if sqlerrm='CI_BODEGUERO_WAS_NOT_REJECTED'
       or sqlerrm not like '%No tienes permiso para recibir en la sede de destino%' then raise; end if;
   end;
 
-  if exists(select 1 from public.nexora_transfer_missing_receipt_notes) then
-    raise exception 'Bodeguero pudo leer las notas globales del Administrador.';
+  if (select count(*) from public.nexora_transfer_missing_receipt_notes)<>5 then
+    raise exception 'El Bodeguero de origen debe poder consultar las notas de su propio traslado.';
   end if;
 end;
 $api$;
