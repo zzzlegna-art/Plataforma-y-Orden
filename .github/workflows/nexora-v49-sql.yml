@@ -7,6 +7,8 @@ on:
       - "supabase/migrations/20261103181000_nexora_v49_local_initial_approval.sql"
       - "supabase/tests/nexora_v49_*"
       - "supabase/tests/nexora_v496_*"
+      - "supabase/tests/nexora_v497_*"
+      - "supabase/migrations/20261103200000_nexora_v497_worker_activation.sql"
       - "supabase/migrations/20261103193000_nexora_v496_safe_worker_provisioning.sql"
       - ".github/workflows/nexora-v49-sql.yml"
   workflow_dispatch:
@@ -64,3 +66,9 @@ jobs:
         run: psql -X -v ON_ERROR_STOP=1 -f supabase/migrations/20261103193000_nexora_v496_safe_worker_provisioning.sql
       - name: Test prepared worker cannot become Bodeguero or Administrator
         run: psql -X -v ON_ERROR_STOP=1 -f supabase/tests/nexora_v496_prepared_worker.sql
+      - name: Prepare worker activation test schema
+        run: psql -X -v ON_ERROR_STOP=1 -f supabase/tests/nexora_v497_activation_fixture.sql
+      - name: Install restricted worker activation RPCs
+        run: psql -X -v ON_ERROR_STOP=1 -f supabase/migrations/20261103200000_nexora_v497_worker_activation.sql
+      - name: Test employee activation, role boundaries and audit
+        run: psql -X -v ON_ERROR_STOP=1 -f supabase/tests/nexora_v497_worker_activation.sql
