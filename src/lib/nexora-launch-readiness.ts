@@ -36,7 +36,7 @@ export const PREPARATION_STEPS = [
   },
   {
     key:"reconciliation",title:"Formalizar el corte inicial de Bodega 6A",
-    detail:"No se recrean seriales ni productos heredados. Para 6A hay un acta administrativa opcional al escaneo individual; solo puede firmarse tras comprobar físicamente las existencias. Las otras sedes requieren cotejo real.",
+    detail:"No se recrean seriales ni productos heredados. Para Bodega 6A hay un acta administrativa alternativa al escaneo individual; solo puede firmarse tras comprobar físicamente las existencias. Las otras sedes requieren cotejo real.",
     tab:"sites",action:"Revisar corte y acta",
   },
   {
