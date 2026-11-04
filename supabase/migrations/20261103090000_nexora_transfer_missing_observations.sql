@@ -27,52 +27,6 @@ create policy nexora_transfer_missing_admin_read
   on public.nexora_transfer_missing_observations
   for select to authenticated
   using ((select public.bodega_is_admin()));
-
--- Lectura operativa limitada a la sede de origen/destino realmente asignada.
--- La lectura global de inventario NO autoriza a ver traslados de otra sede.
-create policy nexora_transfers_bodeguero_site_read on public.nexora_transfers
-  for select to authenticated
-  using (
-    (select public.bodega_is_staff()) and exists (
-      select 1 from public.nexora_staff_sites ss
-      where ss.user_id=(select auth.uid()) and ss.is_active
-        and ss.site_id in (origin_site_id,destination_site_id)
-    )
-  );
-create policy nexora_transfer_lines_bodeguero_site_read on public.nexora_transfer_lines
-  for select to authenticated
-  using ((select public.bodega_is_staff()) and exists (
-    select 1 from public.nexora_transfers t where t.id=nexora_transfer_lines.transfer_id
-  ));
-create policy nexora_transfer_returns_bodeguero_site_read on public.nexora_transfer_return_documents
-  for select to authenticated
-  using ((select public.bodega_is_staff()) and exists (
-    select 1 from public.nexora_transfers t where t.id=nexora_transfer_return_documents.transfer_id
-  ));
-create policy nexora_transfer_events_bodeguero_site_read on public.nexora_transfer_events
-  for select to authenticated
-  using ((select public.bodega_is_staff()) and exists (
-    select 1 from public.nexora_transfers t where t.id=nexora_transfer_events.transfer_id
-  ));
-create policy nexora_transfer_missing_site_read on public.nexora_transfer_missing_observations
-  for select to authenticated
-  using (
-    (select public.bodega_is_staff() or nexora_internal.worker_session() is not null)
-    and exists (
-      select 1 from public.nexora_transfers t
-      where t.id=nexora_transfer_missing_observations.transfer_id
-        and (
-          exists (
-            select 1 from public.nexora_staff_sites ss
-            where ss.user_id=(select auth.uid()) and ss.is_active
-              and ss.site_id in (t.origin_site_id,t.destination_site_id)
-          )
-          or (nexora_internal.worker_session() ->> 'siteId')::uuid
-             in (t.origin_site_id,t.destination_site_id)
-        )
-    )
-  );
-
 revoke all on public.nexora_transfer_missing_observations
   from public,anon,authenticated;
 grant select on public.nexora_transfer_missing_observations to authenticated;
