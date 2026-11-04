@@ -393,6 +393,33 @@ begin
       or sqlerrm not like '%Acción de traslado inválida%' then raise; end if;
   end;
 
+  -- Bodeguero de Bodega 6A no puede CREAR traslados desde local ajeno,
+  -- aunque pertenezca al equipo de la red y pueda ver el manifiesto.
+  begin
+    perform public.nexora_transfer_action(
+      'create',null,
+      '00000000-0000-0000-0000-000000000200'::uuid,
+      '00000000-0000-0000-0000-000000000100'::uuid,
+      array[]::text[],null);
+    raise exception 'CI_BODEGUERO_CREATED_FROM_OTHER_SITE';
+  exception when others then
+    if sqlerrm='CI_BODEGUERO_CREATED_FROM_OTHER_SITE'
+      or sqlerrm not like '%Bodeguero: no puedes operar un traslado de una sede no asignada%'
+      then raise; end if;
+  end;
+
+  -- Sí está autorizado para despachar desde su origen, pero este documento
+  -- ya no está en borrador. El rechazo debe ser por ESTADO, no por sede.
+  begin
+    perform public.nexora_transfer_action(
+      'dispatch',v_transfer,null,null,array[]::text[],null);
+    raise exception 'CI_BODEGUERO_DISPATCHED_CLOSED';
+  exception when others then
+    if sqlerrm='CI_BODEGUERO_DISPATCHED_CLOSED'
+      or sqlerrm not like '%Solo puedes despachar un manifiesto en borrador%'
+      then raise; end if;
+  end;
+
   begin
     perform public.nexora_transfer_receive_with_notes(
       v_transfer,array[]::text[],'[]'::jsonb);
