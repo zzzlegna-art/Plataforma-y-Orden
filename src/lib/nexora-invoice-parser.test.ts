@@ -1,5 +1,5 @@
 import {describe,expect,it} from "vitest";
-import {parseInvoiceText,readMoney} from "./nexora-invoice-parser";
+import {parseInvoiceText,readMoney,validateInvoiceApproval} from "./nexora-invoice-parser";
 describe("facturas: capturar sin inventar costos",()=>{
  it("lee montos de distintos formatos",()=>{
   expect(readMoney("$2.500.000")).toBe(2500000);
@@ -39,6 +39,15 @@ describe("facturas: capturar sin inventar costos",()=>{
   const r=parseInvoiceText("FACTURA FE-123\n2 IP14 900.000 1.500.000",
    [{id:"p14",sku:"IP14",name:"iPhone 14"}]);
   expect(r.lines[0].warning).toMatch(/no coincide/);
+ });
+ it("impide aprobar una factura con subtotal distinto al costo",()=>{
+   const errors=validateInvoiceApproval([
+     {description:"iPhone 13",quantity:2,unitCost:1200000,total:2000000,productId:"p13",sku:"IP13"},
+   ],"supplier","FE-123");
+   expect(errors.join(" ")).toMatch(/no coincide/);
+   expect(validateInvoiceApproval([
+     {description:"iPhone 13",quantity:2,unitCost:1200000,total:2400000,productId:"p13",sku:"IP13"},
+   ],"supplier","FE-123")).toEqual([]);
  });
  it("no inventa cantidades ni productos cuando no detecta líneas",()=>{
   const r=parseInvoiceText("FACTURA 1234\nTOTAL 8000",[]);
