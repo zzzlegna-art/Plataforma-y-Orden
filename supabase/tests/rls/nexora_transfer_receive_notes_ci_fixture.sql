@@ -148,7 +148,7 @@ begin
   perform set_config('request.jwt.claim.sub',
     '00000000-0000-0000-0000-000000000002',true);
   perform public.nexora_ci_expect_notes_denial(
-    v_id,v_scanned,v_marks,'%Solo Administrador%');
+    v_id,v_scanned,v_marks,'%No tienes permiso para recibir en la sede de destino%');
   perform set_config('request.jwt.claim.sub',
     '00000000-0000-0000-0000-000000000001',true);
 
@@ -370,15 +370,16 @@ select set_config('request.jwt.claim.sub',
   '00000000-0000-0000-0000-000000000002',true);
 do $api$
 begin
-  -- La RPC pública sigue siendo Admin-only incluso después de hacerse
-  -- SECURITY DEFINER: auth.uid() NO se sustituye por el dueño SQL.
+  -- Un Bodeguero sin sede de destino asignada NO puede recibir.
+  -- Para el wrapper, la denegación real ocurre en origen/destino,
+  -- no por ser Bodeguero.
   begin
     perform public.nexora_transfer_action(
       'invalid',null,null,null,array[]::text[],null);
     raise exception 'CI_BODEGUERO_LEGACY_BYPASS';
   exception when others then
     if sqlerrm='CI_BODEGUERO_LEGACY_BYPASS'
-      or sqlerrm not like '%Solo Administrador%' then raise; end if;
+      or sqlerrm not like '%Acción de traslado inválida%' then raise; end if;
   end;
 
   begin
@@ -387,7 +388,7 @@ begin
     raise exception 'CI_BODEGUERO_WAS_NOT_REJECTED';
   exception when others then
     if sqlerrm='CI_BODEGUERO_WAS_NOT_REJECTED'
-      or sqlerrm not like '%Solo Administrador%' then raise; end if;
+      or sqlerrm not like '%No tienes permiso para recibir en la sede de destino%' then raise; end if;
   end;
 
   if exists(select 1 from public.nexora_transfer_missing_receipt_notes) then
@@ -406,7 +407,7 @@ begin
     raise exception 'CI_UNAUTHENTICATED_WRAPPER_ALLOWED';
   exception when others then
     if sqlerrm='CI_UNAUTHENTICATED_WRAPPER_ALLOWED'
-      or sqlerrm not like '%Solo Administrador%' then raise; end if;
+      or sqlerrm not like '%No tienes permiso para operar traslados multisede%' then raise; end if;
   end;
   begin
     perform public.nexora_transfer_receive_with_notes(
@@ -414,7 +415,7 @@ begin
     raise exception 'CI_UNAUTHENTICATED_RECEIPT_ALLOWED';
   exception when others then
     if sqlerrm='CI_UNAUTHENTICATED_RECEIPT_ALLOWED'
-      or sqlerrm not like '%Solo Administrador%' then raise; end if;
+      or sqlerrm not like '%No tienes permiso para operar traslados multisede%' then raise; end if;
   end;
 end;
 $no_identity$;
