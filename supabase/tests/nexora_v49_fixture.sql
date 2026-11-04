@@ -46,7 +46,7 @@ create table public.nexora_sites(
    (site_type='principal' and parent_site_id is null)
    or (site_type in ('bodega','local') and parent_site_id is not null))
 );
-create table public.bodega_units (id uuid primary key);
+create table public.bodega_units (id uuid primary key, status text not null default 'en_bodega', cost numeric);
 create table public.nexora_initial_inventory_approvals (
  id uuid primary key default gen_random_uuid(),
  only_one boolean not null default true check (only_one),
