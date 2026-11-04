@@ -36,7 +36,7 @@ import type { Product, ProductCategory, UnitCondition } from "@/lib/types";
 import { ReceptionItemChip } from "./ReceptionItemChip";
 import { SupplierFormDialog } from "@/pages/proveedores/SupplierFormDialog";
 import { listSuppliers, type Supplier } from "@/lib/suppliers";
-import { supabase } from "@/integrations/supabase/client";
+
 import type { InvoiceLineSuggestion } from "@/lib/nexora-invoice-parser";
 
 /**
@@ -85,15 +85,19 @@ const NuevaRecepcion = () => {
   useEffect(()=>{
     if(!receptionId)return;
     let active=true;
-    void supabase.from("nexora_invoice_drafts")
-      .select("invoice_no,lines").eq("reception_id",receptionId)
-      .limit(1).maybeSingle().then(({data,error})=>{
+    void (async()=>{
+      try{
+        const {supabase}=await import("@/integrations/supabase/client");
+        const {data,error}=await supabase.from("nexora_invoice_drafts")
+          .select("invoice_no,lines").eq("reception_id",receptionId)
+          .limit(1).maybeSingle();
         if(!active)return;
         if(error){console.warn("Factura vinculada no disponible",error.message);return;}
         if(!data){setExpectedInvoice(null);return;}
         setExpectedInvoice({number:typeof data.invoice_no==="string"?data.invoice_no:"",
           lines:Array.isArray(data.lines)?data.lines as InvoiceLineSuggestion[]:[]});
-      });
+      }catch(error){if(active)console.warn("Sin factura asistida:",error);}
+    })();
     return()=>{active=false;};
   },[receptionId]);
   const [saving, setSaving] = useState(false);

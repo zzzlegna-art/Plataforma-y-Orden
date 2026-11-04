@@ -7,7 +7,7 @@ import {Input} from "@/components/ui/input";
 import {Label} from "@/components/ui/label";
 import {useStore} from "@/hooks/use-store";
 import {useApp} from "@/hooks/use-app";
-import {supabase} from "@/integrations/supabase/client";
+const getClient=async()=> (await import("@/integrations/supabase/client")).supabase;
 import {listSuppliers,type Supplier} from "@/lib/suppliers";
 import {parseInvoiceText,type InvoiceSuggestion,type InvoiceLineSuggestion} from "@/lib/nexora-invoice-parser";
 import {readInvoiceDocument} from "@/lib/nexora-invoice-reader";
@@ -59,6 +59,7 @@ const InvoiceCapture=()=>{
  const catalog=db.products.filter(x=>x.isActive);
  const load=useCallback(async()=>{
    setLoadingList(true);
+   const supabase=await getClient();
    try{
      const [listed,providers]=await Promise.all([
        supabase.from("nexora_invoice_drafts").select("*").order("created_at",{ascending:false}).limit(30),
@@ -110,7 +111,8 @@ const InvoiceCapture=()=>{
    lock.current=true;setBusy(true);setError("");
    let path="";
    try{
-     const sha=await readHash(file);
+     const supabase=await getClient();
+    const sha=await readHash(file);
      const extension=file.type==="application/pdf"?"pdf":file.type==="image/png"?"png":"jpg";
      path=user.id+"/"+crypto.randomUUID()+"."+extension;
      const upload=await supabase.storage.from("nexora-invoices").upload(path,file,
@@ -136,6 +138,7 @@ const InvoiceCapture=()=>{
  };
  const saveChanges=async()=>{
    if(!active||!fields||!admin||active.status!=="pending")throw new Error("Factura no editable.");
+   const supabase=await getClient();
    const result=await supabase.from("nexora_invoice_drafts").update({
      supplier_name:fields.supplierName.slice(0,300),
      supplier_id:supplierId||null,invoice_no:fields.invoiceNo.trim()||null,
@@ -152,6 +155,7 @@ const InvoiceCapture=()=>{
    if(!active||!admin||lock.current)return;
    lock.current=true;setBusy(true);setError("");
    try{
+     const supabase=await getClient();
      if(action==="approve")await saveChanges();
      const {data,error:rpcError}=await supabase.rpc("nexora_invoice_finalize",{
        p_id:active.id,p_action:action,
@@ -171,6 +175,7 @@ const InvoiceCapture=()=>{
  };
  const original=async()=>{
    if(!active)return;
+   const supabase=await getClient();
    const {data,error:e}=await supabase.storage.from("nexora-invoices")
      .createSignedUrl(active.source_path,120);
    if(e||!data?.signedUrl){setError(e?.message??"No se pudo abrir el documento.");return;}
