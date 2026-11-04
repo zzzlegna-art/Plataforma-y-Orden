@@ -307,7 +307,7 @@ create or replace function public.nexora_transfer_action(
 returns jsonb
 language plpgsql security definer
 set search_path = pg_catalog
-as $
+as $nexora_wrapper$
 declare
   v_actor uuid := auth.uid();
   v_worker jsonb := nexora_internal.worker_session();
@@ -353,7 +353,7 @@ begin
     p_action,p_transfer_id,p_origin,p_destination,p_serials,p_note
   );
 end;
-$;
+$nexora_wrapper$;
 
 -- Importante: la RPC interna original era ejecutable por authenticated,
 -- que podía saltarse el nuevo requisito de observaciones llamando a
