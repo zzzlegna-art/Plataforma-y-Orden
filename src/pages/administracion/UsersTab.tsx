@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { KeyRound, Pencil, Plus, UserCog, UserPlus } from "lucide-react";
 import { toast } from "sonner";
@@ -24,6 +24,7 @@ import { useRunAction } from "@/hooks/use-run-action";
 import { useStore } from "@/hooks/use-store";
 import { updateUser } from "@/lib/actions/users";
 import { formatDate } from "@/lib/format";
+import { listRolePlans, type PreparatoryRole } from "@/lib/nexora-role-plans";
 import type { Role, User } from "@/lib/types";
 import { useAuth } from "@/hooks/use-auth";
 
@@ -55,7 +56,7 @@ const crearCuenta = async (body: {
   return { ok: true };
 };
 
-const CreateUserDialog = () => {
+const CreateUserDialog = ({ onCreated }: { onCreated: () => void }) => {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [fullName, setFullName] = useState("");
@@ -80,6 +81,7 @@ const CreateUserDialog = () => {
       toast.success(role === "encargado" || role === "vendedor"
         ? "Cuenta creada como pendiente: no podrá iniciar sesión hasta la activación segura."
         : t("user.created"));
+      onCreated();
       setOpen(false);
       setFullName("");
       setEmail("");
@@ -315,7 +317,25 @@ export const UsersTab = () => {
   const { db } = useStore();
   const { user: currentUser } = useAuth();
   const runAction = useRunAction();
+  const [plans, setPlans] = useState<Record<string, PreparatoryRole>>({});
+  const [refreshPlans, setRefreshPlans] = useState(0);
+  useEffect(() => {
+    let mounted = true;
+    void listRolePlans().then((items) => {
+      if (mounted) setPlans(Object.fromEntries(items.map((p) => [p.userId, p.plannedRole])));
+    }).catch(() => {
+      if (mounted) setPlans({});
+    });
+    return () => { mounted = false; };
+  }, [refreshPlans, db.users.length]);
 
+  const prepared = (u: User) => !u.isActive &&
+    (plans[u.id] === "encargado" || plans[u.id] === "vendedor");
+  const roleBadge = (u: User) => prepared(u) ? (
+    <span role="status" className="rounded-full border border-amber-300 bg-amber-50 px-2 py-1 text-xs font-semibold text-amber-900">
+      {plans[u.id] === "encargado" ? "Encargado" : "Vendedor"} · Pendiente de activación
+    </span>
+  ) : <RoleBadge role={u.role} />;
   const rows = db.users.slice().sort((a, b) => a.fullName.localeCompare(b.fullName));
 
   const changeRole = (target: User, role: Role) =>
@@ -339,7 +359,7 @@ export const UsersTab = () => {
             <UserPlus className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
             <p>{t("user.inviteHint")}</p>
           </div>
-          <CreateUserDialog />
+          <CreateUserDialog onCreated={() => setRefreshPlans((n) => n + 1)} />
         </div>
       </div>
 
@@ -359,12 +379,14 @@ export const UsersTab = () => {
               <ActiveBadge isActive={user.isActive} />
             </div>
             <div className="flex items-center gap-2">
-              <RoleBadge role={user.role} />
+              {roleBadge(user)}
               {user.id === currentUser?.id ? (
                 <span className="text-xs text-muted-foreground">{t("user.itsYou")}</span>
               ) : null}
             </div>
-            {user.id === currentUser?.id ? null : (
+            {user.id === currentUser?.id ? null : prepared(user) ? (
+              <p className="text-xs text-amber-800">Cuenta protegida: la activación se realizará desde Roles y permisos.</p>
+            ) : (
               <div className="flex flex-wrap gap-2">
                 <EditUserDialog user={user} onSave={(role) => changeRole(user, role)} />
                 <ResetPasswordDialog user={user} />
@@ -397,7 +419,7 @@ export const UsersTab = () => {
           {
             key: "role",
             header: t("user.role"),
-            cell: (user) => <RoleBadge role={user.role} />,
+            cell: (user) => roleBadge(user),
           },
           {
             key: "status",
@@ -418,6 +440,8 @@ export const UsersTab = () => {
             cell: (user) =>
               user.id === currentUser?.id ? (
                 <span className="text-xs text-muted-foreground">{t("user.itsYou")}</span>
+              ) : prepared(user) ? (
+                <span className="text-xs text-amber-800">Pendiente de activación segura</span>
               ) : (
                 <div className="flex flex-wrap justify-end gap-1">
                   <EditUserDialog user={user} onSave={(role) => changeRole(user, role)} />
