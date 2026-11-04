@@ -75,8 +75,8 @@ export const PreparacionOperacionTab=()=>{
           <p className="mt-2 text-sm leading-relaxed text-slate-600 dark:text-slate-300">
             Bodega 6A de Barranquilla es el origen de los registros heredados. No necesitas
             crear de nuevo los productos ni escanear individualmente todos los seriales históricos.
-            Antes de activar operaciones nuevas, el Administrador debe formalizar el corte inicial
-            y distinguir los equipos existentes de los vendidos. Ninguna operación se habilita automáticamente.
+            Los existentes figuran en Bodega 6A y los vendidos siguen en su historial.
+            No hay que repetir el conteo físico por referencia para registrar su procedencia.
           </p>
         </div>
         <Button size="sm" variant="outline" disabled={loading} onClick={()=>void refresh()}
@@ -99,7 +99,7 @@ export const PreparacionOperacionTab=()=>{
             style={{width:`${percent}%`}} />
         </div>
         <p className="mt-3 text-xs text-slate-600 dark:text-slate-300">
-          {data?"Permisos de Encargado y Vendedor: aún no habilitados. Caja y POS permanecen protegidos."
+          {data?"Los roles y el POS solo operan cuando cada local tiene sus autorizaciones y datos necesarios."
             :"Consultando el estado real de Nexora..."}
         </p>
       </div>
