@@ -62,6 +62,23 @@ describe("Plan Maestro Nexora V4 · 20→15→5 con nota individual obligatoria"
       .toBe(false);
   });
 
+  it("no interpreta cero escaneados como recepción completa: exige veinte notas", () => {
+    const allMarks = manifest.map((line) => ({
+      lineId:line.id,
+      serial:line.serial,
+      markedNotArrived:true,
+      observation:`No se encontró el equipo ${line.serial} al abrir la remesa.`,
+    }));
+    const valid = validateMissingReceiptConfirmation(manifest,[],allMarks);
+    expect(valid.ok).toBe(true);
+    expect(valid.incidents).toHaveLength(20);
+    const missingOne=validateMissingReceiptConfirmation(manifest,[],allMarks.slice(0,19));
+    expect(missingOne.ok).toBe(false);
+    expect(missingOne.errors.join(" ")).toContain("IMEI-0020");
+    const noNotes=validateMissingReceiptConfirmation(manifest,[],[]);
+    expect(noNotes.ok).toBe(false);
+  });
+
   it("no exige notas si los veinte IMEI fueron realmente recibidos", () => {
     expect(validateMissingReceiptConfirmation(manifest,
       manifest.map((line) => line.serial), [])).toEqual({

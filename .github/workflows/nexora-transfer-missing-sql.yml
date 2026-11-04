@@ -1,0 +1,79 @@
+name: Nexora V4 - missing IMEI audit SQL
+
+on:
+  pull_request:
+    branches: [main, feat/nexora-v4-observaciones-no-llego-20261103]
+    paths:
+      - "supabase/migrations/20261104182506_nexora_transfer_missing_observations.sql"
+      - "supabase/migrations/20261104182517_nexora_transfer_receive_observations.sql"
+      - "supabase/tests/rls/nexora_transfer_receive_notes_ci_fixture.sql"
+      - "supabase/tests/rls/nexora_atomic_receipt_security_checks.sql"
+      - "scripts/extract-nexora-receipt-fixture-setup.mjs"
+      - "supabase/tests/rls/nexora_transfer_missing_ci_fixture.sql"
+      - "supabase/tests/rls/nexora_transfer_full_flow_ci_fixture.sql"
+      - "supabase/tests/rls/nexora_missing_audit_schema_checks.sql"
+      - "supabase/migrations/20261102110000_nexora_site_availability_and_order_guards.sql"
+      - "scripts/extract-nexora-transfer-rpc.mjs"
+      - "supabase/migrations/20261104144040_nexora_v4_invoice_role_authorization.sql"
+      - ".github/workflows/nexora-transfer-missing-sql.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  missing-imei-sql:
+    name: Missing IMEI audit (ephemeral PostgreSQL)
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: nexora_ci
+          POSTGRES_PASSWORD: nexora_test_ephemeral
+          POSTGRES_DB: nexora_test
+        ports:
+          - 54322:5432
+        options: >-
+          --health-cmd "pg_isready -U nexora_ci -d nexora_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      PGHOST: 127.0.0.1
+      PGPORT: "54322"
+      PGUSER: nexora_ci
+      PGPASSWORD: nexora_test_ephemeral
+      PGDATABASE: nexora_test
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - name: Ensure PostgreSQL client is available
+        run: |
+          if ! command -v psql >/dev/null 2>&1; then
+            sudo apt-get update
+            sudo apt-get install -y postgresql-client
+          fi
+      - name: Verify IMEI by IMEI audit from 20 sent, 15 received, 5 missing
+        run: |
+          psql -X -v ON_ERROR_STOP=1 \
+            -f supabase/tests/rls/nexora_transfer_missing_ci_fixture.sql
+      - name: Extract the real production transfer function from migration
+        run: node scripts/extract-nexora-transfer-rpc.mjs
+      - name: Exercise 20→15→5 with the real transfer function
+        run: |
+          psql -X -v ON_ERROR_STOP=1 \
+            -f supabase/tests/rls/nexora_transfer_full_flow_ci_fixture.sql
+      - name: Generate setup for atomic notes from the existing real-RPC fixture
+        run: node scripts/extract-nexora-receipt-fixture-setup.mjs
+      - name: Verify five receiver notes and all-or-nothing receipt
+        run: |
+          psql -X -v ON_ERROR_STOP=1 \
+            -f supabase/tests/rls/nexora_transfer_receive_notes_ci_fixture.sql
+      - name: Confirm automatic transaction rollback
+        run: |
+          result="$(psql -X -At -c "select count(*) from pg_namespace where nspname in ('auth','nexora_internal')")"
+          test "$result" = "0"
