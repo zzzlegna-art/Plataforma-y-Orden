@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Building2, Plus, RefreshCw, ShieldCheck, Users } from "lucide-react";
+import { Building2, Plus, RefreshCw, Users } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
