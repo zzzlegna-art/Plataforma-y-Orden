@@ -5,7 +5,25 @@ type OcrWorker={
   recognize:(source:HTMLCanvasElement|Blob)=>Promise<{data:{text:string}}>;
   terminate:()=>Promise<void>;
 };
-type OcrModule={createWorker:(lang:string)=>Promise<OcrWorker>};
+type OcrCreateWorker=(lang:string)=>Promise<OcrWorker>;
+/**
+ * El bundle ESM de Tesseract.js publicado por CDN puede exportar
+ * la fábrica como "default.createWorker", no como export nombrado.
+ * El cast de TypeScript no cambia la forma real del módulo importado.
+ */
+export const resolveOcrCreateWorker=(module:unknown):OcrCreateWorker=>{
+  if(!module||typeof module!=="object")
+    throw new Error("No se pudo cargar el lector de facturas. Completa los datos manualmente.");
+  const exports=module as Record<string,unknown>;
+  for(const candidate of [exports,exports.default]){
+    if(candidate&&typeof candidate==="object"){
+      const library=candidate as {createWorker?:unknown};
+      if(typeof library.createWorker==="function")
+        return (lang:string)=>(library.createWorker as OcrCreateWorker)(lang);
+    }
+  }
+  throw new Error("El lector de imágenes no se inicializó. Completa los datos manualmente.");
+};
 type PDFPage={
   getTextContent:()=>Promise<{items:unknown[]}>;
   getViewport:(v:{scale:number})=>{width:number;height:number};
@@ -20,12 +38,12 @@ const pdfUrl="https://cdn.jsdelivr.net/npm/pdfjs-dist@4.8.69/build/pdf.min.mjs";
 const pdfWorkerUrl="https://cdn.jsdelivr.net/npm/pdfjs-dist@4.8.69/build/pdf.worker.min.mjs";
 const tesseractUrl="https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.esm.min.js";
 let pdfPromise:Promise<PdfModule>|null=null;
-let ocrPromise:Promise<OcrModule>|null=null;
+let ocrPromise:Promise<unknown>|null=null;
 const pdfModule=()=>pdfPromise??=import(/* @vite-ignore */ pdfUrl) as Promise<PdfModule>;
-const ocrModule=()=>ocrPromise??=import(/* @vite-ignore */ tesseractUrl) as Promise<OcrModule>;
+const ocrModule=()=>ocrPromise??=import(/* @vite-ignore */ tesseractUrl);
 const ocr=async(source:HTMLCanvasElement|Blob):Promise<string>=>{
-  const mod=await ocrModule();
-  const worker=await mod.createWorker("spa+eng");
+  const createWorker=resolveOcrCreateWorker(await ocrModule());
+  const worker=await createWorker("spa+eng");
   try{return (await worker.recognize(source)).data.text??"";}
   finally{await worker.terminate();}
 };
