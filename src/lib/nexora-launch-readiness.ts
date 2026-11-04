@@ -35,9 +35,9 @@ export const PREPARATION_STEPS = [
     tab:"roles",action:"Preparar perfiles",
   },
   {
-    key:"reconciliation",title:"Formalizar el corte inicial de Bodega 6A",
-    detail:"No se recrean seriales ni productos heredados. Para Bodega 6A hay un acta administrativa alternativa al escaneo individual; solo puede firmarse tras comprobar físicamente las existencias. Las otras sedes requieren cotejo real.",
-    tab:"sites",action:"Revisar corte y acta",
+    key:"reconciliation",title:"Origen histórico de Bodega 6A",
+    detail:"Los registros anteriores corresponden a Bodega 6A por declaración del propietario. Este origen ya se registró sin volver a escanear ni contar los IMEI; los vendidos permanecen históricos. Los locales nuevos mantienen controles propios.",
+    tab:"sites",action:"Ver origen registrado",
   },
   {
     key:"roleActivation",title:"Validar activación segura de roles",
