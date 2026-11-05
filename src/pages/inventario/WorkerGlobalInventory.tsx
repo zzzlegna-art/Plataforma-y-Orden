@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   Activity, ArrowLeft, ArrowRight, BadgeCheck, BatteryCharging, Bluetooth, Boxes,
-  Camera, Cpu, Droplets, Eye, FileText, Fingerprint, HardDrive, History,
+  Camera, Cpu, Droplets, FileText, Fingerprint, HardDrive, History,
   Image as ImageIcon, Keyboard, MapPin, Mic, Monitor, Package, PackageCheck,
   Palette, PencilLine, Plug, RefreshCw, Ruler, Search, Settings2, Smartphone,
   Volume2, Wifi, ZoomIn, type LucideIcon,
@@ -79,9 +79,10 @@ const TECHNICAL_SPEC_ICONS: Record<ProductTechnicalSpecKey, LucideIcon> = {
 };
 
 const CatalogPhoto = ({
-  name, sku, media, brandName, small = false,
+  name, sku, media, brandName, stock, unit, small = false,
 }: {
-  name: string; sku: string; media: CatalogMedia; brandName?: string | null; small?: boolean;
+  name: string; sku: string; media: CatalogMedia; brandName?: string | null;
+  stock?: ReferenceStockRow; unit?: ImeiDirectoryRow; small?: boolean;
 }) => {
   const { t } = useTranslation();
   const [selectedColor, setSelectedColor] = useState<string | null>(null);
@@ -91,7 +92,7 @@ const CatalogPhoto = ({
   const variant = media.colorVariants.find((item) => item.color === selectedColor);
   const selected = variant?.imageUrl && !variantFailed ? variant.imageUrl : base;
   const image = selected === failed ? base : selected;
-  const thumbnail = small ? "h-12 w-12" : "h-[90px] w-[90px]";
+  const thumbnail = small ? "h-[72px] w-[72px]" : "h-[96px] w-[96px]";
   const fields = getProductTechnicalSpecFieldsForCategory(media.categoryKey ?? undefined);
   const populatedFields = fields.filter((field) => Boolean(media.technicalSpecs?.[field.key]?.trim()));
   const custom = !["celular", "tablet", "reloj", "audifono"].includes(media.categoryKey ?? "")
@@ -105,9 +106,9 @@ const CatalogPhoto = ({
     <DialogTrigger asChild>
       <button type="button"
         aria-label={`Ampliar imagen y especificaciones de ${name}`}
-        className={`group relative grid ${thumbnail} shrink-0 place-items-center overflow-hidden rounded-2xl border bg-background shadow-sm transition hover:border-primary/50 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary`}>
+        className={`group relative grid ${thumbnail} shrink-0 cursor-zoom-in place-items-center overflow-hidden rounded-2xl border border-border/80 bg-background shadow-sm transition-all hover:border-primary/60 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary`}>
         <Smartphone className="size-7 text-sky-700/50 dark:text-sky-200/50" aria-hidden="true"/>
-        {base ? <ProductThumbnail src={base} alt={name} size={small ? "lg" : "2xl"}
+        {base ? <ProductThumbnail src={base} alt={name} size={small ? "xl" : "2xl"}
           className="absolute inset-0 z-10 h-full w-full rounded-2xl border-0 bg-transparent object-contain p-1.5"/> : null}
         <span className="absolute bottom-1 right-1 z-20 rounded-md bg-background/95 p-1 text-foreground opacity-0 shadow-sm transition group-hover:opacity-100 group-focus-visible:opacity-100">
           <ZoomIn className="size-3.5" aria-hidden="true"/>
@@ -214,6 +215,38 @@ const CatalogPhoto = ({
               </div>
             </div>
           </section>
+          {stock ? <section className="space-y-3 rounded-2xl border border-border/80 bg-muted/15 p-4">
+            <h3 className="flex items-center gap-2 text-sm font-semibold"><MapPin className="h-4 w-4 text-primary"/> Existencias por sede</h3>
+            <div className="grid grid-cols-2 gap-2 text-sm">
+              <div className="rounded-lg border bg-background p-3">
+                <strong className="block text-lg tabular-nums">{number(stock.physicallyVerified)}</strong>
+                <span className="text-xs text-muted-foreground">En sedes verificadas</span>
+              </div>
+              <div className="rounded-lg border bg-background p-3">
+                <strong className="block text-lg tabular-nums">{number(stock.available)}</strong>
+                <span className="text-xs text-muted-foreground">Disponibles para venta</span>
+              </div>
+            </div>
+            {commercialSiteGroups(stock.sites).map(site => <div key={site.siteId}
+              className="flex items-center justify-between gap-3 rounded-lg border bg-background px-3 py-2 text-sm">
+              <span className="font-medium">{site.siteName}{site.cityName ? ` · ${site.cityName}` : ""}</span>
+              <span className="shrink-0 text-xs tabular-nums">{number(site.physicallyVerified)} en sede · {number(site.available)} disponibles</span>
+            </div>)}
+            {commercialSiteGroups(stock.sites).length===0 ? <p className="text-xs text-muted-foreground">No hay unidades físicas verificadas en sedes.</p> : null}
+            {stock.sold>0 || stock.unverified>0 ? <p className="text-xs text-muted-foreground">
+              {number(stock.sold)} vendidos históricos · {number(stock.unverified)} sin conciliar.
+            </p> : null}
+            {stock.inTransit>0 || stock.pendingReturn>0 ? <p className="text-xs text-muted-foreground">
+              {number(stock.inTransit)} en tránsito · {number(stock.pendingReturn)} retornos pendientes.
+            </p> : null}
+          </section> : null}
+          {unit ? <section className="space-y-2 rounded-2xl border border-border/80 bg-muted/15 p-4 text-sm">
+            <h3 className="flex items-center gap-2 font-semibold"><Fingerprint className="h-4 w-4 text-primary"/> Identificación del equipo</h3>
+            <p className="break-all"><span className="text-muted-foreground">IMEI:</span> <strong className="font-mono">{unit.serial}</strong></p>
+            <p><span className="text-muted-foreground">Estado:</span> {CUSTODY_LABEL[unit.custodyState]}</p>
+            <p><span className="text-muted-foreground">Ubicación:</span> {unit.custodyState==="vendido" ? "Vendido · historial" : unit.siteName ?? "Sin sede verificada"}</p>
+            <p><span className="text-muted-foreground">Costo individual:</span> <strong>{money(unit.cost)}</strong></p>
+          </section> : null}
         </div>
       </div>
     </DialogContent>
@@ -225,8 +258,8 @@ const CatalogPhoto = ({
 const ReferenceTable = ({ items }: { items: ReferenceStockRow[] }) =>
   <section aria-label="Inventario de referencias comerciales" className="overflow-hidden rounded-2xl border border-border/70 bg-card shadow-sm">
     <div className="overflow-x-auto">
-      <table className="w-full min-w-[1040px] text-sm">
-        <thead className="bg-muted/40 text-xs font-semibold text-muted-foreground">
+      <table className="w-full min-w-[995px] text-[15px]">
+        <thead className="bg-muted/40 text-[13px] font-semibold text-muted-foreground">
           <tr>
             <th scope="col" className="px-4 py-3 text-left">Producto</th>
             <th scope="col" className="px-3 py-3 text-left">Marca</th>
@@ -235,105 +268,51 @@ const ReferenceTable = ({ items }: { items: ReferenceStockRow[] }) =>
             <th scope="col" className="px-3 py-3 text-right">Costo de referencia</th>
             <th scope="col" className="px-3 py-3 text-right">Disponibles</th>
             <th scope="col" className="px-3 py-3 text-right">En sedes</th>
-            <th scope="col" className="px-4 py-3 text-right">Acciones</th>
           </tr>
         </thead>
         <tbody>
           {items.map((item) => (
             <tr key={item.productId} className="border-t border-border/80 transition-colors hover:bg-muted/35">
-              <td className="px-4 py-2.5">
-                <div className="flex min-w-[220px] items-center gap-3">
-                  <CatalogPhoto name={item.name} sku={item.sku} media={item} brandName={item.brandName} small/>
+              <td className="px-4 py-4">
+                <div className="flex min-w-[265px] items-center gap-4">
+                  <CatalogPhoto name={item.name} sku={item.sku} media={item} brandName={item.brandName} stock={item} small/>
                   <div className="min-w-0">
-                    <p className="font-semibold leading-snug text-foreground">{item.name}</p>
-                    <span className="mt-1 inline-flex rounded-md border bg-muted/50 px-1.5 py-0.5 font-mono text-[11px] text-muted-foreground">{item.sku}</span>
+                    <p className="text-base font-semibold leading-snug text-foreground">{item.name}</p>
+                    <span className="mt-1.5 inline-flex rounded-md border bg-muted/50 px-2 py-0.5 font-mono text-xs text-muted-foreground">{item.sku}</span>
                   </div>
                 </div>
               </td>
-              <td className="px-3 py-2.5 text-xs text-muted-foreground">{item.brandName ?? "—"}</td>
-              <td className="px-3 py-2.5">
-                <div className="flex min-w-[110px] flex-col items-start gap-1">
-                  {item.newUnits > 0 ? <span className="rounded-full border border-sky-200 bg-sky-50 px-2 py-0.5 text-[11px] font-medium text-sky-800 dark:border-sky-800 dark:bg-sky-500/10 dark:text-sky-200">
+              <td className="px-3 py-4 text-sm text-muted-foreground">{item.brandName ?? "—"}</td>
+              <td className="px-3 py-4">
+                <div className="flex min-w-[116px] flex-col items-start gap-1.5">
+                  {item.newUnits > 0 ? <span className="rounded-full border border-sky-200 bg-sky-50 px-2 py-0.5 text-xs font-medium text-sky-800 dark:border-sky-800 dark:bg-sky-500/10 dark:text-sky-200">
                     Nuevo <strong className="ml-1 tabular-nums">{number(item.newUnits)}</strong>
                   </span> : null}
-                  {item.usedUnits > 0 ? <span className="rounded-full border border-slate-200 bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-700 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200">
+                  {item.usedUnits > 0 ? <span className="rounded-full border border-slate-200 bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-700 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200">
                     Seminuevo <strong className="ml-1 tabular-nums">{number(item.usedUnits)}</strong>
                   </span> : null}
                   {item.newUnits === 0 && item.usedUnits === 0 ? <span className="text-xs text-muted-foreground">—</span> : null}
                 </div>
               </td>
-              <td className="whitespace-nowrap px-3 py-2.5 text-right">
+              <td className="whitespace-nowrap px-3 py-4 text-right">
                 {item.salePrice !== null && item.salePrice > 0
                   ? <span className="font-semibold tabular-nums">{money(item.salePrice)}</span>
-                  : <span className="text-xs italic text-muted-foreground">Sin precio</span>}
+                  : <span className="text-sm italic text-muted-foreground">Sin precio</span>}
               </td>
-              <td className="whitespace-nowrap px-3 py-2.5 text-right">
+              <td className="whitespace-nowrap px-3 py-4 text-right">
                 {item.referenceCost !== null && item.referenceCost > 0
-                  ? <span className="rounded-lg border border-border/60 bg-muted/35 px-2 py-1 text-xs font-medium tabular-nums">{money(item.referenceCost)}</span>
-                  : <span className="text-xs italic text-muted-foreground">Sin costo</span>}
+                  ? <span className="rounded-lg border border-border/60 bg-muted/35 px-2 py-1 text-sm font-medium tabular-nums">{money(item.referenceCost)}</span>
+                  : <span className="text-sm italic text-muted-foreground">Sin costo</span>}
               </td>
               <td className="px-3 py-2.5 text-right">
                 <div className="flex items-center justify-end gap-1.5">
                   {item.available > 0 && item.available < 10
-                    ? <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-semibold text-amber-800 dark:bg-amber-500/10 dark:text-amber-300">Stock bajo</span>
+                    ? <span className="rounded-full bg-amber-50 px-2 py-0.5 text-xs font-semibold text-amber-800 dark:bg-amber-500/10 dark:text-amber-300">Stock bajo</span>
                     : null}
-                  <span className={`min-w-6 font-semibold tabular-nums ${item.available === 0 ? "text-destructive" : "text-foreground"}`}>{number(item.available)}</span>
+                  <span className={`min-w-6 text-base font-semibold tabular-nums ${item.available === 0 ? "text-destructive" : "text-foreground"}`}>{number(item.available)}</span>
                 </div>
               </td>
-              <td className="px-3 py-2.5 text-right tabular-nums text-muted-foreground">{number(item.physicallyVerified)}</td>
-              <td className="px-4 py-2.5 text-right">
-                <Dialog>
-                  <DialogTrigger asChild>
-                    <Button size="sm" variant="outline" className="h-8 rounded-full">
-                      <Eye className="size-4"/> Ver
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
-                    <DialogHeader>
-                      <DialogTitle>{item.name}</DialogTitle>
-                      <DialogDescription>{item.sku} · Resumen de unidades reales y ubicación por sede.</DialogDescription>
-                    </DialogHeader>
-                    <div className="flex items-start gap-4 rounded-xl border bg-muted/15 p-3">
-                      <CatalogPhoto name={item.name} sku={item.sku} media={item} brandName={item.brandName}/>
-                      <div className="space-y-1 text-sm">
-                        <p className="font-semibold">{item.brandName ?? "Referencia comercial"}</p>
-                        <p className="text-muted-foreground">Precio: {item.salePrice !== null && item.salePrice > 0 ? money(item.salePrice) : "Sin precio"}</p>
-                        <p className="text-muted-foreground">Costo de referencia: {item.referenceCost !== null && item.referenceCost > 0 ? money(item.referenceCost) : "Sin costo"}</p>
-                        <p className="text-xs text-muted-foreground">El costo real para vender se comprueba por cada IMEI.</p>
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-2 gap-2 text-sm sm:grid-cols-4">
-                      {[
-                        ["En sedes",item.physicallyVerified],
-                        ["Disponibles",item.available],
-                        ["Vendidos históricos",item.sold],
-                        ["Sin conciliar",item.unverified],
-                      ].map(([label,value])=><div key={label} className="rounded-xl border bg-muted/10 p-3">
-                        <p className="text-xl font-semibold tabular-nums">{number(value as number)}</p>
-                        <p className="mt-1 text-[11px] text-muted-foreground">{label}</p>
-                      </div>)}
-                    </div>
-                    <section className="space-y-2">
-                      <h3 className="flex items-center gap-2 text-sm font-semibold"><MapPin className="size-4"/> Distribución física verificada</h3>
-                      {commercialSiteGroups(item.sites).map(site => (
-                        <div key={site.siteId} className="flex items-center justify-between gap-3 rounded-lg border px-3 py-2 text-sm">
-                          <div>
-                            <p className="font-medium">{site.siteName}</p>
-                            {site.cityName ? <p className="text-xs text-muted-foreground">{site.cityName}</p> : null}
-                          </div>
-                          <p className="text-right text-xs tabular-nums">
-                            {number(site.physicallyVerified)} en sede · <strong>{number(site.available)}</strong> disponibles
-                          </p>
-                        </div>
-                      ))}
-                      {commercialSiteGroups(item.sites).length === 0 ? <p className="rounded-lg border p-3 text-xs text-muted-foreground">Sin unidades físicas verificadas en sedes.</p> : null}
-                      {item.inTransit > 0 || item.pendingReturn > 0 ? <p className="text-xs text-muted-foreground">
-                        {number(item.inTransit)} en tránsito · {number(item.pendingReturn)} retornos pendientes
-                      </p> : null}
-                    </section>
-                  </DialogContent>
-                </Dialog>
-              </td>
+              <td className="px-3 py-4 text-right text-base font-medium tabular-nums text-muted-foreground">{number(item.physicallyVerified)}</td>
             </tr>
           ))}
         </tbody>
@@ -344,60 +323,36 @@ const ReferenceTable = ({ items }: { items: ReferenceStockRow[] }) =>
 const ImeiTable = ({ items }: { items: ImeiDirectoryRow[] }) =>
   <section aria-label="Inventario individual por IMEI" className="overflow-hidden rounded-2xl border border-border/70 bg-card shadow-sm">
     <div className="overflow-x-auto">
-      <table className="w-full min-w-[850px] text-sm">
-        <thead className="bg-muted/40 text-xs font-semibold text-muted-foreground">
+      <table className="w-full min-w-[850px] text-[15px]">
+        <thead className="bg-muted/40 text-[13px] font-semibold text-muted-foreground">
           <tr>
             <th scope="col" className="px-4 py-3 text-left">Producto / IMEI</th>
             <th scope="col" className="px-3 py-3 text-left">Sede o historial</th>
             <th scope="col" className="px-3 py-3 text-left">Estado</th>
             <th scope="col" className="px-3 py-3 text-right">Costo individual</th>
             <th scope="col" className="px-3 py-3 text-right">Disponibilidad</th>
-            <th scope="col" className="px-4 py-3 text-right">Acciones</th>
           </tr>
         </thead>
         <tbody>
           {items.map((item) => <tr key={item.unitId} className="border-t border-border/80 transition-colors hover:bg-muted/35">
-            <td className="px-4 py-2.5">
-              <div className="flex min-w-[240px] items-center gap-3">
-                <CatalogPhoto name={item.productName} sku={item.sku} media={item} small/>
+            <td className="px-4 py-4">
+              <div className="flex min-w-[260px] items-center gap-4">
+                <CatalogPhoto name={item.productName} sku={item.sku} media={item} unit={item} small/>
                 <div className="min-w-0">
-                  <p className="font-semibold leading-snug">{item.productName}</p>
-                  <p className="mt-0.5 font-mono text-[11px] font-semibold text-primary">{item.serial}</p>
-                  <span className="mt-0.5 inline-flex rounded border bg-muted/50 px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground">{item.sku}</span>
+                  <p className="text-base font-semibold leading-snug">{item.productName}</p>
+                  <p className="mt-0.5 font-mono text-sm font-semibold text-primary">{item.serial}</p>
+                  <span className="mt-0.5 inline-flex rounded border bg-muted/50 px-1.5 py-0.5 font-mono text-sm text-muted-foreground">{item.sku}</span>
                 </div>
               </div>
             </td>
-            <td className="px-3 py-2.5 text-xs text-muted-foreground">
+            <td className="px-3 py-4 text-xs text-muted-foreground">
               {item.custodyState === "vendido" ? <span className="flex items-center gap-1"><History className="size-3.5"/> Vendido · historial</span> :
                 item.siteName ? <span className="flex items-center gap-1"><MapPin className="size-3.5"/>{item.siteName}</span> : "Sin sede verificada"}
             </td>
-            <td className="px-3 py-2.5"><span className="rounded-full border bg-muted/50 px-2 py-1 text-xs">{CUSTODY_LABEL[item.custodyState]}</span></td>
-            <td className="whitespace-nowrap px-3 py-2.5 text-right font-medium tabular-nums">{money(item.cost)}</td>
-            <td className="px-3 py-2.5 text-right">
+            <td className="px-3 py-4"><span className="rounded-full border bg-muted/50 px-2 py-1 text-sm">{CUSTODY_LABEL[item.custodyState]}</span></td>
+            <td className="whitespace-nowrap px-3 py-4 text-right font-medium tabular-nums">{money(item.cost)}</td>
+            <td className="px-3 py-4 text-right">
               {item.commercialCandidate ? <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-700 dark:text-emerald-300"><BadgeCheck className="size-3.5"/> Disponible</span> : <span className="text-xs text-muted-foreground">No disponible</span>}
-            </td>
-            <td className="px-4 py-2.5 text-right">
-              <Dialog>
-                <DialogTrigger asChild>
-                  <Button size="sm" variant="outline" className="h-8 rounded-full"><Eye className="size-4"/> Ver</Button>
-                </DialogTrigger>
-                <DialogContent className="max-h-[90vh] max-w-xl overflow-y-auto">
-                  <DialogHeader>
-                    <DialogTitle>{item.productName}</DialogTitle>
-                    <DialogDescription>{item.sku} · Detalle individual del equipo</DialogDescription>
-                  </DialogHeader>
-                  <div className="flex items-start gap-3">
-                    <CatalogPhoto name={item.productName} sku={item.sku} media={item}/>
-                    <div className="space-y-2 text-sm">
-                      <p><span className="text-muted-foreground">IMEI:</span> <strong className="break-all font-mono">{item.serial}</strong></p>
-                      <p><span className="text-muted-foreground">Estado:</span> {CUSTODY_LABEL[item.custodyState]}</p>
-                      <p><span className="text-muted-foreground">Ubicación:</span> {item.custodyState==="vendido" ? "Vendido · historial" : item.siteName ?? "Sin sede verificada"}</p>
-                      <p><span className="text-muted-foreground">Costo del IMEI:</span> <strong>{money(item.cost)}</strong></p>
-                      <p className="text-xs text-muted-foreground">{item.commercialCandidate ? "Candidato a disponibilidad comercial." : "No disponible para venta."}</p>
-                    </div>
-                  </div>
-                </DialogContent>
-              </Dialog>
             </td>
           </tr>)}
         </tbody>
@@ -441,7 +396,7 @@ export const WorkerGlobalInventory = ({ serials = false }: { serials?: boolean }
     <header className="space-y-4">
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Inventario global</h1>
-        <p className="mt-1 text-sm text-muted-foreground">Referencias, fotografías y existencias de equipos, con el mismo formato del inventario principal.</p>
+        <p className="mt-1 text-sm text-muted-foreground">Fotografías ampliables, especificaciones y existencias por sede. Pulsa la imagen del equipo para ver su ficha.</p>
       </div>
       <div className="flex flex-wrap gap-2">
         <Button className="rounded-full" variant={kind === "ref" ? "default" : "outline"}
