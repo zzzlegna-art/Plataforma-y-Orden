@@ -76,20 +76,22 @@ describe("Nexora: pedidos comprometidos no son stock comercial", () => {
       initialApproved: true, scope: "serialized_imei_only", page: 1, pageSize: 20, matched: 1,
       items: [{
         productId: "ip18pm256", name: "iPhone 18 Pro Max 256 GB", sku: "IP18PM-256",
-        total: 70, physicallyVerified: 70, available: 16, committedOrders: 54,
+        total: 70, physicallyVerified: 70, available: 0, freeFromOrders: 16, committedOrders: 54,
         unverified: 0, inTransit: 0, pendingReturn: 0, sold: 0,
         newUnits: 70, usedUnits: 0,
         sites: [{
           siteId: "bodega-6a", siteName: "Bodega 6A", cityName: "Barranquilla",
-          total: 70, physicallyVerified: 70, available: 16, committedOrders: 54,
+          total: 70, physicallyVerified: 70, available: 0, freeFromOrders: 16, committedOrders: 54,
           unverified: 0, inTransit: 0, pendingReturn: 0, sold: 0,
         }],
       }],
     });
-    expect(r.items[0].available).toBe(16);
+    expect(r.items[0].freeFromOrders).toBe(16);
+    expect(r.items[0].available).toBe(0);
     expect(r.items[0].committedOrders).toBe(54);
     expect(r.items[0].physicallyVerified).toBe(70);
-    expect(r.items[0].sites[0].available).toBe(16);
+    expect(r.items[0].sites[0].freeFromOrders).toBe(16);
+    expect(r.items[0].sites[0].available).toBe(0);
     expect(r.items[0].sites[0].committedOrders).toBe(54);
   });
   it("rechaza sumas que cuenten un IMEI en un pedido como libre", () => {
@@ -97,11 +99,11 @@ describe("Nexora: pedidos comprometidos no son stock comercial", () => {
       initialApproved: true, scope: "serialized_imei_only", page: 1, pageSize: 20, matched: 1,
       items: [{
         productId: "ip18pm256", name: "iPhone 18 Pro Max", sku: "IP18PM-256",
-        total: 70, physicallyVerified: 70, available: 16, committedOrders: 55,
+        total: 70, physicallyVerified: 70, available: 0, freeFromOrders: 16, committedOrders: 55,
         unverified: 0, inTransit: 0, pendingReturn: 0, sold: 0,
         sites: [{
           siteId: "bodega-6a", siteName: "Bodega 6A", cityName: "Barranquilla",
-          total: 70, physicallyVerified: 70, available: 16, committedOrders: 55,
+          total: 70, physicallyVerified: 70, available: 0, freeFromOrders: 16, committedOrders: 55,
           unverified: 0, inTransit: 0, pendingReturn: 0, sold: 0,
         }],
       }],
