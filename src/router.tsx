@@ -13,6 +13,7 @@ import { useApp } from "./hooks/use-app";
 import ProductoDetalle from "./pages/inventario/detalle";
 import Login from "./pages/login";
 import NotFound from "./pages/NotFound";
+import Notificaciones from "./pages/notificaciones";
 import Panel from "./pages/panel";
 import MiSede from "./pages/mi-sede";
 import Pedidos from "./pages/pedidos";
@@ -77,6 +78,11 @@ export const routers = [
             path: "recepcion/nueva/:receptionId",
             name: "recepcion-captura",
             element: <RequirePermission permission="receptions.manage"><RequireSupplierReception><NuevaRecepcion /></RequireSupplierReception></RequirePermission>,
+          },
+          {
+            path: "notificaciones",
+            name: "notificaciones",
+            element: <Notificaciones />,
           },
           {
             path: "traslados",
