@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseImeiDirectory, CUSTODY_LABEL } from "./nexora-imei-directory";
+import { parseImeiDirectory, CUSTODY_LABEL, getImeiCommercialStatus } from "./nexora-imei-directory";
 
 const sample=()=>({
   initialApproved:false,
@@ -59,5 +59,32 @@ describe("Nexora · inventario individual por sede",()=>{
     expect(()=>parseImeiDirectory({...data,items:[{
       ...data.items[0],custodyState:"disponible_sin_verificacion",
     }]})).toThrow();
+  });
+});
+
+describe("Nexora: IMEI asociado a un pedido no se ofrece como disponible", () => {
+  it("conserva la sede física pero identifica claramente el pedido", () => {
+    const input = sample();
+    const r = parseImeiDirectory({
+      ...input, initialApproved: true,
+      items: [{
+        ...input.items[0], custodyState: "en_sede",
+        siteId: "bodega-6a", siteName: "Bodega 6A", cityName: "Barranquilla",
+        committedOrder: true, commercialCandidate: false,
+      }],
+    });
+    expect(r.items[0].siteName).toBe("Bodega 6A");
+    expect(getImeiCommercialStatus(r.items[0])).toBe("Asignado a pedido");
+  });
+  it("rechaza un serial en pedido que el servidor marque como disponible", () => {
+    const input = sample();
+    expect(() => parseImeiDirectory({
+      ...input, initialApproved: true,
+      items: [{
+        ...input.items[0], custodyState: "en_sede",
+        siteId: "bodega-6a", siteName: "Bodega 6A", cityName: "Barranquilla",
+        committedOrder: true, commercialCandidate: true,
+      }],
+    })).toThrow(/comprometido/);
   });
 });
