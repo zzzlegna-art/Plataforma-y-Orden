@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { LogOut, Menu, Search, UserRound } from "lucide-react";
+import { LogOut, Menu, Plus, Search, UserRound } from "lucide-react";
 import { Link, useLocation, useMatch } from "react-router-dom";
 
 import { useStore } from "@/hooks/use-store";
@@ -19,10 +19,16 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/hooks/use-auth";
 import { NAV_ITEMS } from "./nav-items";
+import type { NextSlot } from "@/lib/next-workspaces";
 import { ThemeToggle } from "./theme-toggle";
 
 /** Barra superior: menú móvil, título de la sección y usuario. */
-export const Topbar = ({ onOpenMenu }: { onOpenMenu: () => void }) => {
+export const Topbar = ({ onOpenMenu, nextSlot, nextFreeSlot, onOpenNext }: {
+  onOpenMenu: () => void;
+  nextSlot: NextSlot;
+  nextFreeSlot: NextSlot | null;
+  onOpenNext: () => void;
+}) => {
   const { t } = useTranslation();
   const { user, logout } = useAuth();
   const [closing, setClosing] = useState(false);
@@ -91,6 +97,16 @@ export const Topbar = ({ onOpenMenu }: { onOpenMenu: () => void }) => {
         </div>
       </div>
 
+      <div className="flex shrink-0 items-center gap-1.5" aria-label={`Espacio de trabajo Next ${nextSlot}`}>
+        <span className="rounded-lg border border-primary/30 bg-primary/10 px-2.5 py-1.5 text-xs font-extrabold text-primary">Next {nextSlot}</span>
+        <Button type="button" variant="outline" size="sm" disabled={nextFreeSlot === null}
+          className="gap-1.5" onClick={onOpenNext}
+          title={nextFreeSlot ? `Abrir Next ${nextFreeSlot} en otra pestaña` : "Límite de 3 pestañas Next alcanzado"}
+          aria-label={nextFreeSlot ? `Abrir Next ${nextFreeSlot} en otra pestaña` : "Tres pestañas Next abiertas"}>
+          <Plus className="h-4 w-4" />
+          <span className="hidden xl:inline">{nextFreeSlot ? `Next ${nextFreeSlot}` : "3/3"}</span>
+        </Button>
+      </div>
       <Button type="button" variant="outline" size="sm" className={location.pathname === "/panel" ? "nx-dashboard-search-pill gap-2" : "gap-2"} onClick={() => setSearchOpen(true)} aria-label="Buscar en Nexora"><Search className="h-4 w-4" /><span className="hidden sm:inline">Buscar</span></Button>
       <ThemeToggle />
 

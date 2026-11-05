@@ -2,6 +2,8 @@ import { useState } from "react";
 import { Outlet, useLocation } from "react-router-dom";
 
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
+import { Button } from "@/components/ui/button";
+import { useNextWorkspace } from "./use-next-workspace";
 import { MobileTabBar } from "./mobile-tab-bar";
 import { SidebarNav } from "./sidebar-nav";
 import { Topbar } from "./topbar";
@@ -13,6 +15,30 @@ import { Topbar } from "./topbar";
 export const AppLayout = () => {
   const [menuOpen, setMenuOpen] = useState(false);
   const { pathname } = useLocation();
+  const workspace = useNextWorkspace();
+
+  if (workspace.status === "loading") return (
+    <main className="flex min-h-screen items-center justify-center bg-background p-6">
+      <p className="text-sm text-muted-foreground">Preparando espacio de trabajo Next…</p>
+    </main>
+  );
+  if (workspace.status === "full") return (
+    <main className="flex min-h-screen items-center justify-center bg-background p-6">
+      <section className="w-full max-w-md space-y-4 rounded-2xl border bg-card p-7 text-center shadow-sm">
+        <p className="text-sm font-bold uppercase tracking-widest text-primary">Nexora · Next 1 / 2 / 3</p>
+        <h1 className="text-xl font-bold">Ya están ocupados los tres espacios</h1>
+        <p className="text-sm text-muted-foreground">
+          Solo se permiten tres pestañas de trabajo simultáneas en este navegador.
+          Regresa a una pestaña de Nexora abierta o cierra Next 1, 2 o 3 para liberar ese número.
+        </p>
+        <Button type="button" onClick={workspace.retry}>Buscar espacio disponible</Button>
+        <p className="text-xs text-muted-foreground">
+          Los navegadores no permiten reutilizar automáticamente cualquier pestaña abierta manualmente.
+          Si una se cierra, esta pantalla intentará recuperar su número.
+        </p>
+      </section>
+    </main>
+  );
 
   return (
     <div className="flex min-h-screen h-screen min-w-0 overflow-hidden bg-background">
@@ -21,7 +47,8 @@ export const AppLayout = () => {
       </aside>
 
       <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-        <Topbar onOpenMenu={() => setMenuOpen(true)} />
+        <Topbar onOpenMenu={() => setMenuOpen(true)} nextSlot={workspace.slot!}
+          nextFreeSlot={workspace.freeSlot} onOpenNext={workspace.openNext} />
         <main className="nx-app-main min-h-0 flex-1 overflow-y-auto px-5 pb-12 pt-5 lg:px-8 lg:pb-14 lg:pt-7">
           <div className="flex min-h-full w-full min-w-0 flex-col">
             {/* La clave es la ruta: al cambiar de pantalla entra con un fundido suave. */}
