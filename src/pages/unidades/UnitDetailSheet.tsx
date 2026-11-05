@@ -24,6 +24,7 @@ import { usePermissions } from "@/hooks/use-permissions";
 import { liberarUnit, reingresarUnit, updateUnit } from "@/lib/actions/units";
 import { formatCurrency, formatDate, formatDateTime } from "@/lib/format";
 import { getUnitTimeline, unitLocation } from "@/lib/selectors";
+import { describeImeiOrderAssociation } from "@/lib/nexora-imei-order-state";
 
 const InfoRow = ({ label, children }: { label: string; children: React.ReactNode }) => (
   <div className="flex items-center justify-between gap-3 border-b py-2 last:border-0">
@@ -72,7 +73,8 @@ export const UnitDetailSheet = ({
     ? db.warranties.find((item) => item.unitId === unit.id)
     : undefined;
 
-  const liberable = unit && ["en_bodega", "en_local", "defectuoso"].includes(unit.status);
+  const enPedidoActivo = Boolean(order && describeImeiOrderAssociation(order.status).assigned);
+  const liberable = unit && !enPedidoActivo && ["en_bodega", "en_local", "defectuoso"].includes(unit.status);
   // La línea de vida reúne movimientos y garantías sin modificar el historial almacenado.
   const timeline = unit ? getUnitTimeline(db, unit.id).slice().reverse() : [];
 
@@ -109,7 +111,8 @@ export const UnitDetailSheet = ({
                 <ConditionBadge condition={unit.condition} />
               </InfoRow>
               <InfoRow label={t("common.status")}>
-                <UnitStatusBadge status={unit.status} />
+                {enPedidoActivo ? <span className="font-semibold text-amber-700 dark:text-amber-300">En pedido · no disponible</span>
+                  : <UnitStatusBadge status={unit.status} />}
               </InfoRow>
               <InfoRow label={t("unit.location")}>
                 {t(`unitLocation.${unitLocation(unit.status)}`)}
@@ -130,7 +133,8 @@ export const UnitDetailSheet = ({
               <InfoRow label={t("nav.orders")}>
                 {order ? (
                   <span>
-                    <span className="font-tabular">{order.code}</span>
+                    <Link className="font-tabular text-primary underline" to={`/pedidos/${order.id}`}>{order.code}</Link>
+                    <span className="block text-xs text-muted-foreground">{describeImeiOrderAssociation(order.status).label}</span>
                     {customer ? ` · ${customer.name}` : ""}
                   </span>
                 ) : (
@@ -242,7 +246,7 @@ export const UnitDetailSheet = ({
                   {t("serialHistory.title")}
                 </Link>
               </Button>
-              <UnitStatusMenu unit={unit} />
+              {!enPedidoActivo ? <UnitStatusMenu unit={unit} /> : null}
             </div>
 
             {isAdmin ? (
