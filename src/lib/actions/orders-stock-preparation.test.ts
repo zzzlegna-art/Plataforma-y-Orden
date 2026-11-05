@@ -43,11 +43,13 @@ const inventario = (): Db => {
   return db;
 };
 
-describe("stock operativo al confirmar serialización", () => {
-  it("descuenta al preparar y NO vuelve a descontar al confirmar precios y venta", () => {
+describe("stock operativo: exclusión desde primer IMEI asignado al pedido", () => {
+  it("descuenta desde el primer IMEI serializado sin volver a descontar al vender", () => {
     const db = inventario();
-    expect(getProductStock(db, "modelo").disponible).toBe(2);
-    expect(getDashboard(db).kpis.inventoryValue).toBe(240);
+    expect(getProductStock(db, "modelo").disponible).toBe(1);
+    expect(getProductStock(db, "modelo").enPedidos).toBe(1);
+    expect(getProductStock(db, "modelo").enSedeFisica).toBe(2);
+    expect(getDashboard(db).kpis.inventoryValue).toBe(120);
     confirmarPreparacionPedido(db, actor, { orderId: "pedido" });
     expect(db.orders[0].status).toBe("preparado");
     expect(getProductStock(db, "modelo").disponible).toBe(1);
@@ -65,11 +67,12 @@ describe("stock operativo al confirmar serialización", () => {
     expect(db.movements.filter((m) => m.type === "salida")).toHaveLength(1);
   });
 
-  it("devuelve el stock visual al reabrir serialización y lo descuenta de nuevo al confirmar", () => {
+  it("conserva el IMEI fuera del stock libre cuando el pedido se reabre", () => {
     const db = inventario();
     confirmarPreparacionPedido(db, actor, { orderId: "pedido" });
     regresarPedidoASerializacion(db, actor, { orderId: "pedido" });
-    expect(getProductStock(db, "modelo").disponible).toBe(2);
+    expect(getProductStock(db, "modelo").disponible).toBe(1);
+    expect(getProductStock(db, "modelo").enPedidos).toBe(1);
     expect(db.orderItemUnits.map((a) => a.unitId)).toEqual(["unidad-bodega"]);
     confirmarPreparacionPedido(db, actor, { orderId: "pedido" });
     expect(getProductStock(db, "modelo").disponible).toBe(1);

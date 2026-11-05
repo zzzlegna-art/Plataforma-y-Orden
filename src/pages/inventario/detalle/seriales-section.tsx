@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { Link } from "react-router-dom";
 import { Printer, ScanLine, X } from "lucide-react";
 
 import { CopySerialButton } from "@/components/shared/copy-serial-button";
@@ -7,6 +8,7 @@ import { DataTable, type Column } from "@/components/shared/data-table";
 import { PrintLabelsDialog } from "@/components/shared/print-labels-dialog";
 import { UnitDetailSheet } from "@/pages/unidades/UnitDetailSheet";
 import { UnitStatusMenu } from "@/components/shared/unit-status-menu";
+import { useStore } from "@/hooks/use-store";
 import { ConditionBadge, PendingImeiBadge, UnitStatusBadge } from "@/components/shared/status-badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -14,7 +16,7 @@ import { estadoControl, esVerificada, ordenarUnidades } from "@/lib/control-fisi
 import { formatDate } from "@/lib/format";
 import { esCodigoInterno } from "@/lib/imei";
 import { imprimirEtiquetas } from "@/lib/print-labels";
-import type { UnitRow } from "@/lib/selectors";
+import { getActiveOrderByUnit, type UnitRow } from "@/lib/selectors";
 import type { Product, UnitCondition } from "@/lib/types";
 import { ControlCheck, ControlFisicoPanel } from "./control-fisico";
 import { useControlFisico } from "./use-control-fisico";
@@ -38,6 +40,9 @@ export const SerialesSeccion = ({
   onCambiarCondicion: (condicion?: UnitCondition) => void;
 }) => {
   const { t } = useTranslation();
+  const { db } = useStore();
+  const pedidosActivos = useMemo(() => getActiveOrderByUnit(db),
+    [db.orders, db.orderItems, db.orderItemUnits]);
   const control = useControlFisico(product, condicion);
   const [vista, setVista] = useState<Vista>("todos");
   // Selección para imprimir etiquetas: independiente del control físico (esto es para llevar
@@ -150,7 +155,13 @@ export const SerialesSeccion = ({
     {
       key: "status",
       header: t("common.status"),
-      cell: (item) => <UnitStatusBadge status={item.unit.status} />,
+      cell: (item) => pedidosActivos.has(item.unit.id)
+        ? <span className="text-xs font-semibold text-amber-700 dark:text-amber-300">
+            En pedido · <Link className="underline underline-offset-2" to={`/pedidos/${pedidosActivos.get(item.unit.id)?.id}`}>
+              {pedidosActivos.get(item.unit.id)?.code}
+            </Link>
+          </span>
+        : <UnitStatusBadge status={item.unit.status} />,
     },
     {
       key: "received",
@@ -163,7 +174,7 @@ export const SerialesSeccion = ({
       key: "actions",
       header: t("common.actions"),
       align: "right",
-      cell: (item) => <UnitStatusMenu unit={item.unit} />,
+      cell: (item) => pedidosActivos.has(item.unit.id) ? null : <UnitStatusMenu unit={item.unit} />,
     },
   ];
 
@@ -295,14 +306,16 @@ export const SerialesSeccion = ({
                 </button>
                 <CopySerialButton serial={item.unit.serial} />
               </div>
-              <UnitStatusBadge status={item.unit.status} />
+              {pedidosActivos.has(item.unit.id)
+                ? <span className="text-xs font-semibold text-amber-700 dark:text-amber-300">En pedido · no disponible</span>
+                : <UnitStatusBadge status={item.unit.status} />}
             </div>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-1.5">
                 <ConditionBadge condition={item.unit.condition} />
                 {esCodigoInterno(item.unit.serial) ? <PendingImeiBadge /> : null}
               </div>
-              <UnitStatusMenu unit={item.unit} />
+              {pedidosActivos.has(item.unit.id) ? null : <UnitStatusMenu unit={item.unit} />}
             </div>
           </div>
         )}

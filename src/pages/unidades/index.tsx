@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ScanLine, AlertTriangle, Clock3, ShieldCheck, ArrowRight } from "lucide-react";
+import { Link } from "react-router-dom";
 
 import { CopySerialButton } from "@/components/shared/copy-serial-button";
 import { DataTable } from "@/components/shared/data-table";
@@ -13,7 +14,7 @@ import { ConditionBadge, UnitStatusBadge } from "@/components/shared/status-badg
 import { Button } from "@/components/ui/button";
 import { useStore } from "@/hooks/use-store";
 import { formatDate } from "@/lib/format";
-import { findUnitBySerial, getUnitRows, type UnitRow } from "@/lib/selectors";
+import { findUnitBySerial, getActiveOrderByUnit, getUnitRows, type UnitRow } from "@/lib/selectors";
 import { ordenarProductos } from "@/lib/product-order";
 import { UnitDetailSheet } from "./UnitDetailSheet";
 
@@ -39,6 +40,14 @@ const Unidades = ({ embedded = false }: { embedded?: boolean }) => {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [controlFiltro, setControlFiltro] = useState<"todos" | "duplicados" | "antiguos">("todos");
   const [diasMinimos, setDiasMinimos] = useState(60);
+  const pedidosActivos = useMemo(() => getActiveOrderByUnit(db),
+    [db.orders, db.orderItems, db.orderItemUnits]);
+  const estadoComercial = (row: UnitRow) => {
+    const order = pedidosActivos.get(row.unit.id);
+    return order ? <span className="text-xs font-semibold text-amber-700 dark:text-amber-300">
+      En pedido · <Link to={`/pedidos/${order.id}`} className="underline underline-offset-2">{order.code}</Link>
+    </span> : <UnitStatusBadge status={row.unit.status} />;
+  };
 
   const control = useMemo(() => {
     const grupos = new Map<string, string[]>();
@@ -97,7 +106,7 @@ const Unidades = ({ embedded = false }: { embedded?: boolean }) => {
             <p className="truncate text-xs text-muted-foreground">{row.product?.name ?? "—"}</p>
           </div>
         </div>
-        <UnitStatusBadge status={row.unit.status} />
+        {estadoComercial(row)}
       </div>
       <div className="flex items-center justify-between">
         <ConditionBadge condition={row.unit.condition} />
@@ -248,7 +257,7 @@ const Unidades = ({ embedded = false }: { embedded?: boolean }) => {
           {
             key: "status",
             header: t("common.status"),
-            cell: (row) => <UnitStatusBadge status={row.unit.status} />,
+            cell: (row) => estadoComercial(row),
           },
           {
             key: "received",

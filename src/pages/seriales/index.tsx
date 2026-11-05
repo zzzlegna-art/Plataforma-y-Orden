@@ -129,6 +129,7 @@ const HistorialSerial = ({ embedded = false }: { embedded?: boolean }) => {
     suppliers.find((supplier) => supplier.id === supplierId)?.name;
   const order = origen?.order;
   const customer = origen?.customer;
+  const enPedidoActivo = Boolean(order && describeImeiOrderAssociation(order.status).assigned);
   const warranties = unit
     ? db.warranties.filter(
         (warranty) =>
@@ -150,7 +151,7 @@ const HistorialSerial = ({ embedded = false }: { embedded?: boolean }) => {
     setParams({ serial }, { replace: true });
   };
 
-  const liberable = unit && ["en_bodega", "en_local", "defectuoso"].includes(unit.status);
+  const liberable = unit && !enPedidoActivo && ["en_bodega", "en_local", "defectuoso"].includes(unit.status);
 
   return (
     <div className="space-y-5 stagger">
@@ -328,7 +329,8 @@ const HistorialSerial = ({ embedded = false }: { embedded?: boolean }) => {
                     {unit.serial} · {product?.sku ?? ""}
                   </p>
                   <div className="mt-2 flex flex-wrap gap-2">
-                    <UnitStatusBadge status={unit.status} />
+                    {enPedidoActivo ? <Badge label="En pedido · no disponible" withDot={false} />
+                      : <UnitStatusBadge status={unit.status} />}
                     <ConditionBadge condition={unit.condition} />
                   </div>
                 </div>
