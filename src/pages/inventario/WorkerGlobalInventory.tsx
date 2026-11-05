@@ -218,23 +218,27 @@ const CatalogPhoto = ({
           </section>
           {stock ? <section className="space-y-3 rounded-2xl border border-border/80 bg-muted/15 p-4">
             <h3 className="flex items-center gap-2 text-sm font-semibold"><MapPin className="h-4 w-4 text-primary"/> Ubicación física y pedidos</h3>
-            <div className="grid grid-cols-2 gap-2 text-sm">
+            <div className="grid grid-cols-1 gap-2 text-sm sm:grid-cols-3">
               <div className="rounded-lg border bg-background p-3">
                 <strong className="block text-lg tabular-nums">{number(stock.physicallyVerified)}</strong>
                 <span className="text-xs text-muted-foreground">Físicamente en sede, incluidos pedidos</span>
               </div>
               <div className="rounded-lg border bg-background p-3">
+                <strong className="block text-lg tabular-nums">{number(stock.freeFromOrders)}</strong>
+                <span className="text-xs text-muted-foreground">Libres de pedidos y traslados</span>
+              </div>
+              <div className="rounded-lg border bg-background p-3">
                 <strong className="block text-lg tabular-nums">{number(stock.available)}</strong>
-                <span className="text-xs text-muted-foreground">Libres de pedidos y traslados*</span>
+                <span className="text-xs text-muted-foreground">Cumplen filtros de costo*</span>
               </div>
             </div>
             {commercialSiteGroups(stock.sites).map(site => <div key={site.siteId}
               className="flex items-center justify-between gap-3 rounded-lg border bg-background px-3 py-2 text-sm">
               <span className="font-medium">{site.siteName}{site.cityName ? ` · ${site.cityName}` : ""}</span>
-              <span className="shrink-0 text-xs tabular-nums">{number(site.available)} libres · {number(site.committedOrders)} en pedidos</span>
+              <span className="shrink-0 text-xs tabular-nums">{number(site.freeFromOrders)} libres · {number(site.committedOrders)} en pedidos</span>
             </div>)}
             {commercialSiteGroups(stock.sites).length===0 ? <p className="text-xs text-muted-foreground">No hay unidades físicas verificadas en sedes.</p> : null}
-            <p className="text-xs text-muted-foreground">*El POS también comprueba costo, precio y caja antes de vender.</p>
+            <p className="text-xs text-muted-foreground">*Incluso con costo válido, el POS debe validar precio, caja y permisos antes de vender.</p>
             {stock.sold>0 || stock.unverified>0 ? <p className="text-xs text-muted-foreground">
               {number(stock.sold)} vendidos históricos · {number(stock.unverified)} sin conciliar.
             </p> : null}
@@ -289,7 +293,7 @@ const ReferenceTable = ({ items }: { items: ReferenceStockRow[] }) =>
               <span className="nx-worker-price-heading-compact">Precio / costo</span>
             </th>
             <th scope="col" className="nx-worker-th-cost nx-worker-th-number">Costo de referencia</th>
-            <th scope="col" className="nx-worker-th-available nx-worker-th-number">Disponibles</th>
+            <th scope="col" className="nx-worker-th-available nx-worker-th-number">Libres</th>
             <th scope="col" className="nx-worker-th-sites nx-worker-th-last nx-worker-th-number">En pedidos</th>
           </tr>
         </thead>
@@ -327,10 +331,10 @@ const ReferenceTable = ({ items }: { items: ReferenceStockRow[] }) =>
             </td>
             <td className="nx-worker-td-number">
               <div className="flex flex-col items-end gap-1">
-                <span className={`text-base font-semibold tabular-nums ${item.available===0 ? "text-destructive" : "text-foreground"}`}>
-                  {number(item.available)}
+                <span className={`text-base font-semibold tabular-nums ${item.freeFromOrders===0 ? "text-destructive" : "text-foreground"}`}>
+                  {number(item.freeFromOrders)}
                 </span>
-                {item.available > 0 && item.available < 10
+                {item.freeFromOrders > 0 && item.freeFromOrders < 10
                   ? <span className="whitespace-nowrap text-[11px] font-medium text-amber-700 dark:text-amber-300">Stock bajo</span>
                   : null}
               </div>
@@ -463,7 +467,7 @@ export const WorkerGlobalInventory = ({ serials = false }: { serials?: boolean }
       <p className="mt-2 font-semibold">No se encontraron equipos.</p>
       <p className="mt-1 text-sm text-muted-foreground">Revisa el nombre del modelo, el IMEI o la referencia buscada.</p>
     </div> : null}
-    {kind === "ref" ? <p className="text-xs text-muted-foreground">«Disponibles» excluye los IMEI en pedidos y traslados. «En pedidos» son equipos ya asignados. El conteo físico completo permanece en la ficha de la fotografía.</p> : null}
+    {kind === "ref" ? <p className="text-xs text-muted-foreground">«Libres» excluye los IMEI asignados a pedidos o traslados. «En pedidos» nunca son libres. La ficha de la fotografía diferencia el total físico, los libres y los que cumplen el filtro de costo.</p> : null}
     {kind === "ref" && reference?.items.length ? <ReferenceTable items={reference.items}/> : null}
     {kind === "imei" && imei?.items.length ? <ImeiTable items={imei.items}/> : null}
     <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border bg-card px-4 py-3 text-sm">
