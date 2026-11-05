@@ -3,7 +3,7 @@ import { parseCatalogMedia, type CatalogMedia } from "./nexora-worker-catalog-me
 /** Conteos de IMEI por referencia y sede, sin inventar ubicaciones ni unidades no serializadas. */
 export interface ReferenceSiteCount {
   siteId:string|null; siteName:string;cityName:string|null;
-  total:number;physicallyVerified:number;available:number;committedOrders:number;
+  total:number;physicallyVerified:number;available:number;freeFromOrders:number;committedOrders:number;
   unverified:number;inTransit:number;pendingReturn:number;sold:number;
 }
 export interface ReferenceStockRow extends Omit<ReferenceSiteCount,"siteId"|"siteName"|"cityName">, CatalogMedia {
@@ -40,14 +40,17 @@ const asInt=(value:unknown):number=>{
 };
 const asNullableText=(value:unknown):string|null=>
   value===null?null:asText(value);
-const values=["total","physicallyVerified","available","unverified","inTransit","pendingReturn","sold","committedOrders"] as const;
+const values=["total","physicallyVerified","available","unverified","inTransit","pendingReturn","sold","committedOrders","freeFromOrders"] as const;
 type CountKey=(typeof values)[number];
 const parseCounts=(obj:Record<string,unknown>)=>{
   const counters={} as Record<CountKey,number>;
-  for(const name of values)counters[name]=asInt(name==="committedOrders" ? (obj[name]??0) : obj[name]);
+  for(const name of values)counters[name]=asInt(name==="committedOrders" ? (obj[name]??0) :
+    name==="freeFromOrders" ? (obj[name]??obj.available) : obj[name]);
   if(counters.available>counters.physicallyVerified||
      counters.committedOrders>counters.physicallyVerified||
-     counters.available+counters.committedOrders>counters.physicallyVerified||
+     counters.freeFromOrders>counters.physicallyVerified||
+     counters.available>counters.freeFromOrders||
+     counters.freeFromOrders+counters.committedOrders>counters.physicallyVerified||
      counters.physicallyVerified+counters.unverified+counters.inTransit+
        counters.pendingReturn+counters.sold!==counters.total)
     throw new Error("Las existencias por referencia son inconsistentes.");
