@@ -13,10 +13,11 @@ describe("Nexora · estado comercial del IMEI en historial",()=>{
     expect(state.assigned).toBe(true);
     expect(state.note).toContain("pendiente de despacho");
   });
-  it("un pedido despachado no se etiqueta como venta",()=>{
+  it("un pedido con venta confirmada aparece como vendido",()=>{
     const state=describeImeiOrderAssociation("despachado");
     expect(state.assigned).toBe(false);
-    expect(state.label).toBe("Pedido despachado");
+    expect(state.label).toContain("Vendido");
+    expect(state.note).toContain("venta");
   });
   it("no confunde vínculo histórico cancelado con reserva",()=>{
     const state=describeImeiOrderAssociation("cancelado");
