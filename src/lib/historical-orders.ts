@@ -1,5 +1,3 @@
-import { supabase } from "@/integrations/supabase/client";
-
 export interface HistoricalOrderListItem {
   sourceId: string;
   code: string;
@@ -114,6 +112,7 @@ export async function listHistoricalOrders(): Promise<{
   items: HistoricalOrderListItem[];
   total: number;
 }> {
+  const { supabase } = await import("@/integrations/supabase/client");
   const { data, error } = await supabase.rpc("nexora_historical_orders_list", {
     p_search: null,
     p_status: null,
@@ -144,6 +143,7 @@ export async function listHistoricalOrders(): Promise<{
 export async function getHistoricalOrderDetail(
   sourceId: string,
 ): Promise<HistoricalOrderDetail> {
+  const { supabase } = await import("@/integrations/supabase/client");
   const { data, error } = await supabase.rpc("nexora_historical_order_detail", {
     p_source_id: sourceId,
   });
