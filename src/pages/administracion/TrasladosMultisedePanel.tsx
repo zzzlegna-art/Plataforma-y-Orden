@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { AlertTriangle, ArrowRight, Barcode, CheckCircle2, ClipboardList, FileClock, PackageCheck, Plus, RefreshCw, RotateCcw, ShieldCheck, Truck, Warehouse } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -30,7 +31,16 @@ export const TrasladosMultisedePanel = ({ sites }: { sites: readonly NexoraSite[
   const [loading, setLoading] = useState(true);
   const [working, setWorking] = useState(false);
   const [transfers, setTransfers] = useState<NexoraTransfer[]>([]);
-  const [activeId, setActiveId] = useState("");
+  const [searchParams] = useSearchParams();
+  const requestedTransfer = searchParams.get("transfer");
+  const [activeId, setActiveId] = useState(() =>
+    requestedTransfer && /^[a-f0-9-]{36}$/i.test(requestedTransfer) ? requestedTransfer : "",
+  );
+  useEffect(() => {
+    if (requestedTransfer && /^[a-f0-9-]{36}$/i.test(requestedTransfer)) {
+      setActiveId(requestedTransfer);
+    }
+  }, [requestedTransfer]);
   const [detail, setDetail] = useState<TransferDetail | null>(null);
   const [originId, setOriginId] = useState("");
   const [destinationId, setDestinationId] = useState("");

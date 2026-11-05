@@ -12,6 +12,45 @@ export type Database = {
   }
   public: {
     Tables: {
+      notifications: {
+        Row: {
+          id: string
+          user_id: string
+          title: string
+          message: string | null
+          type: string | null
+          read: boolean
+          created_at: string
+          site_id: string | null
+          transfer_id: string | null
+          source_event_id: number | null
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          title: string
+          message?: string | null
+          type?: string | null
+          read?: boolean
+          created_at?: string
+          site_id?: string | null
+          transfer_id?: string | null
+          source_event_id?: number | null
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          title?: string
+          message?: string | null
+          type?: string | null
+          read?: boolean
+          created_at?: string
+          site_id?: string | null
+          transfer_id?: string | null
+          source_event_id?: number | null
+        }
+        Relationships: []
+      }
       bodega_audit_logs: {
         Row: {
           action: string
