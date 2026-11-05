@@ -101,7 +101,7 @@ export const HistorialPedidosPanel = () => {
         </span>
         <span className="font-tabular font-semibold">{formatCurrency(order.total)}</span>
       </div>
-      <Button size="sm" variant="outline" className="w-full" onClick={() => abrirDetalle(order)}>
+      <Button size="sm" variant="outline" className="w-full" onClick={(event) => { event.stopPropagation(); abrirDetalle(order); }}>
         <Eye className="mr-2 h-4 w-4" />
         Ver historial
       </Button>
