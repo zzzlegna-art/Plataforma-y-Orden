@@ -135,17 +135,23 @@ export const unidadesFueraPorGarantia = (db: Db): Set<string> => {
  * Los pedidos cancelados y despachados NO se consideran pedidos activos;
  * tras confirmar la venta, el estado persistido pasa a «vendido».
  */
-export const unidadesDescontadasPorPreparacion = (db: Db): Set<string> => {
-  const activos = new Set(db.orders
+/** Pedido activo de cada IMEI; sirve a inventario, seriales y todas las sedes. */
+export const getActiveOrderByUnit = (db: Db): Map<string, Order> => {
+  const activos = new Map(db.orders
     .filter((order) => order.status === "en_preparacion" || order.status === "preparado")
-    .map((order) => order.id));
-  if (!activos.size) return new Set();
-  const lineasActivas = new Set(db.orderItems
-    .filter((item) => activos.has(item.orderId)).map((item) => item.id));
-  return new Set(db.orderItemUnits
-    .filter((row) => lineasActivas.has(row.orderItemId))
-    .map((row) => row.unitId));
+    .map((order) => [order.id, order]));
+  const pedidosPorLinea = new Map(db.orderItems.map((item) => [item.id, item.orderId]));
+  const resultado = new Map<string, Order>();
+  for (const row of db.orderItemUnits) {
+    const orderId = pedidosPorLinea.get(row.orderItemId);
+    const order = orderId ? activos.get(orderId) : undefined;
+    if (order) resultado.set(row.unitId, order);
+  }
+  return resultado;
 };
+
+export const unidadesDescontadasPorPreparacion = (db: Db): Set<string> =>
+  new Set(getActiveOrderByUnit(db).keys());
 
 export const getProductStock = (
   db: Db,
@@ -642,7 +648,9 @@ export const getUnitOrigen = (db: Db, unit: Unit) => {
   const reception = db.receptions.find((item) => item.id === unit.receptionId);
   const row = db.orderItemUnits.find((item) => item.unitId === unit.id);
   const orderItem = row ? db.orderItems.find((item) => item.id === row.orderItemId) : undefined;
-  const order = orderItem ? db.orders.find((item) => item.id === orderItem.orderId) : undefined;
+  // Un IMEI vinculado a un pedido activo debe mostrar ese pedido, nunca uno histórico.
+  const order = getActiveOrderByUnit(db).get(unit.id)
+    ?? (orderItem ? db.orders.find((item) => item.id === orderItem.orderId) : undefined);
   const customer = order ? db.customers.find((item) => item.id === order.customerId) : undefined;
   const serialNormalizado = unit.serial.trim().toLocaleLowerCase();
   const warranties = db.warranties.filter(
