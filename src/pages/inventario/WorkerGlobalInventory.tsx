@@ -17,6 +17,7 @@ import { swatchForVariant } from "@/lib/product-color-photos";
 import { getProductTechnicalSpecFieldsForCategory } from "@/lib/product-specs";
 import type { ProductTechnicalSpecKey } from "@/lib/types";
 import "./inventory-product-zoom.css";
+import "./worker-inventory-table.css";
 import {
   catalogCoverPhoto, commercialSiteGroups, type CatalogMedia,
 } from "@/lib/nexora-worker-catalog-media";
@@ -253,112 +254,148 @@ const CatalogPhoto = ({
   </Dialog>;
 };
 
-/** La tabla conserva el aspecto y las columnas del inventario principal,
- * pero nunca ofrece edición o acceso a los repuestos desde locales. */
-const ReferenceTable = ({ items }: { items: ReferenceStockRow[] }) =>
-  <section aria-label="Inventario de referencias comerciales" className="overflow-hidden rounded-2xl border border-border/70 bg-card shadow-sm">
-    <div className="overflow-x-auto">
-      <table className="w-full min-w-[995px] text-[15px]">
-        <thead className="bg-muted/40 text-[13px] font-semibold text-muted-foreground">
-          <tr>
-            <th scope="col" className="px-4 py-3 text-left">Producto</th>
-            <th scope="col" className="px-3 py-3 text-left">Marca</th>
-            <th scope="col" className="px-3 py-3 text-left">Condición</th>
-            <th scope="col" className="px-3 py-3 text-right">Precio de venta</th>
-            <th scope="col" className="px-3 py-3 text-right">Costo de referencia</th>
-            <th scope="col" className="px-3 py-3 text-right">Disponibles</th>
-            <th scope="col" className="px-3 py-3 text-right">En sedes</th>
-          </tr>
-        </thead>
-        <tbody>
-          {items.map((item) => (
-            <tr key={item.productId} className="border-t border-border/80 transition-colors hover:bg-muted/35">
-              <td className="px-4 py-4">
-                <div className="flex min-w-[265px] items-center gap-4">
-                  <CatalogPhoto name={item.name} sku={item.sku} media={item} brandName={item.brandName} stock={item} small/>
-                  <div className="min-w-0">
-                    <p className="text-base font-semibold leading-snug text-foreground">{item.name}</p>
-                    <span className="mt-1.5 inline-flex rounded-md border bg-muted/50 px-2 py-0.5 font-mono text-xs text-muted-foreground">{item.sku}</span>
-                  </div>
-                </div>
-              </td>
-              <td className="px-3 py-4 text-sm text-muted-foreground">{item.brandName ?? "—"}</td>
-              <td className="px-3 py-4">
-                <div className="flex min-w-[116px] flex-col items-start gap-1.5">
-                  {item.newUnits > 0 ? <span className="rounded-full border border-sky-200 bg-sky-50 px-2 py-0.5 text-xs font-medium text-sky-800 dark:border-sky-800 dark:bg-sky-500/10 dark:text-sky-200">
-                    Nuevo <strong className="ml-1 tabular-nums">{number(item.newUnits)}</strong>
-                  </span> : null}
-                  {item.usedUnits > 0 ? <span className="rounded-full border border-slate-200 bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-700 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200">
-                    Seminuevo <strong className="ml-1 tabular-nums">{number(item.usedUnits)}</strong>
-                  </span> : null}
-                  {item.newUnits === 0 && item.usedUnits === 0 ? <span className="text-xs text-muted-foreground">—</span> : null}
-                </div>
-              </td>
-              <td className="whitespace-nowrap px-3 py-4 text-right">
-                {item.salePrice !== null && item.salePrice > 0
-                  ? <span className="font-semibold tabular-nums">{money(item.salePrice)}</span>
-                  : <span className="text-sm italic text-muted-foreground">Sin precio</span>}
-              </td>
-              <td className="whitespace-nowrap px-3 py-4 text-right">
-                {item.referenceCost !== null && item.referenceCost > 0
-                  ? <span className="rounded-lg border border-border/60 bg-muted/35 px-2 py-1 text-sm font-medium tabular-nums">{money(item.referenceCost)}</span>
-                  : <span className="text-sm italic text-muted-foreground">Sin costo</span>}
-              </td>
-              <td className="px-3 py-2.5 text-right">
-                <div className="flex items-center justify-end gap-1.5">
-                  {item.available > 0 && item.available < 10
-                    ? <span className="rounded-full bg-amber-50 px-2 py-0.5 text-xs font-semibold text-amber-800 dark:bg-amber-500/10 dark:text-amber-300">Stock bajo</span>
-                    : null}
-                  <span className={`min-w-6 text-base font-semibold tabular-nums ${item.available === 0 ? "text-destructive" : "text-foreground"}`}>{number(item.available)}</span>
-                </div>
-              </td>
-              <td className="px-3 py-4 text-right text-base font-medium tabular-nums text-muted-foreground">{number(item.physicallyVerified)}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  </section>;
+/** Condición física real: nunca se infiere de precio, foto o estado de venta. */
+const ConditionLabels = ({ item, compact = false }: {
+  item: ReferenceStockRow; compact?: boolean;
+}) => <div className={compact
+  ? "nx-worker-condition-compact flex-wrap items-center gap-1.5"
+  : "flex flex-wrap items-center gap-1.5"}>
+  {item.newUnits > 0 ? <span className="inline-flex rounded-full border border-sky-200 bg-sky-50 px-2.5 py-1 text-xs font-medium text-sky-800 dark:border-sky-800 dark:bg-sky-500/10 dark:text-sky-200">
+    Nuevo <strong className="ml-1 tabular-nums">{number(item.newUnits)}</strong>
+  </span> : null}
+  {item.usedUnits > 0 ? <span className="inline-flex rounded-full border border-slate-200 bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-700 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200">
+    Seminuevo <strong className="ml-1 tabular-nums">{number(item.usedUnits)}</strong>
+  </span> : null}
+  {item.newUnits === 0 && item.usedUnits === 0 && !compact
+    ? <span className="text-sm text-muted-foreground">—</span> : null}
+</div>;
 
-const ImeiTable = ({ items }: { items: ImeiDirectoryRow[] }) =>
-  <section aria-label="Inventario individual por IMEI" className="overflow-hidden rounded-2xl border border-border/70 bg-card shadow-sm">
-    <div className="overflow-x-auto">
-      <table className="w-full min-w-[850px] text-[15px]">
-        <thead className="bg-muted/40 text-[13px] font-semibold text-muted-foreground">
+/** Una sola fila por referencia, igual al inventario principal.
+ * En paneles medianos reúne los campos secundarios sin ocultar ningún dato.
+ * La foto mantiene el único visor técnico con la distribución del inventario. */
+const ReferenceTable = ({ items }: { items: ReferenceStockRow[] }) =>
+  <section aria-label="Inventario de referencias comerciales"
+    className="nx-worker-inventory-layout overflow-hidden rounded-2xl border border-border/70 bg-card shadow-sm">
+    <div className="nx-worker-table-viewport">
+      <table className="nx-worker-table nx-worker-ref">
+        <thead>
           <tr>
-            <th scope="col" className="px-4 py-3 text-left">Producto / IMEI</th>
-            <th scope="col" className="px-3 py-3 text-left">Sede o historial</th>
-            <th scope="col" className="px-3 py-3 text-left">Estado</th>
-            <th scope="col" className="px-3 py-3 text-right">Costo individual</th>
-            <th scope="col" className="px-3 py-3 text-right">Disponibilidad</th>
+            <th scope="col" className="nx-worker-th-product text-left">Producto</th>
+            <th scope="col" className="nx-worker-th-brand text-left">Marca</th>
+            <th scope="col" className="nx-worker-th-condition text-left">Condición</th>
+            <th scope="col" className="nx-worker-th-price nx-worker-th-number">
+              <span className="nx-worker-price-heading-wide">Precio de venta</span>
+              <span className="nx-worker-price-heading-compact">Precio / costo</span>
+            </th>
+            <th scope="col" className="nx-worker-th-cost nx-worker-th-number">Costo de referencia</th>
+            <th scope="col" className="nx-worker-th-available nx-worker-th-number">Disponibles</th>
+            <th scope="col" className="nx-worker-th-sites nx-worker-th-last nx-worker-th-number">En sedes</th>
           </tr>
         </thead>
         <tbody>
-          {items.map((item) => <tr key={item.unitId} className="border-t border-border/80 transition-colors hover:bg-muted/35">
-            <td className="px-4 py-4">
-              <div className="flex min-w-[260px] items-center gap-4">
-                <CatalogPhoto name={item.productName} sku={item.sku} media={item} unit={item} small/>
-                <div className="min-w-0">
-                  <p className="text-base font-semibold leading-snug">{item.productName}</p>
-                  <p className="mt-0.5 font-mono text-sm font-semibold text-primary">{item.serial}</p>
-                  <span className="mt-0.5 inline-flex rounded border bg-muted/50 px-1.5 py-0.5 font-mono text-sm text-muted-foreground">{item.sku}</span>
+          {items.map(item => <tr key={item.productId}>
+            <td className="nx-worker-td-product">
+              <div className="nx-worker-product">
+                <CatalogPhoto name={item.name} sku={item.sku} media={item}
+                  brandName={item.brandName} stock={item} small/>
+                <div className="nx-worker-product-copy">
+                  <p className="nx-worker-product-name">{item.name}</p>
+                  <div className="nx-worker-product-details">
+                    <span className="nx-worker-sku">{item.sku}</span>
+                    <span className="nx-worker-product-inline-brand">{item.brandName ?? "—"}</span>
+                    <ConditionLabels item={item} compact/>
+                  </div>
                 </div>
               </div>
             </td>
-            <td className="px-3 py-4 text-xs text-muted-foreground">
-              {item.custodyState === "vendido" ? <span className="flex items-center gap-1"><History className="size-3.5"/> Vendido · historial</span> :
-                item.siteName ? <span className="flex items-center gap-1"><MapPin className="size-3.5"/>{item.siteName}</span> : "Sin sede verificada"}
+            <td className="nx-worker-td-brand">{item.brandName ?? "—"}</td>
+            <td className="nx-worker-td-condition"><ConditionLabels item={item}/></td>
+            <td className="nx-worker-td-price nx-worker-td-number">
+              {item.salePrice !== null && item.salePrice > 0
+                ? <span className="nx-worker-price-main tabular-nums">{money(item.salePrice)}</span>
+                : <span className="nx-worker-price-main text-sm italic text-muted-foreground">Sin precio</span>}
+              <span className="nx-worker-price-compact">
+                Costo: {item.referenceCost !== null && item.referenceCost > 0
+                  ? money(item.referenceCost) : "sin registrar"}
+              </span>
             </td>
-            <td className="px-3 py-4"><span className="rounded-full border bg-muted/50 px-2 py-1 text-sm">{CUSTODY_LABEL[item.custodyState]}</span></td>
-            <td className="whitespace-nowrap px-3 py-4 text-right font-medium tabular-nums">{money(item.cost)}</td>
-            <td className="px-3 py-4 text-right">
-              {item.commercialCandidate ? <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-700 dark:text-emerald-300"><BadgeCheck className="size-3.5"/> Disponible</span> : <span className="text-xs text-muted-foreground">No disponible</span>}
+            <td className="nx-worker-td-cost nx-worker-td-number">
+              {item.referenceCost !== null && item.referenceCost > 0
+                ? <span className="font-medium tabular-nums">{money(item.referenceCost)}</span>
+                : <span className="text-sm italic text-muted-foreground">Sin costo</span>}
+            </td>
+            <td className="nx-worker-td-number">
+              <div className="flex flex-col items-end gap-1">
+                <span className={`text-base font-semibold tabular-nums ${item.available===0 ? "text-destructive" : "text-foreground"}`}>
+                  {number(item.available)}
+                </span>
+                {item.available > 0 && item.available < 10
+                  ? <span className="whitespace-nowrap text-[11px] font-medium text-amber-700 dark:text-amber-300">Stock bajo</span>
+                  : null}
+              </div>
+            </td>
+            <td className="nx-worker-td-last nx-worker-td-number text-base font-semibold tabular-nums">
+              {number(item.physicallyVerified)}
             </td>
           </tr>)}
         </tbody>
       </table>
     </div>
+    <p className="nx-worker-inventory-scroll-hint items-center justify-center gap-2 border-t border-border/70 px-3 py-2 text-xs text-muted-foreground">
+      Desliza horizontalmente para consultar todas las columnas <ArrowRight className="size-3.5"/>
+    </p>
   </section>;
+
+/** Misma jerarquía y separación para consultas individuales por IMEI. */
+const ImeiTable = ({ items }: { items: ImeiDirectoryRow[] }) =>
+  <section aria-label="Inventario individual por IMEI"
+    className="nx-worker-inventory-layout overflow-hidden rounded-2xl border border-border/70 bg-card shadow-sm">
+    <div className="nx-worker-table-viewport">
+      <table className="nx-worker-table nx-worker-imei">
+        <thead>
+          <tr>
+            <th scope="col" className="nx-worker-th-product text-left">Producto / IMEI</th>
+            <th scope="col" className="nx-worker-th-site text-left">Sede o historial</th>
+            <th scope="col" className="nx-worker-th-status text-left">Estado</th>
+            <th scope="col" className="nx-worker-th-cost nx-worker-th-number">Costo individual</th>
+            <th scope="col" className="nx-worker-th-available nx-worker-th-last nx-worker-th-number">Disponibilidad</th>
+          </tr>
+        </thead>
+        <tbody>
+          {items.map(item => <tr key={item.unitId}>
+            <td className="nx-worker-td-product">
+              <div className="nx-worker-product">
+                <CatalogPhoto name={item.productName} sku={item.sku} media={item} unit={item} small/>
+                <div className="nx-worker-product-copy">
+                  <p className="nx-worker-product-name">{item.productName}</p>
+                  <p className="mt-1 break-all font-mono text-xs font-semibold text-primary">{item.serial}</p>
+                  <div className="nx-worker-product-details"><span className="nx-worker-sku">{item.sku}</span></div>
+                </div>
+              </div>
+            </td>
+            <td className="nx-worker-td-site text-sm text-muted-foreground">
+              {item.custodyState === "vendido"
+                ? <span className="inline-flex items-center gap-1.5"><History className="size-4"/> Vendido · historial</span>
+                : item.siteName
+                  ? <span className="inline-flex items-center gap-1.5"><MapPin className="size-4 shrink-0"/>{item.siteName}</span>
+                  : "Sin sede verificada"}
+            </td>
+            <td><span className="inline-flex rounded-full border bg-muted/50 px-2.5 py-1.5 text-xs font-medium">{CUSTODY_LABEL[item.custodyState]}</span></td>
+            <td className="nx-worker-td-number whitespace-nowrap text-sm font-semibold tabular-nums">{money(item.cost)}</td>
+            <td className="nx-worker-td-last nx-worker-td-number">
+              {item.commercialCandidate
+                ? <span className="inline-flex items-center justify-end gap-1.5 whitespace-nowrap text-xs font-semibold text-emerald-700 dark:text-emerald-300"><BadgeCheck className="size-4"/> Disponible</span>
+                : <span className="text-xs text-muted-foreground">No disponible</span>}
+            </td>
+          </tr>)}
+        </tbody>
+      </table>
+    </div>
+    <p className="nx-worker-inventory-scroll-hint items-center justify-center gap-2 border-t border-border/70 px-3 py-2 text-xs text-muted-foreground">
+      Desliza horizontalmente para consultar todas las columnas <ArrowRight className="size-3.5"/>
+    </p>
+  </section>;
+
 export const WorkerGlobalInventory = ({ serials = false }: { serials?: boolean }) => {
   const [kind, setKind] = useState<"imei" | "ref">(serials ? "imei" : "ref");
   const [query, setQuery] = useState("");
