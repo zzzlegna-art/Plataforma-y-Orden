@@ -77,7 +77,9 @@ describe("panel premium sin cambiar la barra lateral", () => {
 
   it("dibuja entradas, salidas y asignaciones con líneas uniformes y áreas separadas", () => {
     const { container } = open();
-    const chart = container.querySelector(".nx-dashboard-block--movement .nx-analytics-chart");
+    const chart = container.querySelector(".nx-dashboard-block--movement .nx-movement-chart");
+    expect(container.querySelector(".nx-movement-premium")).toBeTruthy();
+    expect(container.querySelectorAll(".nx-movement-legend")).toHaveLength(3);
     expect(chart).toBeTruthy();
     const curves = [...(chart?.querySelectorAll('[data-testid="inventory-curve"]') ?? [])];
     expect(curves).toHaveLength(3);
@@ -85,8 +87,8 @@ describe("panel premium sin cambiar la barra lateral", () => {
       "asignaciones", "entradas", "salidas",
     ]);
     expect(curves.every((el) => el.getAttribute("data-curve") === "monotone"
-      && el.getAttribute("data-width") === "2.6"
       && el.getAttribute("data-no-dots") === "true")).toBe(true);
+    expect(curves.map((el) => el.getAttribute("data-width"))).toEqual(["3", "3", "2.75"]);
     expect(new Set(curves.map((el) => el.getAttribute("data-fill"))).size).toBe(3);
   });
 
