@@ -47,18 +47,56 @@ const ocr=async(source:HTMLCanvasElement|Blob):Promise<string>=>{
   try{return (await worker.recognize(source)).data.text??"";}
   finally{await worker.terminate();}
 };
-const extractPageText=(items:unknown[]):string=>{
-  let text="",prevY:number|null=null;
-  for(const it of items){
-    if(!it||typeof it!=="object")continue;
-    const obj=it as {str?:unknown;transform?:unknown;hasEOL?:unknown};
-    if(typeof obj.str!=="string")continue;
-    const y=Array.isArray(obj.transform)&&typeof obj.transform[5]==="number"?obj.transform[5]:null;
-    if(y!==null&&prevY!==null&&Math.abs(y-prevY)>4)text+="\n";
-    text+=obj.str+(obj.hasEOL?"\n":" ");
-    if(y!==null)prevY=y;
+/**
+ * PDF.js puede devolver bloques de texto fuera de orden (por columnas).
+ * Reagrupar por coordenada vertical y luego horizontal mantiene cada fila
+ * de artículo alineada con cantidad, costo unitario y subtotal.
+ */
+export const extractPageText = (items: unknown[]): string => {
+  type Item = { text: string; x: number; y: number; eol: boolean; positioned: boolean };
+  const tokens: Item[] = [];
+  for (const it of items) {
+    if (!it || typeof it !== "object") continue;
+    const obj = it as { str?: unknown; transform?: unknown; hasEOL?: unknown };
+    if (typeof obj.str !== "string") continue;
+    const transform = Array.isArray(obj.transform) ? obj.transform : null;
+    const positioned = Boolean(transform && typeof transform[4] === "number"
+      && typeof transform[5] === "number");
+    tokens.push({
+      text: obj.str.trim(), x: positioned ? Number(transform![4]) : 0,
+      y: positioned ? Number(transform![5]) : 0, eol: Boolean(obj.hasEOL), positioned,
+    });
   }
-  return text;
+  if (!tokens.length) return "";
+
+  // Para PDFs sin geometría aprovechable se conserva el orden original.
+  if (tokens.filter(token => token.positioned).length < tokens.length * .8) {
+    let result = "";
+    for (const token of tokens) result += token.text + (token.eol ? "\n" : " ");
+    return result;
+  }
+
+  const lines: { y: number; items: Item[] }[] = [];
+  for (const item of tokens) {
+    if (!item.text) continue;
+    let line = lines.find(candidate => Math.abs(candidate.y - item.y) <= 2.5);
+    if (!line) {
+      line = { y: item.y, items: [] };
+      lines.push(line);
+    }
+    line.items.push(item);
+  }
+  lines.sort((a, b) => b.y - a.y);
+  return lines.map(line => line.items.sort((a, b) => a.x - b.x)
+    .map(item => item.text).join(" ")).join("\n");
+};
+
+/** Un PDF escaneado puede contener texto corto solo en el encabezado.
+ * No asumir que toda la tabla es legible por encontrar ese encabezado. */
+export const shouldOcrInvoicePage = (text: string): boolean => {
+  const visible = text.replace(/\s+/g, " ").trim();
+  const digits = (visible.match(/\d/g) ?? []).length;
+  return visible.length < 60 || (visible.length < 160 && digits < 4);
 };
 export const readInvoiceDocument=async(file:File,onProgress?:(msg:string)=>void):Promise<string>=>{
   if(file.size>10485760||file.size===0)throw new Error("Adjunta un PDF/JPG/PNG de máximo 10 MB.");
@@ -77,7 +115,7 @@ export const readInvoiceDocument=async(file:File,onProgress?:(msg:string)=>void)
   for(let index=1;index<=maxPages;index++){
     const page=await pdf.getPage(index);
     const text=extractPageText((await page.getTextContent()).items);
-    if(text.trim().length>=35){chunks.push(text);continue;}
+    if(!shouldOcrInvoicePage(text)){chunks.push(text);continue;}
     onProgress?.("Aplicando OCR a la página "+index+"...");
     const view=page.getViewport({scale:1.6});
     const canvas=document.createElement("canvas");
