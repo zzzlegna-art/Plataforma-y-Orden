@@ -49,36 +49,7 @@ export type Database = {
           transfer_id?: string | null
           source_event_id?: number | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "notifications_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "bodega_profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "notifications_site_id_fkey"
-            columns: ["site_id"]
-            isOneToOne: false
-            referencedRelation: "nexora_sites"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "notifications_transfer_id_fkey"
-            columns: ["transfer_id"]
-            isOneToOne: false
-            referencedRelation: "nexora_transfers"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "notifications_source_event_id_fkey"
-            columns: ["source_event_id"]
-            isOneToOne: false
-            referencedRelation: "nexora_transfer_events"
-            referencedColumns: ["id"]
-          }
-        ]
+        Relationships: []
       }
       bodega_audit_logs: {
         Row: {
