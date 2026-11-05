@@ -651,6 +651,7 @@ const Inventario = () => {
       formatCurrency(row.product.price),
       formatCurrency(row.product.cost),
       row.stock.disponible,
+      row.stock.enPedidos,
       row.stock.enInventario,
       row.stock.lowStock ? t("product.lowStock") : t("export.estadoDisponible"),
     ]);
@@ -663,7 +664,8 @@ const Inventario = () => {
       t("product.salePrice"),
       t("product.costPrice"),
       t("product.available"),
-      t("product.enInventario"),
+      "En pedidos (no disponibles)",
+      "Inventario operativo (sin pedidos)",
       t("export.estado"),
     ];
 
@@ -845,13 +847,10 @@ const Inventario = () => {
           ) : null}
         </div>
       </div>
-      <div className="flex items-center justify-between border-t border-border/60 pt-3">
-        <span className="font-tabular text-sm font-medium">
-          {t("product.availableOf", {
-            available: row.stock.disponible,
-            total: row.stock.enInventario,
-          })}
-        </span>
+      <div className="flex flex-wrap items-center justify-between gap-1 border-t border-border/60 pt-3 text-sm">
+        <span className="font-tabular font-semibold">{row.stock.disponible} libres</span>
+        <span className="font-tabular text-amber-700 dark:text-amber-300">{row.stock.enPedidos} en pedidos</span>
+        <span className="text-xs text-muted-foreground">{row.stock.enSedeFisica} físicos</span>
       </div>
       <div className="grid grid-cols-2 gap-2" aria-label={t("product.pricing")}>
         <div className="min-w-0 rounded-xl border border-border/70 bg-muted/30 px-3 py-2">
@@ -1187,13 +1186,14 @@ const Inventario = () => {
             ),
           },
           {
-            key: "total",
-            header: t("product.enInventario"),
+            key: "orders",
+            header: "En pedidos",
             align: "right",
             className: "whitespace-nowrap",
             cell: (row) => (
-              <span className="font-tabular text-sm text-muted-foreground">
-                {row.stock.enInventario}
+              <span className="font-tabular text-sm font-semibold text-amber-700 dark:text-amber-300"
+                title="IMEI comprometidos en pedidos: no son stock disponible">
+                {row.stock.enPedidos}
               </span>
             ),
           },
