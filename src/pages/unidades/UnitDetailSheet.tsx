@@ -23,7 +23,7 @@ import { useStore } from "@/hooks/use-store";
 import { usePermissions } from "@/hooks/use-permissions";
 import { liberarUnit, reingresarUnit, updateUnit } from "@/lib/actions/units";
 import { formatCurrency, formatDate, formatDateTime } from "@/lib/format";
-import { getUnitTimeline, unitLocation } from "@/lib/selectors";
+import { getUnitTimeline, getUnitOrigen, unitLocation } from "@/lib/selectors";
 import { describeImeiOrderAssociation } from "@/lib/nexora-imei-order-state";
 
 const InfoRow = ({ label, children }: { label: string; children: React.ReactNode }) => (
@@ -57,15 +57,7 @@ export const UnitDetailSheet = ({
 
   const product = db.products.find((item) => item.id === unit?.productId);
   const reception = db.receptions.find((item) => item.id === unit?.receptionId);
-  const orderRow = unit
-    ? db.orderItemUnits.find((row) => row.unitId === unit.id)
-    : undefined;
-  const orderItem = orderRow
-    ? db.orderItems.find((item) => item.id === orderRow.orderItemId)
-    : undefined;
-  const order = orderItem
-    ? db.orders.find((item) => item.id === orderItem.orderId)
-    : undefined;
+  const order = unit ? getUnitOrigen(db, unit).order : undefined;
   const customer = order
     ? db.customers.find((item) => item.id === order.customerId)
     : undefined;
