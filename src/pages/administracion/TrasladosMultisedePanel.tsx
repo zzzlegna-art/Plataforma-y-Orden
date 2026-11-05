@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { AlertTriangle, ArrowRight, Barcode, CheckCircle2, ClipboardList, FileClock, PackageCheck, Plus, RefreshCw, RotateCcw, ShieldCheck, Truck, Warehouse } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -24,6 +25,8 @@ const nr = (n: number) => new Intl.NumberFormat("es-CO").format(n);
 
 export const TrasladosMultisedePanel = ({ sites }: { sites: readonly NexoraSite[] }) => {
   const { user, role } = useApp();
+  const [searchParams] = useSearchParams();
+  const requestedTransfer = searchParams.get("transfer");
   const [approved, setApproved] = useState(false);
   const [scopeLoading, setScopeLoading] = useState(true);
   const [assignedSites, setAssignedSites] = useState<string[]>([]);
@@ -111,6 +114,11 @@ export const TrasladosMultisedePanel = ({ sites }: { sites: readonly NexoraSite[
     void load();
     return () => { req.current += 1; };
   }, [load]);
+  useEffect(() => {
+    if (requestedTransfer && transfers.some(record => record.id === requestedTransfer)) {
+      setActiveId(requestedTransfer);
+    }
+  }, [requestedTransfer, transfers]);
   useEffect(() => {
     void loadDetail(activeId);
     setReceiveText("");
