@@ -146,7 +146,7 @@ export const NotificationCenter = () => {
         <Button type="button" variant="ghost" size="icon"
           className="relative h-11 w-11 rounded-xl border border-transparent hover:border-primary/20 hover:bg-primary/5"
           title="Centro de notificaciones"
-          aria-label={`Notificaciones${unreadCount > 0 ? ` (${unreadCount} sin leer)` : ""}`>
+          aria-label={`Notificaciones${unreadCount > 0 ? ` (${unreadCount} sin leer)` : ""}`}>
           <Bell className="h-[19px] w-[19px]" aria-hidden="true" />
           {unreadCount > 0 ? (
             <span className="absolute -right-0.5 -top-0.5 flex h-[19px] min-w-[19px] items-center justify-center rounded-full border-2 border-card bg-primary px-1 text-[9px] font-black leading-none text-primary-foreground"
