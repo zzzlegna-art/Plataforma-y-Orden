@@ -1,0 +1,152 @@
+/* Nexora · Inventario de Encargado y Vendedor.
+ * Las columnas responden al ANCHO REAL del panel, no solo al viewport:
+ * el menú lateral puede reducir sustancialmente la tabla.
+ * No altera inventario, costos, permisos ni el visor de la fotografía. */
+.nx-worker-inventory-layout {
+  container: nx-worker-inventory / inline-size;
+  min-width: 0;
+}
+.nx-worker-table-viewport {
+  max-width: 100%;
+  min-width: 0;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-gutter: stable;
+}
+.nx-worker-table {
+  table-layout: fixed;
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  color: hsl(var(--foreground));
+}
+.nx-worker-table thead {
+  background: hsl(var(--muted) / .38);
+}
+.nx-worker-table th {
+  padding: 16px 13px;
+  white-space: nowrap;
+  font-size: .78rem;
+  font-weight: 700;
+  line-height: 1.3;
+  letter-spacing: .005em;
+  color: hsl(var(--muted-foreground));
+  border-bottom: 1px solid hsl(var(--border) / .9);
+}
+.nx-worker-table td {
+  padding: 17px 13px;
+  vertical-align: middle;
+  line-height: 1.45;
+  border-bottom: 1px solid hsl(var(--border) / .74);
+}
+.nx-worker-table tbody tr:last-child td { border-bottom: 0; }
+.nx-worker-table tbody tr:nth-child(even) { background: hsl(var(--muted) / .16); }
+.nx-worker-table tbody tr:hover { background: hsl(var(--primary) / .055); }
+.nx-worker-table .nx-worker-th-product,
+.nx-worker-table .nx-worker-td-product { padding-left: 22px; }
+.nx-worker-table .nx-worker-th-last,
+.nx-worker-table .nx-worker-td-last { padding-right: 22px; }
+.nx-worker-table .nx-worker-td-number,
+.nx-worker-table .nx-worker-th-number { text-align: right; font-variant-numeric: tabular-nums; }
+.nx-worker-product {
+  display: flex;
+  align-items: center;
+  gap: 17px;
+  min-width: 0;
+}
+.nx-worker-product-copy { min-width: 0; }
+.nx-worker-product-name {
+  font-size: 1rem;
+  line-height: 1.35;
+  font-weight: 700;
+  letter-spacing: -.01em;
+  overflow-wrap: anywhere;
+}
+.nx-worker-product-details {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+.nx-worker-sku {
+  display: inline-flex;
+  max-width: 100%;
+  padding: 3px 8px;
+  border: 1px solid hsl(var(--border));
+  border-radius: 999px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: .75rem;
+  line-height: 1.2;
+  color: hsl(var(--muted-foreground));
+  background: hsl(var(--muted) / .6);
+  overflow-wrap: anywhere;
+}
+.nx-worker-product-inline-brand,
+.nx-worker-price-compact,
+.nx-worker-condition-compact {
+  display: none;
+}
+.nx-worker-product-inline-brand { color: hsl(var(--muted-foreground)); font-size: .8rem; font-weight: 500; }
+.nx-worker-price-main { display: block; font-size: .91rem; font-weight: 650; }
+.nx-worker-price-compact { font-size: .8rem; line-height: 1.45; margin-top: 5px; color: hsl(var(--muted-foreground)); }
+.nx-worker-ref .nx-worker-th-product { width: 30%; }
+.nx-worker-ref .nx-worker-th-brand { width: 10%; }
+.nx-worker-ref .nx-worker-th-condition { width: 14%; }
+.nx-worker-ref .nx-worker-th-price { width: 15%; }
+.nx-worker-ref .nx-worker-th-cost { width: 15%; }
+.nx-worker-ref .nx-worker-th-available { width: 9%; }
+.nx-worker-ref .nx-worker-th-sites { width: 7%; }
+.nx-worker-ref .nx-worker-td-brand { font-size: .875rem; color: hsl(var(--muted-foreground)); }
+.nx-worker-ref .nx-worker-td-price,
+.nx-worker-ref .nx-worker-td-cost { white-space: nowrap; }
+.nx-worker-imei .nx-worker-th-product { width: 36%; }
+.nx-worker-imei .nx-worker-th-site { width: 22%; }
+.nx-worker-imei .nx-worker-th-status { width: 15%; }
+.nx-worker-imei .nx-worker-th-cost { width: 16%; }
+.nx-worker-imei .nx-worker-th-available { width: 11%; }
+.nx-worker-imei .nx-worker-td-site { overflow-wrap: anywhere; }
+.nx-worker-inventory-scroll-hint { display: none; }
+
+/* Contenedor medio (pantalla + menú lateral):
+ * Marca se integra en Producto; Costo bajo Precio, ambos visibles sin una
+ * séptima columna que aplaste las cifras o rompa los encabezados. */
+@container nx-worker-inventory (max-width: 1339px) {
+  .nx-worker-ref .nx-worker-th-brand,
+  .nx-worker-ref .nx-worker-td-brand,
+  .nx-worker-ref .nx-worker-th-cost,
+  .nx-worker-ref .nx-worker-td-cost { display: none; }
+  .nx-worker-ref .nx-worker-th-product { width: 37%; }
+  .nx-worker-ref .nx-worker-th-condition { width: 18%; }
+  .nx-worker-ref .nx-worker-th-price { width: 23%; }
+  .nx-worker-ref .nx-worker-th-available { width: 12%; }
+  .nx-worker-ref .nx-worker-th-sites { width: 10%; }
+  .nx-worker-product-inline-brand,
+  .nx-worker-price-compact { display: block; }
+  .nx-worker-price-heading-wide { display: none; }
+  .nx-worker-price-heading-compact { display: inline; }
+}
+@container nx-worker-inventory (min-width: 1340px) {
+  .nx-worker-price-heading-compact { display: none; }
+}
+@container nx-worker-inventory (max-width: 919px) {
+  .nx-worker-ref .nx-worker-th-condition,
+  .nx-worker-ref .nx-worker-td-condition { display: none; }
+  .nx-worker-condition-compact { display: flex; }
+  .nx-worker-ref .nx-worker-th-product { width: 46%; }
+  .nx-worker-ref .nx-worker-th-price { width: 29%; }
+  .nx-worker-ref .nx-worker-th-available { width: 13%; }
+  .nx-worker-ref .nx-worker-th-sites { width: 12%; }
+  .nx-worker-table th { padding: 14px 10px; font-size: .73rem; }
+  .nx-worker-table td { padding: 16px 10px; }
+  .nx-worker-table .nx-worker-th-product,
+  .nx-worker-table .nx-worker-td-product { padding-left: 16px; }
+  .nx-worker-table .nx-worker-th-last,
+  .nx-worker-table .nx-worker-td-last { padding-right: 16px; }
+  .nx-worker-product { gap: 12px; }
+}
+@container nx-worker-inventory (max-width: 699px) {
+  .nx-worker-ref { min-width: 690px; }
+  .nx-worker-imei { min-width: 820px; }
+  .nx-worker-inventory-scroll-hint { display: flex; }
+}
