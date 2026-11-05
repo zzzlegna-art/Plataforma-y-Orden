@@ -16,7 +16,7 @@ import { estadoControl, esVerificada, ordenarUnidades } from "@/lib/control-fisi
 import { formatDate } from "@/lib/format";
 import { esCodigoInterno } from "@/lib/imei";
 import { imprimirEtiquetas } from "@/lib/print-labels";
-import type { UnitRow } from "@/lib/selectors";
+import { getActiveOrderByUnit, type UnitRow } from "@/lib/selectors";
 import type { Product, UnitCondition } from "@/lib/types";
 import { ControlCheck, ControlFisicoPanel } from "./control-fisico";
 import { useControlFisico } from "./use-control-fisico";
@@ -41,18 +41,8 @@ export const SerialesSeccion = ({
 }) => {
   const { t } = useTranslation();
   const { db } = useStore();
-  const pedidosActivos = useMemo(() => {
-    const orders = new Map(db.orders.map((order) => [order.id, order]));
-    const lines = new Map(db.orderItems.map((line) => [line.id, line]));
-    const associated = new Map<string, { id: string; code: string }>();
-    for (const assignment of db.orderItemUnits) {
-      const line = lines.get(assignment.orderItemId);
-      const order = line ? orders.get(line.orderId) : undefined;
-      if (order && (order.status === "en_preparacion" || order.status === "preparado"))
-        associated.set(assignment.unitId, { id: order.id, code: order.code });
-    }
-    return associated;
-  }, [db.orders, db.orderItems, db.orderItemUnits]);
+  const pedidosActivos = useMemo(() => getActiveOrderByUnit(db),
+    [db.orders, db.orderItems, db.orderItemUnits]);
   const control = useControlFisico(product, condicion);
   const [vista, setVista] = useState<Vista>("todos");
   // Selección para imprimir etiquetas: independiente del control físico (esto es para llevar
