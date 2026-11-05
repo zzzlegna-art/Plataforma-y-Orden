@@ -8,6 +8,7 @@ import {
   Boxes,
   ClipboardList,
   Coins,
+  ChevronDown,
   Download,
   FileSpreadsheet,
   PackagePlus,
@@ -59,6 +60,8 @@ import {
 import type { UnitCondition } from "@/lib/types";
 import { RankChart } from "./rank-chart";
 import "./panel-premium.css";
+import "./movement-premium.css";
+import { MovementChartTooltip, MOVEMENT_SERIES } from "./movement-chart-tooltip";
 
 import {
   firmaRankClientes,
@@ -300,76 +303,93 @@ const Panel = () => {
       </div>
 
       <div className="nx-dashboard-analytics">
-        <section className="nx-analytics-card" aria-labelledby="inventory-movement-heading">
-          <div className="nx-analytics-header">
-            <div className="nx-analytics-heading">
-              <span className="nx-analytics-icon" aria-hidden="true"><Boxes className="h-5 w-5" /></span>
-              <div>
+        <section className="nx-analytics-card nx-movement-premium" aria-labelledby="inventory-movement-heading">
+          <div className="nx-movement-header">
+            <div className="nx-movement-heading">
+              <span className="nx-movement-icon" aria-hidden="true"><Boxes className="h-[22px] w-[22px]" /></span>
+              <div className="nx-movement-heading__text">
+                <span className="nx-movement-eyebrow">Análisis de actividad</span>
                 <h2 id="inventory-movement-heading">Movimiento de inventario</h2>
                 <p>Entradas, asignaciones de IMEI y salidas físicas. No mide ventas.</p>
               </div>
             </div>
-            <div className="nx-analytics-controls">
-              <span className="nx-analytics-legend"><span className="nx-analytics-dot bg-primary" /> Entradas</span>
-              <span className="nx-analytics-legend"><span className="nx-analytics-dot bg-violet-500" /> Salidas</span>
-               <span className="nx-analytics-legend"><span className="nx-analytics-dot bg-amber-500" /> Asignaciones</span>
-              <select className="nx-analytics-range" value={movementPreset}
-                aria-label="Período del gráfico de inventario"
-                onChange={(event) => changeMovementPreset(event.target.value as typeof movementPreset)}>
-                <option value="month">Este mes</option>
-                <option value="7d">Últimos 7 días</option>
-                <option value="30d">Últimos 30 días</option>
-                <option value="90d">Últimos 90 días</option>
-                <option value="custom">Personalizado</option>
-              </select>
+            <div className="nx-movement-controls">
+              <div className="nx-movement-legends" aria-label="Leyenda de movimientos">
+                {MOVEMENT_SERIES.map((series) => (
+                  <span key={series.key} className={"nx-movement-legend nx-movement-tone--" + series.tone}>
+                    <span className="nx-movement-legend__dot" aria-hidden="true" />
+                    <span className="nx-movement-legend__label">{series.label}</span>
+                  </span>
+                ))}
+              </div>
+              <label className="nx-movement-range-wrap">
+                <span className="sr-only">Período del gráfico de inventario</span>
+                <select className="nx-movement-range" value={movementPreset}
+                  aria-label="Período del gráfico de inventario"
+                  onChange={(event) => changeMovementPreset(event.target.value as typeof movementPreset)}>
+                  <option value="month">Este mes</option>
+                  <option value="7d">Últimos 7 días</option>
+                  <option value="30d">Últimos 30 días</option>
+                  <option value="90d">Últimos 90 días</option>
+                  <option value="custom">Personalizado</option>
+                </select>
+                <ChevronDown className="nx-movement-range-chevron" aria-hidden="true" />
+              </label>
             </div>
           </div>
-          <div className="nx-analytics-chart" role="img" aria-label="Gráfica de entradas, asignaciones a pedidos y salidas físicas de inventario">
-            <ResponsiveContainer width="100%" height="100%" debounce={150}>
-              <AreaChart data={movementChartData} margin={{ top: 8, right: 14, left: -13, bottom: 3 }}>
-                <defs>
-                  <linearGradient id="movementEntriesPremiumFill" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#05b9d5" stopOpacity={0.17} />
-                    <stop offset="95%" stopColor="#05b9d5" stopOpacity={0.01} />
-                  </linearGradient>
-                  <linearGradient id="movementAssignmentsPremiumFill" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#f59e0b" stopOpacity={0.09} />
-                    <stop offset="95%" stopColor="#f59e0b" stopOpacity={0} />
-                  </linearGradient>
-                  <linearGradient id="movementExitsPremiumFill" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#8655fa" stopOpacity={0.12} />
-                    <stop offset="95%" stopColor="#8655fa" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 5" stroke="hsl(var(--border))" vertical={false} />
-                <XAxis dataKey="label" interval={Math.max(0, Math.ceil(movementChartData.length / 8) - 1)}
-                  tickLine={false} axisLine={false} tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} />
-                <YAxis allowDecimals={false} width={46} tickLine={false} axisLine={false}
-                  padding={{ top: 5, bottom: 10 }}
-                  tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} />
-                <Tooltip
-                  contentStyle={{ borderRadius: 12, border: "1px solid hsl(var(--border))",
-                    background: "hsl(var(--popover))", color: "hsl(var(--popover-foreground))", fontSize: 12 }}
-                  labelStyle={{ fontWeight: 700, color: "hsl(var(--foreground))" }}
-                  formatter={(value, name) => [formatNumber(Number(value)), String(name)]}
-                />
-                {/* Las tres series usan la misma curva, grosor y acabado. Las áreas
-                    se dibujan de mayor a menor amplitud con rellenos sutiles
-                    para no tapar las curvas ni alterar sus valores reales. */}
-                <Area type="monotone" dataKey="asignaciones" name="Asignaciones"
-                  stroke="#f59e0b" strokeWidth={2.6} dot={false}
-                  fill="url(#movementAssignmentsPremiumFill)"
-                  activeDot={{ r: 4, fill: "#f59e0b", strokeWidth: 0 }} />
-                <Area type="monotone" dataKey="entradas" name="Entradas"
-                  stroke="#05b9d5" strokeWidth={2.6} dot={false}
-                  fill="url(#movementEntriesPremiumFill)"
-                  activeDot={{ r: 4, fill: "#05b9d5", strokeWidth: 0 }} />
-                <Area type="monotone" dataKey="salidas" name="Salidas"
-                  stroke="#8655fa" strokeWidth={2.6} dot={false}
-                  fill="url(#movementExitsPremiumFill)"
-                  activeDot={{ r: 4, fill: "#8655fa", strokeWidth: 0 }} />
-              </AreaChart>
-            </ResponsiveContainer>
+          <div className="nx-movement-chart-surface">
+            <div className="nx-movement-chart" role="img" aria-label="Gráfica de entradas, asignaciones a pedidos y salidas físicas de inventario">
+              <ResponsiveContainer width="100%" height="100%" debounce={150}>
+                <AreaChart data={movementChartData} margin={{ top: 12, right: 15, left: -11, bottom: 5 }}>
+                  <defs>
+                    <linearGradient id="movementEntriesPremiumFill" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="var(--nx-movement-cyan)" stopOpacity={0.16} />
+                      <stop offset="100%" stopColor="var(--nx-movement-cyan)" stopOpacity={0} />
+                    </linearGradient>
+                    <linearGradient id="movementAssignmentsPremiumFill" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="var(--nx-movement-amber)" stopOpacity={0.12} />
+                      <stop offset="100%" stopColor="var(--nx-movement-amber)" stopOpacity={0} />
+                    </linearGradient>
+                    <linearGradient id="movementExitsPremiumFill" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="var(--nx-movement-violet)" stopOpacity={0.1} />
+                      <stop offset="100%" stopColor="var(--nx-movement-violet)" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid vertical={false} stroke="var(--nx-movement-grid)" strokeDasharray="3 7" />
+                  <XAxis dataKey="label" interval={Math.max(0, Math.ceil(movementChartData.length / 8) - 1)}
+                    tickLine={false} axisLine={false} tickMargin={13}
+                    tick={{ fontSize: 11, fontWeight: 500, fill: "var(--nx-movement-muted)" }} />
+                  <YAxis allowDecimals={false} width={46} tickLine={false} axisLine={false}
+                    tickMargin={8} padding={{ top: 6, bottom: 9 }}
+                    tick={{ fontSize: 11, fontWeight: 500, fill: "var(--nx-movement-muted)" }} />
+                  <Tooltip content={<MovementChartTooltip />}
+                    cursor={{ stroke: "var(--nx-movement-guide)", strokeWidth: 1, strokeDasharray: "4 6" }} />
+                  {/* Las tres curvas mantienen el conjunto de datos y su semántica original. */}
+                  <Area type="monotone" dataKey="asignaciones" name="Asignaciones"
+                    stroke="var(--nx-movement-amber)" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round"
+                    dot={false} isAnimationActive={false}
+                    fill="url(#movementAssignmentsPremiumFill)"
+                    activeDot={{ r: 5, fill: "var(--nx-movement-amber)", stroke: "var(--nx-movement-ring)", strokeWidth: 3 }} />
+                  <Area type="monotone" dataKey="entradas" name="Entradas"
+                    stroke="var(--nx-movement-cyan)" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round"
+                    dot={false} isAnimationActive={false}
+                    fill="url(#movementEntriesPremiumFill)"
+                    activeDot={{ r: 5, fill: "var(--nx-movement-cyan)", stroke: "var(--nx-movement-ring)", strokeWidth: 3 }} />
+                  <Area type="monotone" dataKey="salidas" name="Salidas"
+                    stroke="var(--nx-movement-violet)" strokeWidth={2.75} strokeLinecap="round" strokeLinejoin="round"
+                    dot={false} isAnimationActive={false}
+                    fill="url(#movementExitsPremiumFill)"
+                    activeDot={{ r: 5, fill: "var(--nx-movement-violet)", stroke: "var(--nx-movement-ring)", strokeWidth: 3 }} />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+          <div className="nx-movement-footer">
+            <span className="nx-movement-footer__left">
+              <span className="nx-movement-footer__status" aria-hidden="true" />
+              Movimientos del período seleccionado
+            </span>
+            <span>Las asignaciones no equivalen a ventas.</span>
           </div>
           {movementChartData.every((day) => day.entradas === 0 && day.salidas === 0 && day.asignaciones === 0 && day.devoluciones === 0) ? (
             <p className="mt-2 text-center text-xs text-muted-foreground">Todavía no hay movimientos registrados en este período.</p>
