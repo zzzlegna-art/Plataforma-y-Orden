@@ -18,6 +18,7 @@ export const StockSummary = ({ stock }: { stock: ProductStock }) => {
   const cells = [
     { key: "en_bodega", value: stock.enBodega, tone: "success" as const },
     { key: "en_local", value: stock.enLocal, tone: "success" as const },
+    { key: "en_pedidos", value: stock.enPedidos, tone: "warning" as const },
     { key: "vendido", value: stock.vendido, tone: "neutral" as const },
     { key: "en_reparacion", value: stock.enReparacion, tone: "warning" as const },
     { key: "defectuoso", value: stock.defectuoso, tone: "destructive" as const },
@@ -30,13 +31,14 @@ export const StockSummary = ({ stock }: { stock: ProductStock }) => {
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
         {cells.map((cell) => (
           <div key={cell.key} className={cn("rounded-lg border p-3", TONES[cell.tone])}>
-            <p className="text-xs font-medium">{t(`unitStatus.${cell.key}`)}</p>
+            <p className="text-xs font-medium">{cell.key === "en_pedidos" ? "Asignados a pedidos · no disponibles" : t(`unitStatus.${cell.key}`)}</p>
             <p className="font-tabular mt-1 text-xl font-semibold">{cell.value}</p>
           </div>
         ))}
       </div>
       <p className="text-xs text-muted-foreground">
-        {t("unit.conditionSummary", { nuevo: stock.nuevo, seminuevo: stock.seminuevo })}
+        {stock.enSedeFisica} equipos registrados físicamente en sedes; {stock.enPedidos} comprometidos en pedidos activos.
+        La cantidad en bodega/local refleja únicamente stock libre. {t("unit.conditionSummary", { nuevo: stock.nuevo, seminuevo: stock.seminuevo })}
       </p>
     </div>
   );
