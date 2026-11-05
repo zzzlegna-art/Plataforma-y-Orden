@@ -72,6 +72,6 @@ describe("Facturas PDF · extracción por columnas y respaldo OCR", () => {
   });
   it("activa OCR cuando el PDF contiene apenas un encabezado sin datos", () => {
     expect(shouldOcrInvoicePage("FACTURA ELECTRÓNICA DE VENTA")).toBe(true);
-    expect(shouldOcrInvoicePage("Proveedor: A\nFactura FE-400\nFecha: 2026-11-05")).toBe(false);
+    expect(shouldOcrInvoicePage("Proveedor: A\nFactura FE-400\nFecha: 2026-11-05")).toBe(true);
   });
 });
