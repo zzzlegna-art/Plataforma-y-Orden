@@ -51,8 +51,12 @@ const agrupar = <T,>(
 export interface ProductStock {
   /** Disponibles para la venta (bodega + local). */
   disponible: number;
-  /** Stock operativo aún contabilizado: excluye unidades de pedidos con serialización confirmada y las vendidas/liberadas. */
+  /** Stock operativo: no incluye IMEI comprometidos desde la asignación a un pedido activo. */
   enInventario: number;
+  /** IMEI físicamente en bodegas/locales (incluye comprometidos); dato logístico, NO vendible. */
+  enSedeFisica: number;
+  /** IMEI en preparación/preparados que siguen físicamente en la empresa; nunca disponibles. */
+  enPedidos: number;
   /** Todas las unidades registradas alguna vez (incluye vendidas y liberadas). */
   total: number;
   enBodega: number;
@@ -123,24 +127,24 @@ export const unidadesFueraPorGarantia = (db: Db): Set<string> => {
  * o un filtro de "nuevos" nunca mezcle seminuevos.
  */
 /**
- * IMEI descontados del stock operativo al confirmar la serialización.
+ * IMEI descontados del stock operativo DESDE su asignación a un pedido activo.
  *
  * Se deriva de las relaciones del pedido, sin cambiar el estado físico de las unidades
  * ni el esquema persistido. Así se conserva su ubicación real (bodega/local),
- * se evitan ventas prematuras y la reversión al reabrir/cancelar es automática.
- * Las asignaciones de pedidos que aún se están serializando no descuentan stock.
+ * se evitan ventas prematuras, incluso durante la serialización parcial.
+ * Los pedidos cancelados y despachados NO se consideran pedidos activos;
+ * tras confirmar la venta, el estado persistido pasa a «vendido».
  */
 export const unidadesDescontadasPorPreparacion = (db: Db): Set<string> => {
-  const preparados = new Set(db.orders.filter((order) => order.status === "preparado").map((order) => order.id));
-  if (!preparados.size) return new Set();
-  const lineasPreparadas = new Set(
-    db.orderItems.filter((item) => preparados.has(item.orderId)).map((item) => item.id),
-  );
-  return new Set(
-    db.orderItemUnits
-      .filter((row) => lineasPreparadas.has(row.orderItemId))
-      .map((row) => row.unitId),
-  );
+  const activos = new Set(db.orders
+    .filter((order) => order.status === "en_preparacion" || order.status === "preparado")
+    .map((order) => order.id));
+  if (!activos.size) return new Set();
+  const lineasActivas = new Set(db.orderItems
+    .filter((item) => activos.has(item.orderId)).map((item) => item.id));
+  return new Set(db.orderItemUnits
+    .filter((row) => lineasActivas.has(row.orderItemId))
+    .map((row) => row.unitId));
 };
 
 export const getProductStock = (
@@ -173,6 +177,8 @@ function construirStock(
   const stock: ProductStock = {
     disponible: 0,
     enInventario: 0,
+    enSedeFisica: 0,
+    enPedidos: 0,
     total: 0,
     enBodega: 0,
     enLocal: 0,
@@ -201,6 +207,11 @@ function construirStock(
     .forEach((unit) => {
       const esInventarioPropio = !fuera.has(unit.id);
       const descontada = descontadasPorPreparacion.has(unit.id);
+      const enSede = unit.status === "en_bodega" || unit.status === "en_local";
+      if (enSede) {
+        stock.enSedeFisica += 1;
+        if (descontada) stock.enPedidos += 1;
+      }
       stock.total += 1;
       if (unit.condition === "nuevo") stock.nuevo += 1;
       else stock.seminuevo += 1;
@@ -213,7 +224,7 @@ function construirStock(
       if (esInventarioPropio && unit.status === "defectuoso") stock.defectuoso += 1;
       if (unit.status === "entregado_garantia") stock.entregadoGarantia += 1;
       if (unit.status === "liberado") stock.liberado += 1;
-      if (!descontada && (unit.status === "en_bodega" || unit.status === "en_local")) {
+      if (!descontada && enSede) {
         if (unit.condition === "nuevo") stock.nuevoDisponible += 1;
         else stock.seminuevoDisponible += 1;
       }
