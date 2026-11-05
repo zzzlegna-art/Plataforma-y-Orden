@@ -4,6 +4,8 @@ import { Outlet, useLocation } from "react-router-dom";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { useNextWorkspace } from "./use-next-workspace";
+import { useAuth } from "@/hooks/use-auth";
+import { NotificationsProvider } from "./notifications-context";
 import { MobileTabBar } from "./mobile-tab-bar";
 import { SidebarNav } from "./sidebar-nav";
 import { Topbar } from "./topbar";
@@ -16,6 +18,7 @@ export const AppLayout = () => {
   const [menuOpen, setMenuOpen] = useState(false);
   const { pathname } = useLocation();
   const workspace = useNextWorkspace();
+  const { user } = useAuth();
 
   if (workspace.status === "loading") return (
     <main className="flex min-h-screen items-center justify-center bg-background p-6">
@@ -41,6 +44,7 @@ export const AppLayout = () => {
   );
 
   return (
+    <NotificationsProvider userId={user?.id ?? null}>
     <div className="flex min-h-screen h-screen min-w-0 overflow-hidden bg-background">
       <aside className="sticky top-0 hidden h-screen w-[280px] shrink-0 border-r border-sidebar-border lg:flex lg:flex-col">
         <SidebarNav />
@@ -68,5 +72,6 @@ export const AppLayout = () => {
         </SheetContent>
       </Sheet>
     </div>
+    </NotificationsProvider>
   );
 };
