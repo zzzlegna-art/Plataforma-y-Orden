@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { resolveOcrCreateWorker } from "./nexora-invoice-reader";
+import { extractPageText, shouldOcrInvoicePage, resolveOcrCreateWorker } from "./nexora-invoice-reader";
 
 describe("Factura de proveedor · carga del OCR en fotografías", () => {
   const worker = {
@@ -43,4 +43,35 @@ describe("Factura de proveedor · carga del OCR en fotografías", () => {
       expect(() => resolveOcrCreateWorker(invalid)).toThrow(/manual/i);
     },
   );
+});
+
+
+describe("Facturas PDF · extracción por columnas y respaldo OCR", () => {
+  const textItem = (str: string, x: number, y: number) => ({
+    str, transform: [1, 0, 0, 1, x, y],
+  });
+  it("reordena columnas entregadas fuera de secuencia por PDF.js", () => {
+    const page = extractPageText([
+      textItem("2.500.000", 310, 675),
+      textItem("Proveedor: Tecnocentro", 30, 800),
+      textItem("5.000.000", 410, 675),
+      textItem("iPhone 15 Pro 256GB", 80, 675),
+      textItem("2", 25, 675),
+      textItem("Factura FE-91573", 30, 773),
+    ]);
+    expect(page.split("\n")).toEqual([
+      "Proveedor: Tecnocentro",
+      "Factura FE-91573",
+      "2 iPhone 15 Pro 256GB 2.500.000 5.000.000",
+    ]);
+    expect(shouldOcrInvoicePage(page)).toBe(false);
+  });
+  it("conserva el orden proporcionado si no existen coordenadas", () => {
+    expect(extractPageText([{ str: "FACTURA", hasEOL: true }, { str: "FE-123" }]))
+      .toBe("FACTURA\nFE-123 ");
+  });
+  it("activa OCR cuando el PDF contiene apenas un encabezado sin datos", () => {
+    expect(shouldOcrInvoicePage("FACTURA ELECTRÓNICA DE VENTA")).toBe(true);
+    expect(shouldOcrInvoicePage("Proveedor: A\nFactura FE-400\nFecha: 2026-11-05")).toBe(false);
+  });
 });
