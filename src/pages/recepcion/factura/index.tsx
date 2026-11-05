@@ -11,6 +11,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import {listSuppliers,type Supplier} from "@/lib/suppliers";
 import {parseInvoiceText,validateInvoiceApproval,type InvoiceSuggestion,type InvoiceLineSuggestion} from "@/lib/nexora-invoice-parser";
 import {readInvoiceDocument} from "@/lib/nexora-invoice-reader";
+import {duplicateMessage,lookupInvoiceDuplicate,type InvoiceDuplicateMatch} from "@/lib/nexora-invoice-duplicates";
 
 // Los tipos autogenerados de Nexora no incluyen todavía las tablas nuevas.
 // Acceso aislado a las tablas de facturas; permisos comprobados en RLS.
@@ -53,6 +54,10 @@ const InvoiceCapture=()=>{
  const [suppliers,setSuppliers]=useState<Supplier[]>([]);
  const [drafts,setDrafts]=useState<InvoiceDraft[]>([]);
  const [file,setFile]=useState<File|null>(null);
+ const [fileHash,setFileHash]=useState("");
+ const [duplicate,setDuplicate]=useState<InvoiceDuplicateMatch|null>(null);
+ const [checkingDuplicate,setCheckingDuplicate]=useState(false);
+ const [duplicateCheckError,setDuplicateCheckError]=useState("");
  const [active,setActive]=useState<InvoiceDraft|null>(null);
  const [fields,setFields]=useState<InvoiceSuggestion|null>(null);
  const [supplierId,setSupplierId]=useState("");
@@ -78,13 +83,55 @@ const InvoiceCapture=()=>{
  },[]);
  useEffect(()=>{void load();},[load]);
  const openDraft=(draft:InvoiceDraft)=>{
-   setActive(draft);setFile(null);setError("");setMessage("");
+   setActive(draft);setFile(null);setDuplicate(null);setDuplicateCheckError("");setError("");setMessage("");
    setSupplierId(draft.supplier_id??"");
    setFields({supplierName:draft.supplier_name,invoiceNo:draft.invoice_no??"",
      invoiceDate:draft.invoice_date??"",currency:draft.currency,lines:draft.lines,
      warnings:draft.warnings,rawText:draft.extracted_text});
  };
- const clear=()=>{setActive(null);setFile(null);setFields(null);setSupplierId("");setMessage("");setError("");};
+ const clear=()=>{setActive(null);setFile(null);setFields(null);setSupplierId("");setMessage("");setError("");setDuplicate(null);setDuplicateCheckError("");};
+ // La huella del documento se calcula una sola vez por archivo, no por pulsación.
+ useEffect(()=>{
+   let valid=true;
+   setFileHash("");
+   if(file)void readHash(file).then(hash=>{if(valid)setFileHash(hash);})
+     .catch(()=>{if(valid)setDuplicateCheckError("No se pudo calcular la huella del archivo.");});
+   return()=>{valid=false;};
+ },[file]);
+ // Comprobación anticipada para avisar antes de subir el documento.
+ // Se vuelve a ejecutar justo al guardar y también al aprobar correcciones.
+ useEffect(()=>{
+   if(!file||!fields||!fileHash){setDuplicate(null);setCheckingDuplicate(false);return;}
+   let current=true;
+   setCheckingDuplicate(true);
+   const timer=window.setTimeout(()=>{
+     void(async()=>{
+       try{
+         const client=await getClient();
+         const match=await lookupInvoiceDuplicate(client,{
+           sha256:fileHash,supplierId,invoiceNo:fields.invoiceNo,
+         });
+         if(current){setDuplicate(match);setDuplicateCheckError("");}
+       }catch(e){
+         if(current)setDuplicateCheckError(e instanceof Error?e.message:"No se pudo verificar duplicados.");
+       }finally{if(current)setCheckingDuplicate(false);}
+     })();
+   },450);
+   return()=>{current=false;window.clearTimeout(timer);};
+ },[file,fileHash,supplierId,fields?.invoiceNo]);
+ const openDuplicate=async()=>{
+   if(!duplicate)return;
+   setError("");
+   try{
+     const found=drafts.find(d=>d.id===duplicate.invoice.id);
+     if(found){openDraft(found);return;}
+     const client=await getClient();
+     const result=await client.from("nexora_invoice_drafts")
+       .select("*").eq("id",duplicate.invoice.id).single();
+     if(result.error||!result.data)throw new Error(result.error?.message??"Factura existente no disponible.");
+     openDraft(parseDraft(result.data as DbRow));
+   }catch(e){setError(e instanceof Error?e.message:"No se pudo abrir la factura registrada.");}
+ };
  const readFile=async(selected:File)=>{
    clear();setFile(selected);
    if(lock.current)return;
@@ -118,6 +165,10 @@ const InvoiceCapture=()=>{
    try{
      const supabase=await getClient();
      const sha=await readHash(file);
+     const match=await lookupInvoiceDuplicate(supabase,{
+       sha256:sha,supplierId,invoiceNo:fields.invoiceNo,
+     });
+     if(match){setDuplicate(match);throw new Error(duplicateMessage(match)+" Abre el registro existente.");}
      const extension=file.type==="application/pdf"?"pdf":file.type==="image/png"?"png":"jpg";
      path=user.id+"/"+crypto.randomUUID()+"."+extension;
      const upload=await supabase.storage.from("nexora-invoices").upload(path,file,
@@ -147,6 +198,10 @@ const InvoiceCapture=()=>{
  const saveChanges=async()=>{
    if(!active||!fields||!admin||active.status!=="pending")throw new Error("Factura no editable.");
    const supabase=await getClient();
+   const match=await lookupInvoiceDuplicate(supabase,{
+     supplierId,invoiceNo:fields.invoiceNo,excludeId:active.id,
+   });
+   if(match)throw new Error(duplicateMessage(match)+" Corrige el número antes de aprobar.");
    const result=await supabase.from("nexora_invoice_drafts").update({
      supplier_name:fields.supplierName.slice(0,300),
      supplier_id:supplierId||null,invoice_no:fields.invoiceNo.trim()||null,
@@ -207,6 +262,15 @@ const InvoiceCapture=()=>{
      <Input aria-label="Seleccionar factura" type="file" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png"
        disabled={busy} onChange={e=>{const chosen=e.target.files?.[0];if(chosen)void readFile(chosen);}}/>
      {message?<p role="status" className="text-sm text-muted-foreground">{message}</p>:null}
+     {file&&!active&&checkingDuplicate?<p role="status" className="text-xs text-muted-foreground">Verificando si esta factura ya existe…</p>:null}
+     {file&&!active&&duplicate?<div role="alert" className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-500/40 bg-amber-500/10 p-3 text-sm">
+       <div>
+         <p className="font-semibold text-amber-800 dark:text-amber-300">Posible factura duplicada</p>
+         <p className="mt-1 text-xs text-muted-foreground">{duplicateMessage(duplicate)} Ya está registrada como {duplicate.invoice.original_filename}.</p>
+       </div>
+       <Button type="button" size="sm" variant="outline" onClick={()=>void openDuplicate()}>Abrir existente</Button>
+     </div>:null}
+     {file&&!active&&duplicateCheckError?<p role="alert" className="text-xs text-destructive">Verificación de duplicados: {duplicateCheckError}</p>:null}
      {busy?<p role="status">Procesando documento...</p>:null}
      {active?<div className="flex flex-wrap items-center gap-2 text-sm">
        <span>Documento: {active.original_filename} · {active.status==="pending"?"Pendiente":active.status==="reviewed"?"Revisada":"Recepción preparada"}</span>
@@ -280,7 +344,7 @@ const InvoiceCapture=()=>{
        description:"",quantity:1,unitCost:null,total:null,productId:null,sku:null,
      }]})}><Plus className="size-4"/> Añadir línea</Button>:null}
      <div className="flex flex-wrap gap-2">
-       {!active?<Button disabled={!file||busy} onClick={()=>void save()}><FileUp className="size-4"/> Guardar para revisión</Button>:null}
+       {!active?<Button disabled={!file||busy||Boolean(duplicate)} onClick={()=>void save()}><FileUp className="size-4"/> Guardar para revisión</Button>:null}
        {active&&admin&&active.status==="pending"?<Button disabled={busy} onClick={()=>void finalize("approve")}>
          <ShieldCheck className="size-4"/> Aprobar datos y costos
        </Button>:null}
