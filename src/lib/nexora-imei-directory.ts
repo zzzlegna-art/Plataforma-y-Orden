@@ -64,6 +64,13 @@ export const CUSTODY_LABEL: Record<CustodyState,string> = {
   vendido:"Vendido",
 };
 
+/** Un IMEI puede estar físicamente en una sede y comprometido en un pedido. */
+export const getImeiCommercialStatus=(unit:Pick<ImeiDirectoryRow,"custodyState"|"committedOrder"|"committedTransfer">):string=>{
+  if(unit.custodyState==="en_sede"&&unit.committedOrder)return "Asignado a pedido";
+  if(unit.custodyState==="en_sede"&&unit.committedTransfer)return "Comprometido en traslado";
+  return CUSTODY_LABEL[unit.custodyState];
+};
+
 const asObject=(input:unknown):Record<string,unknown>=>{
   if(!input||typeof input!=="object"||Array.isArray(input))
     throw new Error("El servidor devolvió datos de inventario inválidos.");
@@ -124,6 +131,8 @@ export const parseImeiDirectory=(data:unknown):ImeiDirectoryResponse=>{
         commercialCandidate:bool(x.commercialCandidate),
         ...parseCatalogMedia(x),
       };
+      if(row.commercialCandidate && (row.committedOrder || row.committedTransfer))
+        throw new Error("Un IMEI comprometido no puede figurar disponible.");
       if(row.custodyState!=="en_sede" && (row.siteId!==null||row.commercialCandidate))
         throw new Error("No se puede atribuir un IMEI no conciliado a una sede comercial.");
       return row;
