@@ -3,6 +3,8 @@ import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+vi.mock("@/integrations/supabase/client", () => ({ supabase: {} }));
+
 const actions = vi.hoisted(() => ({
   read: vi.fn(async (_id: string) => {}),
   all: vi.fn(async () => {}),
