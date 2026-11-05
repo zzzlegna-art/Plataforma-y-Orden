@@ -1,0 +1,336 @@
+/*
+ * Movimiento de inventario · diseño premium aislado de la tarjeta de operaciones.
+ * Compatible con Nexora claro/oscuro, Recharts y pantallas compactas.
+ */
+.nx-dashboard-showcase.nx-dashboard-premium .nx-analytics-card.nx-movement-premium {
+  --nx-movement-cyan: #087fa3;
+  --nx-movement-violet: #7750cb;
+  --nx-movement-amber: #bc7611;
+  --nx-movement-muted: hsl(var(--muted-foreground));
+  --nx-movement-grid: hsl(var(--border) / .68);
+  --nx-movement-guide: hsl(var(--foreground) / .37);
+  --nx-movement-ring: hsl(var(--card));
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  padding: clamp(1.1rem, 1.75vw, 1.65rem);
+  border-radius: 25px;
+  border: 1px solid hsl(var(--border) / .85);
+  background:
+    radial-gradient(ellipse 65% 70% at 3% 0%, hsl(var(--primary) / .065), transparent 83%),
+    radial-gradient(ellipse 45% 60% at 100% 0%, hsl(var(--info) / .05), transparent 80%),
+    var(--nx-panel-chart-surface);
+  box-shadow: 0 24px 58px -39px rgb(19 54 96 / .32), inset 0 1px 0 rgb(255 255 255 / .18);
+}
+
+html.dark .nx-dashboard-showcase.nx-dashboard-premium .nx-analytics-card.nx-movement-premium {
+  --nx-movement-cyan: #27d3ec;
+  --nx-movement-violet: #a17dff;
+  --nx-movement-amber: #ffad2f;
+  --nx-movement-grid: rgb(117 159 208 / .18);
+  --nx-movement-guide: rgb(191 215 248 / .46);
+  --nx-movement-ring: #101f32;
+  border-color: rgb(105 153 211 / .28);
+  background:
+    radial-gradient(ellipse 65% 100% at 3% -10%, rgb(30 107 180 / .15), transparent 79%),
+    radial-gradient(ellipse 55% 85% at 100% 0%, rgb(22 155 185 / .06), transparent 80%),
+    linear-gradient(157deg, #101e2d 0%, #0d1927 100%);
+  box-shadow: 0 24px 55px -36px rgb(0 0 0 / .82), inset 0 1px 0 rgb(203 229 255 / .06);
+}
+
+.nx-dashboard-showcase .nx-movement-premium .nx-movement-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem 1.5rem;
+  flex-wrap: wrap;
+  margin-bottom: 1.25rem;
+}
+.nx-dashboard-showcase .nx-movement-premium .nx-movement-heading {
+  display: flex;
+  align-items: center;
+  gap: .9rem;
+  min-width: 0;
+}
+.nx-dashboard-showcase .nx-movement-premium .nx-movement-icon {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 48px;
+  height: 48px;
+  border-radius: 17px;
+  color: hsl(var(--primary));
+  background: linear-gradient(142deg, hsl(var(--primary) / .13), hsl(var(--info) / .075));
+  border: 1px solid hsl(var(--primary) / .14);
+  box-shadow: inset 0 1px 0 hsl(var(--background) / .4);
+}
+html.dark .nx-dashboard-showcase .nx-movement-premium .nx-movement-icon {
+  color: #b0d7ff;
+  background: linear-gradient(140deg, #244568, #182e4b);
+  border-color: rgb(140 183 234 / .17);
+}
+.nx-dashboard-showcase .nx-movement-premium .nx-movement-heading__text {
+  min-width: 0;
+}
+.nx-dashboard-showcase .nx-movement-premium .nx-movement-eyebrow {
+  display: block;
+  margin-bottom: .27rem;
+  font-size: .61rem;
+  font-weight: 800;
+  letter-spacing: .135em;
+  text-transform: uppercase;
+  color: var(--nx-movement-cyan);
+}
+.nx-dashboard-showcase .nx-movement-premium .nx-movement-heading h2 {
+  font-size: clamp(1rem, 1.3vw, 1.15rem);
+  font-weight: 800;
+  letter-spacing: -.036em;
+  line-height: 1.22;
+  color: var(--nx-panel-text);
+}
+.nx-dashboard-showcase .nx-movement-premium .nx-movement-heading p {
+  margin-top: .38rem;
+  font-size: .75rem;
+  line-height: 1.55;
+  color: var(--nx-movement-muted);
+}
+.nx-dashboard-showcase .nx-movement-premium .nx-movement-controls {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: .5rem .65rem;
+}
+.nx-dashboard-showcase .nx-movement-premium .nx-movement-legends {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .35rem;
+}
+.nx-dashboard-showcase .nx-movement-premium .nx-movement-legend {
+  display: inline-flex;
+  align-items: center;
+  gap: .45rem;
+  padding: .48rem .68rem;
+  font-size: .69rem;
+  font-weight: 650;
+  line-height: 1;
+  white-space: nowrap;
+  color: var(--nx-panel-text);
+  border: 1px solid hsl(var(--border) / .66);
+  border-radius: 999px;
+  background: hsl(var(--background) / .32);
+}
+html.dark .nx-dashboard-showcase .nx-movement-premium .nx-movement-legend {
+  border-color: rgb(142 179 224 / .13);
+  background: rgb(255 255 255 / .035);
+}
+.nx-dashboard-showcase .nx-movement-premium .nx-movement-legend__dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  flex: 0 0 auto;
+  border-radius: 999px;
+  background: currentColor;
+  box-shadow: 0 0 0 3px color-mix(in srgb, currentColor 13%, transparent);
+}
+.nx-dashboard-showcase .nx-movement-tone--entries { color: var(--nx-movement-cyan); }
+.nx-dashboard-showcase .nx-movement-tone--exits { color: var(--nx-movement-violet); }
+.nx-dashboard-showcase .nx-movement-tone--assignments { color: var(--nx-movement-amber); }
+.nx-dashboard-showcase .nx-movement-premium .nx-movement-legend__label {
+  color: var(--nx-panel-text);
+}
+.nx-dashboard-showcase .nx-movement-premium .nx-movement-range-wrap {
+  display: inline-flex;
+  align-items: center;
+  position: relative;
+  flex: 0 0 auto;
+  min-height: 36px;
+}
+.nx-dashboard-showcase .nx-movement-premium .nx-movement-range {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 142px;
+  min-height: 36px;
+  padding: .5rem 2.1rem .5rem .75rem;
+  border: 1px solid hsl(var(--border) / .88);
+  border-radius: 11px;
+  background: hsl(var(--background) / .4);
+  color: var(--nx-panel-text);
+  font-size: .72rem;
+  font-weight: 650;
+  cursor: pointer;
+  outline: none;
+  transition: border-color .2s ease, box-shadow .2s ease;
+}
+.nx-dashboard-showcase .nx-movement-premium .nx-movement-range:focus-visible {
+  border-color: hsl(var(--ring));
+  box-shadow: 0 0 0 3px hsl(var(--ring) / .2);
+}
+.nx-dashboard-showcase .nx-movement-premium .nx-movement-range:hover {
+  border-color: hsl(var(--primary) / .55);
+}
+html.dark .nx-dashboard-showcase .nx-movement-premium .nx-movement-range {
+  border-color: rgb(142 179 224 / .22);
+  background: rgb(18 35 54 / .7);
+}
+.nx-dashboard-showcase .nx-movement-premium .nx-movement-range-chevron {
+  position: absolute;
+  right: .65rem;
+  width: 14px;
+  height: 14px;
+  pointer-events: none;
+  color: var(--nx-movement-muted);
+}
+.nx-dashboard-showcase .nx-movement-premium .nx-movement-chart-surface {
+  position: relative;
+  border-radius: 17px;
+  padding: .95rem .55rem .3rem .1rem;
+  border: 1px solid hsl(var(--border) / .5);
+  background: linear-gradient(180deg, hsl(var(--background) / .22), hsl(var(--background) / .055));
+}
+html.dark .nx-dashboard-showcase .nx-movement-premium .nx-movement-chart-surface {
+  border-color: rgb(138 177 223 / .09);
+  background: linear-gradient(180deg, rgb(16 41 65 / .32), rgb(13 28 45 / .08));
+}
+.nx-dashboard-showcase .nx-movement-premium .nx-movement-chart {
+  width: 100%;
+  height: clamp(255px, 26vw, 315px);
+  min-width: 0;
+}
+.nx-dashboard-showcase .nx-movement-premium .recharts-cartesian-axis-tick-value {
+  font-variant-numeric: tabular-nums;
+}
+.nx-dashboard-showcase .nx-movement-premium .nx-movement-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: .45rem 1rem;
+  flex-wrap: wrap;
+  margin-top: .9rem;
+  color: var(--nx-movement-muted);
+  font-size: .66rem;
+  line-height: 1.4;
+}
+.nx-dashboard-showcase .nx-movement-premium .nx-movement-footer__left {
+  display: inline-flex;
+  align-items: center;
+  gap: .45rem;
+}
+.nx-dashboard-showcase .nx-movement-premium .nx-movement-footer__status {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--nx-movement-cyan);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--nx-movement-cyan) 14%, transparent);
+}
+
+/* Tooltip Recharts: siempre en primer plano, valores reales de las tres series. */
+.nx-dashboard-showcase .nx-movement-premium .recharts-tooltip-wrapper {
+  z-index: 10;
+}
+.nx-dashboard-showcase .nx-movement-tooltip {
+  min-width: 198px;
+  overflow: hidden;
+  border-radius: 15px;
+  border: 1px solid hsl(var(--border) / .72);
+  background: hsl(var(--popover) / .97);
+  color: hsl(var(--popover-foreground));
+  box-shadow: 0 20px 45px -20px rgb(16 34 58 / .46);
+  backdrop-filter: blur(15px);
+}
+html.dark .nx-dashboard-showcase .nx-movement-tooltip {
+  background: rgb(13 28 45 / .965);
+  border-color: rgb(125 169 220 / .26);
+  box-shadow: 0 20px 48px -19px rgb(0 0 0 / .85);
+}
+.nx-dashboard-showcase .nx-movement-tooltip__header {
+  padding: .85rem 1rem .7rem;
+  border-bottom: 1px solid hsl(var(--border) / .56);
+}
+.nx-dashboard-showcase .nx-movement-tooltip__eyebrow {
+  display: block;
+  margin-bottom: .23rem;
+  font-size: .59rem;
+  letter-spacing: .1em;
+  font-weight: 800;
+  color: var(--nx-movement-muted);
+}
+.nx-dashboard-showcase .nx-movement-tooltip__header strong {
+  font-size: .84rem;
+  letter-spacing: -.015em;
+}
+.nx-dashboard-showcase .nx-movement-tooltip__rows {
+  display: grid;
+  gap: .63rem;
+  padding: .82rem 1rem;
+}
+.nx-dashboard-showcase .nx-movement-tooltip__row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1.5rem;
+}
+.nx-dashboard-showcase .nx-movement-tooltip__label {
+  display: inline-flex;
+  align-items: center;
+  gap: .53rem;
+  font-size: .74rem;
+  font-weight: 650;
+}
+.nx-dashboard-showcase .nx-movement-tooltip__number {
+  color: hsl(var(--popover-foreground));
+  font-size: .83rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+.nx-dashboard-showcase .nx-movement-tooltip__note {
+  padding: .6rem 1rem;
+  border-top: 1px solid hsl(var(--border) / .46);
+  color: var(--nx-movement-muted);
+  font-size: .65rem;
+}
+@media (max-width: 1120px) {
+  .nx-dashboard-showcase .nx-movement-premium .nx-movement-controls {
+    justify-content: flex-start;
+    width: 100%;
+  }
+}
+@media (max-width: 600px) {
+  .nx-dashboard-showcase.nx-dashboard-premium .nx-analytics-card.nx-movement-premium {
+    padding: 1rem .85rem;
+    border-radius: 19px;
+  }
+  .nx-dashboard-showcase .nx-movement-premium .nx-movement-heading {
+    align-items: flex-start;
+    gap: .7rem;
+  }
+  .nx-dashboard-showcase .nx-movement-premium .nx-movement-icon {
+    width: 42px;
+    height: 42px;
+    border-radius: 14px;
+  }
+  .nx-dashboard-showcase .nx-movement-premium .nx-movement-controls {
+    align-items: flex-start;
+    gap: .7rem;
+  }
+  .nx-dashboard-showcase .nx-movement-premium .nx-movement-legends {
+    width: 100%;
+  }
+  .nx-dashboard-showcase .nx-movement-premium .nx-movement-legend {
+    padding: .45rem .54rem;
+    font-size: .65rem;
+  }
+  .nx-dashboard-showcase .nx-movement-premium .nx-movement-chart {
+    height: 255px;
+  }
+  .nx-dashboard-showcase .nx-movement-premium .nx-movement-chart-surface {
+    padding-left: 0;
+    padding-right: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .nx-dashboard-showcase .nx-movement-premium .nx-movement-range {
+    transition: none;
+  }
+}
