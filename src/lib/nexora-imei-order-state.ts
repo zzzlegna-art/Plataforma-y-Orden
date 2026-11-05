@@ -24,9 +24,9 @@ export const describeImeiOrderAssociation = (status: OrderStatus): {
       };
     case "despachado":
       return {
-        label: "Pedido despachado",
+        label: "Vendido · Venta confirmada en pedido",
         assigned: false,
-        note: "El despacho es una salida física; no equivale por sí solo a una venta registrada.",
+        note: "La venta y la salida quedaron confirmadas; este IMEI pertenece al historial del pedido.",
       };
     case "cancelado":
       return {
