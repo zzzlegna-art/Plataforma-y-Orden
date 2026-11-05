@@ -18,6 +18,7 @@ import MiSede from "./pages/mi-sede";
 import Pedidos from "./pages/pedidos";
 import NuevoPedido from "./pages/pedidos/nuevo";
 import PedidoDetalle from "./pages/pedidos/detalle";
+import PedidoHistoricoDetalle from "./pages/pedidos/historial/detalle";
 import Traslados from "./pages/traslados";
 import Recepciones from "./pages/recepcion";
 import InvoiceCapture from "./pages/recepcion/factura";
@@ -121,6 +122,11 @@ export const routers = [
             path: "pedidos",
             name: "pedidos",
             element: <RequirePermission permission="orders.manage"><Pedidos /></RequirePermission>,
+          },
+          {
+            path: "pedidos/historial/:sourceId",
+            name: "pedido-historico-detalle",
+            element: <RequirePermission permission="orders.manage"><PedidoHistoricoDetalle /></RequirePermission>,
           },
           {
             path: "pedidos/nuevo",

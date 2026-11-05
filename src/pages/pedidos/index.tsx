@@ -1,7 +1,7 @@
 import "./pedidos-premium.css";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { ClipboardList, Download, Eye, FileSpreadsheet, FileText, Plus, Clock3, Truck, XCircle, ListFilter, CircleDot } from "lucide-react";
+import { Archive, ClipboardList, Download, Eye, FileSpreadsheet, FileText, Plus, Clock3, Truck, XCircle, ListFilter, CircleDot } from "lucide-react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 
@@ -10,6 +10,8 @@ import { PageHeader } from "@/components/shared/page-header";
 import { SearchField } from "@/components/shared/search-field";
 import { OrderStatusBadge } from "@/components/shared/status-badge";
 import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { HistorialPedidosPanel } from "./historial/HistorialPedidosPanel";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
@@ -43,6 +45,17 @@ const Pedidos = () => {
   const [params, setParams] = useSearchParams();
   const search = params.get("q") ?? "";
   const status = params.get("estado") ?? "";
+  const registro = params.get("registro") === "historico" ? "historico" : "operativos";
+  const setRegistro = (valor: "operativos" | "historico") =>
+    setParams(
+      (previo) => {
+        const next = new URLSearchParams(previo);
+        if (valor === "historico") next.set("registro", "historico");
+        else next.delete("registro");
+        return next;
+      },
+      { replace: true },
+    );
   const setSearch = (valor: string) =>
     setParams(
       (previo) => {
@@ -172,8 +185,9 @@ const Pedidos = () => {
     <div className="space-y-5 stagger nx-operations nx-operations-pedidos">
       <PageHeader
         title={t("order.title")}
-        description={t("order.subtitleMayorista")}
+        description={registro === "historico" ? "Pedidos importados de Techrez · Consulta de solo lectura" : t("order.subtitleMayorista")}
         actions={
+          registro === "operativos" ? (
           <div className="flex flex-wrap items-center gap-2">
             <Button
               variant="outline"
@@ -191,9 +205,26 @@ const Pedidos = () => {
               </Link>
             </Button>
           </div>
+          ) : undefined
         }
       />
 
+      <Tabs
+        value={registro}
+        onValueChange={(value) => setRegistro(value === "historico" ? "historico" : "operativos")}
+        className="space-y-4"
+      >
+        <TabsList className="nx-pedidos-registry-tabs flex h-auto flex-wrap justify-start gap-1 rounded-xl border border-border/70 bg-card p-1">
+          <TabsTrigger value="operativos" className="gap-2 rounded-lg px-4 py-2">
+            <ClipboardList className="h-4 w-4" />
+            Pedidos operativos
+          </TabsTrigger>
+          <TabsTrigger value="historico" className="gap-2 rounded-lg px-4 py-2">
+            <Archive className="h-4 w-4" />
+            Historial importado
+          </TabsTrigger>
+        </TabsList>
+        <TabsContent value="operativos" className="space-y-5">
       <div className="nx-pedidos-filters space-y-3">
         <SearchField
           value={search}
@@ -351,6 +382,11 @@ const Pedidos = () => {
           </div>
         </DialogContent>
       </Dialog>
+        </TabsContent>
+        <TabsContent value="historico" className="space-y-5">
+          <HistorialPedidosPanel />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };
