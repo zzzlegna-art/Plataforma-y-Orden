@@ -27,6 +27,7 @@ export const TrasladosMultisedePanel = ({ sites }: { sites: readonly NexoraSite[
   const { user, role } = useApp();
   const [searchParams] = useSearchParams();
   const requestedTransfer = searchParams.get("transfer");
+  const lastOpenedNotificationTransfer = useRef<string | null>(null);
   const [approved, setApproved] = useState(false);
   const [scopeLoading, setScopeLoading] = useState(true);
   const [assignedSites, setAssignedSites] = useState<string[]>([]);
@@ -115,7 +116,9 @@ export const TrasladosMultisedePanel = ({ sites }: { sites: readonly NexoraSite[
     return () => { req.current += 1; };
   }, [load]);
   useEffect(() => {
-    if (requestedTransfer && transfers.some(record => record.id === requestedTransfer)) {
+    if (requestedTransfer && lastOpenedNotificationTransfer.current !== requestedTransfer
+      && transfers.some(record => record.id === requestedTransfer)) {
+      lastOpenedNotificationTransfer.current = requestedTransfer;
       setActiveId(requestedTransfer);
     }
   }, [requestedTransfer, transfers]);
