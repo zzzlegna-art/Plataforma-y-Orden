@@ -21,6 +21,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { NAV_ITEMS } from "./nav-items";
 import type { NextSlot } from "@/lib/next-workspaces";
 import { ThemeToggle } from "./theme-toggle";
+import { NotificationBell } from "./notification-bell";
 
 /** Barra superior: menú móvil, título de la sección y usuario. */
 export const Topbar = ({ onOpenMenu, nextSlot, nextFreeSlot, onOpenNext }: {
@@ -108,6 +109,7 @@ export const Topbar = ({ onOpenMenu, nextSlot, nextFreeSlot, onOpenNext }: {
         </Button>
       </div>
       <Button type="button" variant="outline" size="sm" className={location.pathname === "/panel" ? "nx-dashboard-search-pill gap-2" : "gap-2"} onClick={() => setSearchOpen(true)} aria-label="Buscar en Nexora"><Search className="h-4 w-4" /><span className="hidden sm:inline">Buscar</span></Button>
+      <NotificationBell />
       <ThemeToggle />
 
       <DropdownMenu>
