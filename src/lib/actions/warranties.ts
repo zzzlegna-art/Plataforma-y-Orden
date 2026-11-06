@@ -626,7 +626,7 @@ export const entregarGarantia = (
           notes: originalNoRecuperable
             ? `Cambio por garantía ${warranty.code}: serial original ${unit.serial} queda defectuoso; reemplazado por ${replacement.serial}`
             : input.originalAptoReventa
-              ? `Cambio por garantía ${warranty.code}: ${unit.serial} inspeccionado y apto para reventa; ${input.observacionInspeccion?.trim()}; reemplazado por ${replacement.serial}`
+              ? `Cambio por garantía ${warranty.code}: ${unit.serial} inspeccionado y apto para reventa, disponible en bodega; ${input.observacionInspeccion?.trim()}; reemplazado por ${replacement.serial}`
               : `Cambio por garantía ${warranty.code}: ${unit.serial} queda en revisión, NO disponible para venta; reemplazado por ${replacement.serial}`, 
         });
       } else if (warranty.imeiManual) {
@@ -854,7 +854,7 @@ export const devolverGarantiasABodega = (
 
     warranty.status = "devuelto";
     warranty.resolvedAt = nowIso();
-    const nota = `Inspección física apta para reventa: ${input.observacionInspeccion.trim()}. Devolución a bodega: serial ${serial} disponible para venta. Sin pago de reembolso registrado.`;
+    const nota = `Inspección física apta para reventa: ${input.observacionInspeccion.trim()}. Devolución a bodega: serial ${serial} disponible en bodega para venta. Sin pago de reembolso registrado.`;
     addEvent(db, actor, warranty.id, "devuelto", nota);
     logAudit(db, actor, {
       action: "resolve",
