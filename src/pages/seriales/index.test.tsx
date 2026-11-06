@@ -5,9 +5,10 @@ import { cleanup, render, screen } from "@testing-library/react";
 import i18n from "i18next";
 import { I18nextProvider, initReactI18next } from "react-i18next";
 import { MemoryRouter } from "react-router-dom";
-import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("@/lib/backend", () => ({}));
+vi.mock("@/lib/historical-orders", () => ({ listHistoricalOrders: vi.fn() }));
 vi.mock("@/lib/nexora-imei-timeline",()=>({
   fetchMultisiteImeiTimeline: vi.fn(async (unitId:string)=>({
     scope:"multisite_confirmed_only",unitId,serial:"354070964857184",
@@ -17,6 +18,7 @@ vi.mock("@/lib/nexora-imei-timeline",()=>({
 vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn(), warning: vi.fn() } }));
 
 import { emptyDb } from "@/lib/db";
+import { listHistoricalOrders, type HistoricalOrderListItem } from "@/lib/historical-orders";
 import type { Db, Warranty } from "@/lib/types";
 import { AppContext, type AppValue } from "@/store/contexts";
 import HistorialSerial from "./index";
@@ -54,7 +56,18 @@ beforeAll(async () => {
     addListener: vi.fn(), removeListener: vi.fn(),
   }));
 });
+beforeEach(() => {
+  vi.mocked(listHistoricalOrders).mockReset();
+  vi.mocked(listHistoricalOrders).mockResolvedValue({ items: [], total: 0 });
+});
 afterEach(cleanup);
+
+const historicalOrder: HistoricalOrderListItem = {
+  sourceId: "historical-order-original", code: "PED-HIST-001",
+  status: "despachado", orderDate: "2026-09-03T12:00:00Z",
+  total: 0, customerName: "Cliente histórico de prueba", lineCount: 1,
+  requestedUnits: 183, serialCount: 183, matchedSerial: true,
+};
 
 describe("Historial de seriales", () => {
   it("muestra el recorrido de una garantía previa sin romper la pantalla", async () => {
@@ -100,6 +113,7 @@ describe("Historial de seriales", () => {
     expect(screen.getByText(/Venta antigua/)).toBeTruthy();
   });
   it("muestra un IMEI comprometido con pedido sin confundir ubicación en bodega con venta", async () => {
+    vi.mocked(listHistoricalOrders).mockResolvedValueOnce({ items: [historicalOrder], total: 1 });
     const unit = {
       id:"unit-1",productId:"product-1",serial:"354070964857184",
       status:"en_bodega" as const,condition:"seminuevo" as const,
@@ -131,6 +145,42 @@ describe("Historial de seriales", () => {
     expect(screen.getByText("PED-TEST-001")).toBeTruthy();
     expect(screen.getByText(/no disponible para asignarlo a otro/)).toBeTruthy();
     expect(screen.getByText(/Cliente de prueba/)).toBeTruthy();
+    expect(await screen.findByRole("link", { name: "Ver pedido histórico PED-HIST-001" })).toBeTruthy();
+    expect(unit.id).toBe("unit-1");
+    expect(unit.status).toBe("en_bodega");
+    expect(db.orderItemUnits[0].unitId).toBe("unit-1");
+  });
+
+  it("encuentra el pedido original de un serial sin unidad operativa y abre su detalle de solo lectura", async () => {
+    vi.mocked(listHistoricalOrders).mockResolvedValueOnce({ items: [historicalOrder], total: 1 });
+    const db = emptyDb();
+    render(<I18nextProvider i18n={i18n}><Almacen db={db} serial=" 359111222333444 " /></I18nextProvider>);
+    const link = await screen.findByRole("link", { name: "Ver pedido histórico PED-HIST-001" });
+    expect(link.getAttribute("href")).toBe("/pedidos/historial/historical-order-original");
+    expect(screen.getByText("Historial de Techrez · solo lectura.")).toBeTruthy();
+    expect(screen.getByText("Cliente histórico de prueba")).toBeTruthy();
+    expect(screen.queryByText(i18n.t("serialHistory.notFound"))).toBeNull();
+    expect(screen.queryByRole("button", { name: /despachar|reactivar|editar/i })).toBeNull();
+    expect(listHistoricalOrders).toHaveBeenCalledWith({ search: "359111222333444" });
+    expect(db.units).toHaveLength(0);
+    expect(db.orders).toHaveLength(0);
+  });
+
+  it("no atribuye un pedido al serial si solo coincide el código o el nombre del cliente", async () => {
+    vi.mocked(listHistoricalOrders).mockResolvedValueOnce({
+      items: [{ ...historicalOrder, matchedSerial: false }], total: 1,
+    });
+    render(<I18nextProvider i18n={i18n}><Almacen db={emptyDb()} serial="PED-HIST-001" /></I18nextProvider>);
+    expect(await screen.findByText(i18n.t("serialHistory.notFound"))).toBeTruthy();
+    expect(screen.queryByRole("region", { name: "Pedidos históricos del serial" })).toBeNull();
+  });
+
+  it("informa una consulta histórica fallida sin afirmar que el serial no existe", async () => {
+    vi.mocked(listHistoricalOrders).mockRejectedValueOnce(new Error("Consulta no disponible"));
+    render(<I18nextProvider i18n={i18n}><Almacen db={emptyDb()} serial="359111222333444" /></I18nextProvider>);
+    expect((await screen.findByRole("alert")).textContent).toContain("Consulta no disponible");
+    expect(screen.queryByText(i18n.t("serialHistory.notFound"))).toBeNull();
   });
 
 });
+

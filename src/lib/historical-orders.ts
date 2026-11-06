@@ -9,6 +9,7 @@ export interface HistoricalOrderListItem {
   requestedUnits: number;
   assignedUnits?: number;
   serialCount: number;
+  matchedSerial?: boolean;
 }
 
 export interface HistoricalSerial {
@@ -109,13 +110,15 @@ type HistoricalListPayload = {
   total?: unknown;
 };
 
-export async function listHistoricalOrders(): Promise<{
+export async function listHistoricalOrders(
+  filters: { search?: string } = {},
+): Promise<{
   items: HistoricalOrderListItem[];
   total: number;
 }> {
   const { supabase } = await import("@/integrations/supabase/client");
   const { data, error } = await supabase.rpc("nexora_historical_orders_list", {
-    p_search: null,
+    p_search: filters.search?.trim() || null,
     p_status: null,
   });
 
@@ -136,6 +139,7 @@ export async function listHistoricalOrders(): Promise<{
         requestedUnits: Number(item.requestedUnits ?? 0),
         assignedUnits: item.assignedUnits == null ? undefined : Number(item.assignedUnits),
         serialCount: Number(item.serialCount ?? 0),
+        matchedSerial: item.matchedSerial === true,
       }))
     : [];
 
@@ -160,3 +164,4 @@ export async function getHistoricalOrderDetail(
 
   return data as unknown as HistoricalOrderDetail;
 }
+

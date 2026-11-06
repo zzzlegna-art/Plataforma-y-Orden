@@ -161,3 +161,14 @@ Whenever a new module (such as a component, hook, or utility) or a new page is a
 - Gráfica y reporte de movimientos: entradas, asignaciones a pedido y salidas físicas se contabilizan separadamente.
 
 **Regla de implementación:** nunca inventar un valor monetario predeterminado ni validar un IMEI que no fue escaneado. Los controles monetarios sin configuración bloquean gastos. Las actas no habilitan roles ni POS automáticamente. Integrar primero en prueba; completar pruebas SQL de permisos, doble firma y concurrencia antes de desplegar a producción.
+
+
+## Historial de pedidos Techrez por serial
+
+`src/pages/seriales/index.tsx` consulta `listHistoricalOrders({ search })` de
+`src/lib/historical-orders.ts` y muestra solo coincidencias exactas marcadas
+`matchedSerial` por el servidor. El enlace abre el detalle histórico existente de
+solo lectura. Las unidades archivadas nunca se incorporan al store de inventario.
+El listado de pedidos conserva su mezcla y orden cronológico actuales. La función
+existente valida perfil activo y rol admin/bodeguero; los errores no se presentan
+como serial inexistente y las respuestas de escaneos anteriores se descartan.
