@@ -52,14 +52,14 @@ describe("panel premium sin cambiar la barra lateral", () => {
     const expected = [
       "Resumen de la operación",
       "Movimiento de inventario",
-      "Rendimiento de inventario",
+      "Rendimiento de pedidos",
       "Prioridades de garantías",
     ];
     const regions = [...container.querySelectorAll(".nx-dashboard-showcase > section.nx-dashboard-block")];
     expect(regions.map((region) => region.getAttribute("aria-label"))).toEqual(expected);
     expect(screen.getByRole("heading", { name: "Resumen de la operación" })).toBeTruthy();
     expect(screen.getByRole("heading", { name: "Movimiento de inventario" })).toBeTruthy();
-    expect(screen.getByRole("heading", { name: "Rendimiento de inventario" })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "Rendimiento de pedidos" })).toBeTruthy();
     expect(screen.getByRole("heading", { name: "Prioridades de garantías" })).toBeTruthy();
     expect(screen.getByRole("link", { name: /Gestionar garantías/ }).getAttribute("href")).toBe("/garantias");
     expect(screen.getByRole("status").textContent).toContain("No hay garantías abiertas");
@@ -117,7 +117,7 @@ describe("panel premium sin cambiar la barra lateral", () => {
       expect(container.querySelectorAll(".nx-dashboard-block")).toHaveLength(4);
       expect(screen.getByRole("button", { name: "Ver detalle de productos con stock bajo" })).toBeTruthy();
       expect(screen.getByRole("link", { name: /Gestionar garantías/ })).toBeTruthy();
-      expect(screen.getByRole("heading", { name: "Rendimiento de inventario" })).toBeTruthy();
+      expect(screen.getByRole("heading", { name: "Rendimiento de pedidos" })).toBeTruthy();
     } finally {
       document.documentElement.classList.remove("dark");
     }
