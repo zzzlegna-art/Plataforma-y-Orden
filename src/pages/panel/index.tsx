@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   ArrowRight,
@@ -49,6 +49,7 @@ import { formatCurrency, formatNumber } from "@/lib/format";
 import { crearCsv } from "@/lib/csv";
 import { exportExcel } from "@/lib/export";
 import { buildOperationalReportSheets } from "@/lib/dashboard-report";
+import { getDashboardOrderRankings, type DashboardOrderRankings } from "@/lib/dashboard-order-rankings";
 import { buildDashboardMovementChartData, getLocalDateInputValue, isWithinDateRange, isPedidoSerialAssignment } from "@/lib/dashboard-date-range";
 import {
   DIAS_GARANTIA_CRITICA,
@@ -63,19 +64,48 @@ import "./panel-premium.css";
 import "./movement-premium.css";
 import { MovementChartTooltip, MOVEMENT_SERIES } from "./movement-chart-tooltip";
 
-import {
-  firmaRankClientes,
-  firmaRankProductos,
-  rankDatumsDeClientes,
-  rankDatumsDeProductos,
-  type RankDatum,
-} from "@/lib/dashboard-charts";
+import type { RankDatum } from "@/lib/dashboard-charts";
 
 /** Panel general: indicadores, rankings y alertas operativas. */
 const Panel = () => {
   const { t } = useTranslation();
   const { db } = useStore();
   const data = useMemo(() => getDashboard(db), [db]);
+  const rankingRefreshKey = useMemo(
+    () => [
+      db.orders.map((order) => `${order.id}:${order.status}:${order.customerId}`).join("|"),
+      db.orderItems.map((item) => `${item.id}:${item.orderId}:${item.productId}:${item.quantity}:${item.subtotal}`).join("|"),
+      db.products.map((product) => `${product.id}:${product.name}:${product.sku}`).join("|"),
+      db.customers.map((customer) => `${customer.id}:${customer.name}`).join("|"),
+    ].join("::"),
+    [db.orders, db.orderItems, db.products, db.customers],
+  );
+  const [orderRankings, setOrderRankings] = useState<DashboardOrderRankings | null>(null);
+  const [rankingsLoading, setRankingsLoading] = useState(true);
+  const [rankingsError, setRankingsError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let vigente = true;
+    setRankingsLoading(true);
+    void getDashboardOrderRankings()
+      .then((result) => {
+        if (!vigente) return;
+        setOrderRankings(result);
+        setRankingsError(null);
+      })
+      .catch((cause) => {
+        if (!vigente) return;
+        setRankingsError(
+          cause instanceof Error ? cause.message : "No fue posible cargar el ranking global de pedidos.",
+        );
+      })
+      .finally(() => {
+        if (vigente) setRankingsLoading(false);
+      });
+    return () => {
+      vigente = false;
+    };
+  }, [rankingRefreshKey]);
   const receivedTrend = (() => {
     const current = data.kpis.receivedThisMonth;
     const previous = data.kpis.receivedPreviousComparablePeriod;
@@ -203,24 +233,29 @@ const Panel = () => {
       tecnico: abiertos.filter(({ view }) => view.warranty.status === "en_servicio_tecnico"),
     };
   }, [data.openWarranties]);
-  // Si los celulares todavía no tienen precio cargado, el ranking se muestra por
-  // unidades: así la gráfica nunca queda vacía.
-  const clientesPorMonto = data.hasAmounts;
-  // `db` cambia de referencia con cualquier evento en vivo, así que los datos de la gráfica se
-  // memorizan sobre una "firma" de texto (ver src/lib/dashboard-charts.ts), no sobre `data`
-  // directamente: así la gráfica no recibe un arreglo "nuevo" con los mismos números a mitad de
-  // su animación de entrada, que era como a veces se quedaba sin dibujar la cifra de una barra.
-  const productsSignature = firmaRankProductos(data.topProducts);
+  // Los rankings vienen de una consulta única que consolida pedidos operativos e históricos.
+  // Se ordenan por unidades solicitadas; el detalle secundario muestra cuántos pedidos aportan.
   const productsChart: RankDatum[] = useMemo(
-    () => rankDatumsDeProductos(data.topProducts),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [productsSignature],
+    () => (orderRankings?.products ?? []).map((row) => ({
+      key: row.key,
+      name: row.name,
+      short: row.name.length > 12 ? `${row.name.slice(0, 11)}…` : row.name,
+      value: row.units,
+      units: row.units,
+      detail: `${formatNumber(row.ordersCount)} pedidos`,
+    })),
+    [orderRankings?.products],
   );
-  const customersSignature = firmaRankClientes(data.topCustomers, clientesPorMonto);
   const customersChart: RankDatum[] = useMemo(
-    () => rankDatumsDeClientes(data.topCustomers, clientesPorMonto),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [customersSignature],
+    () => (orderRankings?.customers ?? []).map((row) => ({
+      key: row.key,
+      name: row.name,
+      short: row.name.length > 12 ? `${row.name.slice(0, 11)}…` : row.name,
+      value: row.units,
+      units: row.units,
+      detail: `${formatNumber(row.ordersCount)} pedidos`,
+    })),
+    [orderRankings?.customers],
   );
 
   // La gráfica comparte el filtro inclusivo de los informes y conserva rangos largos completos.
