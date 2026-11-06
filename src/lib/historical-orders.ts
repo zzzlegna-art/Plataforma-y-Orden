@@ -7,6 +7,7 @@ export interface HistoricalOrderListItem {
   customerName: string;
   lineCount: number;
   requestedUnits: number;
+  assignedUnits?: number;
   serialCount: number;
 }
 
@@ -133,6 +134,7 @@ export async function listHistoricalOrders(): Promise<{
         customerName: String(item.customerName ?? "Cliente histórico"),
         lineCount: Number(item.lineCount ?? 0),
         requestedUnits: Number(item.requestedUnits ?? 0),
+        assignedUnits: item.assignedUnits == null ? undefined : Number(item.assignedUnits),
         serialCount: Number(item.serialCount ?? 0),
       }))
     : [];
