@@ -7,6 +7,7 @@ export interface RankDatum {
   short: string;
   value: number;
   units: number;
+  detail?: string;
 }
 
 /**
