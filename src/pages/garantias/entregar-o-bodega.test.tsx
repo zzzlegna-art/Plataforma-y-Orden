@@ -143,7 +143,7 @@ describe("DevolverDialog · inspección y destino del serial", () => {
     render(<AlmacenDevolucion warranty={warranty} />);
 
     await user.click(screen.getByRole("button", { name: "Abrir devolución" }));
-    expect(screen.getByRole("button", { name: "Confirmar devolución y clasificación" })).toBeDisabled();
+    expect((screen.getByRole("button", { name: "Confirmar devolución y clasificación" }) as HTMLButtonElement).disabled).toBe(true);
 
     await user.click(screen.getByRole("button", { name: "Apto para vender" }));
     await user.type(
