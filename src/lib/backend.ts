@@ -525,7 +525,7 @@ const ESPECIFICACIONES: Spec<unknown>[] = [
       clienteManual: texto(f.cliente_manual) ?? undefined,
       fechaVentaManual: texto(f.fecha_venta_manual) ?? undefined,
       reembolsoAcordado: f.reembolso_acordado === true,
-      reembolsoMonto: numeroOpcional(f.reembolso_monto),
+      reembolsoMonto: f.reembolso_monto == null ? undefined : numero(f.reembolso_monto),
       reembolsoMetodo: texto(f.reembolso_metodo) ?? undefined,
       reembolsoReferencia: texto(f.reembolso_referencia) ?? undefined,
       reembolsoPagadoAt: texto(f.reembolso_pagado_at) ?? undefined,
