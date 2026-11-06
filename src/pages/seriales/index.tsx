@@ -12,7 +12,6 @@ import { SerialScanInput } from "@/components/shared/serial-scan-input";
 import {
   Badge,
   ConditionBadge,
-  OrderStatusBadge,
   UnitStatusBadge,
   WarrantyStatusBadge,
 } from "@/components/shared/status-badge";
@@ -52,8 +51,9 @@ import {
   rutaDeRecepcion,
   unitLocation,
 } from "@/lib/selectors";
-import type { OrderStatus, Unit } from "@/lib/types";
-import { listHistoricalOrders, type HistoricalOrderListItem } from "@/lib/historical-orders";
+import type { Unit } from "@/lib/types";
+import { getArchivedImeiTrace, type ArchivedImeiTrace } from "@/lib/nexora-archived-imei-trace";
+import { ArchivedImeiHistoryPanel } from "./ArchivedImeiHistoryPanel";
 import { listSuppliers, type Supplier } from "@/lib/suppliers";
 import { MultisiteImeiHistory } from "./MultisiteImeiHistory";
 
@@ -97,40 +97,35 @@ const HistorialSerial = ({ embedded = false }: { embedded?: boolean }) => {
     if (fromUrl) setSearch(fromUrl);
   }, [params]);
 
-  // Las unidades históricas se consultan aparte: nunca entran al store que persiste inventario.
+  // Los IMEI del archivo original se consultan sin cargarlos al store operativo.
   const historicalSerial = search.trim().toLowerCase();
   const canReadHistorical = role === "admin" || role === "bodeguero";
   const [historicalLookup, setHistoricalLookup] = useState<{
     serial: string;
-    items: HistoricalOrderListItem[];
+    trace: ArchivedImeiTrace | null;
     loading: boolean;
     error: string | null;
-  }>({ serial: "", items: [], loading: false, error: null });
+  }>({ serial: "", trace: null, loading: false, error: null });
 
   useEffect(() => {
     if (!historicalSerial || !canReadHistorical) return;
     let active = true;
-    setHistoricalLookup({ serial: historicalSerial, items: [], loading: true, error: null });
-    void listHistoricalOrders({ search: historicalSerial }).then(({ items }) => {
+    setHistoricalLookup({ serial: historicalSerial, trace: null, loading: true, error: null });
+    void getArchivedImeiTrace(historicalSerial).then((trace) => {
       if (active) setHistoricalLookup({
-        serial: historicalSerial,
-        items: items.filter((entry) => entry.matchedSerial === true),
-        loading: false,
-        error: null,
+        serial: historicalSerial, trace, loading: false, error: null,
       });
     }).catch((error: unknown) => {
       if (active) setHistoricalLookup({
-        serial: historicalSerial,
-        items: [],
-        loading: false,
-        error: error instanceof Error ? error.message : "No fue posible consultar los pedidos históricos.",
+        serial: historicalSerial, trace: null, loading: false,
+        error: error instanceof Error ? error.message : "No fue posible consultar el historial archivado.",
       });
     });
     return () => { active = false; };
   }, [historicalSerial, canReadHistorical]);
 
   const currentHistoricalLookup = canReadHistorical && historicalLookup.serial === historicalSerial;
-  const historicalOrders = currentHistoricalLookup ? historicalLookup.items : [];
+  const historicalTrace = currentHistoricalLookup ? historicalLookup.trace : null;
   const historicalLoading = Boolean(historicalSerial && canReadHistorical
     && (!currentHistoricalLookup || historicalLookup.loading));
   const historicalError = currentHistoricalLookup ? historicalLookup.error : null;
@@ -202,7 +197,7 @@ const HistorialSerial = ({ embedded = false }: { embedded?: boolean }) => {
       </section>
 
       {search && !unit && garantiasPorSerialManual.length === 0 && !serialPrevio
-        && historicalOrders.length === 0 && !historicalLoading && !historicalError ? (
+        && !historicalTrace && !historicalLoading && !historicalError ? (
         <EmptyState
           icon={ShieldAlert}
           title={t("serialHistory.notFound")}
@@ -218,31 +213,7 @@ const HistorialSerial = ({ embedded = false }: { embedded?: boolean }) => {
           No se pudo comprobar la relación con pedidos históricos. {historicalError}
         </p>
       ) : null}
-      {historicalOrders.length > 0 ? (
-        <section aria-label="Pedidos históricos del serial" className="space-y-3 rounded-lg border bg-card p-4 shadow-sm">
-          <div>
-            <h2 className="text-sm font-semibold">Pedido histórico de este serial</h2>
-            <p className="mt-1 text-sm text-muted-foreground">Historial de Techrez · solo lectura.</p>
-          </div>
-          {historicalOrders.map((entry) => (
-            <div key={entry.sourceId} className="space-y-3 rounded-lg border bg-muted/20 p-3">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <span className="font-tabular font-semibold">{entry.code}</span>
-                <OrderStatusBadge status={entry.status as OrderStatus} />
-              </div>
-              <p className="break-words text-sm">{entry.customerName}</p>
-              <p className="break-all text-xs text-muted-foreground">Serial: {search.trim()}</p>
-              <p className="text-xs text-muted-foreground">{formatDateTime(entry.orderDate)}</p>
-              <Button variant="outline" size="sm" asChild>
-                <Link to={"/pedidos/historial/" + entry.sourceId}
-                  aria-label={"Ver pedido histórico " + entry.code}>
-                  <FileText aria-hidden="true" /> Ver pedido
-                </Link>
-              </Button>
-            </div>
-          ))}
-        </section>
-      ) : null}
+      {historicalTrace ? <ArchivedImeiHistoryPanel trace={historicalTrace} /> : null}
 
       {search && !unit && garantiasPorSerialManual.length > 0 ? (
         <section className="space-y-3 rounded-lg border bg-card p-4 shadow-sm">
@@ -299,7 +270,7 @@ const HistorialSerial = ({ embedded = false }: { embedded?: boolean }) => {
       ) : null}
 
       {search && !unit && garantiasPorSerialManual.length === 0 && serialPrevio
-        && historicalOrders.length === 0 && !historicalLoading ? (
+        && !historicalTrace && !historicalLoading ? (
         <section className="overflow-hidden rounded-2xl border border-warning/40 bg-gradient-to-br from-warning/[0.08] via-card to-card p-4 shadow-sm sm:p-5">
           <div className="grid gap-4 md:grid-cols-[minmax(0,220px)_minmax(0,1fr)]">
             <div className="flex min-h-56 items-center justify-center rounded-xl border border-border/70 bg-background/80 p-3">
