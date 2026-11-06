@@ -145,6 +145,9 @@ const darDeAltaEquipoPrevio = (
   if (existente && existente.status !== "liberado") {
     throw new DomainError("errors.previaSerialInSystem", { serial });
   }
+  if (existente && db.orderItemUnits.some((row) => row.unitId === existente.id)) {
+    throw new DomainError("errors.unitAlreadyAssigned");
+  }
   const unidad: Unit = existente ?? {
     id: createId(),
     productId,
@@ -820,6 +823,9 @@ export const devolverGarantiasABodega = (
       }
       if (existente && existente.productId !== productId) {
         throw new DomainError("errors.unitProductMismatch");
+      }
+      if (existente && db.orderItemUnits.some((row) => row.unitId === existente.id)) {
+        throw new DomainError("errors.unitAlreadyAssigned");
       }
     } else if (!unit && !warranty.imeiManual) {
       throw new DomainError("errors.notFound");
