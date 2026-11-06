@@ -20,7 +20,6 @@ import { Link, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 
 import { PageHeader } from "@/components/shared/page-header";
-import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { SerialScanInput } from "@/components/shared/serial-scan-input";
 import { EmptyState } from "@/components/shared/empty-state";
 import { ProductThumbnail } from "@/components/shared/product-thumbnail";
@@ -82,6 +81,7 @@ import { garantiasNuevasDeUsuario } from "@/lib/warranty-lotes";
 import { TABS_GARANTIAS as TABS, tabDesdeParametro, type TabGarantias } from "@/lib/warranty-tabs";
 import { CodeLink } from "@/components/shared/code-link";
 import { ClienteTecnologiaSelect } from "@/components/shared/cliente-tecnologia-select";
+import { getArchivedImeiTrace, type ArchivedImeiTrace } from "@/lib/nexora-archived-imei-trace";
 import { FiltrosReenvio } from "./filtros-reenvio";
 import { DeshacerEstadoButton } from "./deshacer-estado";
 import { SEARCH_INPUT_PROPS } from "@/lib/search-input";
@@ -94,6 +94,7 @@ import {
 import type { Unit, WarrantyStatus } from "@/lib/types";
 import {
   DevolverDialog,
+  DevolucionDirectaDialog,
   DiagnosticoDialog,
   EntregarDialog,
   TecnicosDialog,
@@ -305,6 +306,8 @@ const Garantias = () => {
     fecha: "",
     motivo: "",
   });
+  const [historicoPrevia, setHistoricoPrevia] = useState<{ serial: string; trace: ArchivedImeiTrace | null; buscando: boolean; aviso: string | null }>({ serial: "", trace: null, buscando: false, aviso: null });
+  const consultaHistRef = useRef(0);
   const [previaMode, setPreviaMode] = useState<"uno" | "lote">("uno");
   const [lotePrevias, setLotePrevias] = useState<PreviaLoteItem[]>([]);
   const [previaLoteDraft, setPreviaLoteDraft] = useState({
@@ -875,16 +878,17 @@ const Garantias = () => {
       return next;
     });
 
-  const devolverSeleccionadosABodega = async () => {
+  const devolverSeleccionadosABodega = async (observacionInspeccion: string): Promise<boolean> => {
     const ids = [...seleccionados].filter((id) =>
       vistas.some((view) => view.warranty.id === id && view.warranty.status === "recibido"),
     );
-    if (ids.length === 0) return;
+    if (ids.length === 0) return false;
     const result = await runAction(
-      (db2, actor) => devolverGarantiasABodega(db2, actor, { warrantyIds: ids }),
+      (db2, actor) => devolverGarantiasABodega(db2, actor, { warrantyIds: ids, inspeccionAptaVenta: true, observacionInspeccion }),
       { success: "warranty.batchReturnedToStock" },
     );
     if (result !== null) setSeleccionados(new Set());
+    return result !== null;
   };
 
   const agruparEnLotes = (lista: WarrantyView[]): LoteRecibido[] => {
@@ -2049,17 +2053,15 @@ const Garantias = () => {
                     }
                   />
                   {seleccionados.size > 0 ? (
-                    <ConfirmDialog
+                    <DevolucionDirectaDialog
+                      count={seleccionados.size}
                       trigger={
                         <Button variant="outline" size="sm">
                           <PackageCheck />
                           {t("warranty.returnSelectedToStock", { count: seleccionados.size })}
                         </Button>
                       }
-                      title={t("warranty.returnSelectedToStockTitle", { count: seleccionados.size })}
-                      description={t("warranty.returnSelectedToStockHint")}
-                      confirmLabel={t("warranty.returnSelectedToStockConfirm")}
-                      onConfirm={() => void devolverSeleccionadosABodega()}
+                      onConfirm={devolverSeleccionadosABodega}
                     />
                   ) : null}
                   <Button variant="outline" size="sm" onClick={exportarRecibidosPdf}>
