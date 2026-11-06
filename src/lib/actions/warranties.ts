@@ -158,6 +158,7 @@ const darDeAltaEquipoPrevio = (
     createdBy: actor.id,
   };
   unidad.status = estadoInicial;
+  unidad.condition = "seminuevo";
   if (!existente) db.units.push(unidad);
   // Desde este momento el serial previo ya tiene una unidad real en Nexora.
   // Se conserva imeiManual para mantener el origen "garantía previa" en todo el historial.
@@ -653,7 +654,7 @@ export const entregarGarantia = (
           actor,
           warranty,
           replacement.productId,
-          `Cambio por garantía ${warranty.code}: serial original ${warranty.imeiManual} recibido y disponible en bodega; reemplazado por ${replacement.serial}`,
+          `Cambio por garantía ${warranty.code}: serial original ${warranty.imeiManual} recibido; ${warranty.resolucion === "defectuoso" ? "defectuoso no vendible" : input.originalAptoReventa ? `inspeccionado y disponible en bodega (${input.observacionInspeccion?.trim()})` : "pendiente de inspección, NO vendible"}; reemplazado por ${replacement.serial}`,
           warranty.resolucion === "defectuoso" ? "defectuoso" : input.originalAptoReventa ? "en_bodega" : "en_reparacion", 
         );
       }
