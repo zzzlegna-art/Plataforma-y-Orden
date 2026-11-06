@@ -9,6 +9,17 @@ import { emptyDb } from "@/lib/db";
 const db = emptyDb();
 
 vi.mock("@/hooks/use-store", () => ({ useStore: () => ({ db }) }));
+vi.mock("@/lib/dashboard-order-rankings", () => ({
+  getDashboardOrderRankings: vi.fn().mockResolvedValue({
+    totalOrders: 0,
+    consideredOrders: 0,
+    cancelledOrders: 0,
+    operationalOrders: 0,
+    historicalOrders: 0,
+    products: [],
+    customers: [],
+  }),
+}));
 vi.mock("@/hooks/use-prefers-reduced-motion", () => ({ usePrefersReducedMotion: () => true }));
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({ t: (key: string) => key }),
