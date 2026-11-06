@@ -220,7 +220,7 @@ const Pedidos = () => {
         {/* stopPropagation: la tarjeta ya navega al tocarla (onRowClick); sin esto, este enlace
            agregaba una SEGUNDA entrada al historial hacia la misma página, y "Volver" solo
            deshacía una, dejando al usuario a mitad de camino en vez de volver a la lista. */}
-        <Link to={`/pedidos/${view.order.id}`} onClick={(event) => event.stopPropagation()}>
+        <Link to={orderPath(view)} onClick={(event) => event.stopPropagation()}>
           {view.order.status === "en_preparacion" ? t("order.serializeTitle") : t("order.viewDetail")}
         </Link>
       </Button>
@@ -231,9 +231,8 @@ const Pedidos = () => {
     <div className="space-y-5 stagger nx-operations nx-operations-pedidos">
       <PageHeader
         title={t("order.title")}
-        description={registro === "historico" ? "Pedidos importados de Techrez · Consulta de solo lectura" : t("order.subtitleMayorista")}
+        description={t("order.subtitleMayorista")}
         actions={
-          registro === "operativos" ? (
           <div className="flex flex-wrap items-center gap-2">
             <Button
               variant="outline"
@@ -251,26 +250,15 @@ const Pedidos = () => {
               </Link>
             </Button>
           </div>
-          ) : undefined
         }
       />
 
-      <Tabs
-        value={registro}
-        onValueChange={(value) => setRegistro(value === "historico" ? "historico" : "operativos")}
-        className="space-y-4"
-      >
-        <TabsList className="nx-pedidos-registry-tabs flex h-auto flex-wrap justify-start gap-1 rounded-xl border border-border/70 bg-card p-1">
-          <TabsTrigger value="operativos" className="gap-2 rounded-lg px-4 py-2">
-            <ClipboardList className="h-4 w-4" />
-            Pedidos operativos
-          </TabsTrigger>
-          <TabsTrigger value="historico" className="gap-2 rounded-lg px-4 py-2">
-            <Archive className="h-4 w-4" />
-            Historial importado
-          </TabsTrigger>
-        </TabsList>
-        <TabsContent value="operativos" className="space-y-5">
+      {historicalError ? (
+        <p role="alert" className="text-xs text-muted-foreground">
+          Los pedidos de Nexora siguen disponibles. La consulta del historial de Techrez no respondió:
+          {" "}{historicalError}
+        </p>
+      ) : null}
       <div className="nx-pedidos-filters space-y-3">
         <SearchField
           value={search}
@@ -304,11 +292,11 @@ const Pedidos = () => {
       </div>
 
       <div key={status} className="animate-fade-in">
-        <DataTable<OrderView>
+        <DataTable<UnifiedOrderView>
           className="nx-pedidos-table"
           rows={rows}
           rowKey={(view) => view.order.id}
-          onRowClick={(view) => navigate(`/pedidos/${view.order.id}`)}
+          onRowClick={(view) => navigate(orderPath(view))}
           emptyTitle={search || status ? t("order.emptyFilteredTitle") : t("order.emptyTitle")}
           emptyDescription={search || status ? t("order.emptyFilteredDescription") : t("order.emptyDescription")}
           emptyIcon={ClipboardList}
@@ -383,7 +371,7 @@ const Pedidos = () => {
             cell: (view) => (
               <Button size="sm" variant="ghost" asChild>
                 {/* Ídem: evita la doble navegación con la fila (ver el comentario en renderCard). */}
-                <Link to={`/pedidos/${view.order.id}`} onClick={(event) => event.stopPropagation()}>
+                <Link to={orderPath(view)} onClick={(event) => event.stopPropagation()}>
                   <Eye />
                   {t("common.view")}
                 </Link>
@@ -428,11 +416,6 @@ const Pedidos = () => {
           </div>
         </DialogContent>
       </Dialog>
-        </TabsContent>
-        <TabsContent value="historico" className="space-y-5">
-          <HistorialPedidosPanel />
-        </TabsContent>
-      </Tabs>
     </div>
   );
 };
