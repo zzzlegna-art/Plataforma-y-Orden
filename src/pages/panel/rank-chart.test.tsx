@@ -49,7 +49,7 @@ describe("ranking interactivo del panel", () => {
     expect(area.getByText("Unidades vendidas de esta referencia")).toBeTruthy();
     expect(area.getByText("PUESTO #2")).toBeTruthy();
     expect(area.getByText("iPhone 18 Pro Max 256 GB")).toBeTruthy();
-    expect(area.getByText("3 · 25% del total")).toBeTruthy();
+    expect(area.getByText("3 · 25% del ranking")).toBeTruthy();
 
     fireEvent.click(screen.getByRole("button", { name: /Ver resumen de iPhone 16 Pro 128 GB/ }));
     expect(area.getByText("LÍDER")).toBeTruthy();
@@ -73,7 +73,7 @@ describe("ranking interactivo del panel", () => {
     const area = within(summary());
     expect(area.getByText("PUESTO #2")).toBeTruthy();
     expect(area.getByText("$ 8.000")).toBeTruthy();
-    expect(area.getByText("$ 8.000 · 40% del total")).toBeTruthy();
+    expect(area.getByText("$ 8.000 · 40% del ranking")).toBeTruthy();
   });
 
   it("restablece el #1 al desmontar el panel y volver a entrar", () => {
