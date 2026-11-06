@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { Archive, CalendarDays, CheckCircle2, Clock3, History, Package, ShieldCheck, Smartphone, UserRound } from "lucide-react";
+import { Archive, CalendarDays, CheckCircle2, Clock3, History, Package, Printer, ShieldCheck, Smartphone, UserRound } from "lucide-react";
 
 import { ProductThumbnail } from "@/components/shared/product-thumbnail";
 import { Badge } from "@/components/ui/badge";
@@ -54,7 +54,7 @@ const buildTimeline = (trace: ArchivedImeiTrace): TimelineEntry[] => {
 };
 
 /** Visualización unificada: relación comercial histórica, sin inventario editable ni UUID operativos. */
-export const ArchivedImeiHistoryPanel = ({ trace }: { trace: ArchivedImeiTrace }) => {
+export const ArchivedImeiHistoryPanel = ({ trace, onPrint }: { trace: ArchivedImeiTrace; onPrint: () => void }) => {
   const timeline = buildTimeline(trace);
   const isDispatched = trace.order.status === "despachado";
   const hasImage = Boolean(trace.product.imageUrl);
@@ -71,10 +71,16 @@ export const ArchivedImeiHistoryPanel = ({ trace }: { trace: ArchivedImeiTrace }
             <p className="text-sm text-muted-foreground">Movimientos y pedido original de Techrez</p>
           </div>
         </div>
-        <Badge variant="outline" className="gap-1 border-primary/30 text-primary">
-          <ShieldCheck className="h-3.5 w-3.5" />
-          Histórico · Solo lectura
-        </Badge>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button size="sm" variant="outline" onClick={onPrint}>
+            <Printer className="h-4 w-4" />
+            Imprimir etiqueta
+          </Button>
+          <Badge variant="outline" className="gap-1 border-primary/30 text-primary">
+            <ShieldCheck className="h-3.5 w-3.5" />
+            Histórico · Solo lectura
+          </Badge>
+        </div>
       </div>
 
       <div className="grid gap-4 rounded-xl border bg-muted/20 p-4 md:grid-cols-[132px_minmax(0,1fr)]">
