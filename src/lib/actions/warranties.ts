@@ -772,9 +772,12 @@ export const entregarGarantia = (
 export const devolverGarantiasABodega = (
   db: Db,
   actor: Actor,
-  input: { warrantyIds: string[] },
+  input: { warrantyIds: string[]; inspeccionAptaVenta: boolean; observacionInspeccion: string },
 ): number => {
   requirePermission(actor, "warranties.manage");
+  if (input.inspeccionAptaVenta !== true || input.observacionInspeccion?.trim().length < 12) {
+    throw new DomainError("errors.warrantyInspectionRequired");
+  }
   const ids = [...new Set(input.warrantyIds.map((id) => id.trim()).filter(Boolean))];
   if (ids.length === 0) throw new DomainError("errors.invalidTransition");
 
@@ -817,6 +820,7 @@ export const devolverGarantiasABodega = (
       const yaDisponible = unidad.status === "en_bodega";
       const seguiaLigadaAVenta = db.orderItemUnits.some((row) => row.unitId === unidad!.id);
       unidad.status = "en_bodega";
+      unidad.condition = "seminuevo";
       db.orderItemUnits = db.orderItemUnits.filter((row) => row.unitId !== unidad!.id);
       if (pedido) {
         logAudit(db, actor, {
@@ -850,7 +854,7 @@ export const devolverGarantiasABodega = (
 
     warranty.status = "devuelto";
     warranty.resolvedAt = nowIso();
-    const nota = `Devolución directa a bodega desde Recibidos: serial ${serial} queda disponible en bodega para venta; el movimiento de dinero se registra por separado`;
+    const nota = `Inspección física apta para reventa: ${input.observacionInspeccion.trim()}. Devolución a bodega: serial ${serial} disponible para venta. Sin pago de reembolso registrado.`;
     addEvent(db, actor, warranty.id, "devuelto", nota);
     logAudit(db, actor, {
       action: "resolve",
@@ -920,12 +924,9 @@ export const devolverGarantia = (
         "en_reparacion",
       );
     } else {
-      detalle = [
-        motivo,
-        `No se pudo ingresar a la bodega: no hay un producto que coincida con «${warranty.referenciaManual ?? ""}»`,
-      ]
-        .filter(Boolean)
-        .join(" · ");
+      throw new DomainError("errors.warrantyReferenceNotInCatalog", {
+        reference: warranty.referenciaManual ?? "",
+      });
     }
   }
   warranty.status = "devuelto";
@@ -945,6 +946,85 @@ export const devolverGarantia = (
  * registrado (customerId) o dejarse como texto manual (clienteManual) — por
  * ejemplo cuando se escribió mal al recibir una "garantía previa".
  */
+/**
+ * Registra el pago real de un reembolso previamente ACORDADO, con soporte.
+ * No cambia el stock ni ejecuta una transferencia bancaria.
+ */
+export const registrarPagoReembolso = (
+  db: Db,
+  actor: Actor,
+  input: { warrantyId: string; monto: number; metodo: string; referencia: string },
+): Warranty => {
+  requirePermission(actor, "users.manage");
+  const warranty = findWarranty(db, input.warrantyId);
+  if (warranty.status !== "devuelto" || warranty.reembolsoAcordado !== true) {
+    throw new DomainError("errors.warrantyRefundNotAgreed");
+  }
+  if (warranty.reembolsoPagadoAt) throw new DomainError("errors.warrantyRefundAlreadyPaid");
+  if (!Number.isFinite(input.monto) || input.monto <= 0 || input.monto > 999999999999.99) {
+    throw new DomainError("errors.warrantyRefundAmountInvalid");
+  }
+  const metodo = requireText(input.metodo, "errors.warrantyRefundMethodRequired");
+  const referencia = requireText(input.referencia, "errors.warrantyRefundReferenceRequired");
+  if (metodo.length > 80 || referencia.length > 160) throw new DomainError("errors.invalidTransition");
+
+  warranty.reembolsoMonto = Math.round(input.monto * 100) / 100;
+  warranty.reembolsoMetodo = metodo;
+  warranty.reembolsoReferencia = referencia;
+  warranty.reembolsoPagadoAt = nowIso();
+
+  addEvent(db, actor, warranty.id, warranty.status,
+    `REEMBOLSO PAGADO · COP ${warranty.reembolsoMonto} · ${metodo} · referencia ${referencia}`);
+  logAudit(db, actor, {
+    action: "resolve", entity: "warranty", entityId: warranty.id,
+    details: `${warranty.code} · REEMBOLSO PAGADO · COP ${warranty.reembolsoMonto} · ${metodo} · ${referencia}`,
+  });
+  return warranty;
+};
+
+/**
+ * Un original de un cambio queda NO vendible hasta que se inspeccione.
+ * La clasificación posterior puede ingresarlo a bodega o dejarlo defectuoso.
+ */
+export const clasificarUnidadDevuelta = (
+  db: Db,
+  actor: Actor,
+  input: { warrantyId: string; aptoParaVenta: boolean; observacion: string },
+): Warranty => {
+  requirePermission(actor, "warranties.manage");
+  const warranty = findWarranty(db, input.warrantyId);
+  if (warranty.status !== "devuelto" && warranty.status !== "entregado") {
+    throw new DomainError("errors.invalidTransition");
+  }
+  const unit = warranty.unitId ? db.units.find((item) => item.id === warranty.unitId) : undefined;
+  if (!unit || unit.status !== "en_reparacion") {
+    throw new DomainError("errors.warrantyUnitNotUnderReview");
+  }
+  const nota = requireText(input.observacion, "errors.warrantyInspectionRequired");
+  if (nota.length < 12) throw new DomainError("errors.warrantyInspectionRequired");
+  if (db.warranties.some((w) => w.id !== warranty.id && w.unitId === unit.id && isOpenWarranty(w.status))) {
+    throw new DomainError("errors.warrantyOpen");
+  }
+  if (db.orderItemUnits.some((row) => row.unitId === unit.id)) {
+    throw new DomainError("errors.unitAlreadyAssigned");
+  }
+  unit.status = input.aptoParaVenta ? "en_bodega" : "defectuoso";
+  if (input.aptoParaVenta) unit.condition = "seminuevo";
+  logMovement(db, actor, {
+    productId: unit.productId, unitId: unit.id,
+    type: input.aptoParaVenta ? "entrada" : "ajuste",
+    referenceType: "garantia", referenceId: warranty.id,
+    notes: `Clasificación de garantía ${warranty.code}: ${unit.serial} · ${input.aptoParaVenta ? "apto y disponible" : "defectuoso, no vendible"} · ${nota}`,
+  });
+  addEvent(db, actor, warranty.id, warranty.status,
+    `Inspección posterior: ${input.aptoParaVenta ? "APTO PARA VENTA" : "DEFECTUOSO"} · ${nota}`);
+  logAudit(db, actor, {
+    action: "resolve", entity: "warranty", entityId: warranty.id,
+    details: `${warranty.code} · clasificación ${unit.serial}: ${unit.status} · ${nota}`,
+  });
+  return warranty;
+};
+
 export const actualizarClienteGarantia = (
   db: Db,
   actor: Actor,
