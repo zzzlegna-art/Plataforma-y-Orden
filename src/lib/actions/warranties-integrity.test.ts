@@ -3,6 +3,7 @@ import { emptyDb } from "../db";
 import type { Actor, Db, Unit, Warranty } from "../types";
 import {
   entregarGarantia, devolverGarantiasABodega, registrarPagoReembolso, clasificarUnidadDevuelta,
+  createWarrantyPrevia, registrarDiagnostico,
 } from "./warranties";
 
 const admin: Actor = { id: "u1", email: "admin@x.com", fullName: "Admin", role: "admin" };
@@ -25,6 +26,38 @@ const withWarranty = (values: Partial<Warranty> = {}): Db => {
 
 describe("Garantías: blindaje de inventario, inspección y reembolso", () => {
   const note = "Pantalla, encendido, batería y componentes revisados satisfactoriamente.";
+
+  it("Techrez: garantía previa + sin falla + reembolso pagado = una entrada disponible", () => {
+    const db = emptyDb();
+    db.products = [{
+      id: "p1", sku: "IPH13-128", name: "Apple iPhone 13 128 GB", categoria: "celular",
+      price: 0, cost: 0, minStock: 0, isActive: true, createdAt: now, updatedAt: now,
+    }];
+    const previous = createWarrantyPrevia(db, admin, {
+      imeiManual: "351486314095106", referenciaManual: "Apple iPhone 13 128 GB",
+      clienteManual: "iPhone América", fechaVentaManual: "2026-10-21",
+      observacion: "Equipo recibido y el cliente solicita reembolso.",
+    });
+    expect(db.units).toHaveLength(0);
+    registrarDiagnostico(db, admin, {
+      warrantyId: previous.id, diagnostico: "Inspección realizada, ninguna falla funcional.",
+      resolucion: "sin_falla",
+    });
+    entregarGarantia(db, admin, { warrantyId: previous.id, reembolso: true });
+    expect(db.warranties[0].reembolsoAcordado).toBe(true);
+    expect(db.warranties[0].reembolsoPagadoAt).toBeUndefined();
+    const copies = db.units.filter(u => u.serial === "351486314095106");
+    expect(copies).toHaveLength(1);
+    expect(copies[0].status).toBe("en_bodega");
+    expect(copies[0].condition).toBe("seminuevo");
+    expect(db.movements.filter(m => m.unitId === copies[0].id && m.type === "entrada")).toHaveLength(1);
+    registrarPagoReembolso(db, admin, {
+      warrantyId: previous.id, monto: 1500000,
+      metodo: "transferencia", referencia: "TR-TEST-01",
+    });
+    expect(db.warranties[0].reembolsoMonto).toBe(1500000);
+    expect(db.warranties[0].reembolsoPagadoAt).toBeTruthy();
+  });
 
   it("reembolso acordado devuelve a bodega sin afirmar pago", () => {
     const db = withWarranty();
