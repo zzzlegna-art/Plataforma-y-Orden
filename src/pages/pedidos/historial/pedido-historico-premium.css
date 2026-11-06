@@ -1,0 +1,51 @@
+/* Nexora · Detalle histórico de pedido: jerarquía visual premium, sin alterar datos. */
+.nx-historical-order-detail{--hist-ink:hsl(var(--foreground));--hist-muted:hsl(var(--muted-foreground));--hist-line:hsl(var(--border));--hist-surface:hsl(var(--card));color:var(--hist-ink);gap:1.35rem}
+.nx-historical-order-detail .nx-historical-order-hero{position:relative;isolation:isolate;overflow:hidden;display:flex;align-items:center;justify-content:space-between;gap:1.5rem;min-height:126px;padding:clamp(1.25rem,2.5vw,2rem);border:1px solid hsl(var(--primary)/.23);border-radius:24px;background:radial-gradient(ellipse at 76% 8%,hsl(var(--primary)/.17),transparent 48%),linear-gradient(112deg,hsl(var(--card)) 12%,hsl(var(--secondary)/.68) 100%);box-shadow:0 18px 44px -32px rgb(0 0 0/.34)}
+.nx-historical-order-detail .nx-historical-order-hero:after{content:"";position:absolute;z-index:-1;right:-8%;bottom:-150%;width:62%;height:230%;border:1px solid hsl(var(--primary)/.1);border-radius:50%;background:linear-gradient(120deg,transparent,hsl(var(--primary)/.09));transform:rotate(-15deg);pointer-events:none}
+.nx-historical-order-detail .nx-historical-order-hero h1{font-size:clamp(1.55rem,2.6vw,2.1rem);font-weight:850;letter-spacing:-.045em;line-height:1.13;color:var(--hist-ink);overflow-wrap:anywhere}
+.nx-historical-order-detail .nx-historical-order-hero p{margin-top:.45rem;color:var(--hist-muted);font-size:.92rem}
+.nx-historical-order-detail .nx-historical-order-hero [data-slot=button]{min-height:43px;padding-inline:1.05rem;border-radius:14px;font-weight:750;box-shadow:0 10px 23px -18px rgb(0 0 0/.5)}
+.nx-historical-order-detail .nx-historical-order-hero [data-slot=button]:not([data-variant=outline]){background:linear-gradient(120deg,hsl(var(--primary-glow)),hsl(var(--primary)));border-color:hsl(var(--primary));color:hsl(var(--primary-foreground));box-shadow:0 12px 25px -16px hsl(var(--primary)/.6)}
+.nx-historical-order-detail .nx-historical-protected-badge{min-height:40px;border-radius:999px;background:hsl(var(--primary)/.06);font-weight:750}
+.nx-historical-order-detail .nx-historical-overview{gap:1rem}
+.nx-historical-order-detail .nx-historical-card{position:relative;overflow:hidden;border:1px solid hsl(var(--border));border-radius:22px;background:linear-gradient(145deg,hsl(var(--card)) 68%,hsl(var(--secondary)/.3));box-shadow:0 18px 42px -33px rgb(0 0 0/.38);color:var(--hist-ink)}
+.nx-historical-order-detail .nx-historical-card:before{content:"";position:absolute;inset:22% auto 14% 0;width:3px;border-radius:0 4px 4px 0;background:linear-gradient(180deg,hsl(var(--primary)),hsl(var(--primary)/.2))}
+.nx-historical-order-detail .nx-historical-card [data-slot=card-header]{padding:1.45rem 1.55rem .85rem}
+.nx-historical-order-detail .nx-historical-card [data-slot=card-title]{font-size:1rem;font-weight:800;letter-spacing:-.02em;color:var(--hist-ink)}
+.nx-historical-order-detail .nx-historical-card [data-slot=card-title] svg{width:19px;height:19px}
+.nx-historical-order-detail .nx-historical-card [data-slot=card-description]{font-size:.84rem;line-height:1.55;color:var(--hist-muted)}
+.nx-historical-order-detail .nx-historical-card [data-slot=card-content]{padding:1rem 1.55rem 1.55rem}
+.nx-historical-order-detail .nx-historical-order-fields{column-gap:1.5rem;row-gap:1.2rem}
+.nx-historical-order-detail .nx-historical-order-fields>div{min-width:0}
+.nx-historical-order-detail .nx-historical-order-fields>div>p:first-child,.nx-historical-order-detail .nx-historical-customer-fields>div p:first-child{font-size:.68rem;font-weight:850;letter-spacing:.105em;text-transform:uppercase;color:var(--hist-muted)}
+.nx-historical-order-detail .nx-historical-order-code{font-size:clamp(1.12rem,1.8vw,1.55rem);line-height:1.2;letter-spacing:-.025em;overflow-wrap:anywhere;word-break:normal}
+.nx-historical-order-detail .nx-historical-order-fields [data-slot=badge]{border-radius:999px;padding:.38rem .8rem;font-weight:750;background:hsl(var(--primary)/.1);color:hsl(var(--primary))}
+.nx-historical-order-detail .nx-historical-order-fields .col-span-2{border-color:var(--hist-line);padding-top:1.05rem}
+.nx-historical-order-detail .nx-historical-order-fields .col-span-2 .font-tabular{font-size:clamp(1.45rem,2vw,1.9rem);letter-spacing:-.035em;color:var(--hist-ink)}
+.nx-historical-order-detail .nx-historical-customer-fields{gap:1rem}
+.nx-historical-order-detail .nx-historical-customer-name,.nx-historical-order-detail .nx-historical-contact-item{display:flex;align-items:flex-start;gap:.8rem;min-width:0}
+.nx-historical-order-detail .nx-historical-customer-name{padding-bottom:1.05rem;border-bottom:1px solid var(--hist-line)}
+.nx-historical-order-detail .nx-historical-customer-name>svg,.nx-historical-order-detail .nx-historical-contact-item>svg{margin-top:.12rem}
+.nx-historical-order-detail .nx-historical-customer-name p:last-child{font-size:1rem;font-weight:750;color:var(--hist-ink);overflow-wrap:anywhere}
+.nx-historical-order-detail .nx-historical-contact-grid{gap:1rem;padding-bottom:1rem;border-bottom:1px solid var(--hist-line)}
+.nx-historical-order-detail .nx-historical-contact-grid>div+div{padding-left:1rem;border-left:1px solid var(--hist-line)}
+.nx-historical-order-detail .nx-historical-contact-item p:last-child{color:var(--hist-ink);line-height:1.55;overflow-wrap:anywhere}
+.nx-historical-order-detail .nx-historical-address{padding-top:.15rem}
+.nx-historical-order-detail> :not(.nx-historical-overview):not(.nx-historical-order-hero) [data-slot=card]{border:1px solid var(--hist-line);border-radius:19px;background:hsl(var(--card));box-shadow:0 12px 32px -28px rgb(0 0 0/.32)}
+.nx-historical-order-detail> :not(.nx-historical-overview):not(.nx-historical-order-hero) [data-slot=card] [data-slot=card-header]{padding:1.25rem 1.4rem .8rem}
+.nx-historical-order-detail> :not(.nx-historical-overview):not(.nx-historical-order-hero) [data-slot=card] [data-slot=card-content]{padding:1rem 1.4rem 1.35rem}
+@media(max-width:768px){
+ .nx-historical-order-detail .nx-historical-order-hero{align-items:flex-start;flex-direction:column;border-radius:19px}
+ .nx-historical-order-detail .nx-historical-order-hero>div:last-child{width:100%}
+ .nx-historical-order-detail .nx-historical-order-hero [data-slot=button]{flex:1}
+ .nx-historical-order-detail .nx-historical-card{border-radius:18px}
+ .nx-historical-order-detail .nx-historical-card [data-slot=card-header]{padding:1.15rem 1.15rem .7rem}
+ .nx-historical-order-detail .nx-historical-card [data-slot=card-content]{padding:1rem 1.15rem 1.2rem}
+}
+@media(max-width:460px){
+ .nx-historical-order-detail .nx-historical-order-fields{grid-template-columns:minmax(0,1fr)}
+ .nx-historical-order-detail .nx-historical-order-fields .col-span-2{grid-column:span 1}
+ .nx-historical-order-detail .nx-historical-contact-grid{grid-template-columns:minmax(0,1fr)}
+ .nx-historical-order-detail .nx-historical-contact-grid>div+div{padding:0;border:0}
+}
+@media(prefers-reduced-motion:reduce){.nx-historical-order-detail *{transition:none!important}}
