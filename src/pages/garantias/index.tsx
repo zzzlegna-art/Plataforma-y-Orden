@@ -20,7 +20,6 @@ import { Link, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 
 import { PageHeader } from "@/components/shared/page-header";
-import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { SerialScanInput } from "@/components/shared/serial-scan-input";
 import { EmptyState } from "@/components/shared/empty-state";
 import { ProductThumbnail } from "@/components/shared/product-thumbnail";
@@ -82,6 +81,7 @@ import { garantiasNuevasDeUsuario } from "@/lib/warranty-lotes";
 import { TABS_GARANTIAS as TABS, tabDesdeParametro, type TabGarantias } from "@/lib/warranty-tabs";
 import { CodeLink } from "@/components/shared/code-link";
 import { ClienteTecnologiaSelect } from "@/components/shared/cliente-tecnologia-select";
+import { getArchivedImeiTrace, type ArchivedImeiTrace } from "@/lib/nexora-archived-imei-trace";
 import { FiltrosReenvio } from "./filtros-reenvio";
 import { DeshacerEstadoButton } from "./deshacer-estado";
 import { SEARCH_INPUT_PROPS } from "@/lib/search-input";
@@ -94,6 +94,7 @@ import {
 import type { Unit, WarrantyStatus } from "@/lib/types";
 import {
   DevolverDialog,
+  DevolucionDirectaDialog,
   DiagnosticoDialog,
   EntregarDialog,
   TecnicosDialog,
@@ -305,6 +306,8 @@ const Garantias = () => {
     fecha: "",
     motivo: "",
   });
+  const [historicoPrevia, setHistoricoPrevia] = useState<{ serial: string; trace: ArchivedImeiTrace | null; buscando: boolean; aviso: string | null }>({ serial: "", trace: null, buscando: false, aviso: null });
+  const consultaHistRef = useRef(0);
   const [previaMode, setPreviaMode] = useState<"uno" | "lote">("uno");
   const [lotePrevias, setLotePrevias] = useState<PreviaLoteItem[]>([]);
   const [previaLoteDraft, setPreviaLoteDraft] = useState({
@@ -676,11 +679,60 @@ const Garantias = () => {
     ]);
   };
 
+  /** Completa automáticamente la garantía con el pedido original de Techrez, si existe. */
+  const consultarHistoricoPrevia = async (serial: string) => {
+    const buscado = serial.trim();
+    const secuencia = ++consultaHistRef.current;
+    if (buscado.length < 5) return;
+    setHistoricoPrevia({ serial: buscado, trace: null, buscando: true, aviso: null });
+    try {
+      const trace = await getArchivedImeiTrace(buscado);
+      if (secuencia !== consultaHistRef.current) return;
+      if (!trace) {
+        setHistoricoPrevia({ serial: buscado, trace: null, buscando: false, aviso: "Este IMEI no tiene pedido importado. Puedes registrar una garantía previa manualmente." });
+        return;
+      }
+      if (trace.order.status !== "despachado") {
+        setHistoricoPrevia({ serial: buscado, trace, buscando: false, aviso: "El pedido histórico NO figura como despachado: verifica la venta antes de recibir una garantía de cliente." });
+        return;
+      }
+      const normalize = (value: string) =>
+        value.toLocaleLowerCase("es").replace(/^apple\s+/i, "").replace(/\s+/g, "").trim();
+      const matches = db.products.filter(
+        (p) => p.categoria === trace.product.category && normalize(p.name) === normalize(trace.product.name),
+      );
+      const modelo = matches.length === 1 ? matches[0] : undefined;
+      const tipo = trace.product.category;
+      if (modelo && TIPOS_EQUIPOS_GARANTIA_PREVIA.some((categoria) => categoria === tipo)) {
+        setPreviaTipo(tipo as TipoEquipoGarantiaPrevia);
+      }
+      setPrevia((actual) => actual.imei.trim().toLocaleLowerCase() === buscado.toLocaleLowerCase()
+        ? {
+            ...actual,
+            referencia: modelo?.name ?? actual.referencia,
+            cliente: trace.customer.name || actual.cliente,
+            fecha: trace.order.orderDate?.slice(0, 10) || actual.fecha,
+          }
+        : actual);
+      setHistoricoPrevia({
+        serial: buscado, trace, buscando: false,
+        aviso: modelo ? null : "Pedido reconocido, pero la referencia no coincide de forma única con el catálogo. Selecciona la referencia correcta antes de continuar.",
+      });
+    } catch (error) {
+      if (secuencia !== consultaHistRef.current) return;
+      setHistoricoPrevia({
+        serial: buscado, trace: null, buscando: false,
+        aviso: error instanceof Error ? `No se pudo consultar Techrez: ${error.message}` : "No se pudo consultar el historial importado.",
+      });
+    }
+  };
+
   /** Salta al modo "garantía previa" con el serial ya escrito. */
   const usarComoPrevia = (serial: string) => {
     setTab("recibir");
     setModo("previa");
     setPrevia((actual) => ({ ...actual, imei: serial }));
+    void consultarHistoricoPrevia(serial);
     setUnidadEncontrada(null);
     setLote([]);
     setAviso(null);
@@ -875,16 +927,17 @@ const Garantias = () => {
       return next;
     });
 
-  const devolverSeleccionadosABodega = async () => {
+  const devolverSeleccionadosABodega = async (observacionInspeccion: string): Promise<boolean> => {
     const ids = [...seleccionados].filter((id) =>
       vistas.some((view) => view.warranty.id === id && view.warranty.status === "recibido"),
     );
-    if (ids.length === 0) return;
+    if (ids.length === 0) return false;
     const result = await runAction(
-      (db2, actor) => devolverGarantiasABodega(db2, actor, { warrantyIds: ids }),
+      (db2, actor) => devolverGarantiasABodega(db2, actor, { warrantyIds: ids, inspeccionAptaVenta: true, observacionInspeccion }),
       { success: "warranty.batchReturnedToStock" },
     );
     if (result !== null) setSeleccionados(new Set());
+    return result !== null;
   };
 
   const agruparEnLotes = (lista: WarrantyView[]): LoteRecibido[] => {
@@ -1781,9 +1834,31 @@ const Garantias = () => {
                 <Input
                   value={previa.imei}
                   placeholder="IMEI o serial"
-                  onChange={(event) => setPrevia({ ...previa, imei: event.target.value })}
+                  onChange={(event) => {
+                    consultaHistRef.current += 1;
+                    setHistoricoPrevia({ serial: "", trace: null, buscando: false, aviso: null });
+                    setPrevia({ ...previa, imei: event.target.value });
+                  }}
                   className="font-tabular"
                 />
+                <Button type="button" variant="outline" size="sm"
+                  disabled={historicoPrevia.buscando || previa.imei.trim().length < 5}
+                  onClick={() => void consultarHistoricoPrevia(previa.imei)}>
+                  {historicoPrevia.buscando ? "Consultando pedido…" : "Buscar venta en Techrez"}
+                </Button>
+                {historicoPrevia.serial.trim().toLowerCase() === previa.imei.trim().toLowerCase()
+                  && historicoPrevia.trace ? (
+                  <div className="rounded-lg border border-primary/20 bg-primary/5 p-3 text-xs">
+                    <p className="font-semibold">Pedido histórico: {historicoPrevia.trace.order.code}</p>
+                    <p>Cliente: {historicoPrevia.trace.customer.name}</p>
+                    <p>Referencia: {historicoPrevia.trace.product.name}</p>
+                    <p>Estado: {historicoPrevia.trace.order.status}</p>
+                  </div>
+                ) : null}
+                {historicoPrevia.serial.trim().toLowerCase() === previa.imei.trim().toLowerCase()
+                  && historicoPrevia.aviso ? (
+                  <p role="status" className="text-xs text-amber-700 dark:text-amber-300">{historicoPrevia.aviso}</p>
+                ) : null}
                 <Button
                   type="button"
                   variant="outline"
@@ -2049,17 +2124,15 @@ const Garantias = () => {
                     }
                   />
                   {seleccionados.size > 0 ? (
-                    <ConfirmDialog
+                    <DevolucionDirectaDialog
+                      count={seleccionados.size}
                       trigger={
                         <Button variant="outline" size="sm">
                           <PackageCheck />
                           {t("warranty.returnSelectedToStock", { count: seleccionados.size })}
                         </Button>
                       }
-                      title={t("warranty.returnSelectedToStockTitle", { count: seleccionados.size })}
-                      description={t("warranty.returnSelectedToStockHint")}
-                      confirmLabel={t("warranty.returnSelectedToStockConfirm")}
-                      onConfirm={() => void devolverSeleccionadosABodega()}
+                      onConfirm={devolverSeleccionadosABodega}
                     />
                   ) : null}
                   <Button variant="outline" size="sm" onClick={exportarRecibidosPdf}>

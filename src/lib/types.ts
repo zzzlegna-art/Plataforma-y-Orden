@@ -371,6 +371,13 @@ export interface Warranty {
   referenciaManual?: string;
   clienteManual?: string;
   fechaVentaManual?: string;
+  /** La empresa acordó devolver dinero; NO significa que lo haya pagado. */
+  reembolsoAcordado?: boolean;
+  /** Pago registrado posteriormente con soporte; no mueve inventario. */
+  reembolsoMonto?: number;
+  reembolsoMetodo?: string;
+  reembolsoReferencia?: string;
+  reembolsoPagadoAt?: string;
   createdBy: string;
 }
 
