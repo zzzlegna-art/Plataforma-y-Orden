@@ -549,6 +549,21 @@ export const entregarGarantia = (
   const unit = warranty.unitId
     ? db.units.find((item) => item.id === warranty.unitId)
     : undefined;
+  // Antes de mover el reemplazo, validar que el original previo pueda entrar físicamente.
+  // Esto evita entregar el reemplazo si ya existe ese IMEI como unidad operativa activa.
+  const requiereEntradaOriginal = !unit && Boolean(warranty.imeiManual) && (
+    warranty.resolucion === "cambio" ||
+    warranty.resolucion === "defectuoso" ||
+    input.reembolso === true ||
+    input.devolverABodega === true ||
+    !garantiaTieneCliente(warranty)
+  );
+  if (requiereEntradaOriginal && warranty.imeiManual) {
+    const existente = findUnitBySerial(db, warranty.imeiManual);
+    if (existente && existente.status !== "liberado") {
+      throw new DomainError("errors.previaSerialInSystem", { serial: warranty.imeiManual });
+    }
+  }
   const serialOriginal = unit?.serial ?? warranty.imeiManual ?? "serial no disponible";
   const sinCliente = !garantiaTieneCliente(warranty);
   // Solo para casos históricos: "defectuoso" ya no se puede elegir en diagnósticos nuevos.
