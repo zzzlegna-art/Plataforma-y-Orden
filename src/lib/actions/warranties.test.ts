@@ -322,6 +322,7 @@ describe("entregarGarantia · cambio en una garantía previa: el equipo original
     db.units.push({ id: "un4", productId: "p9", serial: "356528187284484", condition: "nuevo", status: "en_bodega", receivedAt: now, createdBy: "u1" });
     expect(() => entregarGarantia(db, admin, { warrantyId: "w1", replacementUnitId: "un2" })).toThrow();
     expect(db.warranties[0].status).toBe("reenvio_pendiente");
+    expect(db.units.find((u) => u.id === "un2")?.status).toBe("en_bodega");
     expect(db.units.filter((u) => u.serial === "356528187284484")).toHaveLength(1);
   });
 });
