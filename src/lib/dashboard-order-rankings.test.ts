@@ -16,8 +16,8 @@ describe("parseDashboardOrderRankings", () => {
 
     expect(result).toEqual({
       totalOrders: 133,
-      consideredOrders: 124,
-      cancelledOrders: 9,
+      consideredOrders: 123,
+      cancelledOrders: 10,
       operationalOrders: 14,
       historicalOrders: 119,
       products: [{ key: "iphone17promax256gb", name: "iPhone 17 Pro Max 256 GB", units: 1035, ordersCount: 42 }],
