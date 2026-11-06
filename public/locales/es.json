@@ -1321,5 +1321,12 @@
   "unit.copySerial": "Copiar serial {{serial}}",
   "unit.serialCopied": "Serial copiado",
   "order.salesTotal": "Total de venta",
-  "order.estimatedTotal": "Estimado · pendiente de venta"
+  "order.estimatedTotal": "Estimado · pendiente de venta",
+  "errors.warrantyInspectionRequired": "Confirma la inspección física y describe en al menos 12 caracteres la condición del equipo.",
+  "errors.warrantyRefundNotAgreed": "El reembolso no está acordado o el caso no está cerrado como devolución.",
+  "errors.warrantyRefundAlreadyPaid": "Este reembolso ya tiene un pago registrado.",
+  "errors.warrantyRefundAmountInvalid": "Escribe un monto de reembolso mayor que cero.",
+  "errors.warrantyRefundMethodRequired": "Indica el medio de devolución del dinero.",
+  "errors.warrantyRefundReferenceRequired": "Ingresa la referencia o comprobante del reembolso.",
+  "errors.warrantyUnitNotUnderReview": "La unidad ya fue clasificada o no está pendiente de revisión."
 }
