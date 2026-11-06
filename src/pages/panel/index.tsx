@@ -485,13 +485,22 @@ const Panel = () => {
       </section>
 
       {/* 3 · Rendimiento: clasificaciones y últimas unidades, sin perder acciones. */}
-      <section className="nx-dashboard-block nx-dashboard-block--performance space-y-4" aria-label="Rendimiento de inventario">
+      <section className="nx-dashboard-block nx-dashboard-block--performance space-y-4" aria-label="Rendimiento de pedidos">
       <div className="nx-dashboard-performance-heading flex flex-wrap items-center justify-between gap-3">
         <div className="nx-warranty-section__title">
           <span className="nx-warranty-section__accent" aria-hidden="true" />
           <div>
-            <h2>Rendimiento de inventario</h2>
-            <p>Productos y clientes con mayor movimiento.</p>
+            <h2>Rendimiento de pedidos</h2>
+            <p>
+              {rankingsLoading
+                ? "Consolidando pedidos históricos y operativos…"
+                : rankingsError
+                  ? "No fue posible actualizar los rankings."
+                  : `${formatNumber(orderRankings?.consideredOrders ?? 0)} pedidos considerados · ${formatNumber(orderRankings?.totalOrders ?? 0)} registrados · ${formatNumber(orderRankings?.cancelledOrders ?? 0)} cancelados excluidos. Incluye ${formatNumber(orderRankings?.historicalOrders ?? 0)} históricos y ${formatNumber(orderRankings?.operationalOrders ?? 0)} operativos.`}
+            </p>
+            <p className="mt-1 text-[11px] text-muted-foreground">
+              Se cuentan pedidos preparados y despachados; los cancelados no suman movimiento.
+            </p>
           </div>
         </div>
       </div>
@@ -505,7 +514,7 @@ const Panel = () => {
               </span>
               <div className="min-w-0">
                 <h3 className="text-sm font-semibold tracking-tight">{t("dashboard.topProductsTitle")}</h3>
-                <p className="mt-1 text-xs leading-4 text-muted-foreground">{t("dashboard.topProductsSubtitle")}</p>
+                <p className="mt-1 text-xs leading-4 text-muted-foreground">Unidades solicitadas por referencia, incluidos celulares y repuestos.</p>
               </div>
             </div>
             <Link
@@ -517,15 +526,23 @@ const Panel = () => {
             </Link>
           </div>
           <div className="relative">
-            {data.topProducts.length === 0 ? (
+            {rankingsLoading ? (
+              <p className="rounded-xl border border-dashed px-4 py-8 text-center text-sm text-muted-foreground">
+                Consolidando pedidos históricos y operativos…
+              </p>
+            ) : rankingsError ? (
+              <p role="alert" className="rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-8 text-center text-sm text-muted-foreground">
+                No se pudo calcular el ranking global: {rankingsError}
+              </p>
+            ) : productsChart.length === 0 ? (
               <p className="rounded-xl border border-dashed px-4 py-8 text-center text-sm text-muted-foreground">
                 {t("dashboard.noSalesRanking")}
               </p>
             ) : (
               <RankChart
                 data={productsChart}
-                selectedSummaryLabel="Unidades vendidas de esta referencia"
-                summaryLabel={t("dashboard.unitsTotal", { count: productsChart.reduce((total, row) => total + row.value, 0) })}
+                selectedSummaryLabel="Unidades solicitadas de esta referencia"
+                summaryLabel="Unidades de los cinco productos destacados"
                 formatValue={(value) => formatNumber(value)}
               />
             )}
@@ -542,9 +559,7 @@ const Panel = () => {
               <div className="min-w-0">
                 <h3 className="text-sm font-semibold tracking-tight">{t("dashboard.topCustomersTitle")}</h3>
                 <p className="mt-1 text-xs leading-4 text-muted-foreground">
-                  {clientesPorMonto
-                    ? t("dashboard.topCustomersSubtitle")
-                    : t("dashboard.topCustomersSubtitleUnits")}
+                  Ordenado por unidades solicitadas; el detalle muestra cuántos pedidos realizó cada cliente.
                 </p>
               </div>
             </div>
@@ -557,22 +572,24 @@ const Panel = () => {
             </Link>
           </div>
           <div className="relative">
-            {data.topCustomers.length === 0 ? (
+            {rankingsLoading ? (
+              <p className="rounded-xl border border-dashed px-4 py-8 text-center text-sm text-muted-foreground">
+                Consolidando pedidos históricos y operativos…
+              </p>
+            ) : rankingsError ? (
+              <p role="alert" className="rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-8 text-center text-sm text-muted-foreground">
+                No se pudo calcular el ranking global: {rankingsError}
+              </p>
+            ) : customersChart.length === 0 ? (
               <p className="rounded-xl border border-dashed px-4 py-8 text-center text-sm text-muted-foreground">
                 {t("dashboard.noSalesRanking")}
               </p>
             ) : (
               <RankChart
                 data={customersChart}
-                selectedSummaryLabel={clientesPorMonto ? "Compras acumuladas de este cliente" : "Unidades compradas por este cliente"}
-                summaryLabel={
-                  clientesPorMonto
-                    ? "Valor acumulado de los clientes destacados"
-                    : t("dashboard.unitsTotal", { count: customersChart.reduce((total, row) => total + row.value, 0) })
-                }
-                formatValue={(value) =>
-                  clientesPorMonto ? formatCurrency(value) : formatNumber(value)
-                }
+                selectedSummaryLabel="Unidades solicitadas por este cliente"
+                summaryLabel="Unidades de los cinco clientes destacados"
+                formatValue={(value) => formatNumber(value)}
               />
             )}
           </div>
