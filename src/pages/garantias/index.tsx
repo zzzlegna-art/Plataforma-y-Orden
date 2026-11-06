@@ -679,11 +679,60 @@ const Garantias = () => {
     ]);
   };
 
+  /** Completa automáticamente la garantía con el pedido original de Techrez, si existe. */
+  const consultarHistoricoPrevia = async (serial: string) => {
+    const buscado = serial.trim();
+    const secuencia = ++consultaHistRef.current;
+    if (buscado.length < 5) return;
+    setHistoricoPrevia({ serial: buscado, trace: null, buscando: true, aviso: null });
+    try {
+      const trace = await getArchivedImeiTrace(buscado);
+      if (secuencia !== consultaHistRef.current) return;
+      if (!trace) {
+        setHistoricoPrevia({ serial: buscado, trace: null, buscando: false, aviso: "Este IMEI no tiene pedido importado. Puedes registrar una garantía previa manualmente." });
+        return;
+      }
+      if (trace.order.status !== "despachado") {
+        setHistoricoPrevia({ serial: buscado, trace, buscando: false, aviso: "El pedido histórico NO figura como despachado: verifica la venta antes de recibir una garantía de cliente." });
+        return;
+      }
+      const normalize = (value: string) =>
+        value.toLocaleLowerCase("es").replace(/^apple\s+/i, "").replace(/\s+/g, "").trim();
+      const matches = db.products.filter(
+        (p) => p.categoria === trace.product.category && normalize(p.name) === normalize(trace.product.name),
+      );
+      const modelo = matches.length === 1 ? matches[0] : undefined;
+      const tipo = trace.product.category;
+      if (modelo && TIPOS_EQUIPOS_GARANTIA_PREVIA.some((categoria) => categoria === tipo)) {
+        setPreviaTipo(tipo as TipoEquipoGarantiaPrevia);
+      }
+      setPrevia((actual) => actual.imei.trim().toLocaleLowerCase() === buscado.toLocaleLowerCase()
+        ? {
+            ...actual,
+            referencia: modelo?.name ?? actual.referencia,
+            cliente: trace.customer.name || actual.cliente,
+            fecha: trace.order.orderDate?.slice(0, 10) || actual.fecha,
+          }
+        : actual);
+      setHistoricoPrevia({
+        serial: buscado, trace, buscando: false,
+        aviso: modelo ? null : "Pedido reconocido, pero la referencia no coincide de forma única con el catálogo. Selecciona la referencia correcta antes de continuar.",
+      });
+    } catch (error) {
+      if (secuencia !== consultaHistRef.current) return;
+      setHistoricoPrevia({
+        serial: buscado, trace: null, buscando: false,
+        aviso: error instanceof Error ? `No se pudo consultar Techrez: ${error.message}` : "No se pudo consultar el historial importado.",
+      });
+    }
+  };
+
   /** Salta al modo "garantía previa" con el serial ya escrito. */
   const usarComoPrevia = (serial: string) => {
     setTab("recibir");
     setModo("previa");
     setPrevia((actual) => ({ ...actual, imei: serial }));
+    void consultarHistoricoPrevia(serial);
     setUnidadEncontrada(null);
     setLote([]);
     setAviso(null);
@@ -1785,9 +1834,31 @@ const Garantias = () => {
                 <Input
                   value={previa.imei}
                   placeholder="IMEI o serial"
-                  onChange={(event) => setPrevia({ ...previa, imei: event.target.value })}
+                  onChange={(event) => {
+                    consultaHistRef.current += 1;
+                    setHistoricoPrevia({ serial: "", trace: null, buscando: false, aviso: null });
+                    setPrevia({ ...previa, imei: event.target.value });
+                  }}
                   className="font-tabular"
                 />
+                <Button type="button" variant="outline" size="sm"
+                  disabled={historicoPrevia.buscando || previa.imei.trim().length < 5}
+                  onClick={() => void consultarHistoricoPrevia(previa.imei)}>
+                  {historicoPrevia.buscando ? "Consultando pedido…" : "Buscar venta en Techrez"}
+                </Button>
+                {historicoPrevia.serial.trim().toLowerCase() === previa.imei.trim().toLowerCase()
+                  && historicoPrevia.trace ? (
+                  <div className="rounded-lg border border-primary/20 bg-primary/5 p-3 text-xs">
+                    <p className="font-semibold">Pedido histórico: {historicoPrevia.trace.order.code}</p>
+                    <p>Cliente: {historicoPrevia.trace.customer.name}</p>
+                    <p>Referencia: {historicoPrevia.trace.product.name}</p>
+                    <p>Estado: {historicoPrevia.trace.order.status}</p>
+                  </div>
+                ) : null}
+                {historicoPrevia.serial.trim().toLowerCase() === previa.imei.trim().toLowerCase()
+                  && historicoPrevia.aviso ? (
+                  <p role="status" className="text-xs text-amber-700 dark:text-amber-300">{historicoPrevia.aviso}</p>
+                ) : null}
                 <Button
                   type="button"
                   variant="outline"
