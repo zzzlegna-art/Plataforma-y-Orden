@@ -889,15 +889,14 @@ export const devolverGarantiasABodega = (
 };
 
 /**
- * Cierra una garantía devuelta y clasifica físicamente el equipo:
- * - apto para reventa: entra a bodega como seminuevo y disponible;
- * - no apto: queda marcado como defectuoso y fuera de venta.
- * En ambos casos sale de cualquier pedido y conserva la trazabilidad del serial.
+ * Devuelve el equipo desde el flujo habitual de Garantías.
+ * Toda devolución confirmada regresa el serial a bodega como seminuevo y disponible
+ * para una nueva venta; no requiere una clasificación adicional en otro paso.
  */
 export const devolverGarantia = (
   db: Db,
   actor: Actor,
-  input: { warrantyId: string; motivo: string; aptoParaVenta: boolean },
+  input: { warrantyId: string; motivo: string },
 ): Warranty => {
   requirePermission(actor, "warranties.manage");
   const warranty = findWarranty(db, input.warrantyId);
@@ -905,54 +904,48 @@ export const devolverGarantia = (
     throw new DomainError("errors.invalidTransition");
   }
 
-  const motivo = requireText(input.motivo, "errors.warrantyInspectionRequired");
-  if (motivo.length < 12 || typeof input.aptoParaVenta !== "boolean") {
-    throw new DomainError("errors.warrantyInspectionRequired");
-  }
-
+  const motivo = input.motivo?.trim() || "Devolución de equipo por garantía";
   const unit = warranty.unitId
     ? db.units.find((item) => item.id === warranty.unitId)
     : undefined;
-  if (!unit && !warranty.imeiManual) {
+
+  if (warranty.unitId && !unit && !warranty.imeiManual) {
     throw new DomainError("errors.notFound");
   }
   if (unit && !["en_reparacion", "en_bodega", "en_local", "liberado"].includes(unit.status)) {
     throw new DomainError("errors.invalidTransition");
   }
 
-  const destino = input.aptoParaVenta
-    ? "equipo apto y disponible en bodega para venta"
-    : "equipo clasificado como defectuoso, no disponible para venta";
-  let detalle = `Inspección física: ${motivo}. ${destino}.`;
+  const serial = unit?.serial ?? warranty.imeiManual ?? "serial no disponible";
+  let detalle = `Devolución a bodega: serial ${serial} disponible para venta. Motivo: ${motivo}.`;
 
   if (unit) {
-    // La unidad devuelta deja de pertenecer al pedido original. Se conserva el pedido
-    // histórico, pero se elimina la asociación activa que podría reservar el serial.
+    // El serial deja de estar reservado por el pedido original y vuelve al inventario vendible.
     const pedido = pedidoDeUnidad(db, unit.id);
     db.orderItemUnits = db.orderItemUnits.filter((row) => row.unitId !== unit.id);
+    unit.status = "en_bodega";
+    unit.condition = "seminuevo";
+
     if (pedido) {
       detalle = `Sale del pedido ${pedido.code}. ${detalle}`;
       logAudit(db, actor, {
         action: "update",
         entity: "order",
         entityId: pedido.id,
-        details: `${unit.serial} devuelto por garantía ${warranty.code} y retirado del pedido ${pedido.code}`,
+        details: `${serial} devuelto a bodega por garantía ${warranty.code} y retirado del pedido ${pedido.code}`,
       });
     }
-
-    unit.status = input.aptoParaVenta ? "en_bodega" : "defectuoso";
-    if (input.aptoParaVenta) unit.condition = "seminuevo";
 
     logMovement(db, actor, {
       productId: unit.productId,
       unitId: unit.id,
-      type: input.aptoParaVenta ? "devolucion" : "ajuste",
+      type: "devolucion",
       referenceType: "garantia",
       referenceId: warranty.id,
-      notes: `${detalle} Serial: ${unit.serial}.`,
+      notes: detalle,
     });
   } else if (warranty.imeiManual) {
-    // Garantía previa: se crea o reactiva la ficha del serial con el producto del catálogo.
+    // Garantía previa: crea/reactiva la ficha del serial y la deja disponible en bodega.
     const productId = warranty.productId ?? productoPorReferencia(db, warranty.referenciaManual);
     if (!productId) {
       throw new DomainError("errors.warrantyReferenceNotInCatalog", {
@@ -964,10 +957,12 @@ export const devolverGarantia = (
       actor,
       warranty,
       productId,
-      `${detalle} Garantía ${warranty.code}.`,
-      input.aptoParaVenta ? "en_bodega" : "defectuoso",
+      detalle,
+      "en_bodega",
     );
     if (!unidad) throw new DomainError("errors.invalidTransition");
+  } else if (!unit) {
+    throw new DomainError("errors.notFound");
   }
 
   warranty.status = "devuelto";
