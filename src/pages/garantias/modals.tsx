@@ -15,6 +15,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { usePermissions } from "@/hooks/use-permissions";
@@ -22,6 +23,8 @@ import { useRunAction } from "@/hooks/use-run-action";
 import { useStore } from "@/hooks/use-store";
 import {
   actualizarClienteGarantia,
+  registrarPagoReembolso,
+  clasificarUnidadDevuelta,
   createTecnico,
   deleteTecnico,
   devolverGarantia,
@@ -168,11 +171,14 @@ export const EntregarDialog = ({
   const [replacementUnitId, setReplacementUnitId] = useState(warranty.replacementUnitId ?? "");
   const [devolverABodega, setDevolverABodega] = useState(false);
   const [reembolso, setReembolso] = useState(false);
+  const [originalAptoReventa, setOriginalAptoReventa] = useState(false);
+  const [observacionInspeccion, setObservacionInspeccion] = useState("");
   const [destinoDefectuoso, setDestinoDefectuoso] = useState<"cambio" | "reembolso" | "bodega">("cambio");
 
   const defectuoso = warranty.resolucion === "defectuoso";
   const conCliente = garantiaTieneCliente(warranty);
   const cambioInventario = warranty.resolucion === "cambio" && !conCliente;
+  const esCambioDeClienteNoDefectuoso = warranty.resolucion === "cambio" && conCliente && !defectuoso;
   const needsReplacement = warranty.resolucion === "cambio" || (defectuoso && conCliente && destinoDefectuoso === "cambio");
   // Al reparar o no encontrar falla, el equipo puede volver al cliente o quedar disponible en
   // bodega. También se permite hacerlo con una garantía previa, registrando el serial manual.
@@ -200,6 +206,8 @@ export const EntregarDialog = ({
           replacementUnitId: needsReplacement ? replacementUnitId : undefined,
           devolverABodega: puedeElegirBodega ? devolverABodega : undefined,
           reembolso: reembolsoElegido,
+          originalAptoReventa,
+          observacionInspeccion,
           destinoDefectuoso: defectuoso ? (conCliente ? destinoDefectuoso : "bodega") : undefined,
         }),
       { success: aBodega ? "warranty.returnedToStock" : "warranty.delivered", key: `garantia-entrega:${warranty.id}` },
@@ -209,6 +217,8 @@ export const EntregarDialog = ({
       setReplacementUnitId(warranty.replacementUnitId ?? "");
       setDevolverABodega(false);
       setReembolso(false);
+      setOriginalAptoReventa(false);
+      setObservacionInspeccion("");
       setDestinoDefectuoso("cambio");
     }
   };
@@ -303,11 +313,23 @@ export const EntregarDialog = ({
               </button>
             </div>
           ) : null}
+          {esCambioDeClienteNoDefectuoso ? (
+            <div className="space-y-3 rounded-md border p-3">
+              <label className="flex items-center gap-2 text-sm font-semibold">
+                <Checkbox checked={originalAptoReventa} onCheckedChange={(value) => setOriginalAptoReventa(value === true)} />
+                Equipo original inspeccionado y apto para vender
+              </label>
+              <p className="text-xs text-muted-foreground">Sin inspección, el original queda en revisión, NO disponible para venta.</p>
+              {originalAptoReventa ? (
+                <Textarea rows={2} value={observacionInspeccion} onChange={(event) => setObservacionInspeccion(event.target.value)} placeholder="Describe el estado físico y las pruebas realizadas" />
+              ) : null}
+            </div>
+          ) : null}
           <div className="rounded-md bg-muted/50 px-3 py-2 text-sm">
             {cambioInventario
               ? t("warranty.inventoryChangeEffect", { original: serialOriginal ?? "—", replacement: serialReemplazo ?? "—" })
               : warranty.resolucion === "cambio" && !defectuoso
-                ? `Serial original ${serialOriginal ?? "—"}: disponible en bodega. Serial de reemplazo ${serialReemplazo ?? "—"}: entregado al cliente.`
+                ? `Serial original ${serialOriginal ?? "—"}: ${originalAptoReventa ? "apto y disponible en bodega" : "en revisión, NO vendible"}. Serial de reemplazo ${serialReemplazo ?? "—"}: entregado al cliente.`
                 : reembolsoElegido && !defectuoso
                   ? `Reembolso acordado. Serial original ${serialOriginal ?? "—"}: disponible en bodega. El movimiento de dinero se registra por separado.`
                   : defectuoso
@@ -324,15 +346,15 @@ export const EntregarDialog = ({
           <Button
             type="button"
             loading={runAction.pending}
-            disabled={needsReplacement && !replacementUnitId}
+            disabled={(needsReplacement && !replacementUnitId) || (originalAptoReventa && observacionInspeccion.trim().length < 12)}
             onClick={() => void save()}
           >
             {cambioInventario
               ? t("warranty.inventoryChangeConfirm")
               : reembolsoElegido && !defectuoso
-                ? "Confirmar reembolso"
+                ? "Acordar reembolso y devolver a bodega"
                 : defectuoso
-                  ? (conCliente && destinoDefectuoso === "cambio" ? "Confirmar cambio" : conCliente ? "Confirmar reembolso" : "Cerrar registro histórico")
+                  ? (conCliente && destinoDefectuoso === "cambio" ? "Confirmar cambio" : conCliente ? "Acordar reembolso" : "Cerrar registro histórico")
                   : devolverABodega
                     ? t("warranty.returnToStock")
                     : sinClienteReparado
