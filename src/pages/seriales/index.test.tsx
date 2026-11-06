@@ -1,7 +1,8 @@
 // @vitest-environment jsdom
 import { readFileSync } from "node:fs";
 import { useMemo } from "react";
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, render, screen, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import i18n from "i18next";
 import { I18nextProvider, initReactI18next } from "react-i18next";
 import { MemoryRouter } from "react-router-dom";
@@ -16,6 +17,8 @@ vi.mock("@/lib/nexora-imei-timeline",()=>({
   })),
 }));
 vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn(), warning: vi.fn() } }));
+const mocks = vi.hoisted(() => ({ imprimirEtiquetas: vi.fn() }));
+vi.mock("@/lib/print-labels", () => ({ imprimirEtiquetas: mocks.imprimirEtiquetas }));
 
 import { emptyDb } from "@/lib/db";
 import { getArchivedImeiTrace, type ArchivedImeiTrace } from "@/lib/nexora-archived-imei-trace";
@@ -59,6 +62,7 @@ beforeAll(async () => {
 beforeEach(() => {
   vi.mocked(getArchivedImeiTrace).mockReset();
   vi.mocked(getArchivedImeiTrace).mockResolvedValue(null);
+  mocks.imprimirEtiquetas.mockReset();
 });
 afterEach(cleanup);
 
@@ -126,7 +130,8 @@ describe("Historial de seriales", () => {
     expect(screen.getByText("Recibido")).toBeTruthy();
   });
 
-  it("identifica un serial importado de una venta previa cuando no existe una unidad en Nexora", async () => {
+  it("identifica un serial importado de una venta previa cuando no existe una unidad en Nexora y permite imprimir su etiqueta", async () => {
+    const user = userEvent.setup();
     const db = {
       ...emptyDb(),
       units: [],
@@ -135,6 +140,7 @@ describe("Historial de seriales", () => {
       serialesPrevios: [{
         id: "sp1",
         serial: "111222333444555",
+        referencia: "iPhone 11 128 GB",
         notas: "Venta antigua",
         createdBy: "u1",
         createdAt: "2026-10-20T10:00:00.000Z",
@@ -146,6 +152,14 @@ describe("Historial de seriales", () => {
     expect(await screen.findByText("Serial de una venta previa")).toBeTruthy();
     expect(screen.getByText(/pertenece a una venta anterior a Nexora/)).toBeTruthy();
     expect(screen.getByText(/Venta antigua/)).toBeTruthy();
+    await user.click(screen.getByRole("button", { name: "Imprimir etiqueta" }));
+    const dialog = await screen.findByRole("dialog");
+    await user.click(within(dialog).getByRole("button", { name: "Imprimir etiqueta" }));
+    expect(mocks.imprimirEtiquetas).toHaveBeenCalledWith([{
+      producto: "iPhone 11 128 GB",
+      serial: "111222333444555",
+      nota: "",
+    }]);
   });
   it("muestra un IMEI comprometido con pedido sin confundir ubicación en bodega con venta", async () => {
     vi.mocked(getArchivedImeiTrace).mockResolvedValueOnce({
@@ -188,7 +202,8 @@ describe("Historial de seriales", () => {
     expect(db.orderItemUnits[0].unitId).toBe("unit-1");
   });
 
-  it("encuentra el pedido original de un serial sin unidad operativa y abre su detalle de solo lectura", async () => {
+  it("permite imprimir la etiqueta de un serial localizado en el archivo histórico", async () => {
+    const user = userEvent.setup();
     vi.mocked(getArchivedImeiTrace).mockResolvedValueOnce(historicalTrace);
     const db = emptyDb();
     render(<I18nextProvider i18n={i18n}><Almacen db={db} serial=" 359111222333444 " /></I18nextProvider>);
@@ -198,6 +213,14 @@ describe("Historial de seriales", () => {
     expect(screen.getByText("Cliente histórico de prueba")).toBeTruthy();
     expect(screen.queryByText(i18n.t("serialHistory.notFound"))).toBeNull();
     expect(screen.queryByRole("button", { name: /despachar|reactivar|editar/i })).toBeNull();
+    await user.click(screen.getByRole("button", { name: "Imprimir etiqueta" }));
+    const dialog = await screen.findByRole("dialog");
+    await user.click(within(dialog).getByRole("button", { name: "Imprimir etiqueta" }));
+    expect(mocks.imprimirEtiquetas).toHaveBeenCalledWith([{
+      producto: "Apple iPhone 14 Pro Max 128 GB",
+      serial: "359111222333444",
+      nota: "",
+    }]);
     expect(getArchivedImeiTrace).toHaveBeenCalledWith("359111222333444");
     expect(db.units).toHaveLength(0);
     expect(db.orders).toHaveLength(0);
