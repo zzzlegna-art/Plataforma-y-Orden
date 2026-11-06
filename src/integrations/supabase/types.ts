@@ -965,6 +965,7 @@ export type Database = {
       bodega_is_admin: { Args: never; Returns: boolean }
       bodega_is_staff: { Args: never; Returns: boolean }
       nexora_historical_order_detail: { Args: { p_source_id: string }; Returns: Json }
+      nexora_historical_serial_trace: { Args: { p_serial: string }; Returns: Json }
       nexora_historical_orders_list: {
         Args: { p_search?: string | null; p_status?: string | null }
         Returns: Json
