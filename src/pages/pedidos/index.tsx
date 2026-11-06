@@ -1,7 +1,7 @@
 import "./pedidos-premium.css";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Archive, ClipboardList, Download, Eye, FileSpreadsheet, FileText, Plus, Clock3, Truck, XCircle, ListFilter, CircleDot } from "lucide-react";
+import { ClipboardList, Download, Eye, FileSpreadsheet, FileText, Plus, Clock3, Truck, XCircle, ListFilter, CircleDot } from "lucide-react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 
@@ -10,8 +10,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { SearchField } from "@/components/shared/search-field";
 import { OrderStatusBadge } from "@/components/shared/status-badge";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { HistorialPedidosPanel } from "./historial/HistorialPedidosPanel";
+import { listHistoricalOrders, type HistoricalOrderListItem } from "@/lib/historical-orders";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
@@ -31,8 +30,13 @@ import {
 import { formatCurrency, formatDate, todayIso } from "@/lib/format";
 import { getOrderSalesTotal, isEstimatedOrderTotal } from "@/lib/order-sales-total";
 import { getOrderViews, type OrderView } from "@/lib/selectors";
+import type { OrderStatus } from "@/lib/types";
 
 const STATUSES = ["en_preparacion", "preparado", "despachado", "cancelado"] as const;
+type UnifiedOrderView = OrderView & { imported: boolean };
+const orderPath = (view: UnifiedOrderView) =>
+  view.imported ? "/pedidos/historial/" + view.order.id : "/pedidos/" + view.order.id;
+
 
 /** Listado de pedidos a clientes mayoristas. */
 const Pedidos = () => {
@@ -45,17 +49,6 @@ const Pedidos = () => {
   const [params, setParams] = useSearchParams();
   const search = params.get("q") ?? "";
   const status = params.get("estado") ?? "";
-  const registro = params.get("registro") === "historico" ? "historico" : "operativos";
-  const setRegistro = (valor: "operativos" | "historico") =>
-    setParams(
-      (previo) => {
-        const next = new URLSearchParams(previo);
-        if (valor === "historico") next.set("registro", "historico");
-        else next.delete("registro");
-        return next;
-      },
-      { replace: true },
-    );
   const setSearch = (valor: string) =>
     setParams(
       (previo) => {
@@ -78,21 +71,74 @@ const Pedidos = () => {
     );
   const [exportOpen, setExportOpen] = useState(false);
   const [soloFiltrado, setSoloFiltrado] = useState(true);
+  const [historicalOrders, setHistoricalOrders] = useState<HistoricalOrderListItem[]>([]);
+  const [historicalError, setHistoricalError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    const load = async () => {
+      try {
+        const { items } = await listHistoricalOrders();
+        if (active) {
+          setHistoricalOrders(items);
+          setHistoricalError(null);
+        }
+      } catch (error) {
+        // Una falla de la consulta histórica no debe ocultar pedidos operativos.
+        if (active) setHistoricalError(
+          error instanceof Error ? error.message : "No se pudo cargar el historial.",
+        );
+      }
+    };
+    void load();
+    return () => { active = false; };
+  }, []);
+
+  const allRows = useMemo<UnifiedOrderView[]>(() => {
+    const current: UnifiedOrderView[] = getOrderViews(db)
+      .map((view) => ({ ...view, imported: false }));
+    const past: UnifiedOrderView[] = historicalOrders.map((entry) => ({
+      imported: true,
+      order: {
+        id: entry.sourceId,
+        code: entry.code,
+        customerId: "",
+        status: entry.status as OrderStatus,
+        orderDate: entry.orderDate,
+        total: entry.total,
+        createdAt: entry.orderDate,
+        updatedAt: entry.orderDate,
+        createdBy: "",
+      },
+      customer: {
+        id: entry.sourceId,
+        name: entry.customerName,
+        isActive: false,
+        createdAt: entry.orderDate,
+      },
+      lines: [],
+      requested: entry.requestedUnits,
+      assigned: entry.assignedUnits ?? entry.serialCount,
+    }));
+    return [...current, ...past].sort(
+      (a, b) =>
+        b.order.orderDate.localeCompare(a.order.orderDate) ||
+        b.order.code.localeCompare(a.order.code),
+    );
+  }, [db, historicalOrders]);
 
   const rows = useMemo(() => {
     const needle = search.trim().toLowerCase();
-    return getOrderViews(db)
+    return allRows
       .filter((view) => (status ? view.order.status === status : true))
-      .filter(
-        (view) =>
-          !needle ||
-          view.order.code.toLowerCase().includes(needle) ||
-          (view.customer?.name ?? "").toLowerCase().includes(needle),
+      .filter((view) => !needle ||
+        view.order.code.toLowerCase().includes(needle) ||
+        (view.customer?.name ?? "").toLowerCase().includes(needle),
       );
-  }, [db, search, status]);
+  }, [allRows, search, status]);
 
   const exportar = (format: "pdf" | "excel") => {
-    const base = soloFiltrado ? rows : getOrderViews(db);
+    const base = soloFiltrado ? rows : allRows;
     if (base.length === 0) {
       toast.error(t("export.noData"));
       return;
@@ -142,7 +188,7 @@ const Pedidos = () => {
     setExportOpen(false);
   };
 
-  const renderCard = (view: OrderView) => (
+  const renderCard = (view: UnifiedOrderView) => (
     <div className="space-y-2">
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
