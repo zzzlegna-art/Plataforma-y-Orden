@@ -401,8 +401,9 @@ describe("createWarrantyPrevia · referencia del catálogo", () => {
   });
 });
 
-describe("devolverGarantia · clasifica el equipo y lo devuelve a bodega", () => {
-  const observacion = "Pantalla, batería, carga y funciones verificadas correctamente";
+describe("devolverGarantia · devolución directa a bodega desde el flujo habitual", () => {
+  const motivo = "Devolución por garantía; equipo recibido nuevamente en bodega";
+
   const dbConPedido = (status: Warranty["status"]) => {
     const db = dbCon({ status, customerId: "c1", orderId: "o1" }, { status: "en_reparacion" });
     db.orders.push({
@@ -415,76 +416,49 @@ describe("devolverGarantia · clasifica el equipo y lo devuelve a bodega", () =>
   };
 
   it.each(["recibido", "en_servicio_tecnico", "reenvio_pendiente"] as const)(
-    "desde %s: queda disponible en bodega, sale del pedido y conserva la trazabilidad",
+    "desde %s: con el mismo botón queda disponible en bodega y sale del pedido",
     (status) => {
       const db = dbConPedido(status);
-      devolverGarantia(db, admin, {
-        warrantyId: "w1",
-        motivo: `El cliente ya no lo quiere. ${observacion}`,
-        aptoParaVenta: true,
-      });
+      devolverGarantia(db, admin, { warrantyId: "w1", motivo });
 
       expect(db.units[0].status).toBe("en_bodega");
       expect(db.units[0].condition).toBe("seminuevo");
       expect(db.orderItemUnits.some((row) => row.unitId === "un1")).toBe(false);
       const mov = db.movements.find((m) => m.unitId === "un1" && m.type === "devolucion");
-      expect(mov?.notes).toContain("Sale del pedido PED-261004-006");
-      expect(mov?.notes).toContain("El cliente ya no lo quiere");
-      expect(mov?.notes).toContain("disponible en bodega para venta");
-      expect(db.warrantyEvents[db.warrantyEvents.length - 1]?.notes).toContain("Sale del pedido PED-261004-006");
+      expect(mov?.notes).toContain("PED-261004-006");
+      expect(mov?.notes).toContain("disponible para venta");
+      expect(db.warrantyEvents[db.warrantyEvents.length - 1]?.notes).toContain("disponible para venta");
       expect(db.auditLogs.some((l) => l.entity === "order" && l.details?.includes("retirado del pedido"))).toBe(true);
       expect(db.warranties[0].status).toBe("devuelto");
     },
   );
 
-  it("sin pedido: queda disponible en bodega y no inventa una asociación comercial", () => {
+  it("sin pedido: igualmente vuelve a bodega como disponible y deja movimiento", () => {
     const db = dbCon({ status: "en_servicio_tecnico" }, { status: "en_reparacion" });
-    devolverGarantia(db, admin, { warrantyId: "w1", motivo: observacion, aptoParaVenta: true });
+    devolverGarantia(db, admin, { warrantyId: "w1", motivo });
 
     expect(db.units[0].status).toBe("en_bodega");
-    expect(db.movements.find((m) => m.type === "devolucion")?.notes).toContain("disponible en bodega para venta");
+    expect(db.movements.find((m) => m.unitId === "un1" && m.type === "devolucion")?.notes).toContain("disponible para venta");
     expect(db.auditLogs.some((l) => l.entity === "order")).toBe(false);
   });
 
-  it("si no está apto para vender, queda defectuoso y no entra al stock disponible", () => {
+  it("no exige seleccionar un destino adicional para confirmar la devolución", () => {
     const db = dbCon({ status: "en_servicio_tecnico" }, { status: "en_reparacion" });
-    devolverGarantia(db, admin, {
-      warrantyId: "w1",
-      motivo: "Pantalla rota y falla de encendido; requiere reparación",
-      aptoParaVenta: false,
-    });
-
-    expect(db.units[0].status).toBe("defectuoso");
-    expect(db.units[0].status).not.toBe("en_bodega");
-    expect(db.movements.find((m) => m.unitId === "un1" && m.type === "ajuste")?.notes).toContain("defectuoso");
+    expect(() => devolverGarantia(db, admin, { warrantyId: "w1", motivo: "" })).not.toThrow();
+    expect(db.units[0].status).toBe("en_bodega");
+    expect(db.warranties[0].status).toBe("devuelto");
   });
 
-  it("exige evidencia de inspección antes de cerrar la garantía", () => {
-    const db = dbCon({ status: "en_servicio_tecnico" }, { status: "en_reparacion" });
-    expect(() => devolverGarantia(db, admin, {
-      warrantyId: "w1",
-      motivo: "OK",
-      aptoParaVenta: true,
-    })).toThrow();
-
-    expect(db.units[0].status).toBe("en_reparacion");
-    expect(db.warranties[0].status).toBe("en_servicio_tecnico");
-  });
-
-  it("no permite convertir en stock un serial que figura vendido o entregado", () => {
+  it("no permite convertir en stock un serial vendido o entregado", () => {
     const db = dbCon({ status: "en_servicio_tecnico" }, { status: "vendido" });
-    expect(() => devolverGarantia(db, admin, {
-      warrantyId: "w1",
-      motivo: observacion,
-      aptoParaVenta: true,
-    })).toThrow();
+    expect(() => devolverGarantia(db, admin, { warrantyId: "w1", motivo })).toThrow();
 
     expect(db.units[0].status).toBe("vendido");
     expect(db.warranties[0].status).toBe("en_servicio_tecnico");
   });
 });
 
-describe("devolverGarantia · garantía previa: crea la unidad con el destino inspeccionado", () => {
+describe("devolverGarantia · garantía previa: crea la unidad disponible en bodega", () => {
   const dbPrevia = (referencia: string) => {
     const db = dbCon(
       { unitId: undefined, productId: undefined, imeiManual: "357573494919009", referenciaManual: referencia, clienteManual: "Celutronic", status: "en_servicio_tecnico" },
@@ -494,12 +468,11 @@ describe("devolverGarantia · garantía previa: crea la unidad con el destino in
     return db;
   };
 
-  it("da de alta el serial apto como seminuevo y disponible en bodega, con su historial", () => {
+  it("da de alta el serial previo como seminuevo y disponible para venta", () => {
     const db = dbPrevia("Apple iPhone 13 128 GB");
     devolverGarantia(db, admin, {
       warrantyId: "w1",
-      motivo: "Pantalla, batería, carga y funciones verificadas correctamente",
-      aptoParaVenta: true,
+      motivo: "Devolución de equipo recibido por garantía",
     });
     const unidad = db.units.find((u) => u.serial === "357573494919009");
     expect(unidad?.status).toBe("en_bodega");
@@ -510,22 +483,11 @@ describe("devolverGarantia · garantía previa: crea la unidad con el destino in
     expect(db.warranties[0].unitId).toBe(unidad?.id);
   });
 
-  it("da de alta como defectuoso el serial previo que no supera la inspección", () => {
-    const db = dbPrevia("Apple iPhone 13 128 GB");
-    devolverGarantia(db, admin, {
-      warrantyId: "w1",
-      motivo: "Pantalla rota y falla de encendido; requiere reparación",
-      aptoParaVenta: false,
-    });
-    expect(db.units.find((u) => u.serial === "357573494919009")?.status).toBe("defectuoso");
-  });
-
   it("si ningún producto coincide con la referencia, no crea unidad ni cierra el caso", () => {
     const db = dbPrevia("Modelo que no existe");
     expect(() => devolverGarantia(db, admin, {
       warrantyId: "w1",
-      motivo: "Pantalla, batería, carga y funciones verificadas correctamente",
-      aptoParaVenta: true,
+      motivo,
     })).toThrow();
     expect(db.units).toHaveLength(0);
     expect(db.warranties[0].status).toBe("en_servicio_tecnico");
