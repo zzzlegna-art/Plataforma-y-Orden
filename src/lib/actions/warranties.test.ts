@@ -487,7 +487,7 @@ describe("devolverGarantia · garantía previa: crea la unidad disponible en bod
     const db = dbPrevia("Modelo que no existe");
     expect(() => devolverGarantia(db, admin, {
       warrantyId: "w1",
-      motivo,
+      motivo: "Devolución por garantía",
     })).toThrow();
     expect(db.units).toHaveLength(0);
     expect(db.warranties[0].status).toBe("en_servicio_tecnico");
