@@ -132,25 +132,25 @@ describe("EntregarDialog · elegir entre entregar al cliente o devolver a bodega
 });
 
 
-describe("DevolverDialog · inspección y destino del serial", () => {
+describe("DevolverDialog · devolución directa a bodega", () => {
   const warranty: Warranty = {
     id: "w1", code: "GAR-1", reason: "no enciende", status: "en_servicio_tecnico",
     receivedAt: now, createdBy: "u1", unitId: "un1",
   };
 
-  it("al confirmar apto para vender, lo devuelve a bodega disponible", async () => {
+  it("usa el botón habitual y devuelve el serial a bodega sin pedir clasificación adicional", async () => {
     const user = userEvent.setup();
     render(<AlmacenDevolucion warranty={warranty} />);
 
     await user.click(screen.getByRole("button", { name: "Abrir devolución" }));
-    expect((screen.getByRole("button", { name: "Confirmar devolución y clasificación" }) as HTMLButtonElement).disabled).toBe(true);
+    expect(screen.queryByRole("button", { name: "Apto para vender" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Defectuoso" })).toBeNull();
 
-    await user.click(screen.getByRole("button", { name: "Apto para vender" }));
     await user.type(
-      screen.getByLabelText("Informe de inspección (mínimo 12 caracteres)"),
-      "Pantalla, batería, carga y funciones verificadas correctamente",
+      screen.getByLabelText("Motivo de la devolución (opcional)"),
+      "Devolución por garantía",
     );
-    await user.click(screen.getByRole("button", { name: "Confirmar devolución y clasificación" }));
+    await user.click(screen.getByRole("button", { name: "Confirmar devolución" }));
 
     expect(screen.getByTestId("estado-unidad").textContent).toBe("en_bodega");
     expect(mocks.toastSuccess).toHaveBeenCalledWith(
@@ -159,22 +159,13 @@ describe("DevolverDialog · inspección y destino del serial", () => {
     );
   });
 
-  it("si se clasifica defectuoso, no lo incorpora al inventario vendible", async () => {
+  it("permite confirmar la devolución sin añadir otro paso de clasificación", async () => {
     const user = userEvent.setup();
     render(<AlmacenDevolucion warranty={warranty} />);
 
     await user.click(screen.getByRole("button", { name: "Abrir devolución" }));
-    await user.click(screen.getByRole("button", { name: "Defectuoso" }));
-    await user.type(
-      screen.getByLabelText("Informe de inspección (mínimo 12 caracteres)"),
-      "Pantalla rota y falla de encendido; requiere reparación",
-    );
-    await user.click(screen.getByRole("button", { name: "Confirmar devolución y clasificación" }));
+    await user.click(screen.getByRole("button", { name: "Confirmar devolución" }));
 
-    expect(screen.getByTestId("estado-unidad").textContent).toBe("defectuoso");
-    expect(mocks.toastSuccess).toHaveBeenCalledWith(
-      "Equipo devuelto y clasificado como defectuoso",
-      expect.anything(),
-    );
+    expect(screen.getByTestId("estado-unidad").textContent).toBe("en_bodega");
   });
 });
