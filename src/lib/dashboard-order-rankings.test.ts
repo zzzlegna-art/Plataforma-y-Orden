@@ -6,8 +6,8 @@ describe("parseDashboardOrderRankings", () => {
   it("normaliza la respuesta combinada de pedidos operativos e históricos", () => {
     const result = parseDashboardOrderRankings({
       totalOrders: 133,
-      consideredOrders: 124,
-      cancelledOrders: 9,
+      consideredOrders: 123,
+      cancelledOrders: 10,
       operationalOrders: 14,
       historicalOrders: 119,
       products: [{ key: "iphone17promax256gb", name: "iPhone 17 Pro Max 256 GB", value: "1035", units: "1035", ordersCount: "42" }],
