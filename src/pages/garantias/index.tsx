@@ -2415,22 +2415,25 @@ const Garantias = () => {
                       ) : null}
                     </div>
                   ) : null}
-                  {!unit && esCodigoInterno(buscarResultado) && casos[0] ? (
+                  {unit || previo || casos.length > 0 ? (
                     <Button
                       type="button"
                       size="sm"
                       variant="outline"
                       onClick={() =>
-                        imprimirEtiquetas([
-                          {
-                            producto: casos[0].warranty.referenciaManual || t("product.type"),
-                            serial: buscarResultado,
-                          },
-                        ])
+                        imprimirEtiquetas([{
+                          producto:
+                            product?.name
+                            ?? casos[0]?.product?.name
+                            ?? casos[0]?.warranty.referenciaManual
+                            ?? previo?.referencia
+                            ?? t("product.type"),
+                          serial: buscarResultado,
+                        }])
                       }
                     >
                       <Printer />
-                      {t("warranty.printGeneratedLabel")}
+                      {t("serialHistory.printLabel")}
                     </Button>
                   ) : null}
                   {casos.length === 0 ? (

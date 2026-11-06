@@ -1,10 +1,11 @@
 import { Link } from "react-router-dom";
-import { Archive, CalendarDays, CheckCircle2, Clock3, History, Package, ShieldCheck, Smartphone, UserRound } from "lucide-react";
+import { Archive, CalendarDays, CheckCircle2, Clock3, History, Package, Printer, ShieldCheck, Smartphone, UserRound } from "lucide-react";
 
 import { ProductThumbnail } from "@/components/shared/product-thumbnail";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { formatCurrency, formatDateTime } from "@/lib/format";
+import { imprimirEtiquetas } from "@/lib/print-labels";
 import type { ArchivedImeiTrace } from "@/lib/nexora-archived-imei-trace";
 
 const readable = (value: string | null | undefined): string =>
@@ -71,10 +72,21 @@ export const ArchivedImeiHistoryPanel = ({ trace }: { trace: ArchivedImeiTrace }
             <p className="text-sm text-muted-foreground">Movimientos y pedido original de Techrez</p>
           </div>
         </div>
-        <Badge variant="outline" className="gap-1 border-primary/30 text-primary">
-          <ShieldCheck className="h-3.5 w-3.5" />
-          Histórico · Solo lectura
-        </Badge>
+        <div className="flex flex-wrap items-center gap-2">
+          <Badge variant="outline" className="gap-1 border-primary/30 text-primary">
+            <ShieldCheck className="h-3.5 w-3.5" />
+            Histórico · Solo lectura
+          </Badge>
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            onClick={() => imprimirEtiquetas([{ producto: trace.product.name, serial: trace.serial }])}
+          >
+            <Printer className="h-4 w-4" />
+            Imprimir etiqueta
+          </Button>
+        </div>
       </div>
 
       <div className="grid gap-4 rounded-xl border bg-muted/20 p-4 md:grid-cols-[132px_minmax(0,1fr)]">

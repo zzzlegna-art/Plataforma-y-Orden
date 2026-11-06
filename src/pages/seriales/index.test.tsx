@@ -2,6 +2,7 @@
 import { readFileSync } from "node:fs";
 import { useMemo } from "react";
 import { cleanup, render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import i18n from "i18next";
 import { I18nextProvider, initReactI18next } from "react-i18next";
 import { MemoryRouter } from "react-router-dom";
@@ -16,8 +17,10 @@ vi.mock("@/lib/nexora-imei-timeline",()=>({
   })),
 }));
 vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn(), warning: vi.fn() } }));
+vi.mock("@/lib/print-labels", () => ({ imprimirEtiquetas: vi.fn() }));
 
 import { emptyDb } from "@/lib/db";
+import { imprimirEtiquetas } from "@/lib/print-labels";
 import { getArchivedImeiTrace, type ArchivedImeiTrace } from "@/lib/nexora-archived-imei-trace";
 import type { Db, Warranty } from "@/lib/types";
 import { AppContext, type AppValue } from "@/store/contexts";
@@ -59,6 +62,7 @@ beforeAll(async () => {
 beforeEach(() => {
   vi.mocked(getArchivedImeiTrace).mockReset();
   vi.mocked(getArchivedImeiTrace).mockResolvedValue(null);
+  vi.mocked(imprimirEtiquetas).mockClear();
 });
 afterEach(cleanup);
 
@@ -124,6 +128,8 @@ describe("Historial de seriales", () => {
     expect(await screen.findByText("Garantía previa vinculada al serial")).toBeTruthy();
     expect(screen.getByText("GAR-001")).toBeTruthy();
     expect(screen.getByText("Recibido")).toBeTruthy();
+    await userEvent.setup().click(screen.getByRole("button", { name: i18n.t("serialHistory.printLabel") }));
+    expect(imprimirEtiquetas).toHaveBeenCalledWith([{ producto: "iPhone 13", serial: "359111222333444" }]);
   });
 
   it("identifica un serial importado de una venta previa cuando no existe una unidad en Nexora", async () => {
@@ -146,6 +152,8 @@ describe("Historial de seriales", () => {
     expect(await screen.findByText("Serial de una venta previa")).toBeTruthy();
     expect(screen.getByText(/pertenece a una venta anterior a Nexora/)).toBeTruthy();
     expect(screen.getByText(/Venta antigua/)).toBeTruthy();
+    await userEvent.setup().click(screen.getByRole("button", { name: i18n.t("serialHistory.printLabel") }));
+    expect(imprimirEtiquetas).toHaveBeenCalledWith([{ producto: "Serial histórico", serial: "111222333444555" }]);
   });
   it("muestra un IMEI comprometido con pedido sin confundir ubicación en bodega con venta", async () => {
     vi.mocked(getArchivedImeiTrace).mockResolvedValueOnce({
@@ -196,6 +204,8 @@ describe("Historial de seriales", () => {
     expect(link.getAttribute("href")).toBe("/pedidos/historial/historical-order-original");
     expect(screen.getByText("Movimientos y pedido original de Techrez")).toBeTruthy();
     expect(screen.getByText("Cliente histórico de prueba")).toBeTruthy();
+    await userEvent.setup().click(screen.getByRole("button", { name: "Imprimir etiqueta" }));
+    expect(imprimirEtiquetas).toHaveBeenCalledWith([{ producto: "Apple iPhone 14 Pro Max 128 GB", serial: "359111222333444" }]);
     expect(screen.queryByText(i18n.t("serialHistory.notFound"))).toBeNull();
     expect(screen.queryByRole("button", { name: /despachar|reactivar|editar/i })).toBeNull();
     expect(getArchivedImeiTrace).toHaveBeenCalledWith("359111222333444");

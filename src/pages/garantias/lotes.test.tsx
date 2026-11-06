@@ -16,8 +16,10 @@ vi.mock("@/lib/warranty-documents", () => ({
   TIPOS_DOCUMENTO_ACEPTADOS: "application/pdf",
 }));
 vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn(), warning: vi.fn() } }));
+vi.mock("@/lib/print-labels", () => ({ imprimirEtiquetas: vi.fn() }));
 
 import { emptyDb } from "@/lib/db";
+import { imprimirEtiquetas } from "@/lib/print-labels";
 import type { Db, Warranty } from "@/lib/types";
 import { AppContext, type AppValue } from "@/store/contexts";
 import Garantias from "./index";
@@ -92,6 +94,7 @@ afterEach(() => {
   cleanup();
   entrada = "/garantias";
   sessionStorage.clear();
+  vi.mocked(imprimirEtiquetas).mockClear();
 });
 
 const abrirRecibidos = async () => {
@@ -100,6 +103,25 @@ const abrirRecibidos = async () => {
   await user.click(screen.getByRole("button", { name: /^Recibidos/ }));
   return user;
 };
+
+
+describe("Garantías · buscar serial e imprimir etiqueta", () => {
+  it("permite imprimir la etiqueta de un IMEI normal encontrado en una garantía", async () => {
+    entrada = "/garantias?tab=buscar";
+    const user = userEvent.setup();
+    render(<I18nextProvider i18n={i18n}><Almacen /></I18nextProvider>);
+
+    await user.type(screen.getByRole("textbox"), "35000000000111");
+    await user.click(screen.getByRole("button", { name: i18n.t("common.search") }));
+
+    const imprimir = await screen.findByRole("button", { name: i18n.t("serialHistory.printLabel") });
+    await user.click(imprimir);
+
+    expect(imprimirEtiquetas).toHaveBeenCalledWith([
+      expect.objectContaining({ serial: "35000000000111" }),
+    ]);
+  });
+});
 
 describe("Garantías · Recibidos", () => {
   it("todos los lotes empiezan cerrados (sin tarjetas) y se abren y cierran al pulsarlos", async () => {

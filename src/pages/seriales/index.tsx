@@ -217,11 +217,27 @@ const HistorialSerial = ({ embedded = false }: { embedded?: boolean }) => {
 
       {search && !unit && garantiasPorSerialManual.length > 0 ? (
         <section className="space-y-3 rounded-lg border bg-card p-4 shadow-sm">
-          <div>
-            <h2 className="text-sm font-semibold">{t("serialHistory.priorWarrantyTitle")}</h2>
-            <p className="mt-1 text-sm text-muted-foreground">
-              {t("serialHistory.priorWarrantyHint", { serial: search })}
-            </p>
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <h2 className="text-sm font-semibold">{t("serialHistory.priorWarrantyTitle")}</h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {t("serialHistory.priorWarrantyHint", { serial: search })}
+              </p>
+            </div>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              onClick={() => imprimirEtiquetas([{
+                producto: db.products.find((item) => item.id === garantiasPorSerialManual[0].productId)?.name
+                  ?? garantiasPorSerialManual[0].referenciaManual
+                  ?? search,
+                serial: garantiasPorSerialManual[0].imeiManual ?? search,
+              }])}
+            >
+              <Printer />
+              {t("serialHistory.printLabel")}
+            </Button>
           </div>
           <div className="grid gap-2">
             {garantiasPorSerialManual.map((warranty) => {
@@ -297,7 +313,21 @@ const HistorialSerial = ({ embedded = false }: { embedded?: boolean }) => {
                     </p>
                   </div>
                 </div>
-                <Badge tone="warning" label={t("serialHistory.priorSaleBadge")} withDot={false} />
+                <div className="flex flex-wrap items-center gap-2">
+                  <Badge tone="warning" label={t("serialHistory.priorSaleBadge")} withDot={false} />
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => imprimirEtiquetas([{
+                      producto: productoVentaPrevia?.name ?? serialPrevio.referencia ?? "Serial histórico",
+                      serial: serialPrevio.serial,
+                    }])}
+                  >
+                    <Printer />
+                    {t("serialHistory.printLabel")}
+                  </Button>
+                </div>
               </div>
 
               <div className="mt-4 flex items-start gap-2 rounded-xl border border-border/60 bg-muted/35 px-3 py-2.5 text-xs text-muted-foreground">
