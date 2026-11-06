@@ -57,8 +57,11 @@ export const RankChart = ({ data, formatValue, summaryLabel, selectedSummaryLabe
               </span>
               <p title={selected.name} className="mt-2 break-words text-sm font-semibold">{selected.name}</p>
               <p className="font-tabular mt-0.5 text-xs text-muted-foreground">
-                {formatValue(selected.value)} · {selectedShare}% del total
+                {formatValue(selected.value)} · {selectedShare}% del ranking
               </p>
+              {selected.detail ? (
+                <p className="mt-1 text-[11px] text-muted-foreground">{selected.detail}</p>
+              ) : null}
             </div>
           ) : null}
         </div>
@@ -123,7 +126,7 @@ export const RankChart = ({ data, formatValue, summaryLabel, selectedSummaryLabe
                     />
                   </span>
                   <span className="mt-1.5 flex items-center justify-between gap-2 text-[10px] text-muted-foreground">
-                    <span>{index === 0 ? "Mayor aporte" : "Participación del ranking"}</span>
+                    <span>{row.detail ?? (index === 0 ? "Mayor aporte" : "Participación del ranking")}</span>
                     <span className="font-tabular font-medium">{share}%</span>
                   </span>
                 </span>
