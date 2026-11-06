@@ -63,9 +63,9 @@ beforeEach(() => {
 afterEach(cleanup);
 
 const historicalOrder: HistoricalOrderListItem = {
-  sourceId: "historical-order-original", code: "PED-260903-001",
+  sourceId: "historical-order-original", code: "PED-HIST-001",
   status: "despachado", orderDate: "2026-09-03T12:00:00Z",
-  total: 0, customerName: "Iphone America", lineCount: 1,
+  total: 0, customerName: "Cliente histórico de prueba", lineCount: 1,
   requestedUnits: 183, serialCount: 183, matchedSerial: true,
 };
 
@@ -145,7 +145,7 @@ describe("Historial de seriales", () => {
     expect(screen.getByText("PED-TEST-001")).toBeTruthy();
     expect(screen.getByText(/no disponible para asignarlo a otro/)).toBeTruthy();
     expect(screen.getByText(/Cliente de prueba/)).toBeTruthy();
-    expect(await screen.findByRole("link", { name: "Ver pedido histórico PED-260903-001" })).toBeTruthy();
+    expect(await screen.findByRole("link", { name: "Ver pedido histórico PED-HIST-001" })).toBeTruthy();
     expect(unit.id).toBe("unit-1");
     expect(unit.status).toBe("en_bodega");
     expect(db.orderItemUnits[0].unitId).toBe("unit-1");
@@ -155,10 +155,10 @@ describe("Historial de seriales", () => {
     vi.mocked(listHistoricalOrders).mockResolvedValueOnce({ items: [historicalOrder], total: 1 });
     const db = emptyDb();
     render(<I18nextProvider i18n={i18n}><Almacen db={db} serial=" 359111222333444 " /></I18nextProvider>);
-    const link = await screen.findByRole("link", { name: "Ver pedido histórico PED-260903-001" });
+    const link = await screen.findByRole("link", { name: "Ver pedido histórico PED-HIST-001" });
     expect(link.getAttribute("href")).toBe("/pedidos/historial/historical-order-original");
     expect(screen.getByText("Historial de Techrez · solo lectura.")).toBeTruthy();
-    expect(screen.getByText("Iphone America")).toBeTruthy();
+    expect(screen.getByText("Cliente histórico de prueba")).toBeTruthy();
     expect(screen.queryByText(i18n.t("serialHistory.notFound"))).toBeNull();
     expect(screen.queryByRole("button", { name: /despachar|reactivar|editar/i })).toBeNull();
     expect(listHistoricalOrders).toHaveBeenCalledWith({ search: "359111222333444" });
@@ -170,7 +170,7 @@ describe("Historial de seriales", () => {
     vi.mocked(listHistoricalOrders).mockResolvedValueOnce({
       items: [{ ...historicalOrder, matchedSerial: false }], total: 1,
     });
-    render(<I18nextProvider i18n={i18n}><Almacen db={emptyDb()} serial="PED-260903-001" /></I18nextProvider>);
+    render(<I18nextProvider i18n={i18n}><Almacen db={emptyDb()} serial="PED-HIST-001" /></I18nextProvider>);
     expect(await screen.findByText(i18n.t("serialHistory.notFound"))).toBeTruthy();
     expect(screen.queryByRole("region", { name: "Pedidos históricos del serial" })).toBeNull();
   });
