@@ -888,7 +888,11 @@ export const devolverGarantiasABodega = (
   return preparados.length;
 };
 
-/** Devuelve el equipo al local sin resolver (el caso queda cerrado como devuelto). */
+/**
+ * Devuelve el equipo desde el flujo habitual de Garantías.
+ * Toda devolución confirmada regresa el serial a bodega como seminuevo y disponible
+ * para una nueva venta; no requiere una clasificación adicional en otro paso.
+ */
 export const devolverGarantia = (
   db: Db,
   actor: Actor,
@@ -899,58 +903,68 @@ export const devolverGarantia = (
   if (!isOpenWarranty(warranty.status)) {
     throw new DomainError("errors.invalidTransition");
   }
+
+  const motivo = input.motivo?.trim() || "Devolución de equipo por garantía";
   const unit = warranty.unitId
     ? db.units.find((item) => item.id === warranty.unitId)
     : undefined;
-  const motivo = input.motivo?.trim();
-  let detalle = motivo;
-  if (unit && unit.status === "en_reparacion") {
-    // Un equipo devuelto sin resolver vuelve físicamente a la bodega, no al local: así cuenta
-    // en el control físico de la bodega y deja de figurar como mercancía del local.
-    // Sin diagnóstico no se puede clasificar como defectuoso ni volver al stock vendible.
-    // Se mantiene en reparación hasta que se revise y clasifique explícitamente.
-    // Ya no es del cliente que lo devolvió (ver misma nota en
-    // registrarDiagnostico/entregarGarantia). Queda aclarado en el historial a qué pedido
-    // pertenecía, para que no parezca que el pedido sigue incluyéndolo.
+
+  if (warranty.unitId && !unit && !warranty.imeiManual) {
+    throw new DomainError("errors.notFound");
+  }
+  if (unit && !["en_reparacion", "en_bodega", "en_local", "liberado"].includes(unit.status)) {
+    throw new DomainError("errors.invalidTransition");
+  }
+
+  const serial = unit?.serial ?? warranty.imeiManual ?? "serial no disponible";
+  let detalle = `Devolución a bodega: serial ${serial} disponible para venta. Motivo: ${motivo}.`;
+
+  if (unit) {
+    // El serial deja de estar reservado por el pedido original y vuelve al inventario vendible.
     const pedido = pedidoDeUnidad(db, unit.id);
     db.orderItemUnits = db.orderItemUnits.filter((row) => row.unitId !== unit.id);
+    unit.status = "en_bodega";
+    unit.condition = "seminuevo";
+
     if (pedido) {
-      detalle = [motivo, `Sale del pedido ${pedido.code}; pendiente de diagnóstico`].filter(Boolean).join(" · ");
+      detalle = `Sale del pedido ${pedido.code}. ${detalle}`;
       logAudit(db, actor, {
         action: "update",
         entity: "order",
         entityId: pedido.id,
-        details: `${unit.serial} devuelto a bodega por garantía ${warranty.code} y retirado del pedido ${pedido.code}`,
+        details: `${serial} devuelto a bodega por garantía ${warranty.code} y retirado del pedido ${pedido.code}`,
       });
     }
+
     logMovement(db, actor, {
       productId: unit.productId,
       unitId: unit.id,
       type: "devolucion",
       referenceType: "garantia",
       referenceId: warranty.id,
-      notes: [detalle || "Devolución sin resolución", "Equipo pendiente de diagnóstico, no vendible"].join(" · "),
+      notes: detalle,
     });
-  } else if (!unit && warranty.imeiManual) {
-    // Garantía previa: no hay unidad en el sistema. Al devolverla a la bodega se da de alta como
-    // disponible, con el producto del catálogo que coincide con la referencia escrita al recibirla.
-    const productId = productoPorReferencia(db, warranty.referenciaManual);
-    if (productId) {
-      detalle = [motivo, "Ingresa pendiente de diagnóstico y no vendible"].filter(Boolean).join(" · ");
-      darDeAltaEquipoPrevio(
-        db,
-        actor,
-        warranty,
-        productId,
-        `${motivo || "Devolución sin resolución"} (${warranty.code}); pendiente de diagnóstico, no vendible`,
-        "en_reparacion",
-      );
-    } else {
+  } else if (warranty.imeiManual) {
+    // Garantía previa: crea/reactiva la ficha del serial y la deja disponible en bodega.
+    const productId = warranty.productId ?? productoPorReferencia(db, warranty.referenciaManual);
+    if (!productId) {
       throw new DomainError("errors.warrantyReferenceNotInCatalog", {
         reference: warranty.referenciaManual ?? "",
       });
     }
+    const unidad = darDeAltaEquipoPrevio(
+      db,
+      actor,
+      warranty,
+      productId,
+      detalle,
+      "en_bodega",
+    );
+    if (!unidad) throw new DomainError("errors.invalidTransition");
+  } else if (!unit) {
+    throw new DomainError("errors.notFound");
   }
+
   warranty.status = "devuelto";
   warranty.resolvedAt = nowIso();
   addEvent(db, actor, warranty.id, "devuelto", detalle);
@@ -958,7 +972,7 @@ export const devolverGarantia = (
     action: "resolve",
     entity: "warranty",
     entityId: warranty.id,
-    details: `${warranty.code} · devuelto`,
+    details: `${warranty.code} · ${detalle}`,
   });
   return warranty;
 };

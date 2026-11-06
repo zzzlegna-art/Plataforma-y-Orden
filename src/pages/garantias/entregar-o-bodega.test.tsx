@@ -14,7 +14,7 @@ vi.mock("sonner", () => ({ toast: { success: mocks.toastSuccess, error: vi.fn(),
 import { emptyDb } from "@/lib/db";
 import type { Db, Warranty } from "@/lib/types";
 import { AppContext, type AppValue } from "@/store/contexts";
-import { EntregarDialog } from "./modals";
+import { DevolverDialog, EntregarDialog } from "./modals";
 
 const now = "2026-01-01T00:00:00Z";
 const YO = { id: "u1", email: "b@x.com", fullName: "Bodeguero", role: "bodeguero" as const };
@@ -47,6 +47,32 @@ const Almacen = ({ warranty }: { warranty: Warranty }) => {
   return (
     <AppContext.Provider value={value}>
       <EntregarDialog warranty={warranty} trigger={<button>Abrir</button>} />
+    </AppContext.Provider>
+  );
+};
+
+const AlmacenDevolucion = ({ warranty }: { warranty: Warranty }) => {
+  const dbRef = useRef(dbCon(warranty));
+  const [, forceRender] = useState(0);
+  const value = useMemo<AppValue>(
+    () => ({
+      db: dbRef.current, ready: true, role: "bodeguero",
+      run: (action) => {
+        const siguiente = structuredClone(dbRef.current) as Db;
+        const resultado = action(siguiente, YO);
+        dbRef.current = siguiente;
+        forceRender((n) => n + 1);
+        return Promise.resolve(resultado);
+      },
+      aplicarCambios: vi.fn(), login: vi.fn(), logout: vi.fn(), user: YO,
+    }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- fuerza refresco a propósito
+    [dbRef.current],
+  );
+  return (
+    <AppContext.Provider value={value}>
+      <DevolverDialog warranty={warranty} trigger={<button>Abrir devolución</button>} />
+      <output data-testid="estado-unidad">{dbRef.current.units[0]?.status}</output>
     </AppContext.Provider>
   );
 };
@@ -102,5 +128,44 @@ describe("EntregarDialog · elegir entre entregar al cliente o devolver a bodega
     await user.click(screen.getByRole("button", { name: "Abrir" }));
     expect(screen.queryByRole("button", { name: "Entregar al cliente" })).toBeNull();
     expect(screen.queryByRole("button", { name: "Devolver a bodega" })).toBeNull();
+  });
+});
+
+
+describe("DevolverDialog · devolución directa a bodega", () => {
+  const warranty: Warranty = {
+    id: "w1", code: "GAR-1", reason: "no enciende", status: "en_servicio_tecnico",
+    receivedAt: now, createdBy: "u1", unitId: "un1",
+  };
+
+  it("usa el botón habitual y devuelve el serial a bodega sin pedir clasificación adicional", async () => {
+    const user = userEvent.setup();
+    render(<AlmacenDevolucion warranty={warranty} />);
+
+    await user.click(screen.getByRole("button", { name: "Abrir devolución" }));
+    expect(screen.queryByRole("button", { name: "Apto para vender" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Defectuoso" })).toBeNull();
+
+    await user.type(
+      screen.getByLabelText("Motivo de la devolución (opcional)"),
+      "Devolución por garantía",
+    );
+    await user.click(screen.getByRole("button", { name: "Confirmar devolución" }));
+
+    expect(screen.getByTestId("estado-unidad").textContent).toBe("en_bodega");
+    expect(mocks.toastSuccess).toHaveBeenCalledWith(
+      "Equipo devuelto a bodega y disponible para venta",
+      expect.anything(),
+    );
+  });
+
+  it("permite confirmar la devolución sin añadir otro paso de clasificación", async () => {
+    const user = userEvent.setup();
+    render(<AlmacenDevolucion warranty={warranty} />);
+
+    await user.click(screen.getByRole("button", { name: "Abrir devolución" }));
+    await user.click(screen.getByRole("button", { name: "Confirmar devolución" }));
+
+    expect(screen.getByTestId("estado-unidad").textContent).toBe("en_bodega");
   });
 });

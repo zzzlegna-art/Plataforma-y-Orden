@@ -367,7 +367,7 @@ export const EntregarDialog = ({
   );
 };
 
-/** Devuelve el equipo sin resolver (caso cerrado como devuelto). */
+/** Devuelve el equipo, registra su inspección y define si vuelve vendible a bodega. */
 export const DevolverDialog = ({
   warranty,
   trigger,
@@ -382,8 +382,14 @@ export const DevolverDialog = ({
 
   const save = async () => {
     const result = await runAction(
-      (db, actor) => devolverGarantia(db, actor, { warrantyId: warranty.id, motivo }),
-      { success: "warranty.returned", key: `garantia-devolver:${warranty.id}` },
+      (db, actor) => devolverGarantia(db, actor, {
+        warrantyId: warranty.id,
+        motivo: motivo.trim(),
+      }),
+      {
+        success: "warranty.returnedAvailable",
+        key: `garantia-devolver:${warranty.id}`,
+      },
     );
     if (result) {
       setOpen(false);
@@ -392,26 +398,42 @@ export const DevolverDialog = ({
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog
+      open={open}
+      onOpenChange={(nextOpen) => {
+        setOpen(nextOpen);
+        if (nextOpen) setMotivo("");
+      }}
+    >
       <DialogTrigger asChild>{trigger}</DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>{t("warranty.returnTitle")}</DialogTitle>
           <DialogDescription>{t("warranty.returnHint")}</DialogDescription>
         </DialogHeader>
-        <div className="py-2">
+        <div className="space-y-2 py-2">
+          <Label htmlFor="garantia-devolver-observacion">Motivo de la devolución (opcional)</Label>
           <Textarea
+            id="garantia-devolver-observacion"
             rows={3}
             value={motivo}
             placeholder={t("warranty.returnPlaceholder")}
             onChange={(event) => setMotivo(event.target.value)}
           />
+          <p className="text-xs text-muted-foreground">
+            Al confirmar, el serial sale de cualquier pedido y vuelve a bodega como seminuevo,
+            disponible para una nueva venta.
+          </p>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => setOpen(false)}>
+          <Button variant="outline" onClick={() => setOpen(false)} disabled={runAction.pending}>
             {t("common.cancel")}
           </Button>
-          <Button type="button" loading={runAction.pending} onClick={() => void save()}>
+          <Button
+            type="button"
+            loading={runAction.pending}
+            onClick={() => void save()}
+          >
             {t("warranty.returnConfirm")}
           </Button>
         </DialogFooter>
