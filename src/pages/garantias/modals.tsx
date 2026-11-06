@@ -367,7 +367,7 @@ export const EntregarDialog = ({
   );
 };
 
-/** Devuelve el equipo sin resolver (caso cerrado como devuelto). */
+/** Devuelve el equipo, registra su inspección y define si vuelve vendible a bodega. */
 export const DevolverDialog = ({
   warranty,
   trigger,
@@ -378,15 +378,25 @@ export const DevolverDialog = ({
   const { t } = useTranslation();
   const runAction = useRunAction();
   const [open, setOpen] = useState(false);
+  const [aptoParaVenta, setAptoParaVenta] = useState<boolean | null>(null);
   const [motivo, setMotivo] = useState("");
 
   const save = async () => {
+    if (aptoParaVenta === null || motivo.trim().length < 12) return;
     const result = await runAction(
-      (db, actor) => devolverGarantia(db, actor, { warrantyId: warranty.id, motivo }),
-      { success: "warranty.returned", key: `garantia-devolver:${warranty.id}` },
+      (db, actor) => devolverGarantia(db, actor, {
+        warrantyId: warranty.id,
+        motivo: motivo.trim(),
+        aptoParaVenta,
+      }),
+      {
+        success: aptoParaVenta ? "warranty.returnedAvailable" : "warranty.returnedDefective",
+        key: `garantia-devolver:${warranty.id}`,
+      },
     );
     if (result) {
       setOpen(false);
+      setAptoParaVenta(null);
       setMotivo("");
     }
   };
@@ -399,19 +409,51 @@ export const DevolverDialog = ({
           <DialogTitle>{t("warranty.returnTitle")}</DialogTitle>
           <DialogDescription>{t("warranty.returnHint")}</DialogDescription>
         </DialogHeader>
-        <div className="py-2">
-          <Textarea
-            rows={3}
-            value={motivo}
-            placeholder={t("warranty.returnPlaceholder")}
-            onChange={(event) => setMotivo(event.target.value)}
-          />
+        <div className="space-y-3 py-2">
+          <Label>Resultado de la inspección física</Label>
+          <div className="grid grid-cols-2 gap-2">
+            <Button
+              type="button"
+              className="w-full"
+              variant={aptoParaVenta === true ? "default" : "outline"}
+              onClick={() => setAptoParaVenta(true)}
+            >
+              Apto para vender
+            </Button>
+            <Button
+              type="button"
+              className="w-full"
+              variant={aptoParaVenta === false ? "destructive" : "outline"}
+              onClick={() => setAptoParaVenta(false)}
+            >
+              Defectuoso
+            </Button>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="garantia-devolver-observacion">Informe de inspección (mínimo 12 caracteres)</Label>
+            <Textarea
+              id="garantia-devolver-observacion"
+              rows={3}
+              value={motivo}
+              placeholder={t("warranty.returnPlaceholder")}
+              onChange={(event) => setMotivo(event.target.value)}
+            />
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Si confirmas que está apto, el serial queda en bodega disponible para nuevas ventas.
+            Si presenta fallas, quedará apartado como defectuoso.
+          </p>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => setOpen(false)}>
+          <Button variant="outline" onClick={() => setOpen(false)} disabled={runAction.pending}>
             {t("common.cancel")}
           </Button>
-          <Button type="button" loading={runAction.pending} onClick={() => void save()}>
+          <Button
+            type="button"
+            loading={runAction.pending}
+            disabled={aptoParaVenta === null || motivo.trim().length < 12}
+            onClick={() => void save()}
+          >
             {t("warranty.returnConfirm")}
           </Button>
         </DialogFooter>
