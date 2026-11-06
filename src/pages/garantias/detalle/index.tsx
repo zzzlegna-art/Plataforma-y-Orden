@@ -10,6 +10,7 @@ import { Badge, ConditionBadge, PendingImeiBadge, WarrantyStatusBadge } from "@/
 import { WarrantyOriginBadge } from "@/components/shared/warranty-origin-badge";
 import { Button } from "@/components/ui/button";
 import { useRunAction } from "@/hooks/use-run-action";
+import { usePermissions } from "@/hooks/use-permissions";
 import { useStore } from "@/hooks/use-store";
 import { enviarATecnico } from "@/lib/actions/warranties";
 import { formatCurrency, formatDateTime } from "@/lib/format";
@@ -20,6 +21,8 @@ import { getWarrantyOrigin } from "@/lib/warranty-origin";
 import { tabDeEstado } from "@/lib/warranty-tabs";
 import {
   DevolverDialog,
+  PagoReembolsoDialog,
+  ClasificarDevueltoDialog,
   DiagnosticoDialog,
   EditarClienteDialog,
   EntregarDialog,
@@ -40,6 +43,7 @@ const GarantiaDetalle = () => {
   const { t } = useTranslation();
   const { db } = useStore();
   const runAction = useRunAction();
+  const { isAdmin } = usePermissions();
   const { warrantyId } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
@@ -71,7 +75,7 @@ const GarantiaDetalle = () => {
     ? db.units.find((item) => item.id === warranty.replacementUnitId)?.serial
     : undefined;
   const notaFinal = events.length > 0 ? events[events.length - 1].notes ?? "" : "";
-  const finalDisponible = notaFinal.toLowerCase().includes("disponible en bodega");
+  const finalDisponible = unit?.status === "en_bodega" && !open;
   const finalEntregado = notaFinal.toLowerCase().includes("entregado al cliente");
 
   return (
@@ -289,6 +293,52 @@ const GarantiaDetalle = () => {
           </div>
         </section>
 
+        <div className="space-y-3">
+          {warranty.reembolsoAcordado ? (
+            <section className="space-y-3 rounded-lg border border-primary/20 bg-card p-4">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <h3 className="font-semibold">Reembolso al cliente</h3>
+                <Badge label={warranty.reembolsoPagadoAt ? "Pagado" : "Acordado · pago pendiente"} withDot={false} />
+              </div>
+              {warranty.reembolsoPagadoAt ? (
+                <div className="space-y-1 text-sm">
+                  <p>Monto pagado: <strong>{formatCurrency(warranty.reembolsoMonto ?? 0)}</strong></p>
+                  <p>Medio: {warranty.reembolsoMetodo ?? "—"}</p>
+                  <p>Comprobante: {warranty.reembolsoReferencia ?? "—"}</p>
+                  <p>Fecha del pago: {formatDateTime(warranty.reembolsoPagadoAt)}</p>
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  El equipo ya tiene un acuerdo de reembolso. El dinero aún no figura pagado:
+                  el movimiento físico y el pago se registran por separado.
+                </p>
+              )}
+              {isAdmin && !warranty.reembolsoPagadoAt ? (
+                <PagoReembolsoDialog warranty={warranty} trigger={<Button size="sm">Registrar pago efectuado</Button>} />
+              ) : null}
+            </section>
+          ) : null}
+          {!open && unit?.status === "en_reparacion" ? (
+            <section className="space-y-3 rounded-lg border border-amber-500/30 bg-card p-4">
+              <h3 className="font-semibold">Equipo devuelto pendiente de clasificación</h3>
+              <p className="text-sm text-muted-foreground">
+                El IMEI está en revisión y NO está disponible para la venta.
+                Registra la inspección física para ingresarlo a bodega o marcarlo defectuoso.
+              </p>
+              <ClasificarDevueltoDialog warranty={warranty} trigger={
+                <Button size="sm" variant="outline">Clasificar equipo devuelto</Button>
+              } />
+            </section>
+          ) : null}
+          {warranty.imeiManual ? (
+            <div className="rounded-lg border bg-card p-3 text-sm">
+              <Link to={`/seriales?view=historial&serial=${encodeURIComponent(warranty.imeiManual)}`}
+                className="text-primary underline-offset-2 hover:underline">
+                Consultar la hoja de vida del IMEI y su venta histórica
+              </Link>
+            </div>
+          ) : null}
+        </div>
         <DocumentosGarantiaSection warrantyId={warranty.id} />
       </div>
     </div>
