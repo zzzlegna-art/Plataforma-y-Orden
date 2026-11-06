@@ -1,7 +1,7 @@
 import "./pedidos-premium.css";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Archive, ClipboardList, Download, Eye, FileSpreadsheet, FileText, Plus, Clock3, Truck, XCircle, ListFilter, CircleDot } from "lucide-react";
+import { ClipboardList, Download, Eye, FileSpreadsheet, FileText, Plus, Clock3, Truck, XCircle, ListFilter, CircleDot } from "lucide-react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 
@@ -10,8 +10,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { SearchField } from "@/components/shared/search-field";
 import { OrderStatusBadge } from "@/components/shared/status-badge";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { HistorialPedidosPanel } from "./historial/HistorialPedidosPanel";
+import { listHistoricalOrders, type HistoricalOrderListItem } from "@/lib/historical-orders";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
@@ -31,8 +30,13 @@ import {
 import { formatCurrency, formatDate, todayIso } from "@/lib/format";
 import { getOrderSalesTotal, isEstimatedOrderTotal } from "@/lib/order-sales-total";
 import { getOrderViews, type OrderView } from "@/lib/selectors";
+import type { OrderStatus } from "@/lib/types";
 
 const STATUSES = ["en_preparacion", "preparado", "despachado", "cancelado"] as const;
+type UnifiedOrderView = OrderView & { imported: boolean };
+const orderPath = (view: UnifiedOrderView) =>
+  view.imported ? "/pedidos/historial/" + view.order.id : "/pedidos/" + view.order.id;
+
 
 /** Listado de pedidos a clientes mayoristas. */
 const Pedidos = () => {
@@ -45,17 +49,6 @@ const Pedidos = () => {
   const [params, setParams] = useSearchParams();
   const search = params.get("q") ?? "";
   const status = params.get("estado") ?? "";
-  const registro = params.get("registro") === "historico" ? "historico" : "operativos";
-  const setRegistro = (valor: "operativos" | "historico") =>
-    setParams(
-      (previo) => {
-        const next = new URLSearchParams(previo);
-        if (valor === "historico") next.set("registro", "historico");
-        else next.delete("registro");
-        return next;
-      },
-      { replace: true },
-    );
   const setSearch = (valor: string) =>
     setParams(
       (previo) => {
@@ -78,21 +71,74 @@ const Pedidos = () => {
     );
   const [exportOpen, setExportOpen] = useState(false);
   const [soloFiltrado, setSoloFiltrado] = useState(true);
+  const [historicalOrders, setHistoricalOrders] = useState<HistoricalOrderListItem[]>([]);
+  const [historicalError, setHistoricalError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    const load = async () => {
+      try {
+        const { items } = await listHistoricalOrders();
+        if (active) {
+          setHistoricalOrders(items);
+          setHistoricalError(null);
+        }
+      } catch (error) {
+        // Una falla de la consulta histórica no debe ocultar pedidos operativos.
+        if (active) setHistoricalError(
+          error instanceof Error ? error.message : "No se pudo cargar el historial.",
+        );
+      }
+    };
+    void load();
+    return () => { active = false; };
+  }, []);
+
+  const allRows = useMemo<UnifiedOrderView[]>(() => {
+    const current: UnifiedOrderView[] = getOrderViews(db)
+      .map((view) => ({ ...view, imported: false }));
+    const past: UnifiedOrderView[] = historicalOrders.map((entry) => ({
+      imported: true,
+      order: {
+        id: entry.sourceId,
+        code: entry.code,
+        customerId: "",
+        status: entry.status as OrderStatus,
+        orderDate: entry.orderDate,
+        total: entry.total,
+        createdAt: entry.orderDate,
+        updatedAt: entry.orderDate,
+        createdBy: "",
+      },
+      customer: {
+        id: entry.sourceId,
+        name: entry.customerName,
+        isActive: false,
+        createdAt: entry.orderDate,
+      },
+      lines: [],
+      requested: entry.requestedUnits,
+      assigned: entry.assignedUnits ?? entry.serialCount,
+    }));
+    return [...current, ...past].sort(
+      (a, b) =>
+        b.order.orderDate.localeCompare(a.order.orderDate) ||
+        b.order.code.localeCompare(a.order.code),
+    );
+  }, [db, historicalOrders]);
 
   const rows = useMemo(() => {
     const needle = search.trim().toLowerCase();
-    return getOrderViews(db)
+    return allRows
       .filter((view) => (status ? view.order.status === status : true))
-      .filter(
-        (view) =>
-          !needle ||
-          view.order.code.toLowerCase().includes(needle) ||
-          (view.customer?.name ?? "").toLowerCase().includes(needle),
+      .filter((view) => !needle ||
+        view.order.code.toLowerCase().includes(needle) ||
+        (view.customer?.name ?? "").toLowerCase().includes(needle),
       );
-  }, [db, search, status]);
+  }, [allRows, search, status]);
 
   const exportar = (format: "pdf" | "excel") => {
-    const base = soloFiltrado ? rows : getOrderViews(db);
+    const base = soloFiltrado ? rows : allRows;
     if (base.length === 0) {
       toast.error(t("export.noData"));
       return;
@@ -142,7 +188,7 @@ const Pedidos = () => {
     setExportOpen(false);
   };
 
-  const renderCard = (view: OrderView) => (
+  const renderCard = (view: UnifiedOrderView) => (
     <div className="space-y-2">
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
@@ -174,7 +220,7 @@ const Pedidos = () => {
         {/* stopPropagation: la tarjeta ya navega al tocarla (onRowClick); sin esto, este enlace
            agregaba una SEGUNDA entrada al historial hacia la misma página, y "Volver" solo
            deshacía una, dejando al usuario a mitad de camino en vez de volver a la lista. */}
-        <Link to={`/pedidos/${view.order.id}`} onClick={(event) => event.stopPropagation()}>
+        <Link to={orderPath(view)} onClick={(event) => event.stopPropagation()}>
           {view.order.status === "en_preparacion" ? t("order.serializeTitle") : t("order.viewDetail")}
         </Link>
       </Button>
@@ -185,9 +231,8 @@ const Pedidos = () => {
     <div className="space-y-5 stagger nx-operations nx-operations-pedidos">
       <PageHeader
         title={t("order.title")}
-        description={registro === "historico" ? "Pedidos importados de Techrez · Consulta de solo lectura" : t("order.subtitleMayorista")}
+        description={t("order.subtitleMayorista")}
         actions={
-          registro === "operativos" ? (
           <div className="flex flex-wrap items-center gap-2">
             <Button
               variant="outline"
@@ -205,26 +250,15 @@ const Pedidos = () => {
               </Link>
             </Button>
           </div>
-          ) : undefined
         }
       />
 
-      <Tabs
-        value={registro}
-        onValueChange={(value) => setRegistro(value === "historico" ? "historico" : "operativos")}
-        className="space-y-4"
-      >
-        <TabsList className="nx-pedidos-registry-tabs flex h-auto flex-wrap justify-start gap-1 rounded-xl border border-border/70 bg-card p-1">
-          <TabsTrigger value="operativos" className="gap-2 rounded-lg px-4 py-2">
-            <ClipboardList className="h-4 w-4" />
-            Pedidos operativos
-          </TabsTrigger>
-          <TabsTrigger value="historico" className="gap-2 rounded-lg px-4 py-2">
-            <Archive className="h-4 w-4" />
-            Historial importado
-          </TabsTrigger>
-        </TabsList>
-        <TabsContent value="operativos" className="space-y-5">
+      {historicalError ? (
+        <p role="alert" className="text-xs text-muted-foreground">
+          Los pedidos de Nexora siguen disponibles. La consulta del historial de Techrez no respondió:
+          {" "}{historicalError}
+        </p>
+      ) : null}
       <div className="nx-pedidos-filters space-y-3">
         <SearchField
           value={search}
@@ -258,11 +292,11 @@ const Pedidos = () => {
       </div>
 
       <div key={status} className="animate-fade-in">
-        <DataTable<OrderView>
+        <DataTable<UnifiedOrderView>
           className="nx-pedidos-table"
           rows={rows}
           rowKey={(view) => view.order.id}
-          onRowClick={(view) => navigate(`/pedidos/${view.order.id}`)}
+          onRowClick={(view) => navigate(orderPath(view))}
           emptyTitle={search || status ? t("order.emptyFilteredTitle") : t("order.emptyTitle")}
           emptyDescription={search || status ? t("order.emptyFilteredDescription") : t("order.emptyDescription")}
           emptyIcon={ClipboardList}
@@ -337,7 +371,7 @@ const Pedidos = () => {
             cell: (view) => (
               <Button size="sm" variant="ghost" asChild>
                 {/* Ídem: evita la doble navegación con la fila (ver el comentario en renderCard). */}
-                <Link to={`/pedidos/${view.order.id}`} onClick={(event) => event.stopPropagation()}>
+                <Link to={orderPath(view)} onClick={(event) => event.stopPropagation()}>
                   <Eye />
                   {t("common.view")}
                 </Link>
@@ -382,11 +416,6 @@ const Pedidos = () => {
           </div>
         </DialogContent>
       </Dialog>
-        </TabsContent>
-        <TabsContent value="historico" className="space-y-5">
-          <HistorialPedidosPanel />
-        </TabsContent>
-      </Tabs>
     </div>
   );
 };

@@ -96,13 +96,13 @@ const PedidoHistoricoDetalle = () => {
     return (
       <div className="space-y-4">
         <PageHeader
-          title="Pedido histórico"
-          description="Consulta de solo lectura"
+          title="Pedido"
+          description="Detalle del pedido"
           actions={
             <Button variant="outline" asChild>
-              <Link to="/pedidos?registro=historico">
+              <Link to="/pedidos">
                 <ArrowLeft className="mr-2 h-4 w-4" />
-                Volver al historial
+                Volver a pedidos
               </Link>
             </Button>
           }
@@ -121,15 +121,15 @@ const PedidoHistoricoDetalle = () => {
     <div className="space-y-5 stagger nx-operations nx-operations-pedidos">
       <PageHeader
         title={order.code}
-        description="Pedido histórico importado desde Techrez"
+        description="Detalle comercial y seriales del pedido"
         actions={
           <div className="flex flex-wrap items-center gap-2">
             <Badge variant="outline" className="gap-1 border-primary/30 px-3 py-1.5 text-primary">
               <Archive className="h-3.5 w-3.5" />
-              Importado · Solo lectura
+              Consulta protegida
             </Badge>
             <Button variant="outline" asChild>
-              <Link to="/pedidos?registro=historico">
+              <Link to="/pedidos">
                 <ArrowLeft className="mr-2 h-4 w-4" />
                 Volver
               </Link>
