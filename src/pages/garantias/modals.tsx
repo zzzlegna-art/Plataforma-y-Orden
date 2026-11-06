@@ -661,3 +661,166 @@ export const EditarClienteDialog = ({
     </Dialog>
   );
 };
+
+
+/** Devolución directa solo cuando la inspección física confirma aptitud de TODOS los equipos. */
+export const DevolucionDirectaDialog = ({
+  count, trigger, onConfirm,
+}: {
+  count: number;
+  trigger: React.ReactNode;
+  onConfirm: (nota: string) => Promise<boolean>;
+}) => {
+  const [open, setOpen] = useState(false);
+  const [apto, setApto] = useState(false);
+  const [nota, setNota] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  const save = async () => {
+    if (!apto || nota.trim().length < 12 || saving) return;
+    setSaving(true);
+    try {
+      if (await onConfirm(nota.trim())) {
+        setOpen(false);
+        setApto(false);
+        setNota("");
+      }
+    } finally { setSaving(false); }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>{trigger}</DialogTrigger>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Devolver {count} equipo(s) a stock disponible</DialogTitle>
+          <DialogDescription>
+            El cierre directo no registra un diagnóstico ni un pago de dinero.
+            Solo úsalo después de comprobar físicamente que los equipos están aptos para reventa.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-3 py-2">
+          <label className="flex items-start gap-3 rounded-lg border p-3 text-sm">
+            <Checkbox checked={apto} onCheckedChange={(value) => setApto(value === true)} />
+            <span>Inspeccioné físicamente TODOS los equipos seleccionados y confirmo que pueden venderse.</span>
+          </label>
+          <div className="space-y-2">
+            <Label htmlFor="inspeccion-directa-nota">Evidencia de la inspección</Label>
+            <Textarea id="inspeccion-directa-nota" value={nota} rows={3}
+              onChange={(event) => setNota(event.target.value)}
+              placeholder="Pantalla, batería, funciones y condición física comprobadas" />
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Si un equipo requiere reparación, no lo marques apto ni uses esta acción.
+          </p>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setOpen(false)} disabled={saving}>Cancelar</Button>
+          <Button loading={saving} disabled={!apto || nota.trim().length < 12 || saving} onClick={() => void save()}>
+            Confirmar inspección y entrada
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+/** Registro del pago EFECTUADO, independiente del acuerdo de reembolso. */
+export const PagoReembolsoDialog = ({ warranty, trigger }: { warranty: Warranty; trigger: React.ReactNode }) => {
+  const runAction = useRunAction();
+  const [open, setOpen] = useState(false);
+  const [monto, setMonto] = useState("");
+  const [metodo, setMetodo] = useState("");
+  const [referencia, setReferencia] = useState("");
+  const save = async () => {
+    const result = await runAction(
+      (db, actor) => registrarPagoReembolso(db, actor, {
+        warrantyId: warranty.id, monto: Number(monto), metodo: metodo.trim(), referencia: referencia.trim(),
+      }),
+      { success: "Reembolso registrado como pagado", key: `reembolso-pago:${warranty.id}` },
+    );
+    if (result) { setOpen(false); setMonto(""); setMetodo(""); setReferencia(""); }
+  };
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>{trigger}</DialogTrigger>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Registrar reembolso pagado</DialogTitle>
+          <DialogDescription>
+            Confirma únicamente si el dinero YA fue entregado. Esta acción no ejecuta transferencias bancarias ni modifica inventario.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-3 py-2">
+          <div className="space-y-2">
+            <Label htmlFor="reembolso-monto">Monto pagado (COP)</Label>
+            <Input id="reembolso-monto" type="number" min="0.01" step="0.01" inputMode="decimal"
+              value={monto} onChange={(event) => setMonto(event.target.value)} />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="reembolso-metodo">Medio de pago</Label>
+            <Input id="reembolso-metodo" value={metodo} placeholder="Transferencia / efectivo / otro"
+              onChange={(event) => setMetodo(event.target.value)} />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="reembolso-referencia">Referencia o comprobante</Label>
+            <Input id="reembolso-referencia" value={referencia} onChange={(event) => setReferencia(event.target.value)} />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
+          <Button loading={runAction.pending}
+            disabled={!monto || Number(monto) <= 0 || !metodo.trim() || !referencia.trim()}
+            onClick={() => void save()}>Confirmar pago efectuado</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+/** Clasifica el IMEI devuelto en revisión luego del cierre de la garantía. */
+export const ClasificarDevueltoDialog = ({ warranty, trigger }: { warranty: Warranty; trigger: React.ReactNode }) => {
+  const runAction = useRunAction();
+  const [open, setOpen] = useState(false);
+  const [apto, setApto] = useState(false);
+  const [observacion, setObservacion] = useState("");
+  const save = async () => {
+    const result = await runAction(
+      (db, actor) => clasificarUnidadDevuelta(db, actor, {
+        warrantyId: warranty.id, aptoParaVenta: apto, observacion: observacion.trim(),
+      }),
+      { success: apto ? "Equipo inspeccionado e ingresado a bodega" : "Equipo clasificado como defectuoso" },
+    );
+    if (result) { setOpen(false); setApto(false); setObservacion(""); }
+  };
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>{trigger}</DialogTrigger>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Clasificar equipo devuelto</DialogTitle>
+          <DialogDescription>
+            El equipo solo volverá a estar vendible cuando confirmes que está apto tras la inspección física.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-3 py-2">
+          <Label>Resultado de inspección</Label>
+          <div className="grid gap-2 sm:grid-cols-2">
+            <Button variant={apto ? "default" : "outline"} onClick={() => setApto(true)}>Apto para vender</Button>
+            <Button variant={!apto ? "default" : "outline"} onClick={() => setApto(false)}>Defectuoso</Button>
+          </div>
+          <Label htmlFor="clasificacion-observacion">Informe de inspección</Label>
+          <Textarea id="clasificacion-observacion" rows={3} value={observacion}
+            onChange={(event) => setObservacion(event.target.value)}
+            placeholder="Estado físico, pruebas, defectos o reparaciones verificadas" />
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
+          <Button loading={runAction.pending} disabled={observacion.trim().length < 12} onClick={() => void save()}>
+            Confirmar clasificación
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+};
