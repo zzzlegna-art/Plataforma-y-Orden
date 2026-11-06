@@ -180,6 +180,17 @@ const HistorialSerial = ({ embedded = false }: { embedded?: boolean }) => {
   const [novedad, setNovedad] = useState("");
   const [nuevoSerial, setNuevoSerial] = useState("");
   const [corregirMotivo, setCorregirMotivo] = useState("");
+  const [etiquetaPendiente, setEtiquetaPendiente] = useState<{ producto: string; serial: string } | null>(null);
+
+  const abrirImpresionEtiqueta = (productoNombre: string | undefined, serial: string) => {
+    const serialLimpio = serial.trim();
+    if (!serialLimpio) return;
+    setEtiquetaPendiente({
+      producto: productoNombre?.trim() || serialLimpio,
+      serial: serialLimpio,
+    });
+    setDialog("imprimir");
+  };
 
   const handleScan = (serial: string) => {
     setSearch(serial);
@@ -213,7 +224,7 @@ const HistorialSerial = ({ embedded = false }: { embedded?: boolean }) => {
           No se pudo comprobar la relación con pedidos históricos. {historicalError}
         </p>
       ) : null}
-      {historicalTrace ? <ArchivedImeiHistoryPanel trace={historicalTrace} /> : null}
+      {historicalTrace ? <ArchivedImeiHistoryPanel trace={historicalTrace} onPrint={() => abrirImpresionEtiqueta(historicalTrace.product.name, historicalTrace.serial)} /> : null}
 
       {search && !unit && garantiasPorSerialManual.length > 0 ? (
         <section className="space-y-3 rounded-lg border bg-card p-4 shadow-sm">
@@ -297,7 +308,13 @@ const HistorialSerial = ({ embedded = false }: { embedded?: boolean }) => {
                     </p>
                   </div>
                 </div>
-                <Badge tone="warning" label={t("serialHistory.priorSaleBadge")} withDot={false} />
+                <div className="flex flex-wrap items-center gap-2">
+                  <Badge tone="warning" label={t("serialHistory.priorSaleBadge")} withDot={false} />
+                  <Button variant="outline" size="sm" onClick={() => abrirImpresionEtiqueta(productoVentaPrevia?.name ?? serialPrevio.referencia, serialPrevio.serial)}>
+                    <Printer />
+                    {t("serialHistory.printLabel")}
+                  </Button>
+                </div>
               </div>
 
               <div className="mt-4 flex items-start gap-2 rounded-xl border border-border/60 bg-muted/35 px-3 py-2.5 text-xs text-muted-foreground">
@@ -386,7 +403,7 @@ const HistorialSerial = ({ embedded = false }: { embedded?: boolean }) => {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => setDialog("imprimir")}
+                  onClick={() => abrirImpresionEtiqueta(product?.name, unit.serial)}
                 >
                   <Printer />
                   {t("serialHistory.printLabel")}
@@ -614,15 +631,6 @@ const HistorialSerial = ({ embedded = false }: { embedded?: boolean }) => {
             )}
           </section>
 
-          <PrintLabelsDialog
-            open={dialog === "imprimir"}
-            onOpenChange={(open) => !open && setDialog(null)}
-            count={1}
-            onConfirm={(nota) =>
-              imprimirEtiquetas([{ producto: product?.name ?? unit.serial, serial: unit.serial, nota }])
-            }
-          />
-
           <Dialog open={dialog === "novedad"} onOpenChange={(open) => !open && setDialog(null)}>
             <DialogContent className="sm:max-w-md">
               <DialogHeader>
@@ -723,6 +731,20 @@ const HistorialSerial = ({ embedded = false }: { embedded?: boolean }) => {
           </Dialog>
         </>
       ) : null}
+
+      <PrintLabelsDialog
+        open={dialog === "imprimir"}
+        onOpenChange={(open) => {
+          if (!open) {
+            setDialog(null);
+            setEtiquetaPendiente(null);
+          }
+        }}
+        count={1}
+        onConfirm={(nota) => {
+          if (etiquetaPendiente) imprimirEtiquetas([{ ...etiquetaPendiente, nota }]);
+        }}
+      />
     </div>
   );
 };
