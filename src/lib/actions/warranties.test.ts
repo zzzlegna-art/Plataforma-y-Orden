@@ -131,8 +131,8 @@ describe("entregarGarantia · con cliente, pero se decide no devolverlo (devolve
       receivedAt: now, createdBy: "u1",
     });
     entregarGarantia(db, admin, { warrantyId: "w1", replacementUnitId: "un2", devolverABodega: true });
-    // El original entra a bodega (comportamiento de "cambio"), devolverABodega no aplica ahí.
-    expect(db.units.find((u) => u.id === "un1")?.status).toBe("en_bodega");
+    // Sin inspección del original, queda en revisión aunque el cliente reciba reemplazo.
+    expect(db.units.find((u) => u.id === "un1")?.status).toBe("en_reparacion");
   });
 });
 
@@ -159,7 +159,7 @@ describe("registrarDiagnostico · resolución cambio pide el serial de reemplazo
     expect(db.warranties[0].replacementUnitId).toBe("un2");
     entregarGarantia(db, admin, { warrantyId: "w1" });
     expect(db.units.find((u) => u.id === "un2")?.status).toBe("entregado_garantia");
-    expect(db.units.find((u) => u.id === "un1")?.status).toBe("en_bodega");
+    expect(db.units.find((u) => u.id === "un1")?.status).toBe("en_reparacion");
   });
 
   it("garantía previa sin referencia del catálogo no permite cambiar a ciegas", () => {
