@@ -1,15 +1,23 @@
+import "./pedido-historico-premium.css";
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import {
   ArrowLeft,
   Archive,
+  CalendarDays,
   Clock3,
+  Coins,
   FileText,
   History,
   Loader2,
+  Mail,
+  MapPin,
   Package,
+  Phone,
   ShieldCheck,
+  ShoppingCart,
   Truck,
+  UserRound,
   Wrench,
 } from "lucide-react";
 
@@ -118,106 +126,137 @@ const PedidoHistoricoDetalle = () => {
   const { order, customer, lines, movements, warranties, audit, relatedAudit, documents } = detail;
 
   return (
-    <div className="space-y-5 stagger nx-operations nx-operations-pedidos">
-      <PageHeader
-        title={order.code}
-        description="Detalle comercial y seriales del pedido"
-        actions={
-          <div className="flex flex-wrap items-center gap-2">
-            <Badge variant="outline" className="gap-1 border-primary/30 px-3 py-1.5 text-primary">
-              <Archive className="h-3.5 w-3.5" />
-              Consulta protegida
-            </Badge>
-            <Button variant="outline" asChild>
-              <Link to="/pedidos">
-                <ArrowLeft className="mr-2 h-4 w-4" />
-                Volver
-              </Link>
-            </Button>
+    <div className="space-y-5 stagger nx-operations nx-operations-pedidos nx-historical-order">
+      <header className="nx-historical-hero">
+        <div className="nx-historical-hero-main">
+          <span className="nx-historical-hero-icon" aria-hidden="true">
+            <ShoppingCart className="h-7 w-7" />
+          </span>
+          <div className="min-w-0">
+            <p className="nx-historical-eyebrow">Pedidos · Archivo histórico</p>
+            <h1>{order.code}</h1>
+            <p className="nx-historical-hero-description">Detalle comercial y seriales del pedido</p>
           </div>
-        }
-      />
+        </div>
+        <div className="nx-historical-hero-actions">
+          <Badge variant="outline" className="nx-historical-protected">
+            <ShieldCheck className="h-4 w-4" />
+            Consulta protegida
+          </Badge>
+          <Button className="nx-historical-back" asChild>
+            <Link to="/pedidos">
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Volver
+            </Link>
+          </Button>
+        </div>
+      </header>
 
-      <div className="grid gap-4 lg:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base">
-              <Package className="h-4 w-4 text-primary" />
-              Información del pedido
-            </CardTitle>
-            <CardDescription>Datos originales conservados en el archivo histórico.</CardDescription>
+      <div className="nx-historical-overview grid gap-5 xl:grid-cols-2">
+        <Card className="nx-historical-card nx-historical-order-card">
+          <CardHeader className="nx-historical-card-header">
+            <span className="nx-historical-icon-tile" aria-hidden="true"><Package /></span>
+            <div className="min-w-0">
+              <CardTitle className="nx-historical-card-title">Información del pedido</CardTitle>
+              <CardDescription>Datos originales conservados en el archivo histórico.</CardDescription>
+            </div>
           </CardHeader>
-          <CardContent className="grid grid-cols-2 gap-x-4 gap-y-4 text-sm">
-            <div>
-              <p className="text-muted-foreground">Código</p>
-              <p className="mt-1 font-tabular font-semibold">{order.code}</p>
-            </div>
-            <div>
-              <p className="text-muted-foreground">Estado original</p>
-              <div className="mt-1"><Badge variant="secondary">{estado(order.status)}</Badge></div>
-            </div>
-            <div>
-              <p className="text-muted-foreground">Fecha del pedido</p>
-              <p className="mt-1 font-medium">{fecha(order.orderDate)}</p>
-            </div>
-            <div>
-              <p className="text-muted-foreground">Fecha de entrega</p>
-              <p className="mt-1 font-medium">{fecha(order.deliveryDate)}</p>
-            </div>
-            <div className="col-span-2 border-t pt-3">
-              <p className="text-muted-foreground">Total original</p>
-              <p className="mt-1 font-tabular text-xl font-bold">{formatCurrency(order.total)}</p>
-            </div>
-            {order.notes ? (
-              <div className="col-span-2">
-                <p className="text-muted-foreground">Observaciones</p>
-                <p className="mt-1 whitespace-pre-wrap">{order.notes}</p>
+          <CardContent className="nx-historical-card-content">
+            <div className="nx-historical-order-grid">
+              <div className="nx-historical-field nx-historical-code-field">
+                <span className="nx-historical-field-label">Código</span>
+                <p className="nx-historical-order-code">{order.code}</p>
               </div>
-            ) : null}
+              <div className="nx-historical-field">
+                <span className="nx-historical-field-label">Estado original</span>
+                <Badge variant="secondary" className="nx-historical-status">
+                  <Truck className="h-4 w-4" />
+                  {estado(order.status)}
+                </Badge>
+              </div>
+              <div className="nx-historical-field nx-historical-date-field">
+                <span className="nx-historical-field-label">Fecha del pedido</span>
+                <p><CalendarDays />{fecha(order.orderDate)}</p>
+              </div>
+              <div className="nx-historical-field nx-historical-date-field">
+                <span className="nx-historical-field-label">Fecha de entrega</span>
+                <p><CalendarDays />{fecha(order.deliveryDate)}</p>
+              </div>
+              <div className="nx-historical-total-field">
+                <span className="nx-historical-field-label">Total original</span>
+                <p><Coins />{formatCurrency(order.total)}</p>
+              </div>
+              {order.notes ? (
+                <div className="nx-historical-notes">
+                  <span className="nx-historical-field-label">Observaciones</span>
+                  <p className="whitespace-pre-wrap">{order.notes}</p>
+                </div>
+              ) : null}
+            </div>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base">
-              <ShieldCheck className="h-4 w-4 text-primary" />
-              Cliente original
-            </CardTitle>
-            <CardDescription>Información del cliente según el registro de Techrez.</CardDescription>
+        <Card className="nx-historical-card nx-historical-customer-card">
+          <CardHeader className="nx-historical-card-header">
+            <span className="nx-historical-icon-tile" aria-hidden="true"><UserRound /></span>
+            <div className="min-w-0">
+              <CardTitle className="nx-historical-card-title">Cliente original</CardTitle>
+              <CardDescription>Información del cliente según el registro de Techrez.</CardDescription>
+            </div>
           </CardHeader>
-          <CardContent className="space-y-3 text-sm">
-            <div>
-              <p className="text-muted-foreground">Nombre</p>
-              <p className="mt-1 font-semibold">{customer?.name ?? "Cliente no identificado"}</p>
+          <CardContent className="nx-historical-card-content">
+            <div className="nx-historical-customer-grid">
+              <div className="nx-historical-customer-row nx-historical-customer-name">
+                <UserRound />
+                <div>
+                  <span className="nx-historical-field-label">Nombre</span>
+                  <p className="font-semibold">{customer?.name ?? "Cliente no identificado"}</p>
+                </div>
+              </div>
+              <div className="nx-historical-contact-grid">
+                <div className="nx-historical-customer-row">
+                  <Phone />
+                  <div>
+                    <span className="nx-historical-field-label">Teléfono</span>
+                    <p>{customer?.phone ?? "—"}</p>
+                  </div>
+                </div>
+                <div className="nx-historical-customer-row">
+                  <Mail />
+                  <div className="min-w-0">
+                    <span className="nx-historical-field-label">Correo</span>
+                    <p className="break-all">{customer?.email ?? "—"}</p>
+                  </div>
+                </div>
+              </div>
+              {customer?.address ? (
+                <div className="nx-historical-customer-row nx-historical-address">
+                  <MapPin />
+                  <div>
+                    <span className="nx-historical-field-label">Dirección</span>
+                    <p>{customer.address}</p>
+                  </div>
+                </div>
+              ) : null}
+              {customer?.contactName ? (
+                <div className="nx-historical-customer-row">
+                  <UserRound />
+                  <div>
+                    <span className="nx-historical-field-label">Contacto</span>
+                    <p>{customer.contactName}</p>
+                  </div>
+                </div>
+              ) : null}
+              {customer?.taxId ? (
+                <div className="nx-historical-customer-row">
+                  <ShieldCheck />
+                  <div>
+                    <span className="nx-historical-field-label">Identificación</span>
+                    <p>{customer.taxId}</p>
+                  </div>
+                </div>
+              ) : null}
             </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <p className="text-muted-foreground">Teléfono</p>
-                <p className="mt-1">{customer?.phone ?? "—"}</p>
-              </div>
-              <div>
-                <p className="text-muted-foreground">Correo</p>
-                <p className="mt-1 break-all">{customer?.email ?? "—"}</p>
-              </div>
-            </div>
-            {customer?.contactName ? (
-              <div>
-                <p className="text-muted-foreground">Contacto</p>
-                <p className="mt-1">{customer.contactName}</p>
-              </div>
-            ) : null}
-            {customer?.address ? (
-              <div>
-                <p className="text-muted-foreground">Dirección</p>
-                <p className="mt-1">{customer.address}</p>
-              </div>
-            ) : null}
-            {customer?.taxId ? (
-              <div>
-                <p className="text-muted-foreground">Identificación</p>
-                <p className="mt-1">{customer.taxId}</p>
-              </div>
-            ) : null}
           </CardContent>
         </Card>
       </div>
