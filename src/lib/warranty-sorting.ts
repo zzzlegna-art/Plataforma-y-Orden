@@ -1,18 +1,18 @@
 import type { WarrantyView } from "./selectors";
 
-/** Comparador natural para que iPhone 15 quede antes que iPhone 14, 13, etc. */
+/** Comparador natural para ordenar referencias de menor a mayor modelo y capacidad. */
 const collatorReferencias = new Intl.Collator("es", {
   numeric: true,
   sensitivity: "base",
 });
 
-/** Orden descendente por referencia/modelo; los registros sin referencia quedan al final. */
+/** Orden ascendente por referencia/modelo; los registros sin referencia quedan al final. */
 export const compararReferenciasGarantia = (a: string, b: string): number => {
   const referenciaA = a.trim();
   const referenciaB = b.trim();
   if (!referenciaA) return referenciaB ? 1 : 0;
   if (!referenciaB) return -1;
-  return collatorReferencias.compare(referenciaB, referenciaA);
+  return collatorReferencias.compare(referenciaA, referenciaB);
 };
 
 export const ordenarReferenciasGarantia = <T extends string>(referencias: readonly T[]): T[] =>
@@ -29,7 +29,7 @@ export const compararVistasGarantiaPorReferencia = (
 ): number =>
   compararReferenciasGarantia(nombreReferenciaGarantia(a), nombreReferenciaGarantia(b));
 
-/** Orden descendente por modelo y, dentro del mismo modelo, por recepción más reciente. */
+/** Orden ascendente por modelo/capacidad y, dentro de la misma referencia, por recepción más reciente. */
 export const ordenarVistasGarantiaPorReferencia = <T extends Pick<WarrantyView, "product" | "warranty">>(
   vistas: readonly T[],
 ): T[] =>
