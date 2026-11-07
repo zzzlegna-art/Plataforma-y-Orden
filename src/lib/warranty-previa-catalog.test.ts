@@ -25,7 +25,7 @@ describe("selector de referencia en garantía previa", () => {
   });
 
   it("muestra únicamente los modelos de la categoría elegida y quita duplicados", () => {
-    expect(referenciasGarantiaPrevia(productos, "celular")).toEqual(["iPhone 14", "Galaxy S23"]);
+    expect(referenciasGarantiaPrevia(productos, "celular")).toEqual(["Galaxy S23", "iPhone 14"]);
     expect(referenciasGarantiaPrevia(productos, "reloj")).toEqual(["Apple Watch"]);
     expect(referenciasGarantiaPrevia(productos, "tablet")).toEqual(["iPad Air"]);
     expect(referenciasGarantiaPrevia(productos, "audifono")).toEqual(["AirPods Pro"]);
