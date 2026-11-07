@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { emptyDb } from "../db";
 import type { Actor, Db, Unit, Warranty } from "../types";
 import {
+  actualizarMotivoGarantia,
   deshacerEstadoGarantia,
   devolverGarantia,
   enviarATecnico,
@@ -627,3 +628,64 @@ describe("reembolso independiente del diagnóstico", () => {
     expect(() => entregarGarantia(db, admin, { warrantyId: "w1", reembolso: true })).toThrow();
   });
 });
+
+describe("actualizarMotivoGarantia · corrección del motivo", () => {
+  it("guarda el texto corregido, registra la bitácora y conserva el motivo anterior en auditoría", () => {
+    const db = dbCon({ status: "recibido" });
+    db.warrantyEvents.push({
+      id: "event-1",
+      warrantyId: "w1",
+      status: "recibido",
+      notes: "no enciende",
+      createdBy: "u1",
+      createdAt: now,
+    });
+    const movimientosAntes = db.movements.length;
+
+    const result = actualizarMotivoGarantia(db, admin, {
+      warrantyId: "w1",
+      reason: "  Puerto de carga dañado  ",
+    });
+
+    expect(result.reason).toBe("Puerto de carga dañado");
+    expect(db.warranties[0]?.status).toBe("recibido");
+    expect(db.warrantyEvents.at(-1)?.notes).toBe("Motivo actualizado: Puerto de carga dañado");
+    expect(db.auditLogs[0]?.details).toContain(
+      'motivo corregido: "no enciende" → "Puerto de carga dañado"',
+    );
+    expect(db.movements).toHaveLength(movimientosAntes);
+  });
+
+  it("rechaza un motivo vacío y no modifica el registro", () => {
+    const db = dbCon();
+    expect(() => actualizarMotivoGarantia(db, admin, {
+      warrantyId: "w1",
+      reason: "   ",
+    })).toThrow();
+    expect(db.warranties[0]?.reason).toBe("no enciende");
+    expect(db.auditLogs).toHaveLength(0);
+  });
+
+  it("exige el permiso de administración de garantías", () => {
+    const db = dbCon();
+    const encargado: Actor = {
+      id: "u2",
+      email: "encargado@nexora.test",
+      fullName: "Encargado",
+      role: "encargado",
+    };
+    expect(() => actualizarMotivoGarantia(db, encargado, {
+      warrantyId: "w1",
+      reason: "Pantalla rota",
+    })).toThrow();
+    expect(db.warranties[0]?.reason).toBe("no enciende");
+  });
+
+  it("no genera eventos ni auditoría cuando el motivo no cambia", () => {
+    const db = dbCon();
+    actualizarMotivoGarantia(db, admin, { warrantyId: "w1", reason: " no enciende " });
+    expect(db.warrantyEvents).toHaveLength(0);
+    expect(db.auditLogs).toHaveLength(0);
+  });
+});
+
