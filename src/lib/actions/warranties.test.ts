@@ -649,7 +649,7 @@ describe("actualizarMotivoGarantia · corrección del motivo", () => {
 
     expect(result.reason).toBe("Puerto de carga dañado");
     expect(db.warranties[0]?.status).toBe("recibido");
-    expect(db.warrantyEvents.at(-1)?.notes).toBe("Motivo actualizado: Puerto de carga dañado");
+    expect(db.warrantyEvents[db.warrantyEvents.length - 1]?.notes).toBe("Motivo actualizado: Puerto de carga dañado");
     expect(db.auditLogs[0]?.details).toContain(
       'motivo corregido: "no enciende" → "Puerto de carga dañado"',
     );
