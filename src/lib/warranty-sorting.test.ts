@@ -12,17 +12,17 @@ const vista = (referencia: string, code: string, receivedAt: string) =>
   }) as unknown as WarrantyView;
 
 describe("orden de referencias en garantías", () => {
-  it("ordena modelos numéricos de mayor a menor", () => {
+  it("ordena modelos numéricos de menor a mayor", () => {
     expect(ordenarReferenciasGarantia([
       "iPhone 13 128 GB",
       "iPhone 15 128 GB",
       "iPhone 11 128 GB",
       "iPhone 14 128 GB",
     ])).toEqual([
-      "iPhone 15 128 GB",
-      "iPhone 14 128 GB",
-      "iPhone 13 128 GB",
       "iPhone 11 128 GB",
+      "iPhone 13 128 GB",
+      "iPhone 14 128 GB",
+      "iPhone 15 128 GB",
     ]);
   });
 
@@ -33,14 +33,14 @@ describe("orden de referencias en garantías", () => {
       "iPhone 15 Pro Max",
       "iPhone 14 Pro Max",
     ])).toEqual([
-      "iPhone 15 Pro Max",
-      "iPhone 15 Pro",
       "iPhone 14 Pro Max",
+      "iPhone 15 Pro",
+      "iPhone 15 Pro Max",
       "",
     ]);
   });
 
-  it("ordena los casos por modelo y mantiene los más recientes primero dentro del mismo modelo", () => {
+  it("ordena los casos por modelo/capacidad y mantiene los más recientes primero dentro de la misma referencia", () => {
     const ordenadas = ordenarVistasGarantiaPorReferencia([
       vista("iPhone 13 128 GB", "GAR-13", "2026-11-01T10:00:00Z"),
       vista("iPhone 15 128 GB", "GAR-15-1", "2026-11-01T10:00:00Z"),
@@ -49,10 +49,10 @@ describe("orden de referencias en garantías", () => {
     ]);
 
     expect(ordenadas.map((item) => item.warranty.code)).toEqual([
+      "GAR-11",
+      "GAR-13",
       "GAR-15-2",
       "GAR-15-1",
-      "GAR-13",
-      "GAR-11",
     ]);
   });
 });
