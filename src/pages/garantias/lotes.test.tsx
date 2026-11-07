@@ -35,6 +35,7 @@ const garantia = (id: string, orderId: string, createdBy = YO): Warranty => ({
   receivedAt: "2026-09-21T10:00:00Z",
   createdBy,
   imeiManual: `35000000000${id}`,
+  referenciaManual: "Apple iPhone 13 128 GB",
 });
 
 const inicial = (): Db => {
@@ -103,6 +104,38 @@ const abrirRecibidos = async () => {
   await user.click(screen.getByRole("button", { name: /^Recibidos/ }));
   return user;
 };
+
+describe("Garantías · Recibidos · impresión de etiquetas", () => {
+  it("imprime una etiqueta por cada garantía recibida seleccionada e incluye el código del caso", async () => {
+    const user = await abrirRecibidos();
+
+    await user.click(lote("260901-001"));
+    await user.click(lote("260902-002"));
+
+    const checkboxes = screen.getAllByRole("checkbox");
+    expect(checkboxes).toHaveLength(2);
+    await user.click(checkboxes[0]);
+    await user.click(checkboxes[1]);
+
+    await user.click(screen.getByRole("button", { name: "Imprimir etiquetas (2)" }));
+
+    expect(imprimirEtiquetas).toHaveBeenCalledTimes(1);
+    const etiquetas = vi.mocked(imprimirEtiquetas).mock.calls[0][0];
+    expect(etiquetas).toHaveLength(2);
+    expect(etiquetas).toEqual(expect.arrayContaining([
+      {
+        producto: "Apple iPhone 13 128 GB",
+        serial: "35000000000111",
+        nota: "GAR-111",
+      },
+      {
+        producto: "Apple iPhone 13 128 GB",
+        serial: "35000000000112",
+        nota: "GAR-112",
+      },
+    ]));
+  });
+});
 
 
 describe("Garantías · buscar serial e imprimir etiqueta", () => {
