@@ -2422,11 +2422,13 @@ const Garantias = () => {
             (() => {
               const unit = findUnitBySerial(db, buscarResultado);
               const previo = unit ? undefined : buscarSerialPrevio(db, buscarResultado);
-              const casos = unit
-                ? vistas.filter((v) => v.warranty.unitId === unit.id)
-                : vistas.filter(
-                    (v) => v.warranty.imeiManual?.toLowerCase() === buscarResultado.toLowerCase(),
-                  );
+              const casos = ordenarVistasGarantiaPorReferencia(
+                unit
+                  ? vistas.filter((v) => v.warranty.unitId === unit.id)
+                  : vistas.filter(
+                      (v) => v.warranty.imeiManual?.toLowerCase() === buscarResultado.toLowerCase(),
+                    ),
+              );
               const product = unit ? db.products.find((candidate) => candidate.id === unit.productId) : undefined;
               const origen = unit ? getUnitOrigen(db, unit) : undefined;
               return (
