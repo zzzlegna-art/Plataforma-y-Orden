@@ -157,7 +157,7 @@ describe("Garantías · buscar serial e imprimir etiqueta", () => {
 });
 
 describe("Garantías · Recibidos", () => {
-  it("ordena las tarjetas por modelo de mayor a menor con comparación numérica", async () => {
+  it("ordena las tarjetas por modelo de menor a mayor con comparación numérica", async () => {
     const db = emptyDb();
     db.customers = [{ id: "c1", name: "Camilo", isActive: true, createdAt: "2026-01-01T00:00:00Z" }];
     db.orders = [{
@@ -177,10 +177,10 @@ describe("Garantías · Recibidos", () => {
     render(<I18nextProvider i18n={i18n}><Almacen dbInicial={db} /></I18nextProvider>);
 
     expect(screen.getAllByText(/^Apple iPhone/).map((node) => node.textContent?.trim())).toEqual([
-      "Apple iPhone 15 128 GB",
-      "Apple iPhone 14 128 GB",
-      "Apple iPhone 13 128 GB",
       "Apple iPhone 11 128 GB",
+      "Apple iPhone 13 128 GB",
+      "Apple iPhone 14 128 GB",
+      "Apple iPhone 15 128 GB",
     ]);
   });
 
