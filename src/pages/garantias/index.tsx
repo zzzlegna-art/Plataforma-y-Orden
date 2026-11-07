@@ -992,8 +992,13 @@ const Garantias = () => {
       actual.views.push(view);
       lotes.set(key, actual);
     }
-    // Cada lote conserva sus casos por referencia; los lotes se ubican según su modelo más alto.
-    return [...lotes.values()].sort((a, b) => {
+    // Ordena también las tarjetas dentro de cada lote, aunque el filtro de origen cambie
+    // el orden de entrada. El primer equipo de cada lote define su posición global.
+    const lotesOrdenados = [...lotes.values()].map((lote) => ({
+      ...lote,
+      views: ordenarVistasGarantiaPorReferencia(lote.views),
+    }));
+    return lotesOrdenados.sort((a, b) => {
       const referencia = compararVistasGarantiaPorReferencia(a.views[0], b.views[0]);
       if (referencia !== 0) return referencia;
       const origen = ORDEN_ORIGEN[a.origin] - ORDEN_ORIGEN[b.origin];
@@ -1137,7 +1142,7 @@ const Garantias = () => {
   };
 
   // ---------- Exportar garantías en servicio técnico ----------
-  /** Primero por referencia/modelo descendente; dentro del mismo modelo, los casos más antiguos primero. */
+  /** Primero por referencia/modelo ascendente; dentro del mismo modelo, los casos más antiguos primero. */
   const enServicioOrdenado = () =>
     [...porTab(["en_servicio_tecnico"])].sort((a, b) =>
       compararVistasGarantiaPorReferencia(a, b) ||
@@ -2252,11 +2257,8 @@ const Garantias = () => {
       {tab === "servicio" ? (
         <div className="animate-fade-in space-y-3">
           {(() => {
-            // Aquí sí por fecha de recepción (las más antiguas primero): a diferencia de
-            // Recibidos/Reenvío, en Servicio se pidió expresamente que no dependiera de si el
-            // caso tuvo movimientos recientes. agruparEnLotes conserva ese orden: cada lote
-            // queda ubicado donde apareció su primer caso, así que el lote más viejo sigue
-            // apareciendo primero.
+            // El modelo/capacidad define el orden principal en todas las bandejas.
+            // Dentro de cada referencia, Servicio conserva primero los casos más antiguos.
             const enServicio = enServicioOrdenado();
             return (
               <>
