@@ -909,6 +909,35 @@ const Garantias = () => {
       return next;
     });
 
+  /** Solo imprime los casos que siguen en Recibidos y fueron seleccionados. */
+  const garantiasRecibidasSeleccionadas = () =>
+    vistas.filter((view) => view.warranty.status === "recibido" && seleccionados.has(view.warranty.id));
+
+  const imprimirEtiquetasSeleccionadas = () => {
+    const seleccion = garantiasRecibidasSeleccionadas();
+    if (seleccion.length === 0) return;
+
+    const etiquetas = seleccion.flatMap((view) => {
+      const info = warrantyInfo(view);
+      const serial = info.serial?.trim();
+      return serial ? [{ producto: info.producto, serial, nota: view.warranty.code }] : [];
+    });
+    const omitidas = seleccion.length - etiquetas.length;
+
+    if (etiquetas.length === 0) {
+      toast.error(t("warranty.labelsNoSerial"));
+      return;
+    }
+
+    imprimirEtiquetas(etiquetas);
+    toast.success(t("warranty.labelsReady", { count: etiquetas.length }));
+    if (omitidas > 0) {
+      toast.warning(t("warranty.labelsSkippedNoSerial", { count: omitidas }));
+    }
+  };
+
+  const cantidadEtiquetasSeleccionadas = garantiasRecibidasSeleccionadas().length;
+
   const toggleLoteAbierto = (key: string) =>
     setLotesAbiertos((previous) => {
       const next = new Set(previous);
@@ -2123,6 +2152,12 @@ const Garantias = () => {
                       </Button>
                     }
                   />
+                  {cantidadEtiquetasSeleccionadas > 0 ? (
+                    <Button variant="outline" size="sm" onClick={imprimirEtiquetasSeleccionadas}>
+                      <Printer />
+                      {t("warranty.printSelectedLabels", { count: cantidadEtiquetasSeleccionadas })}
+                    </Button>
+                  ) : null}
                   {seleccionados.size > 0 ? (
                     <DevolucionDirectaDialog
                       count={seleccionados.size}
