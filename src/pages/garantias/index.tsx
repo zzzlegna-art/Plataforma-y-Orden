@@ -994,16 +994,31 @@ const Garantias = () => {
     }
     // Ordena también las tarjetas dentro de cada lote, aunque el filtro de origen cambie
     // el orden de entrada. El primer equipo de cada lote define su posición global.
-    const lotesOrdenados = [...lotes.values()].map((lote) => ({
-      ...lote,
-      views: ordenarVistasGarantiaPorReferencia(lote.views),
-    }));
+    const lotesOrdenados = [...lotes.values()].map((lote) => {
+      const esServicio = lote.views[0]?.warranty.status === "en_servicio_tecnico";
+      return {
+        ...lote,
+        // En Servicio, conserva la antigüedad de recepción dentro de cada referencia.
+        // En Recibidos y Reenvío se mantiene primero el caso más reciente.
+        views: esServicio
+          ? [...lote.views].sort((a, b) =>
+              compararVistasGarantiaPorReferencia(a, b) ||
+              a.warranty.receivedAt.localeCompare(b.warranty.receivedAt) ||
+              a.warranty.code.localeCompare(b.warranty.code, "es", { numeric: true }),
+            )
+          : ordenarVistasGarantiaPorReferencia(lote.views),
+      };
+    });
     return lotesOrdenados.sort((a, b) => {
       const referencia = compararVistasGarantiaPorReferencia(a.views[0], b.views[0]);
       if (referencia !== 0) return referencia;
       const origen = ORDEN_ORIGEN[a.origin] - ORDEN_ORIGEN[b.origin];
       if (origen !== 0) return origen;
-      return (b.views[0]?.warranty.receivedAt ?? "").localeCompare(a.views[0]?.warranty.receivedAt ?? "") ||
+      const fechaA = a.views[0]?.warranty.receivedAt ?? "";
+      const fechaB = b.views[0]?.warranty.receivedAt ?? "";
+      const esServicio = a.views[0]?.warranty.status === "en_servicio_tecnico" &&
+        b.views[0]?.warranty.status === "en_servicio_tecnico";
+      return (esServicio ? fechaA.localeCompare(fechaB) : fechaB.localeCompare(fechaA)) ||
         a.title.localeCompare(b.title, "es");
     });
   };
