@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { Outlet, useLocation } from "react-router-dom";
 
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
@@ -53,7 +53,13 @@ export const AppLayout = () => {
           <div className="flex min-h-full w-full min-w-0 flex-col">
             {/* La clave es la ruta: al cambiar de pantalla entra con un fundido suave. */}
             <div key={pathname} className="page-enter flex w-full flex-1 flex-col">
-              <Outlet />
+              <Suspense fallback={
+                <div role="status" aria-live="polite" className="flex min-h-[180px] items-center justify-center rounded-xl border border-border/50 bg-card/40 p-6 text-sm text-muted-foreground">
+                  Cargando sección de NEXORA…
+                </div>
+              }>
+                <Outlet />
+              </Suspense>
             </div>
           </div>
         </main>
