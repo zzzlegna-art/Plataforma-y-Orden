@@ -1,29 +1,37 @@
+import { lazy } from "react";
 import { Navigate } from "react-router-dom";
 
 import { RequireAuth, RequirePermission } from "./components/auth/require-auth";
 import { RequireSupplierReception } from "./components/auth/require-supplier-reception";
 import { AppLayout } from "./components/layout/app-layout";
-import Administracion from "./pages/administracion";
-import Clientes from "./pages/clientes";
-import Garantias from "./pages/garantias";
-import GarantiaDetalle from "./pages/garantias/detalle";
-import Inventario from "./pages/inventario";
-import { WorkerGlobalInventory } from "./pages/inventario/WorkerGlobalInventory";
 import { useApp } from "./hooks/use-app";
-import ProductoDetalle from "./pages/inventario/detalle";
 import Login from "./pages/login";
 import NotFound from "./pages/NotFound";
-import Panel from "./pages/panel";
-import MiSede from "./pages/mi-sede";
-import Pedidos from "./pages/pedidos";
-import NuevoPedido from "./pages/pedidos/nuevo";
-import PedidoDetalle from "./pages/pedidos/detalle";
-import PedidoHistoricoDetalle from "./pages/pedidos/historial/detalle";
-import Traslados from "./pages/traslados";
-import Recepciones from "./pages/recepcion";
-import InvoiceCapture from "./pages/recepcion/factura";
-import NuevaRecepcion from "./pages/recepcion/nueva";
-import TrazabilidadSeriales from "./pages/trazabilidad";
+
+// Only load the pages needed for the current route. Keep authentication,
+// permission checks and the shared navigation shell available immediately.
+const Administracion = lazy(() => import("./pages/administracion"));
+const Clientes = lazy(() => import("./pages/clientes"));
+const Garantias = lazy(() => import("./pages/garantias"));
+const GarantiaDetalle = lazy(() => import("./pages/garantias/detalle"));
+const Inventario = lazy(() => import("./pages/inventario"));
+const WorkerGlobalInventory = lazy(() =>
+  import("./pages/inventario/WorkerGlobalInventory").then(({ WorkerGlobalInventory }) => ({
+    default: WorkerGlobalInventory,
+  })),
+);
+const ProductoDetalle = lazy(() => import("./pages/inventario/detalle"));
+const Panel = lazy(() => import("./pages/panel"));
+const MiSede = lazy(() => import("./pages/mi-sede"));
+const Pedidos = lazy(() => import("./pages/pedidos"));
+const NuevoPedido = lazy(() => import("./pages/pedidos/nuevo"));
+const PedidoDetalle = lazy(() => import("./pages/pedidos/detalle"));
+const PedidoHistoricoDetalle = lazy(() => import("./pages/pedidos/historial/detalle"));
+const Traslados = lazy(() => import("./pages/traslados"));
+const Recepciones = lazy(() => import("./pages/recepcion"));
+const InvoiceCapture = lazy(() => import("./pages/recepcion/factura"));
+const NuevaRecepcion = lazy(() => import("./pages/recepcion/nueva"));
+const TrazabilidadSeriales = lazy(() => import("./pages/trazabilidad"));
 
 const InventoryByRole=({ serials=false }:{serials?:boolean})=>{
   const {role}=useApp();
