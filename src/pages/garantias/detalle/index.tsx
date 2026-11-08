@@ -25,6 +25,7 @@ import {
   ClasificarDevueltoDialog,
   DiagnosticoDialog,
   EditarClienteDialog,
+  EditarMotivoGarantiaDialog,
   EntregarDialog,
   TecnicosDialog,
 } from "../modals";
@@ -43,7 +44,7 @@ const GarantiaDetalle = () => {
   const { t } = useTranslation();
   const { db } = useStore();
   const runAction = useRunAction();
-  const { isAdmin } = usePermissions();
+  const { isAdmin, can } = usePermissions();
   const { warrantyId } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
@@ -240,10 +241,27 @@ const GarantiaDetalle = () => {
             <InfoRow label={t("warranty.previaFecha")}>{formatDateTime(warranty.fechaVentaManual)}</InfoRow>
           ) : null}
           <div className="pt-3">
-            <p className="text-xs uppercase tracking-wide text-muted-foreground">
-              {t("warranty.reason")}
-            </p>
-            <p className="mt-1 text-sm">{warranty.reason}</p>
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                {t("warranty.reason")}
+              </p>
+              {can("warranties.manage") ? (
+                <EditarMotivoGarantiaDialog
+                  warranty={warranty}
+                  trigger={
+                    <button
+                      type="button"
+                      aria-label={t("warranty.editReason")}
+                      title={t("warranty.editReason")}
+                      className="rounded p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                    >
+                      <Pencil className="h-3.5 w-3.5" />
+                    </button>
+                  }
+                />
+              ) : null}
+            </div>
+            <p className="mt-1 whitespace-pre-wrap break-words text-sm">{warranty.reason}</p>
           </div>
           {warranty.diagnostico ? (
             <div className="pt-3">

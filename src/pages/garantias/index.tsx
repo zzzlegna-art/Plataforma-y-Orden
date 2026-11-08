@@ -87,6 +87,11 @@ import { DeshacerEstadoButton } from "./deshacer-estado";
 import { SEARCH_INPUT_PROPS } from "@/lib/search-input";
 import { cn } from "@/lib/utils";
 import {
+  compararVistasGarantiaPorReferencia,
+  ordenarReferenciasGarantia,
+  ordenarVistasGarantiaPorReferencia,
+} from "@/lib/warranty-sorting";
+import {
   referenciasGarantiaPrevia,
   TIPOS_EQUIPOS_GARANTIA_PREVIA,
   type TipoEquipoGarantiaPrevia,
@@ -426,12 +431,15 @@ const Garantias = () => {
   }, [focusId, focusViewId, tab]);
 
   const casosHistorial = useMemo(
-    () => vistas.filter((v) => v.warranty.status === "entregado" || v.warranty.status === "devuelto"),
+    () => ordenarVistasGarantiaPorReferencia(
+      vistas.filter((v) => v.warranty.status === "entregado" || v.warranty.status === "devuelto"),
+    ),
     [vistas],
   );
   const referenciasHistorial = useMemo(
-    () => [...new Set(casosHistorial.map((v) => (v.product?.name ?? v.warranty.referenciaManual ?? "").trim()).filter(Boolean))]
-      .sort((a, b) => a.localeCompare(b, "es")),
+    () => ordenarReferenciasGarantia([
+      ...new Set(casosHistorial.map((v) => (v.product?.name ?? v.warranty.referenciaManual ?? "").trim()).filter(Boolean)),
+    ]),
     [casosHistorial],
   );
   const estadisticas = useMemo(() => {
@@ -471,7 +479,9 @@ const Garantias = () => {
     };
   }, [vistas, estadisticaDesde, estadisticaHasta, estadisticaReferencia]);
   const referenciasEstadisticas = useMemo(() =>
-    [...new Set(vistas.map(({ product, warranty }) => product?.name ?? warranty.referenciaManual ?? "Sin referencia"))].sort((a, b) => a.localeCompare(b, "es")),
+    ordenarReferenciasGarantia([
+      ...new Set(vistas.map(({ product, warranty }) => product?.name ?? warranty.referenciaManual ?? "Sin referencia")),
+    ]),
     [vistas],
   );
   const exportarEstadisticas = () => {
@@ -548,7 +558,12 @@ const Garantias = () => {
         (v) =>
           !soloEstancadas || (diasPorCaso.get(v.warranty.id) ?? 0) >= DIAS_GARANTIA_ESTANCADA,
       )
-      .sort((a, b) => (diasPorCaso.get(b.warranty.id) ?? -1) - (diasPorCaso.get(a.warranty.id) ?? -1));
+      .sort((a, b) =>
+        compararVistasGarantiaPorReferencia(a, b) ||
+        (diasPorCaso.get(b.warranty.id) ?? -1) - (diasPorCaso.get(a.warranty.id) ?? -1) ||
+        b.warranty.receivedAt.localeCompare(a.warranty.receivedAt) ||
+        b.warranty.code.localeCompare(a.warranty.code, "es", { numeric: true }),
+      );
 
   // ---------- Recepción por IMEI ----------
   const productoDeUnidad = (unit: Unit) =>
@@ -977,19 +992,48 @@ const Garantias = () => {
       actual.views.push(view);
       lotes.set(key, actual);
     }
-    // Array.sort es estable: dentro de un mismo origen se conserva el orden que ya traía la lista.
-    return [...lotes.values()].sort((a, b) => ORDEN_ORIGEN[a.origin] - ORDEN_ORIGEN[b.origin]);
+    // Ordena también las tarjetas dentro de cada lote, aunque el filtro de origen cambie
+    // el orden de entrada. El primer equipo de cada lote define su posición global.
+    const lotesOrdenados = [...lotes.values()].map((lote) => {
+      const esServicio = lote.views[0]?.warranty.status === "en_servicio_tecnico";
+      return {
+        ...lote,
+        // En Servicio, conserva la antigüedad de recepción dentro de cada referencia.
+        // En Recibidos y Reenvío se mantiene primero el caso más reciente.
+        views: esServicio
+          ? [...lote.views].sort((a, b) =>
+              compararVistasGarantiaPorReferencia(a, b) ||
+              a.warranty.receivedAt.localeCompare(b.warranty.receivedAt) ||
+              a.warranty.code.localeCompare(b.warranty.code, "es", { numeric: true }),
+            )
+          : ordenarVistasGarantiaPorReferencia(lote.views),
+      };
+    });
+    return lotesOrdenados.sort((a, b) => {
+      const referencia = compararVistasGarantiaPorReferencia(a.views[0], b.views[0]);
+      if (referencia !== 0) return referencia;
+      const origen = ORDEN_ORIGEN[a.origin] - ORDEN_ORIGEN[b.origin];
+      if (origen !== 0) return origen;
+      const fechaA = a.views[0]?.warranty.receivedAt ?? "";
+      const fechaB = b.views[0]?.warranty.receivedAt ?? "";
+      const esServicio = a.views[0]?.warranty.status === "en_servicio_tecnico" &&
+        b.views[0]?.warranty.status === "en_servicio_tecnico";
+      return (esServicio ? fechaA.localeCompare(fechaB) : fechaB.localeCompare(fechaA)) ||
+        a.title.localeCompare(b.title, "es");
+    });
   };
 
   const agruparHistorial = (lista: WarrantyView[]): LoteRecibido[] => {
     const lotes = new Map<string, LoteRecibido>();
-    for (const view of lista) {
+    for (const view of ordenarVistasGarantiaPorReferencia(lista)) {
       const { key, title, subtitle, origin } = infoHistorial(view);
       const actual = lotes.get(key) ?? { key, title, subtitle, origin, views: [] };
       actual.views.push(view);
       lotes.set(key, actual);
     }
     return [...lotes.values()].sort((a, b) => {
+      const referencia = compararVistasGarantiaPorReferencia(a.views[0], b.views[0]);
+      if (referencia !== 0) return referencia;
       if (a.origin !== b.origin) return ORDEN_ORIGEN[a.origin] - ORDEN_ORIGEN[b.origin];
       const fechaA = Math.max(...a.views.map((view) => Date.parse(view.warranty.receivedAt) || 0));
       const fechaB = Math.max(...b.views.map((view) => Date.parse(view.warranty.receivedAt) || 0));
@@ -1113,10 +1157,12 @@ const Garantias = () => {
   };
 
   // ---------- Exportar garantías en servicio técnico ----------
-  /** Mismo orden que se ve en pantalla: las más antiguas primero. */
+  /** Primero por referencia/modelo ascendente; dentro del mismo modelo, los casos más antiguos primero. */
   const enServicioOrdenado = () =>
     [...porTab(["en_servicio_tecnico"])].sort((a, b) =>
-      a.warranty.receivedAt.localeCompare(b.warranty.receivedAt),
+      compararVistasGarantiaPorReferencia(a, b) ||
+      a.warranty.receivedAt.localeCompare(b.warranty.receivedAt) ||
+      a.warranty.code.localeCompare(b.warranty.code, "es", { numeric: true }),
     );
 
   const servicioParaExportar = () => {
@@ -2226,11 +2272,8 @@ const Garantias = () => {
       {tab === "servicio" ? (
         <div className="animate-fade-in space-y-3">
           {(() => {
-            // Aquí sí por fecha de recepción (las más antiguas primero): a diferencia de
-            // Recibidos/Reenvío, en Servicio se pidió expresamente que no dependiera de si el
-            // caso tuvo movimientos recientes. agruparEnLotes conserva ese orden: cada lote
-            // queda ubicado donde apareció su primer caso, así que el lote más viejo sigue
-            // apareciendo primero.
+            // El modelo/capacidad define el orden principal en todas las bandejas.
+            // Dentro de cada referencia, Servicio conserva primero los casos más antiguos.
             const enServicio = enServicioOrdenado();
             return (
               <>
@@ -2396,11 +2439,13 @@ const Garantias = () => {
             (() => {
               const unit = findUnitBySerial(db, buscarResultado);
               const previo = unit ? undefined : buscarSerialPrevio(db, buscarResultado);
-              const casos = unit
-                ? vistas.filter((v) => v.warranty.unitId === unit.id)
-                : vistas.filter(
-                    (v) => v.warranty.imeiManual?.toLowerCase() === buscarResultado.toLowerCase(),
-                  );
+              const casos = ordenarVistasGarantiaPorReferencia(
+                unit
+                  ? vistas.filter((v) => v.warranty.unitId === unit.id)
+                  : vistas.filter(
+                      (v) => v.warranty.imeiManual?.toLowerCase() === buscarResultado.toLowerCase(),
+                    ),
+              );
               const product = unit ? db.products.find((candidate) => candidate.id === unit.productId) : undefined;
               const origen = unit ? getUnitOrigen(db, unit) : undefined;
               return (

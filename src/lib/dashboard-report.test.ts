@@ -131,3 +131,17 @@ describe("reporte operativo en Excel", () => {
     expect(sheets[3].wrapColumns).toContain(5);
   });
 });
+
+describe("reporte Excel · motivo actualizado de garantía", () => {
+  it("exporta el motivo vigente del registro y no una copia histórica anterior", () => {
+    const db = fixtureDb();
+    const motivoCorregido = "Puerto de carga dañado · corregido";
+    db.warranties[0].reason = motivoCorregido;
+
+    const sheets = buildOperationalReportSheets(db, "2026-10-01", "2026-10-31");
+    const garantiaSheet = sheets.find((sheet) => sheet.name === "Garantías");
+
+    expect(garantiaSheet?.rows[0]?.[5]).toBe(motivoCorregido);
+  });
+});
+

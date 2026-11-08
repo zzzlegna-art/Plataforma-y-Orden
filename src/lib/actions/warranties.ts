@@ -1093,6 +1093,34 @@ export const actualizarClienteGarantia = (
   return warranty;
 };
 
+/**
+ * Corrige el motivo registrado de una garantía sin alterar su estado ni los movimientos
+ * de inventario. La corrección queda visible en la bitácora y conserva el valor anterior
+ * en auditoría para que las exportaciones siempre usen el motivo vigente.
+ */
+export const actualizarMotivoGarantia = (
+  db: Db,
+  actor: Actor,
+  input: { warrantyId: string; reason: string },
+): Warranty => {
+  requirePermission(actor, "warranties.manage");
+  const warranty = findWarranty(db, input.warrantyId);
+  const reason = requireText(input.reason, "errors.warrantyReasonRequired");
+  const anterior = warranty.reason.trim();
+
+  if (reason === anterior) return warranty;
+
+  warranty.reason = reason;
+  addEvent(db, actor, warranty.id, warranty.status, `Motivo actualizado: ${reason}`);
+  logAudit(db, actor, {
+    action: "update",
+    entity: "warranty",
+    entityId: warranty.id,
+    details: `${warranty.code} · motivo corregido: "${anterior}" → "${reason}"`,
+  });
+  return warranty;
+};
+
 // ============ Técnicos externos ============
 
 export const createTecnico = (db: Db, actor: Actor, input: { nombre: string }): Technician => {

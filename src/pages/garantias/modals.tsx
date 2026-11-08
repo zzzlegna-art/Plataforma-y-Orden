@@ -23,6 +23,7 @@ import { useRunAction } from "@/hooks/use-run-action";
 import { useStore } from "@/hooks/use-store";
 import {
   actualizarClienteGarantia,
+  actualizarMotivoGarantia,
   registrarPagoReembolso,
   clasificarUnidadDevuelta,
   createTecnico,
@@ -557,6 +558,79 @@ export const TecnicosDialog = ({
             </div>
           ) : null}
         </div>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+/** Permite corregir el motivo de devolución desde el detalle, dejando rastro de auditoría. */
+export const EditarMotivoGarantiaDialog = ({
+  warranty,
+  trigger,
+}: {
+  warranty: Warranty;
+  trigger: React.ReactNode;
+}) => {
+  const { t } = useTranslation();
+  const runAction = useRunAction();
+  const [open, setOpen] = useState(false);
+  const [motivo, setMotivo] = useState(warranty.reason);
+
+  const motivoNormalizado = motivo.trim();
+  const puedeGuardar = motivoNormalizado.length > 0 && motivoNormalizado !== warranty.reason.trim();
+
+  const save = async () => {
+    if (!puedeGuardar) return;
+    const result = await runAction(
+      (db, actor) => actualizarMotivoGarantia(db, actor, {
+        warrantyId: warranty.id,
+        reason: motivo,
+      }),
+      {
+        success: "warranty.reasonUpdated",
+        key: `warranty-reason:${warranty.id}`,
+      },
+    );
+    if (result) setOpen(false);
+  };
+
+  return (
+    <Dialog
+      open={open}
+      onOpenChange={(value) => {
+        setOpen(value);
+        if (value) setMotivo(warranty.reason);
+      }}
+    >
+      <DialogTrigger asChild>{trigger}</DialogTrigger>
+      <DialogContent className="sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle>{t("warranty.editReasonTitle")}</DialogTitle>
+          <DialogDescription>{t("warranty.editReasonHint")}</DialogDescription>
+        </DialogHeader>
+        <div className="space-y-2">
+          <Label htmlFor="warranty-reason-edit">{t("warranty.reason")}</Label>
+          <Textarea
+            id="warranty-reason-edit"
+            rows={4}
+            value={motivo}
+            onChange={(event) => setMotivo(event.target.value)}
+            placeholder={t("warranty.reasonPlaceholder")}
+            autoFocus
+          />
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setOpen(false)}>
+            {t("common.cancel")}
+          </Button>
+          <Button
+            loading={runAction.pending}
+            disabled={!puedeGuardar}
+            onClick={() => void save()}
+          >
+            {t("common.save")}
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

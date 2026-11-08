@@ -59,8 +59,8 @@ const Atras = () => {
 };
 const Ruta = () => <output data-testid="ruta">{useLocation().pathname + useLocation().search}</output>;
 
-const Almacen = () => {
-  const [db, setDb] = useState(inicial);
+const Almacen = ({ dbInicial }: { dbInicial?: Db }) => {
+  const [db, setDb] = useState(dbInicial ?? inicial());
   agregar = (w) => setDb((actual) => ({ ...actual, warranties: [...actual.warranties, w] }));
   const value = useMemo<AppValue>(
     () => ({
@@ -157,6 +157,33 @@ describe("Garantías · buscar serial e imprimir etiqueta", () => {
 });
 
 describe("Garantías · Recibidos", () => {
+  it("ordena las tarjetas por modelo de menor a mayor con comparación numérica", async () => {
+    const db = emptyDb();
+    db.customers = [{ id: "c1", name: "Camilo", isActive: true, createdAt: "2026-01-01T00:00:00Z" }];
+    db.orders = [{
+      id: "o1", code: "PED-260901-001", customerId: "c1", status: "despachado",
+      orderDate: "2026-09-02T00:00:00Z", total: 0, createdBy: YO,
+      createdAt: "2026-09-02T00:00:00Z", updatedAt: "2026-09-02T00:00:00Z",
+    }];
+    db.warranties = [
+      { ...garantia("11", "o1"), referenciaManual: "Apple iPhone 11 128 GB" },
+      { ...garantia("13", "o1"), referenciaManual: "Apple iPhone 13 128 GB" },
+      { ...garantia("14", "o1"), referenciaManual: "Apple iPhone 14 128 GB" },
+      { ...garantia("15", "o1"), referenciaManual: "Apple iPhone 15 128 GB" },
+    ];
+
+    entrada = "/garantias?tab=recibidos";
+    sessionStorage.setItem("garantias:lotes-abiertos", JSON.stringify(["pedido:o1"]));
+    render(<I18nextProvider i18n={i18n}><Almacen dbInicial={db} /></I18nextProvider>);
+
+    expect(screen.getAllByText(/^Apple iPhone/).map((node) => node.textContent?.trim())).toEqual([
+      "Apple iPhone 11 128 GB",
+      "Apple iPhone 13 128 GB",
+      "Apple iPhone 14 128 GB",
+      "Apple iPhone 15 128 GB",
+    ]);
+  });
+
   it("todos los lotes empiezan cerrados (sin tarjetas) y se abren y cierran al pulsarlos", async () => {
     const user = await abrirRecibidos();
     expect(lote("260901-001").getAttribute("aria-expanded")).toBe("false");
