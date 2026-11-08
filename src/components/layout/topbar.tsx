@@ -92,13 +92,14 @@ export const Topbar = ({ onOpenMenu, nextSlot, nextFreeSlot, onOpenNext }: {
       </Button>
 
       <div className="flex min-w-0 flex-1 items-center">
+        <p className="truncate text-sm font-semibold text-foreground lg:hidden">{title}</p>
         <div className="hidden min-w-0 lg:block">
           <p className={location.pathname === "/panel" ? "truncate text-xl font-extrabold tracking-[-0.035em] text-foreground sm:text-2xl" : "truncate text-[15px] font-bold tracking-[-0.01em] text-foreground"}>{title}</p>
           <p className={location.pathname === "/panel" ? "mt-0.5 hidden text-xs text-muted-foreground xl:block" : "mt-0.5 hidden xl:block text-[11px] text-muted-foreground"}>Centro de operaciones Nexora</p>
         </div>
       </div>
 
-      <div className="flex shrink-0 items-center gap-1.5" aria-label={`Espacio de trabajo Next ${nextSlot}`}>
+      <div className="hidden shrink-0 items-center gap-1.5 sm:flex" aria-label={`Espacio de trabajo Next ${nextSlot}`}>
         <span className="rounded-lg border border-primary/30 bg-primary/10 px-2.5 py-1.5 text-xs font-extrabold text-primary">Next {nextSlot}</span>
         <Button type="button" variant="outline" size="sm" disabled={nextFreeSlot === null}
           className="gap-1.5" onClick={onOpenNext}
