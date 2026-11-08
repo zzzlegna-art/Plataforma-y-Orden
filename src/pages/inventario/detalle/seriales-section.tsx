@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
-import { Printer, ScanLine, X } from "lucide-react";
+import { Printer, ScanLine, Search, X } from "lucide-react";
 
 import { CopySerialButton } from "@/components/shared/copy-serial-button";
 import { DataTable, type Column } from "@/components/shared/data-table";
@@ -45,6 +45,7 @@ export const SerialesSeccion = ({
     [db.orders, db.orderItems, db.orderItemUnits]);
   const control = useControlFisico(product, condicion);
   const [vista, setVista] = useState<Vista>("todos");
+  const [busquedaSerial, setBusquedaSerial] = useState("");
   // Selección para imprimir etiquetas: independiente del control físico (esto es para llevar
   // varios seriales a la impresora de una vez, no para contarlos físicamente).
   const [seleccionados, setSeleccionados] = useState<Set<string>>(new Set());
@@ -63,7 +64,7 @@ export const SerialesSeccion = ({
 
   // Con el control en curso se puede ver solo lo pendiente o solo lo verificado.
   const vistaActiva: Vista = estado.activo ? vista : "todos";
-  const visibles = useMemo(
+  const filtradasPorControl = useMemo(
     () =>
       vistaActiva === "todos"
         ? ordenadas
@@ -71,6 +72,18 @@ export const SerialesSeccion = ({
             (item) => esVerificada(item.unit, product) === (vistaActiva === "verificados"),
           ),
     [ordenadas, product, vistaActiva],
+  );
+
+  // La búsqueda es local, instantánea y se combina con la condición y el control físico.
+  // El serial completo sigue visible y se puede abrir o copiar desde el resultado.
+  const terminoSerial = busquedaSerial.trim().toLocaleLowerCase("es");
+  const visibles = useMemo(
+    () => terminoSerial
+      ? filtradasPorControl.filter((item) =>
+          item.unit.serial.toLocaleLowerCase("es").includes(terminoSerial),
+        )
+      : filtradasPorControl,
+    [filtradasPorControl, terminoSerial],
   );
 
   const alcance =
@@ -99,7 +112,9 @@ export const SerialesSeccion = ({
     });
 
   const imprimirSeleccionados = (nota: string) => {
-    const elegidos = visibles.filter((item) => seleccionados.has(item.unit.id));
+    // Conservar los seleccionados entre búsquedas: no omitir etiquetas cuando el
+    // usuario elige varios IMEI usando diferentes términos de búsqueda.
+    const elegidos = ordenadas.filter((item) => seleccionados.has(item.unit.id));
     if (elegidos.length === 0) return;
     imprimirEtiquetas(elegidos.map((item) => ({ producto: product.name, serial: item.unit.serial, nota })));
   };
@@ -191,7 +206,11 @@ export const SerialesSeccion = ({
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <h3 className="text-sm font-semibold">
           {t("unit.title")}{" "}
-          <span className="font-normal text-muted-foreground">({visibles.length})</span>
+          <span className="font-normal text-muted-foreground">
+            {terminoSerial
+              ? `(${visibles.length} / ${filtradasPorControl.length})`
+              : `(${visibles.length})`}
+          </span>
         </h3>
         <div className="flex flex-wrap gap-2">
           {estado.activo ? (
@@ -233,6 +252,36 @@ export const SerialesSeccion = ({
             ))}
           </div>
         </div>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-2 rounded-lg border bg-card p-2.5">
+        <div className="relative min-w-[180px] flex-1">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
+          <input
+            type="search"
+            value={busquedaSerial}
+            onChange={(event) => setBusquedaSerial(event.target.value)}
+            aria-label={t("unit.searchWithinReference")}
+            placeholder={t("unit.searchWithinReferencePlaceholder")}
+            className="h-9 w-full rounded-md border border-input bg-background pl-9 pr-9 text-sm outline-none transition-colors focus-visible:ring-2 focus-visible:ring-primary/30"
+          />
+          {busquedaSerial ? (
+            <button
+              type="button"
+              aria-label={t("unit.clearSerialSearch")}
+              title={t("unit.clearSerialSearch")}
+              onClick={() => setBusquedaSerial("")}
+              className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          ) : null}
+        </div>
+        {terminoSerial ? (
+          <span aria-live="polite" className="text-xs text-muted-foreground">
+            {t("unit.searchMatchesCount", { shown: visibles.length, total: filtradasPorControl.length })}
+          </span>
+        ) : null}
       </div>
 
       <div className="flex flex-wrap items-center gap-2 rounded-md border bg-muted/30 p-2">
@@ -277,9 +326,14 @@ export const SerialesSeccion = ({
         rows={visibles}
         rowKey={(item) => item.unit.id}
         rowClassName={resaltar}
-        emptyTitle={t("unit.emptyTitle")}
-        emptyDescription={t("unit.emptyProductDescription")}
-        emptyIcon={ScanLine}
+        emptyTitle={terminoSerial ? t("unit.noSerialMatches") : t("unit.emptyTitle")}
+        emptyDescription={terminoSerial ? t("unit.noSerialMatchesDescription") : t("unit.emptyProductDescription")}
+        emptyIcon={terminoSerial ? Search : ScanLine}
+        emptyAction={terminoSerial ? (
+          <Button variant="outline" size="sm" onClick={() => setBusquedaSerial("")}>
+            {t("unit.clearSerialSearch")}
+          </Button>
+        ) : undefined}
         renderCard={(item) => (
           <div className="space-y-2">
             <div className="flex items-start justify-between gap-2">
