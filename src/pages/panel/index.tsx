@@ -64,7 +64,7 @@ import "./panel-premium.css";
 import "./movement-premium.css";
 import { MovementChartTooltip, MOVEMENT_SERIES } from "./movement-chart-tooltip";
 
-import type { RankDatum } from "@/lib/dashboard-charts";
+import { rankDatumsDeClientes, rankDatumsDeProductos, type RankDatum } from "@/lib/dashboard-charts";
 
 /** Panel general: indicadores, rankings y alertas operativas. */
 const Panel = () => {
@@ -83,6 +83,7 @@ const Panel = () => {
   const [orderRankings, setOrderRankings] = useState<DashboardOrderRankings | null>(null);
   const [rankingsLoading, setRankingsLoading] = useState(true);
   const [rankingsError, setRankingsError] = useState<string | null>(null);
+  const [rankingMode, setRankingMode] = useState<"pedidos" | "despachados">("pedidos");
 
   useEffect(() => {
     let vigente = true;
@@ -236,27 +237,38 @@ const Panel = () => {
   // Los rankings vienen de una consulta única que consolida pedidos operativos e históricos.
   // Se ordenan por unidades solicitadas; el detalle secundario muestra cuántos pedidos aportan.
   const productsChart: RankDatum[] = useMemo(
-    () => (orderRankings?.products ?? []).map((row) => ({
-      key: row.key,
-      name: row.name,
-      short: row.name.length > 12 ? `${row.name.slice(0, 11)}…` : row.name,
-      value: row.units,
-      units: row.units,
-      detail: `${formatNumber(row.ordersCount)} pedidos`,
-    })),
-    [orderRankings?.products],
+    () => rankingMode === "despachados"
+      ? rankDatumsDeProductos(data.topProducts).map((row, index) => ({
+          ...row,
+          detail: `${formatNumber(data.topProducts[index].ordersCount)} pedidos despachados`,
+        }))
+      : (orderRankings?.products ?? []).map((row) => ({
+          key: row.key,
+          name: row.name,
+          short: row.name.length > 12 ? `${row.name.slice(0, 11)}…` : row.name,
+          value: row.units,
+          units: row.units,
+          detail: `${formatNumber(row.ordersCount)} pedidos`,
+        })),
+    [rankingMode, orderRankings?.products, data.topProducts],
   );
   const customersChart: RankDatum[] = useMemo(
-    () => (orderRankings?.customers ?? []).map((row) => ({
-      key: row.key,
-      name: row.name,
-      short: row.name.length > 12 ? `${row.name.slice(0, 11)}…` : row.name,
-      value: row.units,
-      units: row.units,
-      detail: `${formatNumber(row.ordersCount)} pedidos`,
-    })),
-    [orderRankings?.customers],
+    () => rankingMode === "despachados"
+      ? rankDatumsDeClientes(data.topCustomers, data.hasAmounts).map((row, index) => ({
+          ...row,
+          detail: `${formatNumber(data.topCustomers[index].ordersCount)} pedidos despachados`,
+        }))
+      : (orderRankings?.customers ?? []).map((row) => ({
+          key: row.key,
+          name: row.name,
+          short: row.name.length > 12 ? `${row.name.slice(0, 11)}…` : row.name,
+          value: row.units,
+          units: row.units,
+          detail: `${formatNumber(row.ordersCount)} pedidos`,
+        })),
+    [rankingMode, orderRankings?.customers, data.topCustomers, data.hasAmounts],
   );
+  const mostrarRankingGlobal = rankingMode === "pedidos";
 
   // La gráfica comparte el filtro inclusivo de los informes y conserva rangos largos completos.
   const movementChartData = useMemo(
@@ -492,17 +504,31 @@ const Panel = () => {
           <div>
             <h2>Rendimiento de pedidos</h2>
             <p>
-              {rankingsLoading
-                ? "Consolidando pedidos históricos y operativos…"
-                : rankingsError
-                  ? "No fue posible actualizar los rankings."
-                  : `${formatNumber(orderRankings?.consideredOrders ?? 0)} pedidos considerados · ${formatNumber(orderRankings?.totalOrders ?? 0)} registrados · ${formatNumber(orderRankings?.cancelledOrders ?? 0)} cancelados excluidos. Incluye ${formatNumber(orderRankings?.historicalOrders ?? 0)} históricos y ${formatNumber(orderRankings?.operationalOrders ?? 0)} operativos.`}
+              {mostrarRankingGlobal
+                ? rankingsLoading
+                  ? "Consolidando pedidos históricos y operativos…"
+                  : rankingsError
+                    ? "No fue posible actualizar los rankings."
+                    : `${formatNumber(orderRankings?.consideredOrders ?? 0)} pedidos considerados · ${formatNumber(orderRankings?.totalOrders ?? 0)} registrados · ${formatNumber(orderRankings?.cancelledOrders ?? 0)} cancelados excluidos. Incluye ${formatNumber(orderRankings?.historicalOrders ?? 0)} históricos y ${formatNumber(orderRankings?.operationalOrders ?? 0)} operativos.`
+                : "Solo pedidos con estado despachado registrados en NEXORA; el historial importado no está incluido."}
             </p>
             <p className="mt-1 text-[11px] text-muted-foreground">
-              Se cuentan pedidos preparados y despachados; los cancelados no suman movimiento.
+              {mostrarRankingGlobal
+                ? "Pedidos no cancelados (incluye pedidos en preparación); no representan exclusivamente ventas realizadas."
+                : "Clasificación de celulares despachados, no de pedidos preparados. Los importes provienen de las líneas registradas en NEXORA."}
             </p>
           </div>
         </div>
+      </div>
+      <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Tipo de ranking comercial">
+        <Button type="button" size="sm" variant={mostrarRankingGlobal ? "default" : "outline"}
+          aria-pressed={mostrarRankingGlobal} onClick={() => setRankingMode("pedidos")}>
+          Pedidos globales
+        </Button>
+        <Button type="button" size="sm" variant={mostrarRankingGlobal ? "outline" : "default"}
+          aria-pressed={!mostrarRankingGlobal} onClick={() => setRankingMode("despachados")}>
+          Celulares despachados
+        </Button>
       </div>
       <div className="nx-ranking-grid grid grid-cols-1 gap-5 lg:grid-cols-2">
         <section className="premium-surface nx-ranking-card relative min-w-0 overflow-hidden p-4 transition-all duration-200 hover:shadow-elegant sm:p-5">
@@ -514,7 +540,11 @@ const Panel = () => {
               </span>
               <div className="min-w-0">
                 <h3 className="text-sm font-semibold tracking-tight">{t("dashboard.topProductsTitle")}</h3>
-                <p className="mt-1 text-xs leading-4 text-muted-foreground">Unidades solicitadas por referencia, incluidos celulares y repuestos.</p>
+                <p className="mt-1 text-xs leading-4 text-muted-foreground">
+                  {mostrarRankingGlobal
+                    ? "Unidades solicitadas por referencia, incluidos celulares y repuestos."
+                    : "Celulares de pedidos despachados en NEXORA, sin históricos importados."}
+                </p>
               </div>
             </div>
             <Link
@@ -526,11 +556,11 @@ const Panel = () => {
             </Link>
           </div>
           <div className="relative">
-            {rankingsLoading ? (
+            {mostrarRankingGlobal && rankingsLoading ? (
               <p className="rounded-xl border border-dashed px-4 py-8 text-center text-sm text-muted-foreground">
                 Consolidando pedidos históricos y operativos…
               </p>
-            ) : rankingsError ? (
+            ) : mostrarRankingGlobal && rankingsError ? (
               <p role="alert" className="rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-8 text-center text-sm text-muted-foreground">
                 No se pudo calcular el ranking global: {rankingsError}
               </p>
@@ -541,8 +571,8 @@ const Panel = () => {
             ) : (
               <RankChart
                 data={productsChart}
-                selectedSummaryLabel="Unidades solicitadas de esta referencia"
-                summaryLabel="Unidades de los cinco productos destacados"
+                selectedSummaryLabel={mostrarRankingGlobal ? "Unidades solicitadas de esta referencia" : "Unidades de celulares despachados"}
+                summaryLabel={mostrarRankingGlobal ? "Unidades de los cinco productos destacados" : "Unidades despachadas de los cinco modelos"}
                 formatValue={(value) => formatNumber(value)}
               />
             )}
@@ -559,7 +589,11 @@ const Panel = () => {
               <div className="min-w-0">
                 <h3 className="text-sm font-semibold tracking-tight">{t("dashboard.topCustomersTitle")}</h3>
                 <p className="mt-1 text-xs leading-4 text-muted-foreground">
-                  Ordenado por unidades solicitadas; el detalle muestra cuántos pedidos realizó cada cliente.
+                  {mostrarRankingGlobal
+                    ? "Ordenado por unidades solicitadas; el detalle muestra cuántos pedidos realizó cada cliente."
+                    : data.hasAmounts
+                      ? "Clientes por valor de celulares despachados en NEXORA; no es un reporte de pagos."
+                      : "Clientes por unidades de celulares despachados en NEXORA; sin importes registrados."}
                 </p>
               </div>
             </div>
@@ -587,9 +621,9 @@ const Panel = () => {
             ) : (
               <RankChart
                 data={customersChart}
-                selectedSummaryLabel="Unidades solicitadas por este cliente"
-                summaryLabel="Unidades de los cinco clientes destacados"
-                formatValue={(value) => formatNumber(value)}
+                selectedSummaryLabel={mostrarRankingGlobal ? "Unidades solicitadas por este cliente" : data.hasAmounts ? "Monto de celulares despachados" : "Unidades de celulares despachados"}
+                summaryLabel={mostrarRankingGlobal ? "Unidades de los cinco clientes destacados" : data.hasAmounts ? "Valor en pedidos despachados de los cinco clientes" : "Unidades despachadas de los cinco clientes"}
+                formatValue={(value) => !mostrarRankingGlobal && data.hasAmounts ? formatCurrency(value) : formatNumber(value)}
               />
             )}
           </div>
