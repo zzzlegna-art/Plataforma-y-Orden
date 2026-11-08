@@ -60,6 +60,7 @@ import {
 } from "@/lib/selectors";
 import type { UnitCondition } from "@/lib/types";
 import { RankChart } from "./rank-chart";
+import { DashboardSiteOverview } from "./dashboard-site-overview";
 import "./panel-premium.css";
 import "./movement-premium.css";
 import { MovementChartTooltip, MOVEMENT_SERIES } from "./movement-chart-tooltip";
@@ -184,6 +185,14 @@ const Panel = () => {
     }
   };
   const dentroPeriodoReporte = (fecha: string) => isWithinDateRange(fecha, reporteDesde, reporteHasta);
+  const resumenPeriodo = useMemo(() => ({
+    recepciones: db.receptions.filter((item) =>
+      isWithinDateRange(item.receivedAt, reporteDesde, reporteHasta)).length,
+    pedidos: db.orders.filter((item) =>
+      isWithinDateRange(item.orderDate, reporteDesde, reporteHasta)).length,
+    garantias: db.warranties.filter((item) =>
+      isWithinDateRange(item.receivedAt, reporteDesde, reporteHasta)).length,
+  }), [db.receptions, db.orders, db.warranties, reporteDesde, reporteHasta]);
 
   const exportarReporteOperativo = () => {
     if (reporteDesde && reporteHasta && reporteDesde > reporteHasta) return;
@@ -283,6 +292,31 @@ const Panel = () => {
         <span className="nx-live-pill"><span className="nx-live-dot" /> Información de tu operación</span>
       </div>
 
+      <section aria-label="Período de actividad e informes" className="space-y-2">
+        <div>
+          <h2 className="text-sm font-semibold">Período de actividad e informes</h2>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Controla movimientos, estadísticas de actividad y exportaciones.
+            Los indicadores de stock y los rankings globales muestran su propio alcance.
+          </p>
+        </div>
+      <div className="flex flex-wrap items-end gap-3 nx-dashboard-report-filters rounded-xl border bg-card p-4">
+        <div><label htmlFor="reporte-desde" className="block text-xs text-muted-foreground">Reporte desde</label><input id="reporte-desde" type="date" value={reporteDesde} max={reporteHasta} onChange={(e) => { setReporteDesde(e.target.value); setMovementPreset("custom"); }} className="mt-1 rounded-md border bg-background px-3 py-2 text-sm" /></div>
+        <div><label htmlFor="reporte-hasta" className="block text-xs text-muted-foreground">Hasta</label><input id="reporte-hasta" type="date" value={reporteHasta} min={reporteDesde} onChange={(e) => { setReporteHasta(e.target.value); setMovementPreset("custom"); }} className="mt-1 rounded-md border bg-background px-3 py-2 text-sm" /></div>
+        <div className="flex flex-wrap gap-2">
+          <Button type="button" disabled={reporteDesde > reporteHasta} onClick={exportarReporteOperativoExcel}>
+            <FileSpreadsheet className="mr-2 h-4 w-4" />Exportar a Excel (.xlsx)
+          </Button>
+          <Button type="button" variant="outline" disabled={reporteDesde > reporteHasta} onClick={exportarReporteOperativo}>
+            <Download className="mr-2 h-4 w-4" />Exportar CSV
+          </Button>
+        </div>
+      </div>
+        <p aria-label="Resumen del período" className="text-xs text-muted-foreground">
+          {formatNumber(resumenPeriodo.recepciones)} recepciones · {formatNumber(resumenPeriodo.pedidos)} pedidos registrados · {formatNumber(resumenPeriodo.garantias)} garantías recibidas durante el período.
+        </p>
+      </section>
+
       <section className="nx-kpi-section">
         <div className="grid min-w-0 gap-4 sm:grid-cols-2 2xl:grid-cols-4">
           <StatCard label={t("dashboard.available")} value={<AnimatedNumber value={data.kpis.available} formatter={formatNumber} />} hint={t("dashboard.availableHint")} icon={Boxes} tone="success" premium />
@@ -320,22 +354,13 @@ const Panel = () => {
         <Link to="/seriales" className="nx-hero-link">Consultar seriales <ArrowRight className="h-4 w-4" /></Link>
       </section>
 
+      <DashboardSiteOverview />
+
       </section>
 
       {/* 2 · Movimiento y estado de operaciones: el período también controla exportaciones. */}
       <section className="nx-dashboard-block nx-dashboard-block--movement space-y-4" aria-label="Movimiento de inventario">
-      <div className="flex flex-wrap items-end gap-3 nx-dashboard-report-filters rounded-xl border bg-card p-4">
-        <div><label htmlFor="reporte-desde" className="block text-xs text-muted-foreground">Reporte desde</label><input id="reporte-desde" type="date" value={reporteDesde} max={reporteHasta} onChange={(e) => { setReporteDesde(e.target.value); setMovementPreset("custom"); }} className="mt-1 rounded-md border bg-background px-3 py-2 text-sm" /></div>
-        <div><label htmlFor="reporte-hasta" className="block text-xs text-muted-foreground">Hasta</label><input id="reporte-hasta" type="date" value={reporteHasta} min={reporteDesde} onChange={(e) => { setReporteHasta(e.target.value); setMovementPreset("custom"); }} className="mt-1 rounded-md border bg-background px-3 py-2 text-sm" /></div>
-        <div className="flex flex-wrap gap-2">
-          <Button type="button" disabled={reporteDesde > reporteHasta} onClick={exportarReporteOperativoExcel}>
-            <FileSpreadsheet className="mr-2 h-4 w-4" />Exportar a Excel (.xlsx)
-          </Button>
-          <Button type="button" variant="outline" disabled={reporteDesde > reporteHasta} onClick={exportarReporteOperativo}>
-            <Download className="mr-2 h-4 w-4" />Exportar CSV
-          </Button>
-        </div>
-      </div>
+      <p className="text-xs text-muted-foreground">El período para la gráfica y las exportaciones se selecciona al principio del panel.</p>
 
       <div className="nx-dashboard-analytics">
         <section className="nx-analytics-card nx-movement-premium" aria-labelledby="inventory-movement-heading">
