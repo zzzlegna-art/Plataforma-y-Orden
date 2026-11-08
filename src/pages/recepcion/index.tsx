@@ -13,6 +13,7 @@ import {
   PackageCheck,
   PackagePlus,
   PencilLine,
+  Printer,
   X,
 } from "lucide-react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
@@ -67,6 +68,7 @@ const Recepciones = () => {
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<string>("");
   const [selected, setSelected] = useState<ReceptionRow | null>(null);
+  const [selectedUnitIds, setSelectedUnitIds] = useState<Set<string>>(new Set());
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   useEffect(() => {
     let active = true;
@@ -97,6 +99,51 @@ const Recepciones = () => {
     }, 200);
     return () => window.clearTimeout(timer);
   }, [selected, serialResaltado]);
+
+  useEffect(() => {
+    setSelectedUnitIds(new Set());
+  }, [selected?.reception.id]);
+
+  const alternarUnidad = (id: string) => {
+    setSelectedUnitIds((previous) => {
+      const next = new Set(previous);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const imprimirSeriales = (units: ReceptionRow["units"]) => {
+    if (!selected || units.length === 0) {
+      toast.error("No hay seriales para imprimir.");
+      return;
+    }
+
+    const escapeHtml = (value: string) =>
+      value.replace(/[&<>"']/g, (character) => ({
+        "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
+      })[character] ?? character);
+    const serialRows = units.map((unit, index) => {
+      const product = db.products.find((item) => item.id === unit.productId);
+      return `<tr><td>${index + 1}</td><td>${escapeHtml(unit.serial)}</td><td>${escapeHtml(product?.name ?? "—")}</td></tr>`;
+    }).join("");
+    const popup = window.open("", "_blank", "width=900,height=700");
+    if (!popup) {
+      toast.error("El navegador bloqueó la ventana de impresión. Permite las ventanas emergentes e inténtalo de nuevo.");
+      return;
+    }
+    popup.document.write(`<!doctype html><html lang="es"><head><meta charset="utf-8"><title>Seriales - ${escapeHtml(selected.reception.code)}</title><style>
+      @page{size:auto;margin:16mm}*{box-sizing:border-box}body{font:12px Arial,sans-serif;color:#111;margin:0}
+      h1{font-size:20px;margin:0 0 5px}p{margin:0 0 18px;color:#555}
+      table{width:100%;border-collapse:collapse}th,td{border:1px solid #bbb;padding:8px;text-align:left}
+      th{background:#f1f3f5;font-weight:700}.number{width:42px;text-align:center}
+      @media print{thead{display:table-header-group}tr{break-inside:avoid}}
+    </style></head><body><h1>Seriales de recepción ${escapeHtml(selected.reception.code)}</h1>
+      <p>${units.length} serial(es) · ${escapeHtml(formatDateTime(selected.reception.receivedAt))}</p>
+      <table><thead><tr><th class="number">#</th><th>Serial / IMEI</th><th>Producto</th></tr></thead><tbody>${serialRows}</tbody></table>
+      <script>window.addEventListener("load",()=>{window.focus();window.print();});<\/script></body></html>`);
+    popup.document.close();
+  };
 
   const cerrarPanel = () => {
     setSelected(null);
@@ -660,10 +707,41 @@ const Recepciones = () => {
               </p>
             ) : null}
 
-            <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-              <PackageCheck className="h-3.5 w-3.5" />
-              {t("receptions.unitsTitle", { count: selected?.units.length ?? 0 })}
-            </p>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                <PackageCheck className="h-3.5 w-3.5" />
+                {t("receptions.unitsTitle", { count: selected?.units.length ?? 0 })}
+              </p>
+              <div className="flex flex-wrap items-center gap-2">
+                <label className="flex cursor-pointer items-center gap-2 text-xs text-muted-foreground">
+                  <Checkbox
+                    aria-label="Seleccionar todos los seriales"
+                    checked={Boolean(selected?.units.length) && selectedUnitIds.size === (selected?.units.length ?? 0)}
+                    onCheckedChange={(checked) =>
+                      setSelectedUnitIds(checked ? new Set((selected?.units ?? []).map((unit) => unit.id)) : new Set())
+                    }
+                  />
+                  Seleccionar todos
+                </label>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  disabled={!selected?.units.length}
+                  onClick={() => imprimirSeriales(selected?.units ?? [])}
+                >
+                  <Printer className="h-4 w-4" /> Imprimir todos
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  disabled={selectedUnitIds.size === 0}
+                  onClick={() => imprimirSeriales((selected?.units ?? []).filter((unit) => selectedUnitIds.has(unit.id)))}
+                >
+                  <Printer className="h-4 w-4" /> Imprimir seleccionados ({selectedUnitIds.size})
+                </Button>
+              </div>
+            </div>
 
             <ul className="divide-y rounded-lg border">
               {(selected?.units ?? []).map((unit) => {
@@ -679,6 +757,11 @@ const Recepciones = () => {
                     )}
                   >
                     <div className="flex min-w-0 items-center gap-2">
+                      <Checkbox
+                        aria-label={`Seleccionar serial ${unit.serial}`}
+                        checked={selectedUnitIds.has(unit.id)}
+                        onCheckedChange={() => alternarUnidad(unit.id)}
+                      />
                       <ProductThumbnail src={product?.imageUrl} alt={product?.name ?? "Referencia"} size="sm" />
                       <div className="min-w-0">
                         <p className="font-tabular truncate text-sm">{unit.serial}</p>
