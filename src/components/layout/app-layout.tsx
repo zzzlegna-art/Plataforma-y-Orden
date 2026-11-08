@@ -41,7 +41,7 @@ export const AppLayout = () => {
   );
 
   return (
-    <div className="flex min-h-screen h-screen min-w-0 overflow-hidden bg-background">
+    <div className="flex min-h-[100svh] h-[100dvh] min-w-0 overflow-hidden bg-background">
       <aside className="sticky top-0 hidden h-screen w-[280px] shrink-0 border-r border-sidebar-border lg:flex lg:flex-col">
         <SidebarNav />
       </aside>
@@ -49,7 +49,7 @@ export const AppLayout = () => {
       <div className="flex min-h-0 min-w-0 flex-1 flex-col">
         <Topbar onOpenMenu={() => setMenuOpen(true)} nextSlot={workspace.slot!}
           nextFreeSlot={workspace.freeSlot} onOpenNext={workspace.openNext} />
-        <main className="nx-app-main min-h-0 flex-1 overflow-y-auto px-5 pb-12 pt-5 lg:px-8 lg:pb-14 lg:pt-7">
+        <main className="nx-app-main min-h-0 flex-1 overflow-y-auto overscroll-y-contain px-5 pb-[calc(6.25rem+env(safe-area-inset-bottom))] pt-4 lg:px-8 lg:pb-14 lg:pt-7">
           <div className="flex min-h-full w-full min-w-0 flex-col">
             {/* La clave es la ruta: al cambiar de pantalla entra con un fundido suave. */}
             <div key={pathname} className="page-enter flex w-full flex-1 flex-col">
