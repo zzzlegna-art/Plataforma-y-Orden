@@ -21,6 +21,7 @@ import { toast } from "sonner";
 
 import { DataTable } from "@/components/shared/data-table";
 import { ProductThumbnail } from "@/components/shared/product-thumbnail";
+import { PrintLabelsDialog } from "@/components/shared/print-labels-dialog";
 import { SearchField } from "@/components/shared/search-field";
 import { ConditionBadge, Badge } from "@/components/shared/status-badge";
 import { Button } from "@/components/ui/button";
@@ -51,6 +52,7 @@ import {
   exportSubtitle,
 } from "@/lib/export";
 import { formatDate, formatDateTime, todayIso } from "@/lib/format";
+import { imprimirEtiquetas } from "@/lib/print-labels";
 import { cn } from "@/lib/utils";
 import { getReceptionRows, type ReceptionRow } from "@/lib/selectors";
 import { listSuppliers, type Supplier } from "@/lib/suppliers";
@@ -69,6 +71,8 @@ const Recepciones = () => {
   const [status, setStatus] = useState<string>("");
   const [selected, setSelected] = useState<ReceptionRow | null>(null);
   const [selectedUnitIds, setSelectedUnitIds] = useState<Set<string>>(new Set());
+  const [unitsToPrint, setUnitsToPrint] = useState<ReceptionRow["units"]>([]);
+  const [printLabelsOpen, setPrintLabelsOpen] = useState(false);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   useEffect(() => {
     let active = true;
@@ -113,36 +117,20 @@ const Recepciones = () => {
     });
   };
 
-  const imprimirSeriales = (units: ReceptionRow["units"]) => {
-    if (!selected || units.length === 0) {
-      toast.error("No hay seriales para imprimir.");
-      return;
-    }
+  const prepararImpresionEtiquetas = (units: ReceptionRow["units"]) => {
+    if (units.length === 0) return;
+    setUnitsToPrint(units);
+    setPrintLabelsOpen(true);
+  };
 
-    const escapeHtml = (value: string) =>
-      value.replace(/[&<>"']/g, (character) => ({
-        "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
-      })[character] ?? character);
-    const serialRows = units.map((unit, index) => {
-      const product = db.products.find((item) => item.id === unit.productId);
-      return `<tr><td>${index + 1}</td><td>${escapeHtml(unit.serial)}</td><td>${escapeHtml(product?.name ?? "—")}</td></tr>`;
-    }).join("");
-    const popup = window.open("", "_blank", "width=900,height=700");
-    if (!popup) {
-      toast.error("El navegador bloqueó la ventana de impresión. Permite las ventanas emergentes e inténtalo de nuevo.");
-      return;
-    }
-    popup.document.write(`<!doctype html><html lang="es"><head><meta charset="utf-8"><title>Seriales - ${escapeHtml(selected.reception.code)}</title><style>
-      @page{size:auto;margin:16mm}*{box-sizing:border-box}body{font:12px Arial,sans-serif;color:#111;margin:0}
-      h1{font-size:20px;margin:0 0 5px}p{margin:0 0 18px;color:#555}
-      table{width:100%;border-collapse:collapse}th,td{border:1px solid #bbb;padding:8px;text-align:left}
-      th{background:#f1f3f5;font-weight:700}.number{width:42px;text-align:center}
-      @media print{thead{display:table-header-group}tr{break-inside:avoid}}
-    </style></head><body><h1>Seriales de recepción ${escapeHtml(selected.reception.code)}</h1>
-      <p>${units.length} serial(es) · ${escapeHtml(formatDateTime(selected.reception.receivedAt))}</p>
-      <table><thead><tr><th class="number">#</th><th>Serial / IMEI</th><th>Producto</th></tr></thead><tbody>${serialRows}</tbody></table>
-      <script>window.addEventListener("load",()=>{window.focus();window.print();});<\/script></body></html>`);
-    popup.document.close();
+  const confirmarImpresionEtiquetas = (nota: string) => {
+    const etiquetas = unitsToPrint.map((unit) => ({
+      producto: db.products.find((product) => product.id === unit.productId)?.name ?? unit.serial,
+      serial: unit.serial,
+      nota,
+    }));
+    imprimirEtiquetas(etiquetas);
+    setUnitsToPrint([]);
   };
 
   const cerrarPanel = () => {
@@ -728,7 +716,7 @@ const Recepciones = () => {
                   size="sm"
                   variant="outline"
                   disabled={!selected?.units.length}
-                  onClick={() => imprimirSeriales(selected?.units ?? [])}
+                  onClick={() => prepararImpresionEtiquetas(selected?.units ?? [])}
                 >
                   <Printer className="h-4 w-4" /> Imprimir todos
                 </Button>
@@ -736,7 +724,7 @@ const Recepciones = () => {
                   type="button"
                   size="sm"
                   disabled={selectedUnitIds.size === 0}
-                  onClick={() => imprimirSeriales((selected?.units ?? []).filter((unit) => selectedUnitIds.has(unit.id)))}
+                  onClick={() => prepararImpresionEtiquetas((selected?.units ?? []).filter((unit) => selectedUnitIds.has(unit.id)))}
                 >
                   <Printer className="h-4 w-4" /> Imprimir seleccionados ({selectedUnitIds.size})
                 </Button>
@@ -783,6 +771,13 @@ const Recepciones = () => {
           </div>
         </SheetContent>
       </Sheet>
+
+      <PrintLabelsDialog
+        open={printLabelsOpen}
+        onOpenChange={setPrintLabelsOpen}
+        count={unitsToPrint.length}
+        onConfirm={confirmarImpresionEtiquetas}
+      />
 
       <Dialog open={exportOpen} onOpenChange={setExportOpen}>
         <DialogContent className="sm:max-w-md">
