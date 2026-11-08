@@ -666,9 +666,9 @@ const Recepciones = () => {
       />
 
       <Sheet open={Boolean(selected)} onOpenChange={(open) => !open && cerrarPanel()}>
-        <SheetContent side="right" className="w-full overflow-y-auto pr-0 sm:max-w-md">
-          <SheetHeader className="pr-6">
-            <SheetTitle className="font-tabular">{selected?.reception.code}</SheetTitle>
+        <SheetContent side="right" className="w-full overflow-y-auto p-0 sm:max-w-xl">
+          <SheetHeader className="sticky top-0 z-10 border-b bg-background px-6 py-5 text-left">
+            <SheetTitle className="font-tabular text-lg">{selected?.reception.code}</SheetTitle>
             <SheetDescription>
               {t("receptions.confirmedAt", {
                 date: formatDateTime(selected?.reception.confirmedAt),
@@ -676,7 +676,7 @@ const Recepciones = () => {
             </SheetDescription>
           </SheetHeader>
 
-          <div className="mt-5 space-y-3 pr-6">
+          <div className="space-y-5 px-6 py-5">
             {selected ? (
               <div className="rounded-lg border bg-muted/30 p-3">
                 <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Proveedor</p>
@@ -695,13 +695,19 @@ const Recepciones = () => {
               </p>
             ) : null}
 
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                <PackageCheck className="h-3.5 w-3.5" />
-                {t("receptions.unitsTitle", { count: selected?.units.length ?? 0 })}
-              </p>
-              <div className="flex flex-wrap items-center gap-2">
-                <label className="flex cursor-pointer items-center gap-2 text-xs text-muted-foreground">
+            <section aria-label="Seriales de la recepción" className="space-y-3">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="flex items-center gap-2 text-sm font-semibold">
+                  <PackageCheck className="h-4 w-4 text-muted-foreground" />
+                  {t("receptions.unitsTitle", { count: selected?.units.length ?? 0 })}
+                </p>
+                <span className="text-xs text-muted-foreground">
+                  {selectedUnitIds.size} de {selected?.units.length ?? 0} seleccionados
+                </span>
+              </div>
+
+              <div className="space-y-3 rounded-xl border bg-muted/20 p-3">
+                <label className="flex min-h-9 cursor-pointer items-center gap-3 text-sm font-medium">
                   <Checkbox
                     aria-label="Seleccionar todos los seriales"
                     checked={Boolean(selected?.units.length) && selectedUnitIds.size === (selected?.units.length ?? 0)}
@@ -709,29 +715,33 @@ const Recepciones = () => {
                       setSelectedUnitIds(checked ? new Set((selected?.units ?? []).map((unit) => unit.id)) : new Set())
                     }
                   />
-                  Seleccionar todos
+                  <span>Seleccionar todos los seriales</span>
                 </label>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  disabled={!selected?.units.length}
-                  onClick={() => prepararImpresionEtiquetas(selected?.units ?? [])}
-                >
-                  <Printer className="h-4 w-4" /> Imprimir todos
-                </Button>
-                <Button
-                  type="button"
-                  size="sm"
-                  disabled={selectedUnitIds.size === 0}
-                  onClick={() => prepararImpresionEtiquetas((selected?.units ?? []).filter((unit) => selectedUnitIds.has(unit.id)))}
-                >
-                  <Printer className="h-4 w-4" /> Imprimir seleccionados ({selectedUnitIds.size})
-                </Button>
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                  <Button
+                    type="button"
+                    className="w-full"
+                    variant="outline"
+                    disabled={!selected?.units.length}
+                    onClick={() => prepararImpresionEtiquetas(selected?.units ?? [])}
+                  >
+                    <Printer className="h-4 w-4 shrink-0" />
+                    Imprimir todos
+                  </Button>
+                  <Button
+                    type="button"
+                    className="w-full"
+                    disabled={selectedUnitIds.size === 0}
+                    onClick={() => prepararImpresionEtiquetas((selected?.units ?? []).filter((unit) => selectedUnitIds.has(unit.id)))}
+                  >
+                    <Printer className="h-4 w-4 shrink-0" />
+                    Imprimir selección ({selectedUnitIds.size})
+                  </Button>
+                </div>
               </div>
-            </div>
+            </section>
 
-            <ul className="divide-y rounded-lg border">
+            <ul className="divide-y overflow-hidden rounded-xl border">
               {(selected?.units ?? []).map((unit) => {
                 const product = db.products.find((item) => item.id === unit.productId);
                 const resaltada = serialResaltado === unit.serial.toLowerCase();
@@ -740,19 +750,19 @@ const Recepciones = () => {
                     key={unit.id}
                     id={resaltada ? "unidad-resaltada" : undefined}
                     className={cn(
-                      "flex items-center justify-between gap-3 p-3 transition-colors",
+                      "flex items-center justify-between gap-3 p-3.5 transition-colors hover:bg-muted/30",
                       resaltada && "bg-primary/10 ring-1 ring-inset ring-primary/40",
                     )}
                   >
-                    <div className="flex min-w-0 items-center gap-2">
+                    <div className="flex min-w-0 items-center gap-3">
                       <Checkbox
                         aria-label={`Seleccionar serial ${unit.serial}`}
                         checked={selectedUnitIds.has(unit.id)}
                         onCheckedChange={() => alternarUnidad(unit.id)}
                       />
                       <ProductThumbnail src={product?.imageUrl} alt={product?.name ?? "Referencia"} size="sm" />
-                      <div className="min-w-0">
-                        <p className="font-tabular truncate text-sm">{unit.serial}</p>
+                      <div className="min-w-0 flex-1">
+                        <p className="font-tabular break-all text-sm font-medium tracking-tight">{unit.serial}</p>
                         {resaltada ? (
                           <p className="text-xs font-semibold text-primary">
                             {t("receptions.serialBuscado")}
@@ -763,7 +773,9 @@ const Recepciones = () => {
                         </p>
                       </div>
                     </div>
-                    <ConditionBadge condition={unit.condition} />
+                    <div className="shrink-0">
+                      <ConditionBadge condition={unit.condition} />
+                    </div>
                   </li>
                 );
               })}
