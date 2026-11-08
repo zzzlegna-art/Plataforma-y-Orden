@@ -1,14 +1,7 @@
-User-agent: Googlebot
-Allow: /
-
-User-agent: Bingbot
-Allow: /
-
-User-agent: Twitterbot
-Allow: /
-
-User-agent: facebookexternalhit
-Allow: /
-
+# La portada de NEXORA es publica. Las rutas privadas estan protegidas por
+# autenticacion y por la cabecera HTTP X-Robots-Tag: noindex.
+# No se bloquean aqui: Google necesita poder leer noindex en la respuesta.
 User-agent: *
 Allow: /
+
+Sitemap: https://nexora-zermay.vercel.app/sitemap.xml
