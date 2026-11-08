@@ -146,4 +146,18 @@ describe("panel premium sin cambiar la barra lateral", () => {
     fireEvent.change(filter, { target: { value: "7d" } });
     expect(filter.value).toBe("7d");
   });
+  it("distingue los pedidos globales de los celulares efectivamente despachados", () => {
+    open();
+    const pedidos = screen.getByRole("button", { name: "Pedidos globales" });
+    const despachados = screen.getByRole("button", { name: "Celulares despachados" });
+
+    expect(pedidos.getAttribute("aria-pressed")).toBe("true");
+    fireEvent.click(despachados);
+    expect(despachados.getAttribute("aria-pressed")).toBe("true");
+    expect(screen.getByText(/Solo pedidos con estado despachado registrados en NEXORA/)).toBeTruthy();
+    expect(screen.getByText(/sin históricos importados/)).toBeTruthy();
+    fireEvent.click(pedidos);
+    expect(pedidos.getAttribute("aria-pressed")).toBe("true");
+  });
+
 });
