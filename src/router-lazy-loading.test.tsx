@@ -7,6 +7,7 @@ import { beforeAll, describe, expect, it, vi } from "vitest";
 vi.mock("@/integrations/supabase/client", () => ({ supabase: {} }));
 
 type RouteEntry = {
+  index?: boolean;
   path?: string;
   element?: ReactNode;
   children?: RouteEntry[];
@@ -77,6 +78,24 @@ describe("carga diferida de NEXORA", () => {
   it("retains eager login and error pages", () => {
     expect(hasLazyPage(routes.find((route) => route.path === "/login")?.element)).toBe(false);
     expect(hasLazyPage(routes.find((route) => route.path === "*")?.element)).toBe(false);
+  });
+
+  it("makes the public homepage distinct from every authenticated module", () => {
+    const home = routes.find((entry) => entry.path === "/");
+    expect(home).toBeDefined();
+    expect(isValidElement(home?.element)).toBe(true);
+    expect(home?.children).toBeUndefined();
+
+    const protectedRoot = routes.find((entry) =>
+      !entry.path && isValidElement(entry.element) &&
+      (entry.element.type as { name?: string }).name === "RequireAuth",
+    );
+    expect(protectedRoot).toBeDefined();
+    const guardedChildren = collectRoutes(protectedRoot?.children ?? []);
+    for (const path of ["panel", "inventario", "pedidos", "garantias", "clientes", "administracion"]) {
+      expect(guardedChildren.some((entry) => entry.path === path)).toBe(true);
+    }
+    expect(guardedChildren.some((entry) => entry.index)).toBe(false);
   });
 
   it("keeps the role-aware inventory paths and their access protections", () => {

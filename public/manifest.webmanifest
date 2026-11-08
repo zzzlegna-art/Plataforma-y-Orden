@@ -4,7 +4,7 @@
   "short_name": "Nexora",
   "description": "Plataforma Nexora: inventario, seriales, recepción, pedidos, despachos y garantías.",
   "lang": "es",
-  "start_url": "/",
+  "start_url": "/panel",
   "scope": "/",
   "display": "standalone",
   "prefer_related_applications": false,
