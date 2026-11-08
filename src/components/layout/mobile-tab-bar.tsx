@@ -9,7 +9,10 @@ import { NAV_ITEMS } from "./nav-items";
 export const MobileTabBar = () => {
   const { t } = useTranslation();
   const { can } = usePermissions();
-  const items = NAV_ITEMS.filter((item) => item.primary && can(item.permission));
+  // En móvil dejamos cuatro accesos frecuentes; el resto sigue disponible
+  // en el menú lateral para no comprimir la navegación en pantallas pequeñas.
+  const rutasPrincipales = ["/panel", "/recepcion", "/inventario", "/pedidos"];
+  const items = NAV_ITEMS.filter((item) => rutasPrincipales.includes(item.to) && can(item.permission));
 
   return (
     <nav className="safe-bottom fixed inset-x-0 bottom-0 z-40 border-t bg-card/95 backdrop-blur lg:hidden">
@@ -20,7 +23,7 @@ export const MobileTabBar = () => {
             to={item.to}
             className={({ isActive }) =>
               cn(
-                "flex flex-1 flex-col items-center gap-1 px-1 py-2 text-[11px] font-medium transition-[color,transform] duration-150 active:scale-95 motion-reduce:transition-none motion-reduce:active:scale-100",
+                "flex min-h-16 flex-1 flex-col items-center justify-center gap-1 px-1 py-2 text-[11px] font-medium transition-[color,transform] duration-150 active:scale-95 motion-reduce:transition-none motion-reduce:active:scale-100",
                 isActive ? "text-primary" : "text-muted-foreground",
               )
             }
@@ -29,7 +32,7 @@ export const MobileTabBar = () => {
               <>
                 <span
                   className={cn(
-                    "flex h-8 w-12 items-center justify-center rounded-full transition-colors",
+                    "flex h-9 w-12 items-center justify-center rounded-full transition-colors",
                     isActive && "animate-pop-in bg-primary/12 motion-reduce:animate-none",
                   )}
                 >
