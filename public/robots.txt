@@ -1,14 +1,6 @@
-User-agent: Googlebot
-Allow: /
-
-User-agent: Bingbot
-Allow: /
-
-User-agent: Twitterbot
-Allow: /
-
-User-agent: facebookexternalhit
-Allow: /
-
+# NEXORA Smart Operations — solo se anuncia la portada pública.
+# Las rutas de la aplicación se sirven con noindex, nofollow.
 User-agent: *
 Allow: /
+
+Sitemap: https://nexora-zermay.vercel.app/sitemap.xml
