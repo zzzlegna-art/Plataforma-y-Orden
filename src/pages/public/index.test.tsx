@@ -19,7 +19,7 @@ describe("portada pública de NEXORA", () => {
       (link) => link.getAttribute("href") === "/login",
     );
     expect(loginLinks).toHaveLength(2);
-    expect(screen.getByAltText("Logotipo de NEXORA Smart Operations")).toBeTruthy();
+    expect(screen.getAllByAltText("Logotipo de NEXORA Smart Operations")).toHaveLength(2);
   });
 
   it("no publica información interna, registros ni interfaces administrativas", () => {
