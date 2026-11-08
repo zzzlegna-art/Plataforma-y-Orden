@@ -117,8 +117,8 @@ describe("panel premium sin cambiar la barra lateral", () => {
     expect(movement?.querySelectorAll(".nx-analytics-card")).toHaveLength(2);
     expect(summary?.querySelector(".nx-dashboard-report-filters")).toBeTruthy();
     expect(summary?.querySelector('[aria-label="Distribución del inventario por sede"]')).toBeTruthy();
-    expect(movement?.textContent).toContain("Exportar CSV");
-    expect(movement?.textContent).toContain("Exportar a Excel");
+    expect(summary?.textContent).toContain("Exportar CSV");
+    expect(summary?.textContent).toContain("Exportar a Excel");
     expect(performance?.querySelectorAll(".nx-ranking-card")).toHaveLength(2);
     expect(performance?.querySelector(".nx-operation-card")).toBeNull();
     expect(warranties?.querySelectorAll(".nx-warranty-kpi")).toHaveLength(4);
