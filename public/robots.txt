@@ -4,4 +4,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://nexora-zermay.vercel.app/sitemap.xml
+Sitemap: https://nexora-eight-rho-42.vercel.app/sitemap.xml
