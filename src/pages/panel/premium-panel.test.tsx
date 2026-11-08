@@ -46,6 +46,9 @@ vi.mock("recharts", () => {
   };
 });
 vi.mock("./rank-chart", () => ({ RankChart: () => <div>Ranking</div> }));
+vi.mock("./dashboard-site-overview", () => ({
+  DashboardSiteOverview: () => <div aria-label="Distribución del inventario por sede">Disponibilidad por sede</div>,
+}));
 
 import Panel from "./index";
 
@@ -113,9 +116,10 @@ describe("panel premium sin cambiar la barra lateral", () => {
     expect(summary?.querySelector('[aria-label="dashboard.inventoryValuationBreakdown"]')).toBeTruthy();
     expect(summary?.querySelectorAll(".nx-wide-stat")).toHaveLength(2);
     expect(movement?.querySelectorAll(".nx-analytics-card")).toHaveLength(2);
-    expect(movement?.querySelector(".nx-dashboard-report-filters")).toBeTruthy();
-    expect(movement?.textContent).toContain("Exportar CSV");
-    expect(movement?.textContent).toContain("Exportar a Excel");
+    expect(summary?.querySelector(".nx-dashboard-report-filters")).toBeTruthy();
+    expect(summary?.querySelector('[aria-label="Distribución del inventario por sede"]')).toBeTruthy();
+    expect(summary?.textContent).toContain("Exportar CSV");
+    expect(summary?.textContent).toContain("Exportar a Excel");
     expect(performance?.querySelectorAll(".nx-ranking-card")).toHaveLength(2);
     expect(performance?.querySelector(".nx-operation-card")).toBeNull();
     expect(warranties?.querySelectorAll(".nx-warranty-kpi")).toHaveLength(4);
@@ -133,6 +137,14 @@ describe("panel premium sin cambiar la barra lateral", () => {
     } finally {
       document.documentElement.classList.remove("dark");
     }
+  });
+
+  it("el rango de fechas muestra un resumen de actividad sin alterar los KPI de estado", () => {
+    open();
+    expect(screen.getByRole("region", { name: "Período de actividad e informes" })).toBeTruthy();
+    expect(screen.getByLabelText("Resumen del período").textContent).toContain("recepciones");
+    expect(screen.getByLabelText("Resumen del período").textContent).toContain("garantías recibidas");
+    expect(screen.getByRole("heading", { name: "Resumen de la operación" })).toBeTruthy();
   });
 
   it("permite cambiar el rango del gráfico sin perder el período personalizado", () => {
