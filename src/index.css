@@ -1237,3 +1237,59 @@ body {
     transform:none!important;
   }
 }
+
+
+/* NEXORA ANDROID — ajustes de uso táctil, viewport dinámico y teclado móvil. */
+@media (max-width: 1023px) {
+  html,
+  body,
+  #root {
+    height: 100%;
+    min-height: 100%;
+  }
+
+  .nx-app-main {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-y: contain;
+  }
+
+  /* Evita que el teclado virtual de Android haga zoom automático al enfocar campos. */
+  input:not([type="checkbox"]):not([type="radio"]),
+  textarea,
+  select,
+  [role="combobox"] {
+    font-size: 16px;
+  }
+}
+
+@media (max-width: 640px) {
+  .nx-app-topbar {
+    gap: .375rem;
+    padding-left: .625rem;
+    padding-right: .625rem;
+  }
+
+  .nx-app-main {
+    padding-left: .875rem;
+    padding-right: .875rem;
+  }
+
+  /* Los controles principales tienen una zona táctil cómoda sin agrandar iconos decorativos. */
+  .nx-app-main :is(input:not([type="checkbox"]):not([type="radio"]), select, [role="combobox"]) {
+    min-height: 2.75rem;
+  }
+
+  .nx-app-main textarea {
+    min-height: 5rem;
+  }
+
+  /* Tab bar compatible con la zona de gestos de Android. */
+  nav.fixed.inset-x-0.bottom-0 {
+    padding-bottom: max(env(safe-area-inset-bottom), .25rem);
+  }
+
+  /* Evita que las tablas anchas rompan el ancho de la pantalla: se desplazan dentro de su bloque. */
+  .nx-app-main table {
+    max-width: 100%;
+  }
+}
