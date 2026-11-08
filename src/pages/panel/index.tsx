@@ -606,11 +606,11 @@ const Panel = () => {
             </Link>
           </div>
           <div className="relative">
-            {rankingsLoading ? (
+            {mostrarRankingGlobal && rankingsLoading ? (
               <p className="rounded-xl border border-dashed px-4 py-8 text-center text-sm text-muted-foreground">
                 Consolidando pedidos históricos y operativos…
               </p>
-            ) : rankingsError ? (
+            ) : mostrarRankingGlobal && rankingsError ? (
               <p role="alert" className="rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-8 text-center text-sm text-muted-foreground">
                 No se pudo calcular el ranking global: {rankingsError}
               </p>
