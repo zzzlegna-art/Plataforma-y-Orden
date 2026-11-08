@@ -295,8 +295,34 @@ const Panel = () => {
           >
             <StatCard label={t("dashboard.lowStock")} value={<AnimatedNumber value={data.kpis.lowStockProducts} formatter={formatNumber} />} hint={t("dashboard.lowStockHint")} icon={TriangleAlert} tone={data.kpis.lowStockProducts > 0 ? "warning" : "success"} premium />
           </button>
-          <StatCard label={t("dashboard.inventoryValue")} value={<AnimatedNumber value={data.kpis.inventoryValue} formatter={formatCurrency} />} hint={t("dashboard.inventoryValueHint")} icon={Coins} tone="primary" monetaryValue premium />
+           <StatCard
+             label={data.kpis.inventoryValuation.missingUnits > 0
+               ? t("dashboard.inventoryValuePartial")
+               : t("dashboard.inventoryValue")}
+             value={<AnimatedNumber value={data.kpis.inventoryValue} formatter={formatCurrency} />}
+             hint={data.kpis.inventoryValuation.missingUnits > 0
+               ? t("dashboard.inventoryValueIncompleteHint", { count: data.kpis.inventoryValuation.missingUnits })
+               : t("dashboard.inventoryValueHint")}
+             icon={Coins} tone="primary" monetaryValue premium
+           />
         </div>
+         <div className="mt-3 grid gap-3 md:grid-cols-3" aria-label={t("dashboard.inventoryValuationBreakdown")}>
+           <div className="rounded-xl border bg-card/70 px-4 py-3">
+             <p className="text-xs font-medium text-muted-foreground">{t("dashboard.inventoryCostConfirmed")}</p>
+             <p className="mt-1 text-base font-bold tabular-nums">{formatCurrency(data.kpis.inventoryValuation.confirmed)}</p>
+             <p className="text-xs text-muted-foreground">{t("dashboard.inventoryCostUnits", { count: data.kpis.inventoryValuation.confirmedUnits })}</p>
+           </div>
+           <div className="rounded-xl border bg-card/70 px-4 py-3">
+             <p className="text-xs font-medium text-muted-foreground">{t("dashboard.inventoryCostReference")}</p>
+             <p className="mt-1 text-base font-bold tabular-nums">{formatCurrency(data.kpis.inventoryValuation.reference)}</p>
+             <p className="text-xs text-muted-foreground">{t("dashboard.inventoryCostUnits", { count: data.kpis.inventoryValuation.referenceUnits })}</p>
+           </div>
+           <div className="rounded-xl border border-warning/30 bg-warning/5 px-4 py-3">
+             <p className="text-xs font-medium text-muted-foreground">{t("dashboard.inventoryCostMissing")}</p>
+             <p className="mt-1 text-base font-bold tabular-nums">{formatNumber(data.kpis.inventoryValuation.missingUnits)}</p>
+             <p className="text-xs text-muted-foreground">{t("dashboard.inventoryCostMissingHint")}</p>
+           </div>
+         </div>
         <div className="mt-4 grid gap-4 sm:grid-cols-2">
           <Link to="/pedidos" className="nx-wide-stat">
             <div className="nx-wide-icon"><ClipboardList className="h-6 w-6" /></div>
