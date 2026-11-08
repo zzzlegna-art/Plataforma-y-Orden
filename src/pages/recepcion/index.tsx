@@ -71,6 +71,21 @@ const Recepciones = () => {
   const [status, setStatus] = useState<string>("");
   const [selected, setSelected] = useState<ReceptionRow | null>(null);
   const [selectedUnitIds, setSelectedUnitIds] = useState<Set<string>>(new Set());
+  // Ordena las unidades por referencia/modelo (12, 13, 14...) y luego por serial,
+  // sin mutar el arreglo original ni alterar la selección de casillas.
+  const unidadesOrdenadas = useMemo(() => {
+    const productos = new Map(db.products.map((product) => [product.id, product]));
+    const comparador = new Intl.Collator("es", { numeric: true, sensitivity: "base" });
+    return [...(selected?.units ?? [])].sort((a, b) => {
+      const productoA = productos.get(a.productId);
+      const productoB = productos.get(b.productId);
+      const referencia = comparador.compare(productoA?.name ?? "", productoB?.name ?? "");
+      if (referencia !== 0) return referencia;
+      const sku = comparador.compare(productoA?.sku ?? "", productoB?.sku ?? "");
+      if (sku !== 0) return sku;
+      return comparador.compare(a.serial, b.serial);
+    });
+  }, [selected?.units, db.products]);
   const [unitsToPrint, setUnitsToPrint] = useState<ReceptionRow["units"]>([]);
   const [printLabelsOpen, setPrintLabelsOpen] = useState(false);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
@@ -723,7 +738,7 @@ const Recepciones = () => {
                     className="w-full"
                     variant="outline"
                     disabled={!selected?.units.length}
-                    onClick={() => prepararImpresionEtiquetas(selected?.units ?? [])}
+                    onClick={() => prepararImpresionEtiquetas(unidadesOrdenadas)}
                   >
                     <Printer className="h-4 w-4 shrink-0" />
                     Imprimir todos
@@ -732,7 +747,7 @@ const Recepciones = () => {
                     type="button"
                     className="w-full"
                     disabled={selectedUnitIds.size === 0}
-                    onClick={() => prepararImpresionEtiquetas((selected?.units ?? []).filter((unit) => selectedUnitIds.has(unit.id)))}
+                    onClick={() => prepararImpresionEtiquetas(unidadesOrdenadas.filter((unit) => selectedUnitIds.has(unit.id)))}
                   >
                     <Printer className="h-4 w-4 shrink-0" />
                     Imprimir selección ({selectedUnitIds.size})
@@ -742,7 +757,7 @@ const Recepciones = () => {
             </section>
 
             <ul className="divide-y overflow-hidden rounded-xl border">
-              {(selected?.units ?? []).map((unit) => {
+              {unidadesOrdenadas.map((unit) => {
                 const product = db.products.find((item) => item.id === unit.productId);
                 const resaltada = serialResaltado === unit.serial.toLowerCase();
                 return (
