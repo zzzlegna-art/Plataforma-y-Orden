@@ -2,6 +2,10 @@
 import { Children, isValidElement, type ReactNode } from "react";
 import { beforeAll, describe, expect, it, vi } from "vitest";
 
+// La prueba inspecciona la configuración, no accede a datos remotos.
+// Evitar inicializar Supabase sin variables de producción en CI.
+vi.mock("@/integrations/supabase/client", () => ({ supabase: {} }));
+
 type RouteEntry = {
   path?: string;
   element?: ReactNode;
