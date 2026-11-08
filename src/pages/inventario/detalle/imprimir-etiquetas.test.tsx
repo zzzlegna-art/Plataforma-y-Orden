@@ -168,3 +168,64 @@ describe("Detalle de producto · elegir seriales e imprimir etiquetas", () => {
     expect(mocks.imprimirEtiquetas).not.toHaveBeenCalled();
   });
 });
+
+
+describe("Detalle de producto · búsqueda instantánea de seriales", () => {
+  it("filtra en tiempo real por cualquier fragmento del IMEI y restaura la lista al borrar", async () => {
+    const user = userEvent.setup();
+    dibujar();
+    const search = screen.getByRole("searchbox", {
+      name: "Buscar serial o IMEI en esta referencia",
+    });
+
+    await user.type(search, "6666");
+    expect(screen.getByText("354791666675724")).toBeTruthy();
+    expect(screen.queryByText("359175923749557")).toBeNull();
+    expect(screen.queryByText("357065942117702")).toBeNull();
+    expect(screen.getByText("1 de 3 seriales")).toBeTruthy();
+
+    await user.clear(search);
+    expect(screen.getByText("359175923749557")).toBeTruthy();
+    expect(screen.getByText("354791666675724")).toBeTruthy();
+    expect(screen.getByText("357065942117702")).toBeTruthy();
+  });
+
+  it("muestra un estado vacío cuando no hay coincidencias y permite limpiar el filtro", async () => {
+    const user = userEvent.setup();
+    dibujar();
+    await user.type(
+      screen.getByRole("searchbox", { name: "Buscar serial o IMEI en esta referencia" }),
+      "no-existe-imei",
+    );
+    expect(screen.getByText("No hay seriales que coincidan")).toBeTruthy();
+    expect(screen.getByText("0 de 3 seriales")).toBeTruthy();
+    expect(screen.queryByText("359175923749557")).toBeNull();
+
+    await user.click(screen.getAllByRole("button", { name: "Limpiar búsqueda de seriales" })[0]);
+    expect(screen.getByText("359175923749557")).toBeTruthy();
+  });
+
+  it("conserva la selección entre búsquedas e imprime todos los seriales elegidos", async () => {
+    const user = userEvent.setup();
+    dibujar();
+    const search = screen.getByRole("searchbox", {
+      name: "Buscar serial o IMEI en esta referencia",
+    });
+
+    await user.type(search, "359175");
+    await user.click(casillaDe("359175923749557"));
+    await user.clear(search);
+    await user.type(search, "354791");
+    await user.click(casillaDe("354791666675724"));
+
+    expect(screen.getByText(/2 elegidos/)).toBeTruthy();
+    await user.click(botonImprimir());
+    await user.click(
+      within(await screen.findByRole("dialog")).getByRole("button", { name: "Imprimir etiqueta" }),
+    );
+    expect(mocks.imprimirEtiquetas).toHaveBeenCalledWith([
+      { producto: "Apple iPhone 12 - 128 GB", serial: "359175923749557", nota: "" },
+      { producto: "Apple iPhone 12 - 128 GB", serial: "354791666675724", nota: "" },
+    ]);
+  });
+});
