@@ -1,7 +1,6 @@
 // @vitest-environment jsdom
 import { Children, isValidElement, type ReactNode } from "react";
-import { describe, expect, it } from "vitest";
-import { routers } from "./router";
+import { beforeAll, describe, expect, it, vi } from "vitest";
 
 type RouteEntry = {
   path?: string;
@@ -24,7 +23,29 @@ const hasLazyPage = (element: ReactNode): boolean => {
 };
 
 describe("carga diferida de NEXORA", () => {
-  const routes = collectRoutes(routers as unknown as RouteEntry[]);
+  let routes: RouteEntry[];
+
+  beforeAll(async () => {
+    // JSDOM no implementa matchMedia, requerido por el gestor PWA del login.
+    // Registrar el stub antes de importar el router evita ejecutar ese gestor
+    // con APIs ausentes y permite probar realmente sus rutas.
+    Object.defineProperty(window, "matchMedia", {
+      configurable: true,
+      writable: true,
+      value: vi.fn().mockImplementation((query: string) => ({
+        matches: false,
+        media: query,
+        onchange: null,
+        addListener: vi.fn(),
+        removeListener: vi.fn(),
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+        dispatchEvent: vi.fn(),
+      })),
+    });
+    const { routers } = await import("./router");
+    routes = collectRoutes(routers as unknown as RouteEntry[]);
+  });
 
   it.each([
     "panel",
