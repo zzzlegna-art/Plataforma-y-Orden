@@ -21,6 +21,7 @@ import type {
 import { isOpenWarranty } from "./actions/warranties";
 import { esProductoRepuesto } from "./products";
 import { getMonthToDateEntryComparison } from "./dashboard-kpi-trends";
+import { calculateInventoryValuation, type InventoryValuationBreakdown } from "./dashboard-inventory-valuation";
 import { coincideBusquedaInventario } from "./inventory-search";
 
 /**
@@ -791,6 +792,7 @@ export interface DashboardData {
     receivedThisMonth: number;
     receivedPreviousComparablePeriod: number;
     inventoryValue: number;
+    inventoryValuation: InventoryValuationBreakdown;
   };
   lowStock: ProductRow[];
   /** Celulares con menos de STOCK_BAJO_CELULARES unidades disponibles, por condición. */
@@ -821,20 +823,10 @@ export const getDashboard = (db: Db): DashboardData => {
     (unit) => !descontadas.has(unit.id) && (unit.status === "en_bodega" || unit.status === "en_local"),
   ).length;
   const fueraPorGarantia = unidadesFueraPorGarantia(db);
-  const inventoryValue = db.units
-    .filter(
-      (unit) =>
-        !fueraPorGarantia.has(unit.id) &&
-        !descontadas.has(unit.id) &&
-        (unit.status === "en_bodega" ||
-          unit.status === "en_local" ||
-          unit.status === "en_reparacion" ||
-          unit.status === "defectuoso"),
-    )
-    .reduce((sum, unit) => {
-      const product = productos.get(unit.productId);
-      return sum + (unit.cost ?? product?.cost ?? 0);
-    }, 0);
+  const inventoryValuation = calculateInventoryValuation(
+    db.units, db.products, fueraPorGarantia, descontadas,
+  );
+  const inventoryValue = inventoryValuation.total;
 
   const receivedComparison = getMonthToDateEntryComparison(db.movements);
 
@@ -927,6 +919,7 @@ export const getDashboard = (db: Db): DashboardData => {
       receivedThisMonth: receivedComparison.current,
       receivedPreviousComparablePeriod: receivedComparison.previous,
       inventoryValue,
+      inventoryValuation,
     },
     lowStock: rows
       .filter((row) => row.product.isActive && row.stock.lowStock)

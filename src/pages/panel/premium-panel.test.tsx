@@ -110,6 +110,7 @@ describe("panel premium sin cambiar la barra lateral", () => {
     const performance = container.querySelector(".nx-dashboard-block--performance");
     const warranties = container.querySelector(".nx-dashboard-block--warranties");
     expect(summary?.querySelectorAll(".nx-premium-stat-card")).toHaveLength(4);
+    expect(summary?.querySelector('[aria-label="dashboard.inventoryValuationBreakdown"]')).toBeTruthy();
     expect(summary?.querySelectorAll(".nx-wide-stat")).toHaveLength(2);
     expect(movement?.querySelectorAll(".nx-analytics-card")).toHaveLength(2);
     expect(movement?.querySelector(".nx-dashboard-report-filters")).toBeTruthy();
