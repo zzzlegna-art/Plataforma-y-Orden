@@ -26,7 +26,9 @@ describe("indexación de NEXORA sin exponer la plataforma", () => {
       name: "NEXORA Smart Operations",
       url: site,
     });
-    expect(html).not.toContain("google-site-verification");
+    const head = html.match(/<head>([\s\S]*?)<\/head>/)?.[1] ?? "";
+    expect(head).toContain('<meta name="google-site-verification" content="8uyXkW8QIPKPx_s0pq6ibLIK-3Jb06XMPLwNEMbgv50" />');
+    expect((html.match(/name="google-site-verification"/g) ?? [])).toHaveLength(1);
   });
 
   it("anuncia un sitemap con la portada como única URL pública", () => {
