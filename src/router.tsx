@@ -6,6 +6,7 @@ import { RequireSupplierReception } from "./components/auth/require-supplier-rec
 import { AppLayout } from "./components/layout/app-layout";
 import { useApp } from "./hooks/use-app";
 import Login from "./pages/login";
+import PublicLanding from "./pages/public";
 import NotFound from "./pages/NotFound";
 
 // Only load the pages needed for the current route. Keep authentication,
@@ -41,22 +42,23 @@ const InventoryByRole=({ serials=false }:{serials?:boolean})=>{
 
 export const routers = [
   {
+    path: "/",
+    name: "public-home",
+    element: <PublicLanding />,
+  },
+  {
     path: "/login",
     name: "login",
     element: <Login />,
   },
   {
-    path: "/",
+    // All operational routes stay behind the same authentication gate.
+    // The public root above is intentionally NOT nested here.
     element: <RequireAuth />,
     children: [
       {
         element: <AppLayout />,
         children: [
-          {
-            index: true,
-            name: "home",
-            element: <Navigate to="/panel" replace />,
-          },
           {
             path: "panel",
             name: "panel",
