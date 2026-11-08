@@ -26,7 +26,7 @@ describe("indexación de NEXORA sin exponer la plataforma", () => {
       name: "NEXORA Smart Operations",
       url: site,
     });
-    expect(html).not.toContain("google-site-verification");
+    expect(html).toContain('<meta name="google-site-verification" content="8uyXkW8QIPKPx_s0pq6ibLIK-3Jb06XMPLwNEMbgv50" />');
   });
 
   it("anuncia un sitemap con la portada como única URL pública", () => {
