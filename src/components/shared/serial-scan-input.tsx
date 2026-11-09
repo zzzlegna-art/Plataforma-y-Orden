@@ -92,7 +92,7 @@ const loadLiveOcr = (): Promise<LiveOcrApi> => {
 };
 
 const isValidImei = (value: string): boolean => {
-  if (!/^\\d{15}$/.test(value)) return false;
+  if (!/^\d{15}$/.test(value)) return false;
   let sum = 0;
   for (let index = 0; index < value.length; index += 1) {
     let digit = Number(value[index]);
@@ -106,7 +106,7 @@ const isValidImei = (value: string): boolean => {
 };
 
 const extractValidImei = (text: string): string | null => {
-  const digits = text.replace(/\\D/g, "");
+  const digits = text.replace(/\D/g, "");
   for (let index = 0; index <= digits.length - 15; index += 1) {
     const candidate = digits.slice(index, index + 15);
     if (isValidImei(candidate)) return candidate;
