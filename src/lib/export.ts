@@ -288,12 +288,11 @@ export const exportOrderSerialRelationPdf = ({
   const bottom = pageH - FOOTER_SPACE;
   // Cuatro columnas permiten IMEI más grandes y legibles en impresión A4.
   const columns = 4;
-  // Cada IMEI ocupa ~85 pt con Courier bold a 9.4 pt. Dejamos solo
-  // 18 pt entre columnas y centramos el bloque para evitar huecos excesivos.
+  // IMEI en cuatro columnas compactas, alineadas al inicio de la tarjeta.
+  // Así quedan claramente debajo de la referencia y no invaden su encabezado.
   const serialCellWidth = 85;
   const serialColumnGap = 18;
-  const serialGridWidth = columns * serialCellWidth + (columns - 1) * serialColumnGap;
-  const serialGridStart = margin + (width - serialGridWidth) / 2;
+  const serialGridStart = margin + 10;
   const company = exportCompanyName(companyName);
   const totalUnits = lines.reduce((sum, line) => sum + line.quantity, 0);
   const totalSerials = lines
@@ -373,7 +372,8 @@ export const exportOrderSerialRelationPdf = ({
     chunks.forEach((chunk, chunkIndex) => {
       const chunkRows = chunk.length ? Math.ceil(chunk.length / columns) : 1;
       const headerText = chunkIndex === 0 ? titleLines : doc.splitTextToSize(`${line.reference} — continuación de IMEI`, width - 22) as string[];
-      const headerH = Math.max(15, headerText.length * 10 + 5);
+      // Reservar altura suficiente para el encabezado antes de dibujar los IMEI.
+      const headerH = Math.max(20, headerText.length * 11 + 8);
       const cardH = headerH + chunkRows * serialRowHeight + 10;
       if (y + cardH > bottom) newPage();
 
@@ -402,7 +402,7 @@ export const exportOrderSerialRelationPdf = ({
           const col = index % columns;
           const row = Math.floor(index / columns);
           const x = serialGridStart + col * (serialCellWidth + serialColumnGap);
-          const textY = y + headerH + 12 + row * serialRowHeight;
+          const textY = y + headerH + 13 + row * serialRowHeight;
           doc.text(serial, x, textY, { maxWidth: serialCellWidth });
         });
       }
