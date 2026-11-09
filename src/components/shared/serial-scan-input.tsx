@@ -24,6 +24,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 
 const HINTS = new Map<DecodeHintType, unknown>();
 HINTS.set(DecodeHintType.POSSIBLE_FORMATS, [
@@ -289,6 +290,7 @@ export const SerialScanInput = ({
   const [value, setValue] = useState("");
   const [cameraOn, setCameraOn] = useState(false);
   const [cameraError, setCameraError] = useState(false);
+  const [sessionScans, setSessionScans] = useState<string[]>([]);
   const [torch, setTorch] = useState(false);
   const [torchAvailable, setTorchAvailable] = useState(false);
   const cameraSupported =
@@ -373,6 +375,7 @@ export const SerialScanInput = ({
       // Vibración no disponible (p. ej. iPhone).
     }
     if (soundOnRef.current) playBeep();
+    setSessionScans((current) => [serial, ...current].slice(0, 4));
     setFeedback({ id: Date.now(), serial });
     if (feedbackTimerRef.current) window.clearTimeout(feedbackTimerRef.current);
     feedbackTimerRef.current = window.setTimeout(() => setFeedback(null), 1400);
@@ -623,16 +626,9 @@ export const SerialScanInput = ({
             {submitLabel ?? t("scan.add")}
           </Button>
           {cameraSupported ? (
-            <Button
-              type="button"
-              variant={cameraOn ? "secondary" : "outline"}
-              onClick={() => {
-                if (cameraOn) stopCamera();
-                else setCameraOn(true);
-              }}
-            >
-              {cameraOn ? <CameraOff /> : <Camera />}
-              {t(cameraOn ? "scan.cameraStop" : "scan.scanWithCamera")}
+            <Button type="button" variant="outline" className="min-h-12 flex-1" onClick={() => setCameraOn(true)}>
+              <Camera className="mr-2 h-5 w-5" />
+              {t("scan.scanWithCamera")}
             </Button>
           ) : null}
         </div>
@@ -665,115 +661,91 @@ export const SerialScanInput = ({
             />
           </div>
           {cameraSupported ? (
-            <Button
-              type="button"
-              variant={cameraOn ? "secondary" : "outline"}
-              size="icon"
-              aria-label={t("scan.camera")}
-              title={t("scan.camera")}
-              onClick={() => {
-                if (cameraOn) stopCamera();
-                else setCameraOn(true);
-              }}
-            >
-              {cameraOn ? <CameraOff /> : <Camera />}
+            <Button type="button" variant="outline" size="icon" aria-label={t("scan.camera")} title={t("scan.camera")} onClick={() => setCameraOn(true)}>
+              <Camera />
             </Button>
           ) : null}
         </div>
       ) : null}
 
-      {cameraOn ? (
-        <div className="relative overflow-hidden rounded-lg border bg-foreground/5">
-          <video
-            ref={videoRef}
-            playsInline
-            muted
-            className="aspect-video w-full object-cover"
-          />
-          {/* Recuadro de lectura: solo lo que entra aquí se analiza; el resto se oscurece. */}
-          <div
-            ref={frameRef}
-            className={cn(
-              "pointer-events-none absolute inset-x-5 inset-y-8 rounded-xl border-2 shadow-[0_0_0_9999px_hsl(var(--background)/0.55)] transition-colors duration-300",
-              feedback?.error
-                ? "border-destructive bg-destructive/20"
-                : feedback
-                  ? "border-success bg-success/15"
-                  : "border-primary/80",
-            )}
-          />
-          {feedback ? (
-            <div
-              key={feedback.id}
-              className="pointer-events-none absolute inset-0 flex items-center justify-center"
-            >
-              <span
-                className={cn(
-                  "flex h-14 w-14 animate-pop-in items-center justify-center rounded-full shadow-lg motion-reduce:animate-none",
-                  feedback.error
-                    ? "bg-destructive text-destructive-foreground"
-                    : "bg-success text-success-foreground",
-                )}
-              >
-                {feedback.error ? (
-                  <X className="h-8 w-8" strokeWidth={3} />
-                ) : (
-                  <Check className="h-8 w-8" strokeWidth={3} />
-                )}
-              </span>
+
+      <Dialog open={cameraOn} onOpenChange={(open) => { if (!open) stopCamera(); else setCameraOn(true); }}>
+        <DialogContent
+          onOpenAutoFocus={(event) => event.preventDefault()}
+          className="fixed inset-0 left-0 top-0 z-[100] flex h-[100dvh] w-screen max-w-none translate-x-0 translate-y-0 flex-col gap-0 overflow-hidden rounded-none border-0 bg-black p-0 text-white shadow-none sm:rounded-none max-sm:bottom-auto max-sm:left-0 max-sm:top-0 max-sm:h-[100dvh] max-sm:max-h-none max-sm:max-w-none max-sm:translate-x-0 max-sm:translate-y-0 max-sm:overflow-hidden max-sm:rounded-none max-sm:pb-0"
+        >
+          <DialogTitle className="sr-only">Escáner de recepción Nexora</DialogTitle>
+          <DialogDescription className="sr-only">Cámara en vivo para leer IMEI y códigos de barras. El análisis se realiza en el dispositivo.</DialogDescription>
+          <div className="relative z-10 flex shrink-0 items-center justify-between gap-3 border-b border-white/10 bg-black/80 px-4 pb-3 pt-[calc(env(safe-area-inset-top)+0.85rem)]">
+            <div className="min-w-0">
+              <p className="text-sm font-semibold tracking-wide">NEXORA · ESCÁNER</p>
+              <p className="mt-0.5 text-xs text-white/60">Apunta al IMEI o al código de barras</p>
             </div>
-          ) : null}
-          <Button
-            type="button"
-            variant="secondary"
-            size="icon"
-            className="absolute left-2 top-2"
-            aria-label={soundOn ? t("scan.soundOff") : t("scan.soundOn")}
-            title={soundOn ? t("scan.soundOff") : t("scan.soundOn")}
-            onClick={toggleSound}
-          >
-            {soundOn ? <Volume2 /> : <VolumeX />}
-          </Button>
-          {cameraError ? (
-            <div className="absolute inset-0 flex items-center justify-center bg-background/80 p-4 text-center text-sm text-destructive">
-              {t("scan.cameraError")}
+            <div className="flex items-center gap-2">
+              <span className="rounded-full bg-white/10 px-3 py-1.5 text-xs font-medium tabular-nums">{sessionScans.length} recientes</span>
+              <Button type="button" variant="secondary" size="icon" className="h-10 w-10 rounded-full bg-white/15 text-white hover:bg-white/25" aria-label="Cerrar escáner" onClick={stopCamera}>
+                <CameraOff className="h-5 w-5" />
+              </Button>
             </div>
-          ) : null}
-          {torchAvailable && !cameraError ? (
-            <Button
-              type="button"
-              variant={torch ? "default" : "secondary"}
-              size="icon"
-              className="absolute right-2 top-2"
-              aria-label={t("scan.torch")}
-              title={t("scan.torch")}
-              onClick={() => applyTorch(!torch)}
-            >
-              <Flashlight />
-            </Button>
-          ) : null}
-          <div
-            className={cn(
-              "absolute inset-x-0 bottom-0 px-3 py-1.5 text-center text-xs backdrop-blur transition-colors duration-300",
-              feedback?.error
-                ? "bg-destructive/90 font-medium text-destructive-foreground"
-                : feedback
-                  ? "bg-success/90 font-medium text-success-foreground"
-                  : "bg-background/70 text-foreground",
-            )}
-          >
-            {feedback?.error ? (
-              <span>{feedback.error}</span>
-            ) : feedback ? (
-              <span className="font-tabular">
-                {t("scan.read")}: {feedback.serial}
-              </span>
-            ) : (
-              t("scan.scanning")
-            )}
           </div>
-        </div>
-      ) : null}
+          <div className="relative min-h-0 flex-1 overflow-hidden bg-black">
+            <video ref={videoRef} playsInline muted className="absolute inset-0 h-full w-full object-cover" />
+            <div className="pointer-events-none absolute inset-0 bg-black/20" />
+            <div
+              ref={frameRef}
+              className={cn(
+                "pointer-events-none absolute left-[7%] right-[7%] top-1/2 h-[23%] -translate-y-1/2 rounded-2xl border-[3px] shadow-[0_0_0_9999px_rgba(0,0,0,0.48)] transition-colors duration-200",
+                feedback?.error ? "border-red-400 bg-red-500/10" : feedback ? "border-emerald-400 bg-emerald-400/10" : "border-cyan-300",
+              )}
+            >
+              <span className="absolute -left-[3px] -top-[3px] h-7 w-7 rounded-tl-xl border-l-[5px] border-t-[5px] border-current" />
+              <span className="absolute -right-[3px] -top-[3px] h-7 w-7 rounded-tr-xl border-r-[5px] border-t-[5px] border-current" />
+              <span className="absolute -bottom-[3px] -left-[3px] h-7 w-7 rounded-bl-xl border-b-[5px] border-l-[5px] border-current" />
+              <span className="absolute -bottom-[3px] -right-[3px] h-7 w-7 rounded-br-xl border-b-[5px] border-r-[5px] border-current" />
+              {!feedback ? <span className="absolute inset-x-4 top-1/2 h-px animate-pulse bg-cyan-200/90 shadow-[0_0_12px_rgba(103,232,249,0.9)]" /> : null}
+            </div>
+            {feedback ? (
+              <div key={feedback.id} className="pointer-events-none absolute inset-0 flex items-center justify-center">
+                <div className={cn("flex max-w-[85%] flex-col items-center gap-2 rounded-2xl px-5 py-4 text-center shadow-2xl backdrop-blur-md", feedback.error ? "bg-red-500/90 text-white" : "bg-emerald-500/90 text-white")}>
+                  {feedback.error ? <X className="h-9 w-9" /> : <Check className="h-9 w-9" />}
+                  <span className="text-sm font-bold">{feedback.error ? "NO VÁLIDO" : "LECTURA CORRECTA"}</span>
+                  <span className="break-all font-mono text-base font-semibold">{feedback.serial}</span>
+                  {feedback.error ? <span className="text-xs">Revisa el enfoque e inténtalo otra vez</span> : null}
+                </div>
+              </div>
+            ) : null}
+            {cameraError ? <div className="absolute inset-0 flex items-center justify-center bg-black/85 p-6 text-center text-sm text-red-300">{t("scan.cameraError")}</div> : null}
+            <div className="pointer-events-none absolute inset-x-0 bottom-5 text-center">
+              <span className="rounded-full bg-black/55 px-4 py-2 text-xs font-medium text-white/90 backdrop-blur">
+                {feedback?.error ? "No se agregó · vuelve a intentarlo" : feedback ? "Agregado a la recepción" : "Centra el código dentro del recuadro"}
+              </span>
+            </div>
+          </div>
+          <div className="shrink-0 space-y-3 border-t border-white/10 bg-[#090b10] px-4 pb-[calc(env(safe-area-inset-bottom)+1rem)] pt-3">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex min-w-0 items-center gap-2">
+                <span className={cn("h-2.5 w-2.5 shrink-0 rounded-full", cameraError ? "bg-red-400" : "animate-pulse bg-emerald-400")} />
+                <span className="truncate text-xs text-white/75">{cameraError ? "Cámara no disponible" : "Cámara activa · lectura continua"}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button type="button" variant="ghost" size="icon" className="h-10 w-10 rounded-full text-white hover:bg-white/10 hover:text-white" aria-label={soundOn ? t("scan.soundOff") : t("scan.soundOn")} onClick={toggleSound}>
+                  {soundOn ? <Volume2 /> : <VolumeX />}
+                </Button>
+                {torchAvailable ? <Button type="button" variant={torch ? "secondary" : "ghost"} size="icon" className="h-10 w-10 rounded-full text-white hover:bg-white/10 hover:text-white" aria-label={t("scan.torch")} onClick={() => applyTorch(!torch)}><Flashlight /></Button> : null}
+              </div>
+            </div>
+            {sessionScans.length > 0 ? (
+              <div className="flex items-center gap-2 overflow-hidden">
+                <span className="shrink-0 text-[10px] font-semibold uppercase tracking-wider text-white/40">Últimas</span>
+                <div className="flex min-w-0 flex-1 gap-2 overflow-hidden">
+                  {sessionScans.slice(0, 3).map((serial) => <span key={serial} className="truncate rounded-md bg-white/10 px-2 py-1 font-mono text-[11px] text-emerald-200">{serial}</span>)}
+                </div>
+              </div>
+            ) : null}
+            <p className="text-center text-[11px] text-white/45">No se toman ni se suben fotos. Nexora analiza la cámara en tiempo real en este dispositivo.</p>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {cameraError && !cameraOn ? (
         <p className="text-xs text-destructive">{t("scan.cameraError")}</p>
