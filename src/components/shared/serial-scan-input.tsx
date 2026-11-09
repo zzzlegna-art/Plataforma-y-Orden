@@ -5,7 +5,6 @@ import {
   CameraOff,
   Check,
   Flashlight,
-  ImagePlus,
   Plus,
   ScanLine,
   Volume2,
@@ -195,7 +194,6 @@ export const SerialScanInput = ({
   const inputRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const controlsRef = useRef<ScanControls | null>(null);
-  const photoInputRef = useRef<HTMLInputElement>(null);
   const frameRef = useRef<HTMLDivElement>(null);
   // En celular/tablet (puntero táctil) no se enfoca el campo solo: abriría el teclado.
   const touchDeviceRef = useRef(
@@ -230,8 +228,6 @@ export const SerialScanInput = ({
   const [cameraError, setCameraError] = useState(false);
   const [torch, setTorch] = useState(false);
   const [torchAvailable, setTorchAvailable] = useState(false);
-  const [photoBusy, setPhotoBusy] = useState(false);
-  const [photoError, setPhotoError] = useState(false);
   const cameraSupported =
     typeof navigator !== "undefined" &&
     Boolean(navigator.mediaDevices?.getUserMedia);
@@ -378,44 +374,6 @@ export const SerialScanInput = ({
       });
   }, []);
 
-  /** Lee un código desde una foto tomada con la cámara del celular (enfoca y da más detalle que el video). */
-  const readPhoto = useCallback(
-    async (file: File) => {
-      setPhotoBusy(true);
-      setPhotoError(false);
-      let text: string | null = null;
-      try {
-        const detector = createNativeDetector();
-        if (detector) {
-          try {
-            const bitmap = await createImageBitmap(file);
-            const codes = await detector.detect(bitmap);
-            bitmap.close();
-            text = codes[0]?.rawValue ?? null;
-          } catch {
-            text = null;
-          }
-        }
-        if (!text) {
-          const url = URL.createObjectURL(file);
-          try {
-            const result = await new BrowserMultiFormatReader(HINTS).decodeFromImageUrl(url);
-            text = result.getText();
-          } catch {
-            text = null;
-          } finally {
-            URL.revokeObjectURL(url);
-          }
-        }
-        if (text) submit(text);
-        else setPhotoError(true);
-      } finally {
-        setPhotoBusy(false);
-        if (photoInputRef.current) photoInputRef.current.value = "";
-      }
-    },
-    [submit],
-  );
 
   useEffect(() => {
     if (autoFocus && !disabled && !touchDeviceRef.current) inputRef.current?.focus();
@@ -486,7 +444,7 @@ export const SerialScanInput = ({
             useNative && native
               ? native
                   .detect(canvas)
-                  .then((codes) => codes[0]?.rawValue ?? null)
+                  .then((codes) => codes.map((code) => code.rawValue).filter(Boolean).join("\n") || null)
                   .catch(() => {
                     // El detector nativo falló: se sigue con ZXing.
                     useNative = false;
@@ -495,7 +453,7 @@ export const SerialScanInput = ({
               : Promise.resolve(decodeCanvas(zxing, canvas));
           void read
             .then((text) => {
-              if (text && active) handleCameraRead(text);
+              if (text && active) text.split("\n").forEach((value) => handleCameraRead(value));
             })
             .finally(() => {
               busy = false;
@@ -574,18 +532,6 @@ export const SerialScanInput = ({
               {t(cameraOn ? "scan.cameraStop" : "scan.scanWithCamera")}
             </Button>
           ) : null}
-          {hidePhoto ? null : (
-            <Button
-              type="button"
-              variant="outline"
-              disabled={disabled || photoBusy}
-              loading={photoBusy}
-              onClick={() => photoInputRef.current?.click()}
-            >
-              <ImagePlus />
-              {t("scan.photo")}
-            </Button>
-          )}
         </div>
       ) : null}
 
@@ -630,34 +576,8 @@ export const SerialScanInput = ({
               {cameraOn ? <CameraOff /> : <Camera />}
             </Button>
           ) : null}
-          {hidePhoto ? null : (
-            <Button
-              type="button"
-              variant="outline"
-              size="icon"
-              disabled={disabled || photoBusy}
-              aria-label={t("scan.photo")}
-              title={t("scan.photo")}
-              onClick={() => photoInputRef.current?.click()}
-            >
-              <ImagePlus />
-            </Button>
-          )}
         </div>
       ) : null}
-
-      {/* Abre la cámara nativa del celular: enfoca mejor y da más resolución. */}
-      <input
-        ref={photoInputRef}
-        type="file"
-        accept="image/*"
-        capture="environment"
-        className="hidden"
-        onChange={(event) => {
-          const file = event.target.files?.[0];
-          if (file) void readPhoto(file);
-        }}
-      />
 
       {cameraOn ? (
         <div className="relative overflow-hidden rounded-lg border bg-foreground/5">
@@ -750,10 +670,6 @@ export const SerialScanInput = ({
             )}
           </div>
         </div>
-      ) : null}
-
-      {photoError ? (
-        <p className="text-xs text-destructive">{t("scan.photoError")}</p>
       ) : null}
 
       {cameraError && !cameraOn ? (
