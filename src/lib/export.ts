@@ -354,7 +354,7 @@ export const exportOrderSerialRelationPdf = ({
     const label = `${line.reference} (${condition}) x${line.quantity} — ${countLabel}`;
     const titleLines = doc.splitTextToSize(label, width - 22) as string[];
     const titleHeight = Math.max(15, titleLines.length * 11 + 5);
-    const serialRowHeight = 21;
+    const serialRowHeight = 17;
     const maxRowsPerPage = Math.max(1, Math.floor((bottom - cardStart - titleHeight - 16) / serialRowHeight));
     const chunks: string[][] = [];
     if (serials.length === 0) {
@@ -368,8 +368,8 @@ export const exportOrderSerialRelationPdf = ({
     chunks.forEach((chunk, chunkIndex) => {
       const chunkRows = chunk.length ? Math.ceil(chunk.length / columns) : 1;
       const headerText = chunkIndex === 0 ? titleLines : doc.splitTextToSize(`${line.reference} — continuación de IMEI`, width - 22) as string[];
-      const headerH = Math.max(18, headerText.length * 11 + 7);
-      const cardH = headerH + chunkRows * serialRowHeight + 18;
+      const headerH = Math.max(15, headerText.length * 10 + 5);
+      const cardH = headerH + chunkRows * serialRowHeight + 10;
       if (y + cardH > bottom) newPage();
 
       doc.setFillColor(255, 255, 255);
@@ -380,7 +380,7 @@ export const exportOrderSerialRelationPdf = ({
       doc.setFont("helvetica", "bold");
       doc.setFontSize(8.7);
       doc.setTextColor(NAVY[0], NAVY[1], NAVY[2]);
-      doc.text(headerText, margin + 10, y + 13);
+      doc.text(headerText, margin + 8, y + 11);
 
       doc.setFont("courier", "bold");
       doc.setFontSize(9.4);
@@ -396,12 +396,12 @@ export const exportOrderSerialRelationPdf = ({
         chunk.forEach((serial, index) => {
           const col = index % columns;
           const row = Math.floor(index / columns);
-          const x = margin + 10 + col * columnWidth;
-          const textY = y + headerH + 15 + row * serialRowHeight;
+          const x = margin + 8 + col * columnWidth;
+          const textY = y + headerH + 12 + row * serialRowHeight;
           doc.text(serial, x, textY, { maxWidth: columnWidth - 4 });
         });
       }
-      y += cardH + 6;
+      y += cardH + 3;
     });
   }
 
