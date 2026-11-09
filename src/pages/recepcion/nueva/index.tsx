@@ -477,18 +477,7 @@ const NuevaRecepcion = () => {
     return [...mapa.values()];
   }, [items, db.products]);
 
-  // Cuando se agrega una unidad, la lista se desplaza hasta la última capturada.
-  const listaRef = useRef<HTMLDivElement>(null);
-  const cantidadAnterior = useRef(items.length);
-  useEffect(() => {
-    if (items.length > cantidadAnterior.current) {
-      const ultima = items[items.length - 1];
-      listaRef.current
-        ?.querySelector(`[data-item-id="${ultima?.id}"]`)
-        ?.scrollIntoView?.({ block: "nearest", behavior: "smooth" });
-    }
-    cantidadAnterior.current = items.length;
-  }, [items.length]); // eslint-disable-line react-hooks/exhaustive-deps
+
 
   return (
     <div className="flex flex-1 flex-col gap-5 animate-fade-in">
@@ -809,7 +798,7 @@ const NuevaRecepcion = () => {
             </div>
           ) : (
             <>
-              <div ref={listaRef} className="min-h-0 flex-1 space-y-5 overflow-y-auto -mr-4 p-4 pr-4">
+              <div className="min-h-0 flex-1 space-y-5 overflow-y-auto -mr-4 p-4 pr-4">
                 {grupos.map((grupo) => (
                   <div key={grupo.clave}>
                     <div className="mb-2 flex items-center justify-between gap-2">
