@@ -288,7 +288,12 @@ export const exportOrderSerialRelationPdf = ({
   const bottom = pageH - FOOTER_SPACE;
   // Cuatro columnas permiten IMEI más grandes y legibles en impresión A4.
   const columns = 4;
-  const columnWidth = (width - 24) / columns;
+  // Cada IMEI ocupa ~85 pt con Courier bold a 9.4 pt. Dejamos solo
+  // 18 pt entre columnas y centramos el bloque para evitar huecos excesivos.
+  const serialCellWidth = 85;
+  const serialColumnGap = 18;
+  const serialGridWidth = columns * serialCellWidth + (columns - 1) * serialColumnGap;
+  const serialGridStart = margin + (width - serialGridWidth) / 2;
   const company = exportCompanyName(companyName);
   const totalUnits = lines.reduce((sum, line) => sum + line.quantity, 0);
   const totalSerials = lines
@@ -396,9 +401,9 @@ export const exportOrderSerialRelationPdf = ({
         chunk.forEach((serial, index) => {
           const col = index % columns;
           const row = Math.floor(index / columns);
-          const x = margin + 8 + col * columnWidth;
+          const x = serialGridStart + col * (serialCellWidth + serialColumnGap);
           const textY = y + headerH + 12 + row * serialRowHeight;
-          doc.text(serial, x, textY, { maxWidth: columnWidth - 4 });
+          doc.text(serial, x, textY, { maxWidth: serialCellWidth });
         });
       }
       y += cardH + 3;
