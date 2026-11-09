@@ -458,11 +458,9 @@ export const SerialScanInput = ({
     setTorchAvailable(false);
 
     const start = async () => {
-      const video = videoRef.current;
-      if (!video) return;
       try {
-        // Prioriza la cámara trasera, pero evita exigir una resolución que algunos
-        // Android no pueden entregar dentro del navegador.
+        // Solicita primero el permiso/stream. DialogContent se monta en un portal
+        // y en Android el ref del <video> puede no existir en el primer efecto.
         let stream: MediaStream;
         try {
           stream = await navigator.mediaDevices.getUserMedia({
@@ -483,6 +481,20 @@ export const SerialScanInput = ({
           stream.getTracks().forEach((track) => track.stop());
           return;
         }
+
+        // Espera a que el contenido del diálogo/portal haya montado el elemento
+        // de vídeo. Si no aparece, detén el stream y muestra un error visible.
+        let video = videoRef.current;
+        for (let attempt = 0; !video && active && attempt < 30; attempt += 1) {
+          await new Promise<void>((resolve) => window.requestAnimationFrame(() => resolve()));
+          video = videoRef.current;
+        }
+        if (!active || !video) {
+          stream.getTracks().forEach((track) => track.stop());
+          if (active) throw new Error("No se pudo preparar el visor de cámara");
+          return;
+        }
+
         requestContinuousFocus(stream.getVideoTracks()[0]);
         video.setAttribute("playsinline", "true");
         video.muted = true;
