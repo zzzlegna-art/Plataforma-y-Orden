@@ -8,7 +8,7 @@ import { SerialScanInput } from "@/components/shared/serial-scan-input";
 import { ConditionBadge } from "@/components/shared/status-badge";
 import { Button } from "@/components/ui/button";
 import type { OrderLineView } from "@/lib/selectors";
-import { estadoPrecioVentaColor } from "@/lib/color-variants";
+import { estadoPrecioVentaColor, variantePorColor } from "@/lib/color-variants";
 import { cn } from "@/lib/utils";
 
 /** Tarjeta de progreso de una referencia del pedido: cantidad y serialización. */
@@ -47,6 +47,8 @@ export const OrderLineCard = ({
   const { t } = useTranslation();
   const estadoPrecio = estadoPrecioVentaColor(line.product, line.item.color, line.item.unitPrice);
   const [imageFailed, setImageFailed] = useState(false);
+  const colorImageUrl = variantePorColor(line.product, line.item.color)?.imageUrl;
+  const productImageUrl = colorImageUrl || line.product?.imageUrl;
   const pct = Math.min(100, Math.round((line.serializados / line.item.quantity) * 100));
   const complete = line.serializados >= line.item.quantity;
   // Los repuestos no se escanean: mientras el pedido se prepara se descuentan solos al finalizar.
@@ -146,10 +148,11 @@ export const OrderLineCard = ({
       >
         <div className={cn("flex min-w-0 items-start gap-3", mostrarEscaner && "lg:col-start-1 lg:row-start-1")}>
           <div className="grid h-16 w-16 shrink-0 place-items-center overflow-hidden rounded-xl border bg-background text-muted-foreground">
-            {line.product?.imageUrl && !imageFailed ? (
+            {productImageUrl && !imageFailed ? (
               <img
-                src={line.product.imageUrl}
-                alt={line.product.name}
+                key={productImageUrl}
+                src={productImageUrl}
+                alt={line.product?.name ?? "Producto"}
                 loading="lazy"
                 decoding="async"
                 onError={() => setImageFailed(true)}
