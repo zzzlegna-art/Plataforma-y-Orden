@@ -286,7 +286,8 @@ export const exportOrderSerialRelationPdf = ({
   const margin = 24;
   const width = pageW - margin * 2;
   const bottom = pageH - FOOTER_SPACE;
-  const columns = 5;
+  // Cuatro columnas permiten IMEI más grandes y legibles en impresión A4.
+  const columns = 4;
   const columnWidth = (width - 24) / columns;
   const company = exportCompanyName(companyName);
   const totalUnits = lines.reduce((sum, line) => sum + line.quantity, 0);
@@ -353,7 +354,8 @@ export const exportOrderSerialRelationPdf = ({
     const label = `${line.reference} (${condition}) x${line.quantity} — ${countLabel}`;
     const titleLines = doc.splitTextToSize(label, width - 22) as string[];
     const titleHeight = Math.max(15, titleLines.length * 11 + 5);
-    const maxRowsPerPage = Math.max(1, Math.floor((bottom - cardStart - titleHeight - 16) / 15));
+    const serialRowHeight = 21;
+    const maxRowsPerPage = Math.max(1, Math.floor((bottom - cardStart - titleHeight - 16) / serialRowHeight));
     const chunks: string[][] = [];
     if (serials.length === 0) {
       chunks.push([]);
@@ -367,7 +369,7 @@ export const exportOrderSerialRelationPdf = ({
       const chunkRows = chunk.length ? Math.ceil(chunk.length / columns) : 1;
       const headerText = chunkIndex === 0 ? titleLines : doc.splitTextToSize(`${line.reference} — continuación de IMEI`, width - 22) as string[];
       const headerH = Math.max(18, headerText.length * 11 + 7);
-      const cardH = headerH + chunkRows * 15 + 15;
+      const cardH = headerH + chunkRows * serialRowHeight + 18;
       if (y + cardH > bottom) newPage();
 
       doc.setFillColor(255, 255, 255);
@@ -380,9 +382,10 @@ export const exportOrderSerialRelationPdf = ({
       doc.setTextColor(NAVY[0], NAVY[1], NAVY[2]);
       doc.text(headerText, margin + 10, y + 13);
 
-      doc.setFont("courier", "normal");
-      doc.setFontSize(7.4);
-      doc.setTextColor(TEXT[0], TEXT[1], TEXT[2]);
+      doc.setFont("courier", "bold");
+      doc.setFontSize(9.4);
+      // Negro intenso para evitar el aspecto gris al imprimir o visualizar el PDF.
+      doc.setTextColor(10, 14, 20);
       if (chunk.length === 0) {
         const emptyText = line.requiresSerial === false ? "No requiere serial" : "Pendiente de serializar";
         doc.setFont("helvetica", "italic");
@@ -394,7 +397,7 @@ export const exportOrderSerialRelationPdf = ({
           const col = index % columns;
           const row = Math.floor(index / columns);
           const x = margin + 10 + col * columnWidth;
-          const textY = y + headerH + 13 + row * 15;
+          const textY = y + headerH + 15 + row * serialRowHeight;
           doc.text(serial, x, textY, { maxWidth: columnWidth - 4 });
         });
       }
