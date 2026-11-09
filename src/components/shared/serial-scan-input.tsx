@@ -394,7 +394,7 @@ export const SerialScanInput = ({
         state.acceptedSeenAt = now;
         return;
       }
-      if (state.candidate === serial && now - state.candidateAt < 1000) {
+      if (state.candidate === serial && now - state.candidateAt < 1800) {
         state.candidateCount += 1;
       } else {
         state.candidate = serial;
