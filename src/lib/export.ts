@@ -286,8 +286,8 @@ export const exportOrderSerialRelationPdf = ({
   const margin = 24;
   const width = pageW - margin * 2;
   const bottom = pageH - FOOTER_SPACE;
-  // Cuatro columnas permiten IMEI más grandes y legibles en impresión A4.
-  const columns = 4;
+  // Cinco columnas compactas aprovechan mejor el ancho de la hoja A4.
+  const columns = 5;
   // IMEI en cuatro columnas compactas, alineadas al inicio de la tarjeta.
   // Así quedan claramente debajo de la referencia y no invaden su encabezado.
   const serialCellWidth = 85;
