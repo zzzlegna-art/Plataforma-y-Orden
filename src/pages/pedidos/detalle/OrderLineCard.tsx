@@ -46,7 +46,7 @@ export const OrderLineCard = ({
 }) => {
   const { t } = useTranslation();
   const estadoPrecio = estadoPrecioVentaColor(line.product, line.item.color, line.item.unitPrice);
-  const [imageFailed, setImageFailed] = useState(false);
+  const [failedImageUrl, setFailedImageUrl] = useState<string | null>(null);
   const colorImageUrl = variantePorColor(line.product, line.item.color)?.imageUrl;
   const productImageUrl = colorImageUrl || line.product?.imageUrl;
   const pct = Math.min(100, Math.round((line.serializados / line.item.quantity) * 100));
@@ -148,14 +148,14 @@ export const OrderLineCard = ({
       >
         <div className={cn("flex min-w-0 items-start gap-3", mostrarEscaner && "lg:col-start-1 lg:row-start-1")}>
           <div className="grid h-16 w-16 shrink-0 place-items-center overflow-hidden rounded-xl border bg-background text-muted-foreground">
-            {productImageUrl && !imageFailed ? (
+            {productImageUrl && failedImageUrl !== productImageUrl ? (
               <img
                 key={productImageUrl}
                 src={productImageUrl}
                 alt={line.product?.name ?? "Producto"}
                 loading="lazy"
                 decoding="async"
-                onError={() => setImageFailed(true)}
+                onError={() => setFailedImageUrl(productImageUrl)}
                 className="h-full w-full object-contain p-1"
               />
             ) : (
