@@ -12,7 +12,6 @@ import {
   X,
 } from "lucide-react";
 import { toast } from "sonner";
-import { BrowserMultiFormatReader } from "@zxing/browser";
 import {
   BarcodeFormat,
   BinaryBitmap,
