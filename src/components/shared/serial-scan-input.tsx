@@ -672,7 +672,7 @@ export const SerialScanInput = ({
       <Dialog open={cameraOn} onOpenChange={(open) => { if (!open) stopCamera(); else setCameraOn(true); }}>
         <DialogContent
           onOpenAutoFocus={(event) => event.preventDefault()}
-          className="fixed inset-0 left-0 top-0 z-[100] flex h-[100dvh] w-screen max-w-none translate-x-0 translate-y-0 flex-col gap-0 overflow-hidden rounded-none border-0 bg-black p-0 text-white shadow-none sm:rounded-none max-sm:bottom-auto max-sm:left-0 max-sm:top-0 max-sm:h-[100dvh] max-sm:max-h-none max-sm:max-w-none max-sm:translate-x-0 max-sm:translate-y-0 max-sm:overflow-hidden max-sm:rounded-none max-sm:pb-0"
+          className="fixed inset-0 left-0 top-0 z-[100] flex h-[100dvh] w-screen max-w-none translate-x-0 translate-y-0 flex-col gap-0 overflow-hidden rounded-none border-0 bg-black p-0 text-white shadow-none sm:rounded-none max-sm:bottom-auto max-sm:left-0 max-sm:top-0 max-sm:h-[100dvh] max-sm:max-h-none max-sm:max-w-none max-sm:translate-x-0 max-sm:translate-y-0 max-sm:overflow-hidden max-sm:rounded-none max-sm:pb-0 [&>button:last-child]:hidden"
         >
           <DialogTitle className="sr-only">Escáner de recepción Nexora</DialogTitle>
           <DialogDescription className="sr-only">Cámara en vivo para leer IMEI y códigos de barras. El análisis se realiza en el dispositivo.</DialogDescription>
@@ -682,7 +682,7 @@ export const SerialScanInput = ({
               <p className="mt-0.5 text-xs text-white/60">Apunta al IMEI o al código de barras</p>
             </div>
             <div className="flex items-center gap-2">
-              <span className="rounded-full bg-white/10 px-3 py-1.5 text-xs font-medium tabular-nums">{sessionScans.length} recientes</span>
+              <span className="rounded-full bg-white/10 px-3 py-1.5 text-xs font-medium tabular-nums">{sessionScans.length} últimas lecturas</span>
               <Button type="button" variant="secondary" size="icon" className="h-10 w-10 rounded-full bg-white/15 text-white hover:bg-white/25" aria-label="Cerrar escáner" onClick={stopCamera}>
                 <CameraOff className="h-5 w-5" />
               </Button>
