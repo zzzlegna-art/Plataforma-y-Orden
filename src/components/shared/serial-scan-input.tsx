@@ -49,6 +49,71 @@ interface NativeBarcodeDetector {
 }
 type NativeBarcodeDetectorCtor = new (options?: { formats?: string[] }) => NativeBarcodeDetector;
 
+type LiveOcrWorker = {
+  recognize: (image: HTMLCanvasElement) => Promise<{ data: { text: string } }>;
+  setParameters: (params: Record<string, string>) => Promise<void>;
+  terminate: () => Promise<unknown>;
+};
+type LiveOcrApi = {
+  createWorker: (language: string, oem: number, options: {
+    workerPath: string; corePath: string; langPath: string;
+  }) => Promise<LiveOcrWorker>;
+};
+let liveOcrApiPromise: Promise<LiveOcrApi> | null = null;
+
+const loadLiveOcr = (): Promise<LiveOcrApi> => {
+  const current = (window as Window & { Tesseract?: LiveOcrApi }).Tesseract;
+  if (current) return Promise.resolve(current);
+  if (liveOcrApiPromise) return liveOcrApiPromise;
+  liveOcrApiPromise = new Promise((resolve, reject) => {
+    const existing = document.querySelector<HTMLScriptElement>("script[data-nexora-live-ocr]");
+    const script = existing ?? document.createElement("script");
+    const finish = () => {
+      const api = (window as Window & { Tesseract?: LiveOcrApi }).Tesseract;
+      if (api) resolve(api);
+      else reject(new Error("El motor OCR no quedó disponible"));
+    };
+    if (existing) {
+      if ((window as Window & { Tesseract?: LiveOcrApi }).Tesseract) finish();
+      else script.addEventListener("load", finish, { once: true });
+      return;
+    }
+    script.src = "https://cdn.jsdelivr.net/npm/tesseract.js@6/dist/tesseract.min.js";
+    script.async = true;
+    script.dataset.nexoraLiveOcr = "true";
+    script.onload = finish;
+    script.onerror = () => reject(new Error("No se pudo descargar el motor OCR"));
+    document.head.appendChild(script);
+  }).catch((error: unknown) => {
+    liveOcrApiPromise = null;
+    throw error;
+  });
+  return liveOcrApiPromise;
+};
+
+const isValidImei = (value: string): boolean => {
+  if (!/^\\d{15}$/.test(value)) return false;
+  let sum = 0;
+  for (let index = 0; index < value.length; index += 1) {
+    let digit = Number(value[index]);
+    if (index % 2 === 1) {
+      digit *= 2;
+      if (digit > 9) digit -= 9;
+    }
+    sum += digit;
+  }
+  return sum % 10 === 0;
+};
+
+const extractValidImei = (text: string): string | null => {
+  const digits = text.replace(/\\D/g, "");
+  for (let index = 0; index <= digits.length - 15; index += 1) {
+    const candidate = digits.slice(index, index + 15);
+    if (isValidImei(candidate)) return candidate;
+  }
+  return null;
+};
+
 const NATIVE_FORMATS = [
   "code_128",
   "code_39",
@@ -167,7 +232,6 @@ export const SerialScanInput = ({
   className,
   stacked = false,
   submitLabel,
-  hidePhoto = false,
   autoConfirm = false,
 }: {
   onScan: (serial: string) => void | Promise<void>;
@@ -182,7 +246,7 @@ export const SerialScanInput = ({
   stacked?: boolean;
   /** Texto del botón de agregar (solo en modo apilado). */
   submitLabel?: string;
-  /** Oculta el botón de leer el código desde una foto. */
+  /** Propiedad heredada; la lectura por foto ya no existe. */
   hidePhoto?: boolean;
   /**
    * Confirma solo el serial escrito cuando ya es válido (sin tener que presionar Enter).
@@ -418,6 +482,27 @@ export const SerialScanInput = ({
         const canvas = document.createElement("canvas");
         const context = canvas.getContext("2d", { willReadFrequently: true });
         let busy = false;
+        let ocrWorker: LiveOcrWorker | null = null;
+        let lastOcrAt = 0;
+
+        // El OCR se prepara en segundo plano mientras los códigos de barras ya se leen.
+        void loadLiveOcr()
+          .then(async (api) => {
+            const worker = await api.createWorker("eng", 1, {
+              workerPath: "https://cdn.jsdelivr.net/npm/tesseract.js@6/dist/worker.min.js",
+              corePath: "https://cdn.jsdelivr.net/npm/tesseract.js-core@6.0.0",
+              langPath: "https://tessdata.projectnaptha.com/4.0.0",
+            });
+            await worker.setParameters({
+              tessedit_char_whitelist: "0123456789",
+              tessedit_pageseg_mode: "7",
+            });
+            if (!active) await worker.terminate();
+            else ocrWorker = worker;
+          })
+          .catch(() => {
+            if (active) toast.error("No se pudo cargar el reconocimiento de IMEI. Los códigos de barras siguen disponibles.");
+          });
 
         const timer = window.setInterval(() => {
           if (busy || !active || !context || video.readyState < 2) return;
@@ -452,8 +537,23 @@ export const SerialScanInput = ({
                   })
               : Promise.resolve(decodeCanvas(zxing, canvas));
           void read
-            .then((text) => {
-              if (text && active) text.split("\n").forEach((value) => handleCameraRead(value));
+            .then(async (text) => {
+              if (!active) return;
+              if (text) {
+                text.split("\n").forEach((value) => handleCameraRead(value));
+                return;
+              }
+              // OCR solo se ejecuta cuando el detector no encuentra un código de barras.
+              // Analiza un fotograma del video local; no sube ni guarda imágenes.
+              if (!ocrWorker || Date.now() - lastOcrAt < 600) return;
+              lastOcrAt = Date.now();
+              try {
+                const result = await ocrWorker.recognize(canvas);
+                const imei = extractValidImei(result.data.text);
+                if (imei && active) handleCameraRead(imei);
+              } catch {
+                // Un fotograma borroso no debe detener el escaneo continuo.
+              }
             })
             .finally(() => {
               busy = false;
@@ -463,6 +563,10 @@ export const SerialScanInput = ({
         controlsRef.current = {
           stop: () => {
             window.clearInterval(timer);
+            if (ocrWorker) {
+              void ocrWorker.terminate();
+              ocrWorker = null;
+            }
             stream.getTracks().forEach((track) => track.stop());
             video.srcObject = null;
           },
