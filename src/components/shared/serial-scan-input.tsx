@@ -290,6 +290,7 @@ export const SerialScanInput = ({
   const [value, setValue] = useState("");
   const [cameraOn, setCameraOn] = useState(false);
   const [cameraError, setCameraError] = useState(false);
+  const [cameraReady, setCameraReady] = useState(false);
   const [sessionScans, setSessionScans] = useState<string[]>([]);
   const [torch, setTorch] = useState(false);
   const [torchAvailable, setTorchAvailable] = useState(false);
@@ -452,6 +453,7 @@ export const SerialScanInput = ({
     if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
     let active = true;
     setCameraError(false);
+    setCameraReady(false);
     setTorch(false);
     setTorchAvailable(false);
 
@@ -459,22 +461,66 @@ export const SerialScanInput = ({
       const video = videoRef.current;
       if (!video) return;
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          audio: false,
-          video: {
-            facingMode: { ideal: "environment" },
-            // Resolución alta: los IMEI impresos son pequeños y necesitan detalle.
-            width: { ideal: 1920 },
-            height: { ideal: 1080 },
-          },
-        });
+        // Prioriza la cámara trasera, pero evita exigir una resolución que algunos
+        // Android no pueden entregar dentro del navegador.
+        let stream: MediaStream;
+        try {
+          stream = await navigator.mediaDevices.getUserMedia({
+            audio: false,
+            video: {
+              facingMode: { ideal: "environment" },
+              width: { ideal: 1280 },
+              height: { ideal: 720 },
+            },
+          });
+        } catch {
+          stream = await navigator.mediaDevices.getUserMedia({
+            audio: false,
+            video: { facingMode: { ideal: "environment" } },
+          });
+        }
         if (!active) {
           stream.getTracks().forEach((track) => track.stop());
           return;
         }
         requestContinuousFocus(stream.getVideoTracks()[0]);
+        video.setAttribute("playsinline", "true");
+        video.muted = true;
+        video.autoplay = true;
         video.srcObject = stream;
         await video.play();
+
+        // No mostramos "cámara activa" hasta confirmar que el navegador entrega
+        // fotogramas reales. Algunos Android resuelven play() antes de metadata.
+        if (!video.videoWidth || !video.videoHeight) {
+          await new Promise<void>((resolve, reject) => {
+            const timeout = window.setTimeout(() => {
+              cleanup();
+              reject(new Error("La cámara no entregó imagen a tiempo"));
+            }, 7000);
+            const ready = () => {
+              cleanup();
+              resolve();
+            };
+            const failed = () => {
+              cleanup();
+              reject(new Error("No se pudo iniciar el video de la cámara"));
+            };
+            const cleanup = () => {
+              window.clearTimeout(timeout);
+              video.removeEventListener("loadedmetadata", ready);
+              video.removeEventListener("canplay", ready);
+              video.removeEventListener("error", failed);
+            };
+            video.addEventListener("loadedmetadata", ready, { once: true });
+            video.addEventListener("canplay", ready, { once: true });
+            video.addEventListener("error", failed, { once: true });
+          });
+        }
+        if (!video.videoWidth || !video.videoHeight) {
+          throw new Error("La cámara inició sin imagen");
+        }
+        if (active) setCameraReady(true);
 
         // Solo se analiza lo que está dentro del recuadro: se recorta ese pedazo del video
         // a un canvas y se lee con el detector nativo (o ZXing si el navegador no lo tiene).
@@ -576,6 +622,7 @@ export const SerialScanInput = ({
         setTorchAvailable(true);
       } catch {
         if (active) {
+          setCameraReady(false);
           setCameraError(true);
           setCameraOn(false);
         }
@@ -689,7 +736,7 @@ export const SerialScanInput = ({
             </div>
           </div>
           <div className="relative min-h-0 flex-1 overflow-hidden bg-black">
-            <video ref={videoRef} playsInline muted className="absolute inset-0 h-full w-full object-cover" />
+            <video ref={videoRef} autoPlay playsInline muted onPlaying={() => setCameraReady(true)} className="absolute inset-0 z-0 h-full w-full object-cover" />
             <div className="pointer-events-none absolute inset-0 bg-black/20" />
             <div
               ref={frameRef}
@@ -714,7 +761,7 @@ export const SerialScanInput = ({
                 </div>
               </div>
             ) : null}
-            {cameraError ? <div className="absolute inset-0 flex items-center justify-center bg-black/85 p-6 text-center text-sm text-red-300">{t("scan.cameraError")}</div> : null}
+            {cameraError ? <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/90 p-6 text-center text-sm text-red-300">{t("scan.cameraError")}<br />Revisa el permiso de cámara del navegador y vuelve a intentarlo.</div> : !cameraReady ? <div className="pointer-events-none absolute inset-0 z-[1] flex items-center justify-center bg-black/70 p-6 text-center text-sm text-white/80">Preparando cámara…</div> : null}
             <div className="pointer-events-none absolute inset-x-0 bottom-5 text-center">
               <span className="rounded-full bg-black/55 px-4 py-2 text-xs font-medium text-white/90 backdrop-blur">
                 {feedback?.error ? "No se agregó · vuelve a intentarlo" : feedback ? "Agregado a la recepción" : "Centra el código dentro del recuadro"}
@@ -724,8 +771,8 @@ export const SerialScanInput = ({
           <div className="shrink-0 space-y-3 border-t border-white/10 bg-[#090b10] px-4 pb-[calc(env(safe-area-inset-bottom)+1rem)] pt-3">
             <div className="flex items-center justify-between gap-3">
               <div className="flex min-w-0 items-center gap-2">
-                <span className={cn("h-2.5 w-2.5 shrink-0 rounded-full", cameraError ? "bg-red-400" : "animate-pulse bg-emerald-400")} />
-                <span className="truncate text-xs text-white/75">{cameraError ? "Cámara no disponible" : "Cámara activa · lectura continua"}</span>
+                <span className={cn("h-2.5 w-2.5 shrink-0 rounded-full", cameraError ? "bg-red-400" : cameraReady ? "animate-pulse bg-emerald-400" : "bg-amber-400")} />
+                <span className="truncate text-xs text-white/75">{cameraError ? "Cámara no disponible" : cameraReady ? "Cámara activa · lectura continua" : "Preparando cámara…"}</span>
               </div>
               <div className="flex items-center gap-2">
                 <Button type="button" variant="ghost" size="icon" className="h-10 w-10 rounded-full text-white hover:bg-white/10 hover:text-white" aria-label={soundOn ? t("scan.soundOff") : t("scan.soundOn")} onClick={toggleSound}>
