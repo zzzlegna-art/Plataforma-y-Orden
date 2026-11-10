@@ -23,6 +23,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import { usePermissions } from "@/hooks/use-permissions";
 import { useRunAction } from "@/hooks/use-run-action";
 import { useStore } from "@/hooks/use-store";
@@ -79,6 +80,8 @@ const PedidoDetalle = () => {
   );
   const [serialAQuitar, setSerialAQuitar] = useState("");
   const [observacion, setObservacion] = useState("");
+  // Referencias elegidas para el PDF. Una selección vacía conserva el comportamiento actual: incluir todo.
+  const [referenciasRelacionSeleccionadas, setReferenciasRelacionSeleccionadas] = useState<string[]>([]);
 
   // Referencia donde acaba de caer un serial escaneado en otra tarjeta: se resalta un momento.
   const [lineaDestacada, setLineaDestacada] = useState<string | null>(null);
@@ -107,6 +110,14 @@ const PedidoDetalle = () => {
   const { order, customer, lines, requested } = view;
   // Solo cambia el orden de presentación; no modifica las líneas ni su relación con los IMEI.
   const lineasOrdenadas = ordenarLineasPedido(lines);
+  const lineasSeleccionables = lineasOrdenadas.filter((line) => !line.esRepuesto);
+  const todasLasReferenciasSeleccionadas = lineasSeleccionables.length > 0 &&
+    lineasSeleccionables.every((line) => referenciasRelacionSeleccionadas.includes(line.item.id));
+  const cambiarSeleccionReferencia = (orderItemId: string, checked: boolean) => {
+    setReferenciasRelacionSeleccionadas((actuales) => checked
+      ? [...actuales.filter((id) => id !== orderItemId), orderItemId]
+      : actuales.filter((id) => id !== orderItemId));
+  };
   const totalPedido = lines.reduce((total, line) => total + line.item.subtotal, 0);
   // Los repuestos no llevan serial (se descuentan solos al finalizar): el progreso y lo que falta
   // por asignar solo cuentan las referencias que sí se escanean.
@@ -481,6 +492,39 @@ const PedidoDetalle = () => {
           <p className="my-2 text-sm text-muted-foreground">
             PDF con las referencias y cada IMEI asignado, listo para imprimir e incluir dentro de la caja.
           </p>
+          <div className="mb-3 rounded-lg border bg-background/50 p-3">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <p className="text-sm font-medium">Referencias para la relación</p>
+                <p className="text-xs text-muted-foreground">Si no seleccionas ninguna, el PDF incluirá todas las referencias, como siempre.</p>
+              </div>
+              <label className="flex cursor-pointer items-center gap-2 text-sm font-medium">
+                <Checkbox
+                  checked={todasLasReferenciasSeleccionadas}
+                  onCheckedChange={(checked) => setReferenciasRelacionSeleccionadas(checked === true ? lineasSeleccionables.map((line) => line.item.id) : [])}
+                  disabled={lineasSeleccionables.length === 0}
+                />
+                Seleccionar todas
+              </label>
+            </div>
+            <div className="mt-3 grid gap-2 sm:grid-cols-2">
+              {lineasSeleccionables.map((line) => {
+                const label = `${line.product?.name ?? "Producto sin nombre"}${line.item.color ? ` · ${line.item.color}` : ""}`;
+                return (
+                  <label key={line.item.id} className="flex min-w-0 cursor-pointer items-start gap-2 rounded-md border px-3 py-2 text-sm">
+                    <Checkbox
+                      checked={referenciasRelacionSeleccionadas.includes(line.item.id)}
+                      onCheckedChange={(checked) => cambiarSeleccionReferencia(line.item.id, checked === true)}
+                    />
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate font-medium">{label}</span>
+                      <span className="block text-xs text-muted-foreground">{line.units.length} IMEI asignados</span>
+                    </span>
+                  </label>
+                );
+              })}
+            </div>
+          </div>
           <Button
             type="button"
             variant="outline"
@@ -492,7 +536,9 @@ const PedidoDetalle = () => {
                 companyName: db.settings.companyName,
                 customer: customer?.name ?? "Sin cliente",
                 orderDate: formatDate(order.orderDate),
-                lines: lineasOrdenadas.map((line) => ({
+                lines: (referenciasRelacionSeleccionadas.length > 0
+                  ? lineasOrdenadas.filter((line) => referenciasRelacionSeleccionadas.includes(line.item.id))
+                  : lineasOrdenadas).map((line) => ({
                   reference: `${line.product?.name ?? "Producto sin nombre"}${line.item.color ? ` · ${line.item.color}` : ""}`,
                   condition: line.esRepuesto ? "No aplica" : t(`condition.${line.item.condition}`),
                   quantity: line.item.quantity,
