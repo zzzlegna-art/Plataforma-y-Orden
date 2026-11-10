@@ -110,7 +110,7 @@ const PedidoDetalle = () => {
   const { order, customer, lines, requested } = view;
   // Solo cambia el orden de presentación; no modifica las líneas ni su relación con los IMEI.
   const lineasOrdenadas = ordenarLineasPedido(lines);
-  const lineasSeleccionables = lineasOrdenadas.filter((line) => !line.esRepuesto && line.units.length > 0);
+  const lineasSeleccionables = lineasOrdenadas.filter((line) => !line.esRepuesto);
   const todasLasReferenciasSeleccionadas = lineasSeleccionables.length > 0 &&
     lineasSeleccionables.every((line) => referenciasRelacionSeleccionadas.includes(line.item.id));
   const cambiarSeleccionReferencia = (orderItemId: string, checked: boolean) => {
@@ -492,13 +492,15 @@ const PedidoDetalle = () => {
           <p className="my-2 text-sm text-muted-foreground">
             PDF con las referencias y cada IMEI asignado, listo para imprimir e incluir dentro de la caja.
           </p>
-          <div className="mb-3 rounded-lg border bg-background/50 p-3">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <p className="text-sm font-medium">Referencias para la relación</p>
-                <p className="text-xs text-muted-foreground">Si no seleccionas ninguna, el PDF incluirá todas las referencias, como siempre.</p>
+          <div className="mb-4 overflow-hidden rounded-xl border bg-muted/20">
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b bg-card px-4 py-3">
+              <div className="min-w-0">
+                <p className="text-sm font-semibold">Elegir referencias</p>
+                <p className="mt-0.5 text-xs text-muted-foreground">
+                  Marca las referencias cuyos seriales quieres incluir en el PDF.
+                </p>
               </div>
-              <label className="flex cursor-pointer items-center gap-2 text-sm font-medium">
+              <label className="flex shrink-0 cursor-pointer items-center gap-2 rounded-lg border bg-background px-3 py-2 text-sm font-medium transition-colors hover:bg-accent/50">
                 <Checkbox
                   checked={todasLasReferenciasSeleccionadas}
                   onCheckedChange={(checked) => setReferenciasRelacionSeleccionadas(checked === true ? lineasSeleccionables.map((line) => line.item.id) : [])}
@@ -507,22 +509,49 @@ const PedidoDetalle = () => {
                 Seleccionar todas
               </label>
             </div>
-            <div className="mt-3 grid gap-2 sm:grid-cols-2">
-              {lineasSeleccionables.map((line) => {
-                const label = `${line.product?.name ?? "Producto sin nombre"}${line.item.color ? ` · ${line.item.color}` : ""}`;
-                return (
-                  <label key={line.item.id} className="flex min-w-0 cursor-pointer items-start gap-2 rounded-md border px-3 py-2 text-sm">
-                    <Checkbox
-                      checked={referenciasRelacionSeleccionadas.includes(line.item.id)}
-                      onCheckedChange={(checked) => cambiarSeleccionReferencia(line.item.id, checked === true)}
-                    />
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate font-medium">{label}</span>
-                      <span className="block text-xs text-muted-foreground">{line.units.length} IMEI asignados</span>
-                    </span>
-                  </label>
-                );
-              })}
+            <div className="space-y-3 p-3">
+              <div className="flex flex-wrap items-center justify-between gap-2 px-1">
+                <p className="text-xs font-medium text-muted-foreground">
+                  {lineasSeleccionables.length} {lineasSeleccionables.length === 1 ? "referencia disponible" : "referencias disponibles"}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {referenciasRelacionSeleccionadas.length === 0
+                    ? "Sin selección · se incluirán todas"
+                    : `${referenciasRelacionSeleccionadas.filter((id) => lineasSeleccionables.some((line) => line.item.id === id)).length} seleccionadas`}
+                </p>
+              </div>
+              {lineasSeleccionables.length > 0 ? (
+                <div className="grid gap-2 sm:grid-cols-2">
+                  {lineasSeleccionables.map((line) => {
+                    const seleccionada = referenciasRelacionSeleccionadas.includes(line.item.id);
+                    const label = `${line.product?.name ?? "Producto sin nombre"}${line.item.color ? ` · ${line.item.color}` : ""}`;
+                    return (
+                      <label
+                        key={line.item.id}
+                        className={`flex min-w-0 cursor-pointer items-center gap-3 rounded-lg border p-3 transition-all hover:border-primary/40 hover:bg-accent/30 ${seleccionada ? "border-primary/50 bg-primary/[0.04] shadow-sm" : "border-border bg-card"}`}
+                      >
+                        <Checkbox
+                          checked={seleccionada}
+                          onCheckedChange={(checked) => cambiarSeleccionReferencia(line.item.id, checked === true)}
+                          className="shrink-0"
+                        />
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate text-sm font-medium">{label}</span>
+                          <span className="mt-0.5 flex flex-wrap items-center gap-x-2 text-xs text-muted-foreground">
+                            {line.product?.sku ? <span>{line.product.sku}</span> : null}
+                            <span>{line.units.length} {line.units.length === 1 ? "IMEI asignado" : "IMEI asignados"}</span>
+                          </span>
+                        </span>
+                        {seleccionada ? <Check className="h-4 w-4 shrink-0 text-primary" aria-hidden="true" /> : null}
+                      </label>
+                    );
+                  })}
+                </div>
+              ) : (
+                <p className="rounded-lg border border-dashed bg-card px-3 py-5 text-center text-sm text-muted-foreground">
+                  Este pedido todavía no tiene referencias que requieran serial.
+                </p>
+              )}
             </div>
           </div>
           <Button
