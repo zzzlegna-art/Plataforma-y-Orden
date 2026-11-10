@@ -7,6 +7,7 @@ import { OptionSelect } from "@/components/shared/option-select";
 import { SerialScanInput } from "@/components/shared/serial-scan-input";
 import { ConditionBadge } from "@/components/shared/status-badge";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import type { OrderLineView } from "@/lib/selectors";
 import { estadoPrecioVentaColor, variantePorColor } from "@/lib/color-variants";
 import { cn } from "@/lib/utils";
@@ -26,6 +27,9 @@ export const OrderLineCard = ({
   onQuitarUnidades,
   disponibles,
   destacada = false,
+  selectableForSerialPdf = false,
+  selectedForSerialPdf = false,
+  onToggleSerialPdfSelection,
 }: {
   line: OrderLineView;
   editable: boolean;
@@ -43,6 +47,10 @@ export const OrderLineCard = ({
   disponibles?: number;
   /** Resalta la tarjeta: un serial escaneado en otra referencia acaba de caer aquí. */
   destacada?: boolean;
+  /** Casilla para incluir esta referencia en el PDF de relación de seriales. */
+  selectableForSerialPdf?: boolean;
+  selectedForSerialPdf?: boolean;
+  onToggleSerialPdfSelection?: (checked: boolean) => void;
 }) => {
   const { t } = useTranslation();
   const estadoPrecio = estadoPrecioVentaColor(line.product, line.item.color, line.item.unitPrice);
@@ -147,6 +155,15 @@ export const OrderLineCard = ({
         )}
       >
         <div className={cn("flex min-w-0 items-start gap-3", mostrarEscaner && "lg:col-start-1 lg:row-start-1")}>
+          {selectableForSerialPdf ? (
+            <div className="flex shrink-0 items-start pt-1">
+              <Checkbox
+                checked={selectedForSerialPdf}
+                onCheckedChange={(checked) => onToggleSerialPdfSelection?.(checked === true)}
+                aria-label={`Incluir ${line.product?.name ?? "referencia"} en la relación de seriales`}
+              />
+            </div>
+          ) : null}
           <div className="grid h-16 w-16 shrink-0 place-items-center overflow-hidden rounded-xl border bg-background text-muted-foreground">
             {productImageUrl && failedImageUrl !== productImageUrl ? (
               <img
