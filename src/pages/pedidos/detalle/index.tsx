@@ -110,7 +110,7 @@ const PedidoDetalle = () => {
   const { order, customer, lines, requested } = view;
   // Solo cambia el orden de presentación; no modifica las líneas ni su relación con los IMEI.
   const lineasOrdenadas = ordenarLineasPedido(lines);
-  const lineasSeleccionables = lineasOrdenadas.filter((line) => !line.esRepuesto);
+  const lineasSeleccionables = lineasOrdenadas.filter((line) => !line.esRepuesto && line.units.length > 0);
   const todasLasReferenciasSeleccionadas = lineasSeleccionables.length > 0 &&
     lineasSeleccionables.every((line) => referenciasRelacionSeleccionadas.includes(line.item.id));
   const cambiarSeleccionReferencia = (orderItemId: string, checked: boolean) => {
