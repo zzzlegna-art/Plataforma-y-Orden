@@ -16,6 +16,7 @@ import type {
   WarrantyStatus,
 } from "../types";
 import { isSameText, requirePermission, requireText } from "./guards";
+import { unitEstaEnPedidoActivo } from "../unit-availability";
 
 /** Estados del caso que siguen en trámite. */
 export const isOpenWarranty = (status: WarrantyStatus) =>
@@ -383,7 +384,7 @@ export const createWarrantyFallaInventario = (
       requirePermission(actor, "warranties.manage");
       const unit = findUnitBySerial(db, item.imei);
       if (!unit) throw new DomainError("errors.unitNotFound", { serial: item.imei });
-      if (unit.status !== "en_bodega" && unit.status !== "en_local") {
+      if (unit.status !== "en_bodega" && unit.status !== "en_local" || unitEstaEnPedidoActivo(db, unit.id)) {
         throw new DomainError("errors.unitNotInInventory", { serial: item.imei });
       }
       assertNoOpenWarranty(db, unit);
