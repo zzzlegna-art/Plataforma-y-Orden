@@ -279,7 +279,7 @@ const NuevoPedido = () => {
 
   return (
     <>
-      <div className="nx-order-builder flex min-h-0 flex-col gap-3 stagger lg:h-[calc(100dvh-9rem)]">
+      <div className="nx-order-builder flex min-h-0 flex-col gap-3 stagger lg:h-[calc(100dvh-8rem)]">
         <Button variant="ghost" size="sm" asChild className="-ml-2 w-fit">
           <Link to="/pedidos">
             <ArrowLeft />
@@ -333,6 +333,21 @@ const NuevoPedido = () => {
             />
           </div>
 
+        </section>
+
+        <div className="grid grid-cols-2 gap-2 lg:hidden">
+          <Button type="button" size="sm" variant={vistaMovil === "catalogo" ? "default" : "outline"} onClick={() => setVistaMovil("catalogo")}><Package /> Catálogo</Button>
+          <Button type="button" size="sm" variant={vistaMovil === "pedido" ? "default" : "outline"} onClick={() => setVistaMovil("pedido")}><ShoppingCart /> Pedido ({totalReferencias})</Button>
+        </div>
+
+        <section className="grid min-h-0 gap-3 lg:flex-1 lg:grid-cols-[minmax(0,1.55fr)_minmax(19rem,.85fr)] lg:overflow-hidden">
+          <div className={cn("flex min-h-0 flex-col rounded-xl border bg-card p-3 shadow-sm lg:overflow-hidden", vistaMovil === "catalogo" ? "flex" : "hidden", "lg:flex")}>
+            <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+              <h3 className="text-sm font-semibold">{t("order.browseTitle")}</h3>
+              <span className="font-tabular text-xs text-muted-foreground">
+                {t("order.refsShown", { count: lista.length })}
+              </span>
+            </div>
           <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-t pt-3">
             <div className="flex flex-wrap gap-2">
               {categorias.map((cat) => (
@@ -402,21 +417,6 @@ const NuevoPedido = () => {
               {t("order.clienteCategoriaIncompatible")}
             </p>
           ) : null}
-        </section>
-
-        <div className="grid grid-cols-2 gap-2 lg:hidden">
-          <Button type="button" size="sm" variant={vistaMovil === "catalogo" ? "default" : "outline"} onClick={() => setVistaMovil("catalogo")}><Package /> Catálogo</Button>
-          <Button type="button" size="sm" variant={vistaMovil === "pedido" ? "default" : "outline"} onClick={() => setVistaMovil("pedido")}><ShoppingCart /> Pedido ({totalReferencias})</Button>
-        </div>
-
-        <section className="grid min-h-0 gap-3 lg:flex-1 lg:grid-cols-[minmax(0,1.55fr)_minmax(19rem,.85fr)] lg:overflow-hidden">
-          <div className={cn("flex min-h-0 flex-col rounded-xl border bg-card p-3 shadow-sm lg:overflow-hidden", vistaMovil === "catalogo" ? "flex" : "hidden", "lg:flex")}>
-            <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-              <h3 className="text-sm font-semibold">{t("order.browseTitle")}</h3>
-              <span className="font-tabular text-xs text-muted-foreground">
-                {t("order.refsShown", { count: lista.length })}
-              </span>
-            </div>
 
             {!buscando && familias.length > 1 ? (
               <div className="-mx-1 mb-3 flex gap-1.5 overflow-x-auto px-1 pb-1">
@@ -499,7 +499,7 @@ const NuevoPedido = () => {
 
           <div
             id="pedido-actual"
-            className={cn("flex min-h-0 flex-col rounded-xl border bg-card p-3 shadow-sm lg:h-full lg:overflow-hidden", vistaMovil === "pedido" ? "flex" : "hidden", "lg:flex")}
+            className={cn("flex h-[calc(100dvh-20rem)] min-h-[18rem] flex-col rounded-xl border bg-card p-3 shadow-sm lg:h-full lg:overflow-hidden", vistaMovil === "pedido" ? "flex" : "hidden", "lg:flex")}
           >
             <div className="mb-3 flex shrink-0 items-center justify-between gap-2">
               <h3 className="text-sm font-semibold">
