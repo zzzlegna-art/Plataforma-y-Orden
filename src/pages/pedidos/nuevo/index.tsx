@@ -279,7 +279,7 @@ const NuevoPedido = () => {
 
   return (
     <>
-      <div className="nx-order-builder flex min-h-0 flex-col gap-3 stagger lg:h-[calc(100dvh-8rem)]">
+      <div className="nx-order-builder flex min-h-0 flex-col gap-3 stagger lg:min-h-[calc(100dvh-8rem)] lg:h-auto">
         <Button variant="ghost" size="sm" asChild className="-ml-2 w-fit">
           <Link to="/pedidos">
             <ArrowLeft />
