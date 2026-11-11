@@ -137,13 +137,14 @@ describe("regreso seguro de preparado a serialización", () => {
   it("conserva los IMEI vendidos y solo registra salida de los nuevos seriales", () => {
     const db = emptyDb();
     db.products.push({ ...producto });
-    db.orders.push({ ...pedido, status: "preparado", total: 150 });
+    db.orders.push({ ...pedido, status: "en_preparacion", total: 150 });
     db.orderItems.push({ ...linea, quantity: 1, subtotal: 150 });
     db.units.push({ ...unidad }, { ...unidad, id: "unidad-2", serial: "SERIAL-67890" });
     db.orderItemUnits.push({
       id: "asignacion-1", orderItemId: linea.id, unitId: unidad.id, createdAt: pedido.createdAt,
     });
 
+    confirmarPreparacionPedido(db, actor, { orderId: pedido.id });
     const asignacionesOriginales = db.orderItemUnits.map((a) => ({ ...a }));
     const reabierto = regresarPedidoASerializacion(db, actor, { orderId: pedido.id });
 
