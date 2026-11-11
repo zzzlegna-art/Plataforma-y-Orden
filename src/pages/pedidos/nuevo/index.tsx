@@ -404,7 +404,12 @@ const NuevoPedido = () => {
           ) : null}
         </section>
 
-        <div className="grid grid-cols-2 gap-2 lg:hidden">\n          <Button type="button" size="sm" variant={vistaMovil === "catalogo" ? "default" : "outline"} onClick={() => setVistaMovil("catalogo")}><Package /> Catálogo</Button>\n          <Button type="button" size="sm" variant={vistaMovil === "pedido" ? "default" : "outline"} onClick={() => setVistaMovil("pedido")}><ShoppingCart /> Pedido ({totalReferencias})</Button>\n        </div>\n\n        <section className="grid min-h-0 gap-3 lg:flex-1 lg:grid-cols-[minmax(0,1.55fr)_minmax(19rem,.85fr)] lg:overflow-hidden">
+        <div className="grid grid-cols-2 gap-2 lg:hidden">
+          <Button type="button" size="sm" variant={vistaMovil === "catalogo" ? "default" : "outline"} onClick={() => setVistaMovil("catalogo")}><Package /> Catálogo</Button>
+          <Button type="button" size="sm" variant={vistaMovil === "pedido" ? "default" : "outline"} onClick={() => setVistaMovil("pedido")}><ShoppingCart /> Pedido ({totalReferencias})</Button>
+        </div>
+
+        <section className="grid min-h-0 gap-3 lg:flex-1 lg:grid-cols-[minmax(0,1.55fr)_minmax(19rem,.85fr)] lg:overflow-hidden">
           <div className={cn("flex min-h-0 flex-col rounded-xl border bg-card p-3 shadow-sm lg:overflow-hidden", vistaMovil === "catalogo" ? "flex" : "hidden", "lg:flex")}>
             <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
               <h3 className="text-sm font-semibold">{t("order.browseTitle")}</h3>
@@ -492,11 +497,18 @@ const NuevoPedido = () => {
             )}
           </div>
 
-          <div\n            id="pedido-actual"\n            className={cn("flex min-h-0 flex-col rounded-xl border bg-card p-3 shadow-sm lg:h-full lg:overflow-hidden", vistaMovil === "pedido" ? "flex" : "hidden", "lg:flex")}\n          >
-            <div className="mb-3 flex shrink-0 items-center justify-between gap-2">\n              <h3 className="text-sm font-semibold">
+          <div
+            id="pedido-actual"
+            className={cn("flex min-h-0 flex-col rounded-xl border bg-card p-3 shadow-sm lg:h-full lg:overflow-hidden", vistaMovil === "pedido" ? "flex" : "hidden", "lg:flex")}
+          >
+            <div className="mb-3 flex shrink-0 items-center justify-between gap-2">
+              <h3 className="text-sm font-semibold">
               {t("order.currentOrder")}{" "}
               <span className="font-normal text-muted-foreground">({t("order.referencesCount", { count: totalReferencias })})</span>
-              </h3>\n              <Button type="button" size="sm" variant="ghost" className="h-8 px-2 text-xs lg:hidden" onClick={() => setVistaMovil("catalogo")}><ArrowLeft /> Catálogo</Button>\n            </div>\n            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+              </h3>
+              <Button type="button" size="sm" variant="ghost" className="h-8 px-2 text-xs lg:hidden" onClick={() => setVistaMovil("catalogo")}><ArrowLeft /> Catálogo</Button>
+            </div>
+            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
               {lineas.length === 0 ? (
                 <p className="rounded-md border border-dashed px-3 py-6 text-center text-sm text-muted-foreground">
                   {t("order.noReferences")}
@@ -603,7 +615,8 @@ const NuevoPedido = () => {
       </div>
 
       {/* Celular: barra fija con el total para ir al pedido sin buscarlo al final de la lista. */}
-      {lineas.length > 0 && vistaMovil === "catalogo" ? (\n        <div className="fixed inset-x-4 bottom-[calc(4.75rem+env(safe-area-inset-bottom))] z-30 lg:hidden">
+      {lineas.length > 0 && vistaMovil === "catalogo" ? (
+        <div className="fixed inset-x-4 bottom-[calc(4.75rem+env(safe-area-inset-bottom))] z-30 lg:hidden">
           <Button
             type="button"
             className="w-full justify-between shadow-elegant"
