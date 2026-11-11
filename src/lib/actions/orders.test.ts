@@ -51,7 +51,7 @@ describe("despacho seguro de pedidos", () => {
     expect(() => confirmarPreparacionPedido(db, actor, { orderId: pedido.id })).toThrow(DomainError);
     expect(db.units[0].status).toBe("en_bodega");
   });
-  it("separa la preparación de la salida y solo vende en la segunda confirmación", () => {
+  it("despacha al confirmar serialización y factura sin duplicar la salida", () => {
     const db = emptyDb();
     db.products.push(producto);
     db.orders.push({ ...pedido });
@@ -66,13 +66,13 @@ describe("despacho seguro de pedidos", () => {
 
     confirmarPreparacionPedido(db, actor, { orderId: pedido.id });
     expect(db.orders[0].status).toBe("preparado");
-    expect(db.units[0].status).toBe("en_bodega");
-    expect(db.movements).toHaveLength(0);
+    expect(db.units[0].status).toBe("vendido");
+    expect(db.movements.filter((movement) => movement.type === "salida")).toHaveLength(1);
 
     confirmarVentaPedido(db, actor, { orderId: pedido.id });
     expect(db.orders[0].status).toBe("despachado");
     expect(db.units[0].status).toBe("vendido");
-    expect(db.movements).toHaveLength(1);
+    expect(db.movements.filter((movement) => movement.type === "salida")).toHaveLength(1);
   });
 
   it("permite negociar el precio de una línea y recalcula subtotal y total del pedido", () => {
@@ -127,14 +127,14 @@ describe("despacho seguro de pedidos", () => {
 
     expect(() => confirmarVentaPedido(db, actor, { orderId: pedido.id })).toThrow(DomainError);
     expect(db.orders[0].status).toBe("preparado");
-    expect(db.units[0].status).toBe("en_bodega");
-    expect(db.movements).toHaveLength(0);
+    expect(db.units[0].status).toBe("vendido");
+    expect(db.movements.filter((movement) => movement.type === "salida")).toHaveLength(1);
   });
 
 });
 
 describe("regreso seguro de preparado a serialización", () => {
-  it("conserva los IMEI y permite seguir serializando sin vender ni liberar unidades", () => {
+  it("conserva los IMEI vendidos y solo registra salida de los nuevos seriales", () => {
     const db = emptyDb();
     db.products.push({ ...producto });
     db.orders.push({ ...pedido, status: "preparado", total: 150 });
@@ -149,17 +149,18 @@ describe("regreso seguro de preparado a serialización", () => {
 
     expect(reabierto.status).toBe("en_preparacion");
     expect(db.orderItemUnits).toEqual(asignacionesOriginales);
-    expect(db.units.every((u) => u.status === "en_bodega")).toBe(true);
-    expect(db.movements).toHaveLength(0);
+    expect(db.units.find((u) => u.id === unidad.id)?.status).toBe("vendido");
+    expect(db.movements.filter((movement) => movement.type === "salida")).toHaveLength(1);
 
     editarCantidadReferencia(db, actor, { orderItemId: linea.id, nuevaCantidad: 2 });
     serializarImeiPedido(db, actor, { orderId: pedido.id, imei: "SERIAL-67890" });
     expect(db.orderItemUnits.map((a) => a.unitId).sort()).toEqual(["unidad-2", unidad.id].sort());
-    expect(db.movements.filter((m) => m.type === "salida")).toHaveLength(0);
 
     confirmarPreparacionPedido(db, actor, { orderId: pedido.id });
     expect(db.orders[0].status).toBe("preparado");
     expect(db.orderItemUnits).toHaveLength(2);
+    expect(db.units.every((u) => u.status === "vendido")).toBe(true);
+    expect(db.movements.filter((movement) => movement.type === "salida")).toHaveLength(2);
   });
 
   it("no reabre pedidos despachados o cancelados, ni altera sus seriales", () => {
