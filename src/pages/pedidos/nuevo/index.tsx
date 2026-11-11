@@ -74,6 +74,7 @@ const NuevoPedido = () => {
   const [soloConStock, setSoloConStock] = useState(true);
   // Familia/modelo elegido para acortar la lista ("" = todas).
   const [familia, setFamilia] = useState("");
+  const [vistaMovil, setVistaMovil] = useState<"catalogo" | "pedido">("catalogo");
 
   const [clienteFiltro, setClienteFiltro] = useState<CustomerCategoriaMayorista | undefined>(undefined);
   const mayoristas = db.customers
@@ -278,7 +279,7 @@ const NuevoPedido = () => {
 
   return (
     <>
-      <div className="space-y-5 stagger">
+      <div className="nx-order-builder flex min-h-0 flex-col gap-3 stagger lg:h-[calc(100dvh-9rem)]">
         <Button variant="ghost" size="sm" asChild className="-ml-2 w-fit">
           <Link to="/pedidos">
             <ArrowLeft />
@@ -288,7 +289,7 @@ const NuevoPedido = () => {
 
         <PageHeader title={t("order.createTitle")} description={t("order.mayoristaSubtitle")} />
 
-        <section className="space-y-3 rounded-lg border bg-card p-4 shadow-sm">
+        <section className="shrink-0 space-y-2 rounded-xl border bg-card p-3 shadow-sm">
           <div className="grid items-start gap-3 md:grid-cols-[auto_minmax(0,1fr)] md:items-center">
             <div className="space-y-2">
               <Label>{t("order.customer")}</Label>
@@ -403,8 +404,8 @@ const NuevoPedido = () => {
           ) : null}
         </section>
 
-        <section className="grid gap-3 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)] lg:items-start">
-          <div className="rounded-lg border bg-card p-4 shadow-sm">
+        <div className="grid grid-cols-2 gap-2 lg:hidden">\n          <Button type="button" size="sm" variant={vistaMovil === "catalogo" ? "default" : "outline"} onClick={() => setVistaMovil("catalogo")}><Package /> Catálogo</Button>\n          <Button type="button" size="sm" variant={vistaMovil === "pedido" ? "default" : "outline"} onClick={() => setVistaMovil("pedido")}><ShoppingCart /> Pedido ({totalReferencias})</Button>\n        </div>\n\n        <section className="grid min-h-0 gap-3 lg:flex-1 lg:grid-cols-[minmax(0,1.55fr)_minmax(19rem,.85fr)] lg:overflow-hidden">
+          <div className={cn("flex min-h-0 flex-col rounded-xl border bg-card p-3 shadow-sm lg:overflow-hidden", vistaMovil === "catalogo" ? "flex" : "hidden", "lg:flex")}>
             <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
               <h3 className="text-sm font-semibold">{t("order.browseTitle")}</h3>
               <span className="font-tabular text-xs text-muted-foreground">
@@ -449,7 +450,7 @@ const NuevoPedido = () => {
                 <p className="mt-1 text-xs text-muted-foreground">{t("order.noRefsMatchHint")}</p>
               </div>
             ) : (
-              <ul className="grid min-w-0 grid-cols-[repeat(auto-fit,minmax(min(100%,17rem),1fr))] content-start gap-3 lg:max-h-[calc(100vh-22rem)] lg:overflow-y-auto lg:pr-1">
+              <ul className="grid min-w-0 grid-cols-[repeat(auto-fit,minmax(min(100%,17rem),1fr))] content-start gap-2 lg:min-h-0 lg:flex-1 lg:overflow-y-auto lg:overscroll-contain lg:pr-1">
                 {lista.map(({ product, disponibles }) => {
                   const enPedido = cantidadEnPedido(product);
                   return (
@@ -491,15 +492,11 @@ const NuevoPedido = () => {
             )}
           </div>
 
-          <div
-            id="pedido-actual"
-            className="flex flex-col rounded-lg border bg-card p-4 shadow-sm lg:sticky lg:top-20 lg:max-h-[calc(100vh-7rem)]"
-          >
-            <h3 className="mb-3 shrink-0 text-sm font-semibold">
+          <div\n            id="pedido-actual"\n            className={cn("flex min-h-0 flex-col rounded-xl border bg-card p-3 shadow-sm lg:h-full lg:overflow-hidden", vistaMovil === "pedido" ? "flex" : "hidden", "lg:flex")}\n          >
+            <div className="mb-3 flex shrink-0 items-center justify-between gap-2">\n              <h3 className="text-sm font-semibold">
               {t("order.currentOrder")}{" "}
               <span className="font-normal text-muted-foreground">({t("order.referencesCount", { count: totalReferencias })})</span>
-            </h3>
-            <div className="min-h-0 flex-1 overflow-y-auto">
+              </h3>\n              <Button type="button" size="sm" variant="ghost" className="h-8 px-2 text-xs lg:hidden" onClick={() => setVistaMovil("catalogo")}><ArrowLeft /> Catálogo</Button>\n            </div>\n            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
               {lineas.length === 0 ? (
                 <p className="rounded-md border border-dashed px-3 py-6 text-center text-sm text-muted-foreground">
                   {t("order.noReferences")}
@@ -606,14 +603,11 @@ const NuevoPedido = () => {
       </div>
 
       {/* Celular: barra fija con el total para ir al pedido sin buscarlo al final de la lista. */}
-      {lineas.length > 0 ? (
-        <div className="fixed inset-x-4 bottom-[calc(4.75rem+env(safe-area-inset-bottom))] z-30 lg:hidden">
+      {lineas.length > 0 && vistaMovil === "catalogo" ? (\n        <div className="fixed inset-x-4 bottom-[calc(4.75rem+env(safe-area-inset-bottom))] z-30 lg:hidden">
           <Button
             type="button"
             className="w-full justify-between shadow-elegant"
-            onClick={() =>
-              document.getElementById("pedido-actual")?.scrollIntoView({ behavior: "smooth", block: "start" })
-            }
+            onClick={() => setVistaMovil("pedido")}
           >
             <span className="flex items-center gap-2">
               <ShoppingCart />
