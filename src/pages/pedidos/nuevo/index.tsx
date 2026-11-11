@@ -348,7 +348,7 @@ const NuevoPedido = () => {
                 {t("order.refsShown", { count: lista.length })}
               </span>
             </div>
-          <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-t pt-3">
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-t pt-3">
             <div className="flex flex-wrap gap-2">
               {categorias.map((cat) => (
                 <Button
@@ -383,7 +383,7 @@ const NuevoPedido = () => {
             ) : null}
           </div>
 
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+          <div className="mt-4 mb-4 flex flex-col gap-3 sm:flex-row sm:items-center">
             <Input
               {...SEARCH_INPUT_PROPS}
               value={busqueda}
@@ -419,7 +419,7 @@ const NuevoPedido = () => {
           ) : null}
 
             {!buscando && familias.length > 1 ? (
-              <div className="-mx-1 mb-3 flex gap-1.5 overflow-x-auto px-1 pb-1">
+              <div className="-mx-1 mt-2 mb-4 flex gap-2 overflow-x-auto px-1 pb-2">
                 {[{ clave: "", etiqueta: t("order.familyAll"), cantidad: sinAgotados.length }, ...familias].map(
                   (f) => (
                     <button
