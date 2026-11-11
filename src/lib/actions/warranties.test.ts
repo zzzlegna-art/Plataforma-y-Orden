@@ -51,6 +51,49 @@ describe("createWarrantyFallaInventario · recepción de unidades propias", () =
     expect(db.units[0]?.status).toBe("en_reparacion");
   });
 
+  it("rechaza una unidad que sigue en bodega pero ya está asignada a un pedido preparado", () => {
+    const db = emptyDb();
+    db.units = [unidad({ status: "en_bodega" })];
+    db.orders = [{
+      id: "o1", code: "PED-1", customerId: "c1", status: "preparado",
+      orderDate: now, total: 0, createdBy: "u1", createdAt: now, updatedAt: now,
+    }];
+    db.orderItems = [{
+      id: "oi1", orderId: "o1", productId: "p1", quantity: 1,
+      unitPrice: 0, subtotal: 0,
+    }];
+    db.orderItemUnits = [{ id: "oiu1", orderItemId: "oi1", unitId: "un1", createdAt: now }];
+
+    const resultados = createWarrantyFallaInventario(db, admin, {
+      items: [{ imei: "354198263141008", observacion: "No carga" }],
+    });
+
+    expect(resultados[0]?.ok).toBe(false);
+    expect(db.warranties).toHaveLength(0);
+    expect(db.units[0]?.status).toBe("en_bodega");
+  });
+
+  it("libera la validación cuando el pedido que tenía el serial fue cancelado", () => {
+    const db = emptyDb();
+    db.units = [unidad({ status: "en_bodega" })];
+    db.orders = [{
+      id: "o1", code: "PED-1", customerId: "c1", status: "cancelado",
+      orderDate: now, total: 0, createdBy: "u1", createdAt: now, updatedAt: now,
+    }];
+    db.orderItems = [{
+      id: "oi1", orderId: "o1", productId: "p1", quantity: 1,
+      unitPrice: 0, subtotal: 0,
+    }];
+    db.orderItemUnits = [{ id: "oiu1", orderItemId: "oi1", unitId: "un1", createdAt: now }];
+
+    const resultados = createWarrantyFallaInventario(db, admin, {
+      items: [{ imei: "354198263141008", observacion: "No carga" }],
+    });
+
+    expect(resultados[0]?.ok).toBe(true);
+    expect(db.units[0]?.status).toBe("en_reparacion");
+  });
+
   it("permite procesar por lote y reporta los seriales que no están disponibles", () => {
     const db = emptyDb();
     db.units = [
