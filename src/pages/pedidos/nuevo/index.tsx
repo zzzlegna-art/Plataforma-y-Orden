@@ -462,12 +462,12 @@ const NuevoPedido = () => {
                     <li
                       key={product.id}
                       className={cn(
-                        "flex min-w-0 items-center gap-3 rounded-xl border bg-card p-3 transition-[border-color,box-shadow,transform] duration-200 motion-reduce:transition-none [@media(hover:hover)]:hover:-translate-y-0.5 hover:shadow-elegant motion-reduce:[@media(hover:hover)]:hover:translate-y-0",
+                        "flex min-w-0 items-center gap-2.5 rounded-xl border bg-card p-2.5 transition-[border-color,box-shadow,transform] duration-200 motion-reduce:transition-none [@media(hover:hover)]:hover:-translate-y-0.5 hover:shadow-elegant motion-reduce:[@media(hover:hover)]:hover:translate-y-0",
                         enPedido > 0 && "border-primary/50 bg-primary/5",
                         disponibles === 0 && "opacity-60",
                       )}
                     >
-                      <ProductMiniThumb imageUrl={product.imageUrl} name={product.name} />
+                      <ProductMiniThumb imageUrl={product.imageUrl} name={product.name} className="h-14 w-14 rounded-lg" />
                       <div className="min-w-0 flex-1">
                         <p className="line-clamp-2 break-normal text-sm font-semibold leading-snug" title={product.name}>{product.name}</p>
                          <p className="font-tabular truncate text-xs text-muted-foreground">{product.sku}</p>
