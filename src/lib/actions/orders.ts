@@ -1,8 +1,8 @@
 /**
  * Acciones de pedidos a clientes mayoristas (flujo del prototipo Bodega 6A):
  * el pedido se arma por referencias (producto + condición + cantidad) y después
- * se serializan los IMEIs con barra de progreso por referencia. Al finalizar,
- * las unidades pasan a "vendido" y se registra la salida.
+ * se serializan los IMEIs con barra de progreso por referencia. Al confirmar
+ * la serialización se registra la salida física; la venta posterior es facturación.
  */
 
 import { createId, DomainError, logAudit, logMovement, nextDailyCode, nowIso } from "../db";
