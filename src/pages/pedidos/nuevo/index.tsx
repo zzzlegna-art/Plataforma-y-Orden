@@ -340,7 +340,7 @@ const NuevoPedido = () => {
           <Button type="button" size="sm" variant={vistaMovil === "pedido" ? "default" : "outline"} onClick={() => setVistaMovil("pedido")}><ShoppingCart /> Pedido ({totalReferencias})</Button>
         </div>
 
-        <section className="grid min-h-0 gap-3 lg:flex-1 lg:grid-cols-[minmax(0,1.55fr)_minmax(19rem,.85fr)] lg:overflow-hidden">
+        <section className="grid min-h-0 gap-3 lg:min-h-[24rem] lg:flex-1 lg:grid-cols-[minmax(0,1.55fr)_minmax(19rem,.85fr)] lg:overflow-hidden">
           <div className={cn("flex min-h-0 flex-col rounded-xl border bg-card p-3 shadow-sm lg:overflow-hidden", vistaMovil === "catalogo" ? "flex" : "hidden", "lg:flex")}>
             <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
               <h3 className="text-sm font-semibold">{t("order.browseTitle")}</h3>
