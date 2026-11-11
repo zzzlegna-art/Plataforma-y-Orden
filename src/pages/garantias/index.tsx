@@ -70,6 +70,7 @@ import {
 import { formatDate, formatDateTime, todayIso } from "@/lib/format";
 import { crearCsv } from "@/lib/csv";
 import { getWarrantyOrigin, type WarrantyOrigin } from "@/lib/warranty-origin";
+import { unitEstaEnPedidoActivo } from "@/lib/unit-availability";
 import {
   FILTRO_REENVIO_VACIO,
   type FiltroReenvio,
@@ -625,7 +626,7 @@ const Garantias = () => {
 
     const valido =
       modoActual === "falla"
-        ? unit.status === "en_bodega" || unit.status === "en_local"
+        ? (unit.status === "en_bodega" || unit.status === "en_local") && !unitEstaEnPedidoActivo(db, unit.id)
         : unit.status === "vendido" || unit.status === "entregado_garantia";
     if (!valido) {
       return {
