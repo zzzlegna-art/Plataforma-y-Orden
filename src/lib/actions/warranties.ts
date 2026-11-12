@@ -70,7 +70,11 @@ const findSaleForUnit = (db: Db, unitId: string) => {
   if (!row) return undefined;
   const item = db.orderItems.find((i) => i.id === row.orderItemId);
   if (!item) return undefined;
-  const order = db.orders.find((o) => o.id === item.orderId && o.status === "despachado");
+  // "preparado" representa despacho físico confirmado; "despachado" es el estado
+  // posterior de facturación. Ambos deben conservar el vínculo comercial para Garantías.
+  const order = db.orders.find(
+    (o) => o.id === item.orderId && (o.status === "preparado" || o.status === "despachado"),
+  );
   return order;
 };
 
