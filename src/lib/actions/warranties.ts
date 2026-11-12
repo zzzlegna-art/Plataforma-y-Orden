@@ -66,16 +66,19 @@ const newCode = (db: Db) =>
 
 /** Encuentra el pedido/venta entregado al que pertenece una unidad. */
 const findSaleForUnit = (db: Db, unitId: string) => {
-  const row = db.orderItemUnits.find((r) => r.unitId === unitId);
-  if (!row) return undefined;
-  const item = db.orderItems.find((i) => i.id === row.orderItemId);
-  if (!item) return undefined;
-  // "preparado" representa despacho físico confirmado; "despachado" es el estado
-  // posterior de facturación. Ambos deben conservar el vínculo comercial para Garantías.
-  const order = db.orders.find(
-    (o) => o.id === item.orderId && (o.status === "preparado" || o.status === "despachado"),
+  // Una unidad puede conservar filas históricas de asignaciones anteriores. No basta
+  // con tomar la primera: una orden cancelada/abierta podría ocultar la venta física real.
+  // "preparado" confirma despacho físico; "despachado" confirma además la facturación.
+  const orderIds = db.orderItemUnits
+    .filter((row) => row.unitId === unitId)
+    .map((row) => db.orderItems.find((item) => item.id === row.orderItemId)?.orderId)
+    .filter((orderId): orderId is string => Boolean(orderId));
+
+  return db.orders.find(
+    (order) =>
+      orderIds.includes(order.id) &&
+      (order.status === "preparado" || order.status === "despachado"),
   );
-  return order;
 };
 
 /** Valida que la unidad de reemplazo exista, esté disponible y sea del producto del caso. */
