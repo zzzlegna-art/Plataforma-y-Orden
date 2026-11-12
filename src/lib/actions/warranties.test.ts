@@ -9,6 +9,7 @@ import {
   enviarATecnico,
   entregarGarantia,
   createWarrantyFallaInventario,
+  createWarrantyByImei,
   createWarrantyPrevia,
   devolverGarantiasABodega,
   estadoAnteriorGarantia,
@@ -37,6 +38,55 @@ const dbCon = (warrantyOverrides: Partial<Warranty> = {}, unitOverrides: Partial
   db.warranties = [garantia(warrantyOverrides)];
   return db;
 };
+
+describe("createWarrantyByImei · vínculo comercial de pedidos despachados", () => {
+  it("reconoce un pedido preparado como venta física y conserva cliente y pedido en la garantía", () => {
+    const db = emptyDb();
+    db.units = [unidad({ status: "vendido" })];
+    db.customers = [{
+      id: "c1", name: "Migue Santa Marta", phone: "", email: "", document: "",
+      createdAt: now,
+    }];
+    db.orders = [{
+      id: "o1", code: "PED-261109-005", customerId: "c1", status: "preparado",
+      orderDate: now, total: 0, createdBy: "u1", createdAt: now, updatedAt: now,
+    }];
+    db.orderItems = [{
+      id: "oi1", orderId: "o1", productId: "p1", quantity: 1,
+      unitPrice: 0, subtotal: 0,
+    }];
+    db.orderItemUnits = [{ id: "oiu1", orderItemId: "oi1", unitId: "un1", createdAt: now }];
+
+    const warranty = createWarrantyByImei(db, admin, {
+      imei: "354198263141008", observacion: "No enciende",
+    });
+
+    expect(warranty.orderId).toBe("o1");
+    expect(warranty.customerId).toBe("c1");
+    expect(db.units[0]?.status).toBe("en_reparacion");
+  });
+
+  it("sigue reconociendo pedidos facturados en estado despachado", () => {
+    const db = emptyDb();
+    db.units = [unidad({ status: "vendido" })];
+    db.orders = [{
+      id: "o1", code: "PED-2", customerId: "c1", status: "despachado",
+      orderDate: now, total: 0, createdBy: "u1", createdAt: now, updatedAt: now,
+    }];
+    db.orderItems = [{
+      id: "oi1", orderId: "o1", productId: "p1", quantity: 1,
+      unitPrice: 0, subtotal: 0,
+    }];
+    db.orderItemUnits = [{ id: "oiu1", orderItemId: "oi1", unitId: "un1", createdAt: now }];
+
+    const warranty = createWarrantyByImei(db, admin, {
+      imei: "354198263141008", observacion: "No carga",
+    });
+
+    expect(warranty.orderId).toBe("o1");
+    expect(warranty.customerId).toBe("c1");
+  });
+});
 
 describe("createWarrantyFallaInventario · recepción de unidades propias", () => {
   it("recibe una unidad disponible en bodega para enviarla a servicio técnico", () => {
