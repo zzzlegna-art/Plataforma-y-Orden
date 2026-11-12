@@ -66,6 +66,36 @@ describe("createWarrantyByImei · vínculo comercial de pedidos despachados", ()
     expect(db.units[0]?.status).toBe("en_reparacion");
   });
 
+  it("no deja que una asignación histórica cancelada oculte el pedido preparado", () => {
+    const db = emptyDb();
+    db.units = [unidad({ status: "vendido" })];
+    db.orders = [
+      {
+        id: "o-cancelado", code: "PED-ANTERIOR", customerId: "c-old", status: "cancelado",
+        orderDate: now, total: 0, createdBy: "u1", createdAt: now, updatedAt: now,
+      },
+      {
+        id: "o-preparado", code: "PED-ACTUAL", customerId: "c1", status: "preparado",
+        orderDate: now, total: 0, createdBy: "u1", createdAt: now, updatedAt: now,
+      },
+    ];
+    db.orderItems = [
+      { id: "oi-old", orderId: "o-cancelado", productId: "p1", quantity: 1, unitPrice: 0, subtotal: 0 },
+      { id: "oi-current", orderId: "o-preparado", productId: "p1", quantity: 1, unitPrice: 0, subtotal: 0 },
+    ];
+    db.orderItemUnits = [
+      { id: "oiu-old", orderItemId: "oi-old", unitId: "un1", createdAt: now },
+      { id: "oiu-current", orderItemId: "oi-current", unitId: "un1", createdAt: now },
+    ];
+
+    const warranty = createWarrantyByImei(db, admin, {
+      imei: "354198263141008", observacion: "No carga",
+    });
+
+    expect(warranty.orderId).toBe("o-preparado");
+    expect(warranty.customerId).toBe("c1");
+  });
+
   it("sigue reconociendo pedidos facturados en estado despachado", () => {
     const db = emptyDb();
     db.units = [unidad({ status: "vendido" })];
