@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
-const site = "https://nexora-zermay.vercel.app/";
+const site = "https://nexora-eight-rho-42.vercel.app/";
 const read = (path: string) => readFileSync(path, "utf8");
 
 describe("indexación de NEXORA sin exponer la plataforma", () => {
