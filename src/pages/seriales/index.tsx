@@ -490,6 +490,13 @@ const HistorialSerial = ({ embedded = false }: { embedded?: boolean }) => {
                 </p>
               </div>
             </div>
+            <div className="mt-3 rounded-lg border bg-muted/20 px-3 py-2.5 text-sm">
+              <p className="text-xs uppercase tracking-wide text-muted-foreground">Correo original del dispositivo</p>
+              <p className="mt-1 break-all font-medium">{unit.deviceEmail ?? "Sin registrar"}</p>
+              {(unit.previousSerials?.length ?? 0) > 0 ? (
+                <p className="mt-2 break-all text-xs text-muted-foreground">Seriales anteriores: {unit.previousSerials?.join(" · ")}</p>
+              ) : null}
+            </div>
 
             {sourceReceptions.length > 0 ? (
               <div className="mt-3 rounded-lg border bg-primary/5 p-3">
