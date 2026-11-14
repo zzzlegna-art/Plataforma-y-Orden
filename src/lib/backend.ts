@@ -403,6 +403,7 @@ const ESPECIFICACIONES: Spec<unknown>[] = [
       reception_id: nulo(u.receptionId),
       location: nulo(u.location),
       notes: nulo(u.notes),
+      device_email: nulo(u.deviceEmail),
       received_at: u.receivedAt,
       created_by: nulo(u.createdBy),
     }),
@@ -417,6 +418,7 @@ const ESPECIFICACIONES: Spec<unknown>[] = [
       receptionId: texto(f.reception_id) ?? undefined,
       location: texto(f.location) ?? undefined,
       notes: texto(f.notes) ?? undefined,
+      deviceEmail: texto(f.device_email) ?? undefined,
       receivedAt: fecha(f.received_at),
       createdBy: texto(f.created_by) ?? "",
       // Solo lectura: las marcas del control físico las escribe el servidor (no se envían en
