@@ -187,7 +187,10 @@ export const corregirUnitSerial = (
     if (errorImei) throw new DomainError(errorImei);
     nuevo = normalizarImei(nuevo);
   }
-  if (db.units.some((other) => other.id !== unit.id && isSameText(other.serial, nuevo))) {
+  if (db.units.some((other) => other.id !== unit.id && (
+    isSameText(other.serial, nuevo) ||
+    (other.previousSerials ?? []).some((serialAnterior) => isSameText(serialAnterior, nuevo))
+  ))) {
     throw new DomainError("errors.serialAlreadyInStock", { serial: nuevo });
   }
   const correo = input.deviceEmail === undefined ? unit.deviceEmail : input.deviceEmail.trim().toLowerCase() || undefined;
