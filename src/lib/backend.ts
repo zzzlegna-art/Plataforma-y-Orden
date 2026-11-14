@@ -404,6 +404,7 @@ const ESPECIFICACIONES: Spec<unknown>[] = [
       location: nulo(u.location),
       notes: nulo(u.notes),
       device_email: nulo(u.deviceEmail),
+      previous_serials: u.previousSerials ?? [],
       received_at: u.receivedAt,
       created_by: nulo(u.createdBy),
     }),
@@ -419,6 +420,7 @@ const ESPECIFICACIONES: Spec<unknown>[] = [
       location: texto(f.location) ?? undefined,
       notes: texto(f.notes) ?? undefined,
       deviceEmail: texto(f.device_email) ?? undefined,
+      previousSerials: Array.isArray(f.previous_serials) ? f.previous_serials.filter((v): v is string => typeof v === "string") : [],
       receivedAt: fecha(f.received_at),
       createdBy: texto(f.created_by) ?? "",
       // Solo lectura: las marcas del control físico las escribe el servidor (no se envían en
