@@ -248,8 +248,6 @@ export interface Unit {
   receptionId?: string;
   location?: string;
   notes?: string;
-  /** Correo de la cuenta original configurada en el dispositivo (Apple/Google). */
-  deviceEmail?: string;
   /** Seriales internos anteriores conservados para búsquedas e historial. */
   previousSerials?: string[];
   receivedAt: string;
