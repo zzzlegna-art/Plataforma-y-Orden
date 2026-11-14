@@ -294,7 +294,7 @@ export const getProduct = (db: Db, productId: string) =>
 export const findUnitBySerial = (db: Db, serial: string): Unit | undefined => {
   const needle = serial.trim().toLowerCase();
   if (!needle) return undefined;
-  return db.units.find((unit) => unit.serial.toLowerCase() === needle);
+  return db.units.find((unit) => unit.serial.toLowerCase() === needle || (unit.previousSerials ?? []).some((serialAnterior) => serialAnterior.trim().toLowerCase() === needle));
 };
 
 /** Busca un serial en el registro de ventas anteriores a la plataforma. */
