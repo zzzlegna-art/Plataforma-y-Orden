@@ -248,6 +248,8 @@ export interface Unit {
   receptionId?: string;
   location?: string;
   notes?: string;
+  /** Correo de la cuenta original configurada en el dispositivo (Apple/Google). */
+  deviceEmail?: string;
   receivedAt: string;
   createdBy: string;
   /** Última vez que se verificó físicamente (control físico); la fija el servidor. */
