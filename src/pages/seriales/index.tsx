@@ -179,6 +179,7 @@ const HistorialSerial = ({ embedded = false }: { embedded?: boolean }) => {
   const [dialog, setDialog] = useState<null | "novedad" | "corregir" | "imprimir">(null);
   const [novedad, setNovedad] = useState("");
   const [nuevoSerial, setNuevoSerial] = useState("");
+  const [correoDispositivo, setCorreoDispositivo] = useState("");
   const [corregirMotivo, setCorregirMotivo] = useState("");
 
   const handleScan = (serial: string) => {
@@ -567,9 +568,14 @@ const HistorialSerial = ({ embedded = false }: { embedded?: boolean }) => {
               </Button>
               {isAdmin ? (
                 <>
-                  <Button variant="outline" size="sm" onClick={() => setDialog("corregir")}>
+                  <Button variant="outline" size="sm" onClick={() => {
+                    setNuevoSerial(unit.serial);
+                    setCorreoDispositivo(unit.deviceEmail ?? "");
+                    setCorregirMotivo("");
+                    setDialog("corregir");
+                  }}>
                     <PencilLine />
-                    {t("serialHistory.correctSerial")}
+                    Actualizar serial / correo
                   </Button>
                   {unit.status === "liberado" ? (
                     <Button
@@ -704,13 +710,24 @@ const HistorialSerial = ({ embedded = false }: { embedded?: boolean }) => {
                   <Input value={unit.serial} disabled className="font-tabular" />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="newSerial">{t("serialHistory.newSerial")}</Label>
+                  <Label htmlFor="newSerial">Serial / IMEI original</Label>
                   <Input
                     id="newSerial"
                     value={nuevoSerial}
                     onChange={(event) => setNuevoSerial(event.target.value)}
                     className="font-tabular"
                   />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="deviceEmail">Correo original del dispositivo</Label>
+                  <Input
+                    id="deviceEmail"
+                    type="email"
+                    value={correoDispositivo}
+                    onChange={(event) => setCorreoDispositivo(event.target.value)}
+                    placeholder="cuenta@icloud.com o cuenta@gmail.com"
+                  />
+                  <p className="text-xs text-muted-foreground">Se guarda en la ficha del equipo, separado del correo del cliente.</p>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="correctMotivo">{t("common.notes")}</Label>
@@ -735,6 +752,7 @@ const HistorialSerial = ({ embedded = false }: { embedded?: boolean }) => {
                         corregirUnitSerial(db2, actor, {
                           id: unit.id,
                           nuevoSerial: nuevoSerial,
+                          deviceEmail: correoDispositivo,
                           motivo: corregirMotivo,
                         }),
                       { success: "serialHistory.corrected" },
@@ -742,6 +760,7 @@ const HistorialSerial = ({ embedded = false }: { embedded?: boolean }) => {
                     if (result) {
                       setDialog(null);
                       setNuevoSerial("");
+                      setCorreoDispositivo("");
                       setCorregirMotivo("");
                     }
                   }}
