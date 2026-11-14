@@ -199,6 +199,9 @@ export const corregirUnitSerial = (
   if (isSameText(nuevo, anterior) && correo === correoAnterior) {
     throw new DomainError("errors.serialIgual");
   }
+  if (!isSameText(anterior, nuevo)) {
+    unit.previousSerials = [...new Set([...(unit.previousSerials ?? []), anterior])];
+  }
   unit.serial = nuevo;
   unit.deviceEmail = correo;
   const cambios = [
