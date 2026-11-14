@@ -175,7 +175,7 @@ export const reingresarUnit = (
 export const corregirUnitSerial = (
   db: Db,
   actor: Actor,
-  input: { id: string; nuevoSerial: string; deviceEmail?: string; motivo?: string },
+  input: { id: string; nuevoSerial: string; motivo?: string },
 ): Unit => {
   requireAdmin(actor);
   const unit = findUnit(db, input.id);
@@ -193,24 +193,17 @@ export const corregirUnitSerial = (
   ))) {
     throw new DomainError("errors.serialAlreadyInStock", { serial: nuevo });
   }
-  const correo = input.deviceEmail === undefined ? unit.deviceEmail : input.deviceEmail.trim().toLowerCase() || undefined;
-  if (correo && !/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(correo)) {
-    throw new DomainError("errors.invalidTransition");
-  }
   const anterior = unit.serial;
-  const correoAnterior = unit.deviceEmail;
-  if (isSameText(nuevo, anterior) && correo === correoAnterior) {
+  if (isSameText(nuevo, anterior)) {
     throw new DomainError("errors.serialIgual");
   }
   if (!isSameText(anterior, nuevo)) {
     unit.previousSerials = [...new Set([...(unit.previousSerials ?? []), anterior])];
   }
   unit.serial = nuevo;
-  unit.deviceEmail = correo;
   const cambios = [
-    !isSameText(anterior, nuevo) ? `serial ${anterior} → ${nuevo}` : undefined,
-    correo !== correoAnterior ? "correo original del dispositivo actualizado" : undefined,
-  ].filter(Boolean).join(" · ");
+    `serial ${anterior} → ${nuevo}`,
+  ].join(" · ");
   logMovement(db, actor, {
     productId: unit.productId,
     unitId: unit.id,
