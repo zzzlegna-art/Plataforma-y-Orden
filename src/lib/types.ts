@@ -250,6 +250,8 @@ export interface Unit {
   notes?: string;
   /** Correo de la cuenta original configurada en el dispositivo (Apple/Google). */
   deviceEmail?: string;
+  /** Seriales internos anteriores conservados para búsquedas e historial. */
+  previousSerials?: string[];
   receivedAt: string;
   createdBy: string;
   /** Última vez que se verificó físicamente (control físico); la fija el servidor. */
