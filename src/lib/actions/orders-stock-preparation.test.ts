@@ -56,8 +56,8 @@ describe("stock operativo: exclusión desde primer IMEI asignado al pedido", () 
     expect(getProductStock(db, "modelo").enInventario).toBe(1);
     expect(getDashboard(db).kpis.available).toBe(1);
     expect(getDashboard(db).kpis.inventoryValue).toBe(120);
-    expect(db.units[0].status).toBe("en_bodega"); // No es una venta anticipada.
-    expect(db.movements.filter((m) => m.type === "salida")).toHaveLength(0);
+    expect(db.units[0].status).toBe("vendido"); // La preparación confirma la salida física.
+    expect(db.movements.filter((m) => m.type === "salida")).toHaveLength(1);
 
     confirmarVentaPedido(db, actor, { orderId: "pedido" });
     expect(db.orders[0].status).toBe("despachado");
@@ -76,7 +76,7 @@ describe("stock operativo: exclusión desde primer IMEI asignado al pedido", () 
     expect(db.orderItemUnits.map((a) => a.unitId)).toEqual(["unidad-bodega"]);
     confirmarPreparacionPedido(db, actor, { orderId: "pedido" });
     expect(getProductStock(db, "modelo").disponible).toBe(1);
-    expect(db.movements.filter((m) => m.type === "salida")).toHaveLength(0);
+    expect(db.movements.filter((m) => m.type === "salida")).toHaveLength(1);
   });
 
   it("recupera unidades del stock disponible al cancelar sin vender", () => {
@@ -87,7 +87,9 @@ describe("stock operativo: exclusión desde primer IMEI asignado al pedido", () 
     expect(db.orderItemUnits).toHaveLength(0);
     expect(getProductStock(db, "modelo").disponible).toBe(2);
     expect(getDashboard(db).kpis.inventoryValue).toBe(240);
-    expect(db.movements.filter((m) => m.type === "salida")).toHaveLength(0);
+    expect(db.movements.filter((m) => m.type === "salida")).toHaveLength(1);
+    expect(db.movements.filter((m) => m.type === "devolucion")).toHaveLength(1);
+    expect(db.units[0].status).toBe("en_bodega");
   });
 
   it("si los precios no alcanzan el costo, no confirma la venta ni libera los seriales", () => {
