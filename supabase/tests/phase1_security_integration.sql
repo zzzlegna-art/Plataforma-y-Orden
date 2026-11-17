@@ -259,14 +259,14 @@ VALUES ('60000000-0000-4000-8000-000000000005',
         '50000000-0000-4000-8000-000000000003',
         '20000000-0000-4000-8000-000000000002');
 
-DO $
+DO $post_dispatch_edit$
 BEGIN
   BEGIN
     UPDATE public.bodega_orders SET notes='forged post-dispatch edit'
     WHERE id='40000000-0000-4000-8000-000000000001';
     RAISE EXCEPTION 'bodeguero unexpectedly edited dispatched order';
   EXCEPTION WHEN SQLSTATE '42501' THEN NULL; END;
-END $$;
+END $post_dispatch_edit$;
 RESET ROLE;
 COMMIT;
 
