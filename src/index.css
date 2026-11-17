@@ -1329,3 +1329,26 @@ body {
     max-width: 100%;
   }
 }
+
+
+/* iOS safe-area: keep persistent update prompts fully below the status bar. */
+@media (max-width: 640px) {
+  [data-sonner-toaster][data-y-position="top"] {
+    top: calc(env(safe-area-inset-top, 0px) + 12px) !important;
+    left: max(12px, env(safe-area-inset-left, 0px)) !important;
+    right: max(12px, env(safe-area-inset-right, 0px)) !important;
+    width: auto !important;
+  }
+
+  [data-sonner-toaster][data-y-position="top"] [data-sonner-toast] {
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 100%;
+  }
+
+  [data-sonner-toaster][data-y-position="top"] [data-sonner-toast] [data-button] {
+    min-height: 44px;
+    white-space: nowrap;
+    touch-action: manipulation;
+  }
+}
