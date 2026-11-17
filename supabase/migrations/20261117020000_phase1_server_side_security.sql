@@ -952,7 +952,13 @@ BEGIN
      AND NOT EXISTS (
        SELECT 1
        FROM public.bodega_warranties w
-       WHERE w.unit_id = OLD.id
+       WHERE (
+           w.unit_id = OLD.id
+           OR (
+             w.unit_id IS NULL
+             AND LOWER(BTRIM(COALESCE(w.imei_manual, ''))) = LOWER(BTRIM(OLD.serial))
+           )
+         )
          AND w.status = 'reenvio_pendiente'
          AND w.resolucion = 'cambio'
          AND w.customer_id IS NULL
@@ -983,7 +989,13 @@ BEGIN
          OR EXISTS (
            SELECT 1
            FROM public.bodega_warranties w
-           WHERE w.unit_id = OLD.id
+           WHERE (
+               w.unit_id = OLD.id
+               OR (
+                 w.unit_id IS NULL
+                 AND LOWER(BTRIM(COALESCE(w.imei_manual, ''))) = LOWER(BTRIM(OLD.serial))
+               )
+             )
              AND (
                w.status = 'recibido'
                OR (
