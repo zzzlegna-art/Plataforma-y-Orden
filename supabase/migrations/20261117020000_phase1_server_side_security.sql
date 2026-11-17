@@ -963,18 +963,38 @@ BEGIN
       USING ERRCODE = '42501';
   END IF;
 
-  IF OLD.status = 'liberado' AND NEW.status IS DISTINCT FROM OLD.status
+  -- Any move from a non-stock state back into stock must be backed by a
+  -- confirmed reception or an active warranty return workflow.
+  IF NEW.status IN ('en_bodega', 'en_local')
+     AND OLD.status NOT IN ('en_bodega', 'en_local')
      AND NOT (
        NEW.status = 'en_bodega'
-       AND NEW.reception_id IS NOT NULL
-       AND EXISTS (
-         SELECT 1
-         FROM public.bodega_receptions r
-         WHERE r.id = NEW.reception_id
-           AND r.status = 'confirmada'
+       AND (
+         (
+           NEW.reception_id IS NOT NULL
+           AND NEW.reception_id IS DISTINCT FROM OLD.reception_id
+           AND EXISTS (
+             SELECT 1
+             FROM public.bodega_receptions r
+             WHERE r.id = NEW.reception_id
+               AND r.status = 'confirmada'
+           )
+         )
+         OR EXISTS (
+           SELECT 1
+           FROM public.bodega_warranties w
+           WHERE w.unit_id = OLD.id
+             AND (
+               w.status = 'recibido'
+               OR (
+                 w.status = 'reenvio_pendiente'
+                 AND w.resolucion IN ('reparado', 'sin_falla')
+               )
+             )
+         )
        )
      ) THEN
-    RAISE EXCEPTION 'NEXORA_ADMIN_REQUIRED_UNIT_REENTRY'
+    RAISE EXCEPTION 'NEXORA_WARRANTY_OR_RECEPTION_REQUIRED_STOCK_REENTRY'
       USING ERRCODE = '42501';
   END IF;
 
