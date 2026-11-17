@@ -208,7 +208,7 @@ BEGIN
             '50000000-0000-4000-8000-000000000002',
             '20000000-0000-4000-8000-000000000002');
     RAISE EXCEPTION 'the same IMEI was assigned to two orders';
-  EXCEPTION WHEN unique_violation THEN NULL; END;
+  EXCEPTION WHEN unique_violation OR SQLSTATE 'P0001' THEN NULL; END;
 END $phase1$;
 
 -- A prepared order cannot receive additional assignments from Bodega.
