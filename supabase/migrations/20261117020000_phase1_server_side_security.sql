@@ -1027,6 +1027,15 @@ LANGUAGE plpgsql
 SET search_path TO 'pg_catalog', 'public'
 AS $function$
 BEGIN
+  -- Even administrators must not skip physical preparation before dispatch.
+  IF TG_OP = 'UPDATE'
+     AND NEW.status = 'despachado'
+     AND OLD.status IS DISTINCT FROM NEW.status
+     AND OLD.status <> 'preparado' THEN
+    RAISE EXCEPTION 'NEXORA_ORDER_MUST_BE_PREPARED_BEFORE_DISPATCH'
+      USING ERRCODE = '23514';
+  END IF;
+
   IF auth.uid() IS NULL OR public.bodega_is_admin() THEN
     RETURN NEW;
   END IF;
@@ -1204,7 +1213,7 @@ BEGIN
     WHERE o.id = v_order_id;
   END IF;
 
-  IF v_status = 'preparado' AND EXISTS (
+  IF v_status IN ('preparado', 'despachado') AND EXISTS (
     SELECT 1
     FROM public.bodega_order_items i
     LEFT JOIN public.bodega_order_item_units a ON a.order_item_id = i.id
@@ -1216,7 +1225,7 @@ BEGIN
       USING ERRCODE = '23514';
   END IF;
 
-  IF v_status = 'preparado' AND EXISTS (
+  IF v_status IN ('preparado', 'despachado') AND EXISTS (
     SELECT 1
     FROM public.bodega_order_item_units a
     JOIN public.bodega_order_items i ON i.id = a.order_item_id
@@ -1251,7 +1260,7 @@ CREATE CONSTRAINT TRIGGER nexora_validate_prepared_order_assignments
 AFTER UPDATE OF status ON public.bodega_orders
 DEFERRABLE INITIALLY DEFERRED
 FOR EACH ROW
-WHEN (NEW.status = 'preparado')
+WHEN (NEW.status IN ('preparado', 'despachado'))
 EXECUTE FUNCTION public.nexora_validate_prepared_order_assignments();
 
 DROP TRIGGER IF EXISTS nexora_validate_prepared_assignment_insert ON public.bodega_order_item_units;
@@ -1260,6 +1269,50 @@ AFTER INSERT OR UPDATE ON public.bodega_order_item_units
 DEFERRABLE INITIALLY DEFERRED
 FOR EACH ROW
 EXECUTE FUNCTION public.nexora_validate_prepared_order_assignments();
+
+-- Invoice/dispatch must respect the same cost floor as confirmarVentaPedido().
+CREATE OR REPLACE FUNCTION public.nexora_validate_order_dispatch_pricing()
+RETURNS trigger
+LANGUAGE plpgsql
+SET search_path TO 'pg_catalog', 'public'
+AS $function$
+BEGIN
+  IF NEW.status = 'despachado' AND OLD.status IS DISTINCT FROM NEW.status
+     AND EXISTS (
+       SELECT 1
+       FROM public.bodega_order_items i
+       JOIN public.bodega_order_item_units a ON a.order_item_id = i.id
+       JOIN public.bodega_units u ON u.id = a.unit_id
+       JOIN public.bodega_products p ON p.id = i.product_id
+       LEFT JOIN LATERAL (
+         SELECT NULLIF(v.variant->>'cost', '')::numeric AS cost
+         FROM jsonb_array_elements(
+           CASE
+             WHEN jsonb_typeof(p.color_variants) = 'array' THEN p.color_variants
+             ELSE '[]'::jsonb
+           END
+         ) AS v(variant)
+         WHERE LOWER(BTRIM(COALESCE(v.variant->>'color', '')))
+             = LOWER(BTRIM(COALESCE(i.color, '')))
+         LIMIT 1
+       ) color_cost ON TRUE
+       WHERE i.order_id = NEW.id
+         AND i.unit_price < COALESCE(u.cost, color_cost.cost, p.cost, 0)
+     ) THEN
+    RAISE EXCEPTION 'NEXORA_ORDER_PRICE_BELOW_UNIT_COST'
+      USING ERRCODE = '23514';
+  END IF;
+  RETURN NULL;
+END;
+$function$;
+
+DROP TRIGGER IF EXISTS nexora_validate_order_dispatch_pricing ON public.bodega_orders;
+CREATE CONSTRAINT TRIGGER nexora_validate_order_dispatch_pricing
+AFTER UPDATE OF status ON public.bodega_orders
+DEFERRABLE INITIALLY DEFERRED
+FOR EACH ROW
+WHEN (NEW.status = 'despachado')
+EXECUTE FUNCTION public.nexora_validate_order_dispatch_pricing();
 
 -- A cancelled order may not leave a unit marked sold by that order without a return.
 CREATE OR REPLACE FUNCTION public.nexora_validate_order_cancellation_returns()
