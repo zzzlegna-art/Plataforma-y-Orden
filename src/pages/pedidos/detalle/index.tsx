@@ -127,6 +127,17 @@ const PedidoDetalle = () => {
   const pending = requestedSerial - assigned;
   const editable = order.status === "en_preparacion";
   const preparado = order.status === "preparado";
+  const pedidoTuvoSalidaFisica = db.movements.some((movement) =>
+    movement.type === "salida" &&
+    movement.referenceType === "pedido" &&
+    movement.referenceId === order.id
+  );
+  const descripcionCancelacion = pedidoTuvoSalidaFisica
+    ? "Este pedido ya tuvo salida física. Confirma únicamente cuando todos los equipos que salieron hayan regresado físicamente a Bodega. El sistema devolverá al inventario las unidades que sigan vendidas y conservará los estados de los equipos que ya estén en garantía u otro proceso."
+    : t("order.cancelDescription");
+  const etiquetaCancelar = pedidoTuvoSalidaFisica
+    ? "Confirmar devolución y cancelación"
+    : t("order.action.confirmCancel");
   // El administrador puede ajustar (agregar/quitar unidades) y anular pedidos ya despachados.
   const edicionDespachado = isAdmin && order.status === "despachado";
   const ventaConfirmada = order.status === "despachado";
@@ -413,8 +424,8 @@ const PedidoDetalle = () => {
                     </Button>
                   }
                   title={t("order.cancelTitle")}
-                  description={t("order.cancelDescription")}
-                  confirmLabel={t("order.action.confirmCancel")}
+                  description={descripcionCancelacion}
+                  confirmLabel={etiquetaCancelar}
                   destructive
                   onConfirm={cancelar}
                 />
@@ -457,8 +468,8 @@ const PedidoDetalle = () => {
                     </Button>
                   }
                   title={t("order.cancelTitle")}
-                  description={t("order.cancelDescription")}
-                  confirmLabel={t("order.action.confirmCancel")}
+                  description={descripcionCancelacion}
+                  confirmLabel={etiquetaCancelar}
                   destructive
                   onConfirm={cancelar}
                 />
@@ -474,7 +485,7 @@ const PedidoDetalle = () => {
               }
               title={t("order.cancelDispatchedTitle")}
               description={t("order.cancelDispatchedDescription")}
-              confirmLabel={t("order.action.confirmCancel")}
+              confirmLabel={etiquetaCancelar}
               destructive
               onConfirm={cancelarDespachado}
             />
