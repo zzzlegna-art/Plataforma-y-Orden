@@ -262,6 +262,11 @@ VALUES ('70000000-0000-4000-8000-000000000006',
         '20000000-0000-4000-8000-000000000002','reenvio_pendiente','reparado');
 UPDATE public.bodega_units SET status='en_bodega'
 WHERE id='20000000-0000-4000-8000-000000000002';
+INSERT INTO public.bodega_movements(id,unit_id,type,reference_type,reference_id,created_by)
+VALUES ('30000000-0000-4000-8000-000000000007',
+        '20000000-0000-4000-8000-000000000002','devolucion','garantia',
+        '70000000-0000-4000-8000-000000000006',
+        '00000000-0000-4000-8000-000000000002');
 INSERT INTO public.bodega_orders(id,status,created_by)
 VALUES ('40000000-0000-4000-8000-000000000010','en_preparacion',
         '00000000-0000-4000-8000-000000000002');
