@@ -72,7 +72,8 @@ describe("stock operativo: exclusión desde primer IMEI asignado al pedido", () 
     confirmarPreparacionPedido(db, actor, { orderId: "pedido" });
     regresarPedidoASerializacion(db, actor, { orderId: "pedido" });
     expect(getProductStock(db, "modelo").disponible).toBe(1);
-    expect(getProductStock(db, "modelo").enPedidos).toBe(1);
+    expect(getProductStock(db, "modelo").enPedidos).toBe(0); // Sigue vendido y conserva su salida anterior.
+    expect(db.units[0].status).toBe("vendido");
     expect(db.orderItemUnits.map((a) => a.unitId)).toEqual(["unidad-bodega"]);
     confirmarPreparacionPedido(db, actor, { orderId: "pedido" });
     expect(getProductStock(db, "modelo").disponible).toBe(1);
