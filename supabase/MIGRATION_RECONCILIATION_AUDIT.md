@@ -201,7 +201,7 @@ Se añadieron pruebas de integración para la reventa tras garantía en una tran
 ### Verificación adicional de producción
 
 - Consulta actual: 30 pedidos operativos, 18 preparados, 8 despachados y 4 cancelados. Los conteos anteriores (29/17 preparados) cambiaron desde la auditoría inicial; no se modificaron datos para obtener este resultado.
-- 1.825? No se reemplaza el total de asignaciones de inventario de la auditoría previa; en pedidos operativos la consulta actual encontró 1.820 asignaciones (1.274 en preparados y 546 en despachados), sin IMEI repetidos entre pedidos.
+- La consulta actual encontró 1.820 asignaciones en pedidos operativos: 1.274 en pedidos preparados y 546 en despachados, sin IMEI repetidos entre pedidos.
 - Las 5 unidades en reparación siguen asociadas a pedidos preparados; no se alteró ese historial.
 - Vercel no tiene deployment de la rama `fix/fase-1-seguridad-nexora`. El último deployment de producción observado sigue apuntando a `main`, commit `a8a575345320de40703bdb3c1c27126f91aa2f36`, estado READY. No se promovió ni desplegó la PR.
 
