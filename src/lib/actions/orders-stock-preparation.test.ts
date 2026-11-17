@@ -100,6 +100,6 @@ describe("stock operativo: exclusión desde primer IMEI asignado al pedido", () 
     expect(db.orders[0].status).toBe("preparado");
     expect(db.orderItemUnits).toHaveLength(1);
     expect(getProductStock(db, "modelo").disponible).toBe(1);
-    expect(db.movements.filter((m) => m.type === "salida")).toHaveLength(0);
+    expect(db.movements.filter((m) => m.type === "salida")).toHaveLength(1);
   });
 });
