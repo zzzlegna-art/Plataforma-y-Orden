@@ -117,7 +117,7 @@ INSERT INTO public.bodega_order_items(id,order_id,product_id,quantity,unit_price
 VALUES ('50000000-0000-4000-8000-000000000002',
         '40000000-0000-4000-8000-000000000002',
         '90000000-0000-4000-8000-000000000001',1,200,200,'nuevo');
-DO $
+DO $phase1$
 BEGIN
   BEGIN
     INSERT INTO public.bodega_order_item_units(id,order_item_id,unit_id)
@@ -126,7 +126,7 @@ BEGIN
             '20000000-0000-4000-8000-000000000002');
     RAISE EXCEPTION 'the same IMEI was assigned to two orders';
   EXCEPTION WHEN unique_violation THEN NULL; END;
-END $;
+END $phase1$;
 
 UPDATE public.bodega_units SET status='vendido'
 WHERE id='20000000-0000-4000-8000-000000000002';
