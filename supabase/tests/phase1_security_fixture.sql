@@ -93,6 +93,11 @@ CREATE TABLE public.bodega_receptions (
   id uuid PRIMARY KEY,
   status text NOT NULL
 );
+CREATE TABLE public.bodega_products (
+  id uuid PRIMARY KEY,
+  cost numeric,
+  color_variants jsonb NOT NULL DEFAULT '[]'::jsonb
+);
 CREATE TABLE public.bodega_units (
   id uuid PRIMARY KEY,
   serial text NOT NULL,
@@ -156,11 +161,14 @@ INSERT INTO public.nexora_staff_role_plans(user_id, planned_role, operationally_
 
 INSERT INTO public.bodega_technicians(id,nombre,activo) VALUES
   ('10000000-0000-4000-8000-000000000001','Técnico fixture',true);
+INSERT INTO public.bodega_products(id,cost,color_variants) VALUES
+  ('90000000-0000-4000-8000-000000000001',200,'[]'::jsonb);
 
 ALTER TABLE public.bodega_technicians ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.bodega_movements ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.bodega_units ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.bodega_receptions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.bodega_products ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.bodega_warranties ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.bodega_orders ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.bodega_order_items ENABLE ROW LEVEL SECURITY;
@@ -179,6 +187,8 @@ CREATE POLICY bodega_units_all ON public.bodega_units
 CREATE POLICY bodega_receptions_all ON public.bodega_receptions
   FOR ALL TO authenticated USING (public.bodega_is_staff())
   WITH CHECK (public.bodega_is_staff());
+CREATE POLICY bodega_products_read ON public.bodega_products
+  FOR SELECT TO authenticated USING (public.bodega_is_staff());
 CREATE POLICY bodega_warranties_all ON public.bodega_warranties
   FOR ALL TO authenticated USING (public.bodega_is_staff())
   WITH CHECK (public.bodega_is_staff());
@@ -197,7 +207,7 @@ GRANT EXECUTE ON FUNCTION auth.uid() TO authenticated;
 GRANT SELECT, INSERT, UPDATE, DELETE ON
   public.bodega_profiles, public.nexora_staff_role_plans,
   public.bodega_technicians, public.bodega_movements, public.bodega_receptions,
-  public.bodega_units, public.bodega_warranties, public.bodega_orders,
+  public.bodega_units, public.bodega_products, public.bodega_warranties, public.bodega_orders,
   public.bodega_order_items, public.bodega_order_item_units
 TO authenticated;
 GRANT SELECT ON auth.users TO authenticated;
