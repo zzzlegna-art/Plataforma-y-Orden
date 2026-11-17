@@ -105,6 +105,15 @@ VALUES ('70000000-0000-4000-8000-000000000004',
 UPDATE public.bodega_units SET status='en_bodega'
 WHERE id='20000000-0000-4000-8000-000000000004';
 
+-- A warranty for a prior/manual serial can reactivate its matching liberated unit
+-- before the warranty row is linked to unit_id by the normal sync order.
+INSERT INTO public.bodega_units(id,serial,status)
+VALUES ('20000000-0000-4000-8000-000000000005','IMEI-MANUAL-1','liberado');
+INSERT INTO public.bodega_warranties(id,unit_id,imei_manual,status,resolucion)
+VALUES ('70000000-0000-4000-8000-000000000005',NULL,'IMEI-MANUAL-1','recibido','reparado');
+UPDATE public.bodega_units SET status='en_bodega'
+WHERE id='20000000-0000-4000-8000-000000000005';
+
 -- Bodegueros may manage warranty cases but cannot register payment evidence.
 INSERT INTO public.bodega_warranties(id,unit_id,status,resolucion)
 VALUES ('70000000-0000-4000-8000-000000000002',NULL,'devuelto','sin_falla');
