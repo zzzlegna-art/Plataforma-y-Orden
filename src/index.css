@@ -1293,3 +1293,39 @@ body {
     max-width: 100%;
   }
 }
+
+/* iOS/mobile viewport guard: keep the app vertically scrollable without page-level
+   horizontal drift or exposing the body's white overscroll area. */
+@media (max-width: 1023px) {
+  html,
+  body,
+  #root {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: clip;
+  }
+
+  #root,
+  .nx-app-main,
+  .nx-app-main > div,
+  .nx-app-main .page-enter {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .nx-app-main {
+    overflow-x: clip;
+    overscroll-behavior-x: none;
+  }
+
+  /* Flex/grid children with intrinsic content must be allowed to shrink to the viewport. */
+  .nx-app-main :is(section, article, header, footer, form, [class*="grid"], [class*="flex"]) {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  /* Keep wide data tables inside their own region instead of widening the document. */
+  .nx-app-main :is(.overflow-x-auto, [data-radix-scroll-area-viewport]) {
+    max-width: 100%;
+  }
+}
