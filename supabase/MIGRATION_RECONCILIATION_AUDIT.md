@@ -162,7 +162,7 @@ En el commit inicial de auditoría `aa0d65fb38f16fb446126d8f95e349fab7341a0c`, `
 Se movió el plugin a `devDependencies` y se sincronizó `pnpm-lock.yaml`. En las ejecuciones posteriores la auditoría de dependencias de producción pasó. El árbol de desarrollo todavía contiene versiones afectadas de `picomatch`; el aviso `GHSA-fc5q-39xc-vjpf` no publica una versión corregida, por lo que ese riesgo no se declara eliminado ni se ha ocultado la auditoría.
 
 En el último HEAD de código probado (`1bc12a2cf4e913977ee7f453511faad5f57de4b6`):
-- `Nexora Phase 1 - server-side security SQL`, run 44: **SUCCESS**.
+- `Nexora Phase 1 - server-side security SQL`, run 50: **SUCCESS**. El fixture incluye triggers legacy de asignación, bloqueo POS y sincronización de despacho.
 - `Validate platform`, run 1164: auditoría de producción pasó; pruebas unitarias en ejecución al momento de esta actualización.
 - `Nexora - quality checks`, run 1381: auditoría de producción, configuración de despliegue y ESLint/TypeScript pasaron; regresión en ejecución al momento de esta actualización.
 
@@ -195,8 +195,8 @@ Se añadieron pruebas de integración para la reventa tras garantía en una tran
 ### Resultado de CI más reciente observado
 
 - `Nexora Phase 1 - server-side security SQL`, run 44: **SUCCESS**. Migración, fixtures, integración, caso de venta por debajo del costo y rollback completaron.
-- `Validate platform`, run 1164: auditoría de producción pasó; pruebas unitarias estaban en ejecución al momento de esta nota.
-- `Nexora - quality checks`, run 1381: auditoría de producción, configuración de despliegue y ESLint/TypeScript pasaron; regresión estaba en ejecución al momento de esta nota.
+- `Validate platform`, run 1169: auditoría de producción, pruebas unitarias, ESLint y TypeScript completados correctamente; build de producción en ejecución al momento de esta nota.
+- `Nexora - quality checks`, run 1387: auditoría de producción, configuración de despliegue, ESLint/TypeScript y regresión completados correctamente; build de producción en ejecución al momento de esta nota.
 - La última ejecución SQL se realizó después de corregir la semántica de devolución por garantía y los IDs de fixtures. El commit documental posterior no modificó código.
 
 ### Verificación adicional de producción
@@ -222,3 +222,16 @@ La inspección de solo lectura identificó triggers preexistentes en producción
 La acción de aplicación `confirmarPreparacionPedido` registra el estado vendido y el movimiento de salida mientras el pedido sigue en `en_preparacion`; después cambia el pedido a `preparado`. `confirmarVentaPedido` verifica las salidas y cambia a `despachado` sin volver a modificar inventario. Esto hace compatible el guard nuevo de venta con el flujo normal: el trigger histórico de sincronización no debe encontrar unidades pendientes de vender en una preparación válida.
 
 La acción `cancelarPedido` devuelve a bodega únicamente unidades que siguen vendidas y cuya última salida pertenece a ese pedido; conserva unidades que ya entraron a garantía u otro estado. La validación diferida nueva respeta esa semántica y evita duplicar movimientos de devolución.
+
+
+### Prueba ampliada con triggers históricos de producción
+
+El fixture `supabase/tests/phase1_security_fixture.sql` ahora reproduce los triggers legacy relevantes:
+- `bodega_order_item_units_validar` / `bodega_validar_asignacion_unidad()`
+- `nexora_00_guard_retail_legacy_assignment` / `nexora_guard_retail_legacy_assignment()`
+- `trg_bodega_sincronizar_unidades_despacho` / `bodega_sincronizar_unidades_despacho()`
+- `nexora_guard_pos_sold_unit` / `nexora_guard_retail_legacy_unit()`
+
+Con esos triggers instalados antes de la migración nueva, el workflow `Nexora Phase 1 - server-side security SQL` run 50 terminó **SUCCESS**, incluyendo migración, integración, prueba de precio bajo costo y rollback. La prueba de duplicado reconoce el rechazo del trigger legacy (`P0001`) o del nuevo guard (`23505`); ambos impiden la doble asignación.
+
+La suite valida que la reventa por garantía ocurre en una transacción posterior al despacho original y que el movimiento posterior de garantía evita exigir una devolución duplicada del pedido anterior.
