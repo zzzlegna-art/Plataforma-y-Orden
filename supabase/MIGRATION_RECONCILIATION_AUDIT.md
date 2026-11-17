@@ -172,3 +172,10 @@ Se consultaron ramas y búsquedas de commits/archivos en GitHub, incluyendo los 
 ## Decisión de seguridad
 
 La PR de Fase 1 debe permanecer abierta y sin merge mientras no se resuelva la reconciliación histórica y se completen los checks generales. No se ejecutó `migration repair`, `db push`, migración, despliegue ni cambio de datos. No se crearon recursos ni se incurrió en costos adicionales.
+
+
+## Ajuste de dependencias de build (2026-11-17)
+
+La inspección del árbol confirmó que `tailwindcss-animate` solo se importa desde `tailwind.config.ts` y se usa durante la compilación de CSS; no es una dependencia de ejecución de la aplicación. Se movió de `dependencies` a `devDependencies` y se actualizó el importador raíz de `pnpm-lock.yaml` en la misma rama. No se cambió la versión del paquete ni se ocultó la auditoría.
+
+La alerta `GHSA-fc5q-39xc-vjpf` sigue sin una versión corregida publicada en el aviso consultado; GitHub describe como afectadas las versiones de picomatch hasta 4.0.7 y no informa una versión parcheada. El lockfile contiene picomatch 2.3.2 y 4.0.7 en rutas de herramientas de build. Clasificar el plugin como dependencia de desarrollo evita incluir una herramienta de compilación en el conjunto de dependencias de producción, pero **no elimina la vulnerabilidad del árbol de desarrollo**. No se afirma que la auditoría esté limpia: el commit nuevo no tiene una ejecución CI asociada disponible para verificar el resultado. La alerta debe mantenerse visible hasta que el proveedor publique una versión corregida y se actualice el árbol de dependencias.
