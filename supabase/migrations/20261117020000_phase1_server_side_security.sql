@@ -217,8 +217,7 @@ BEGIN
 
   RETURN v_result;
 END;
-$function$
-
+$function$;
 
 CREATE OR REPLACE FUNCTION public.nexora_historical_order_detail(p_source_id uuid)
  RETURNS jsonb
@@ -551,8 +550,7 @@ BEGIN
     'source', 'Techrez'
   );
 END;
-$function$
-
+$function$;
 
 CREATE OR REPLACE FUNCTION public.nexora_historical_orders_list(p_search text DEFAULT NULL::text, p_status text DEFAULT NULL::text)
  RETURNS jsonb
@@ -727,8 +725,7 @@ BEGIN
 
   RETURN v_result;
 END;
-$function$
-
+$function$;
 
 CREATE OR REPLACE FUNCTION public.nexora_historical_serial_trace(p_serial text)
  RETURNS jsonb
@@ -902,8 +899,7 @@ BEGIN
 
   RETURN v_result || jsonb_build_object('movements', v_events, 'warranties', v_warranties);
 END;
-$function$
-
+$function$;
 
 -- Bodegueros may consult technicians, but only administrators may manage them.
 DROP POLICY IF EXISTS bodega_technicians_all ON public.bodega_technicians;
