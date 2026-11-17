@@ -1010,6 +1010,23 @@ BEGIN
       USING ERRCODE = '42501';
   END IF;
 
+  -- A non-admin may mark a unit sold only inside an active order preparation
+  -- or the atomic retail POS transaction (which inserts its sale row first).
+  IF NEW.status = 'vendido'
+     AND OLD.status IS DISTINCT FROM NEW.status
+     AND NOT EXISTS (
+       SELECT 1 FROM public.bodega_order_item_units a
+       JOIN public.bodega_order_items i ON i.id = a.order_item_id
+       JOIN public.bodega_orders o ON o.id = i.order_id
+       WHERE a.unit_id = OLD.id AND o.status = 'en_preparacion'
+     )
+     AND NOT EXISTS (
+       SELECT 1 FROM public.nexora_retail_sales r WHERE r.unit_id = OLD.id
+     ) THEN
+    RAISE EXCEPTION 'NEXORA_UNIT_SALE_REQUIRES_ORDER_OR_POS'
+      USING ERRCODE = '42501';
+  END IF;
+
   RETURN NEW;
 END;
 $function$;
@@ -1171,7 +1188,7 @@ BEGIN
     FROM public.bodega_orders o
     JOIN public.bodega_order_items i ON i.order_id = o.id
     WHERE i.id = NEW.order_item_id;
-    IF v_status IN ('despachado', 'cancelado') THEN
+    IF v_status IN ('preparado', 'despachado', 'cancelado') THEN
       RAISE EXCEPTION 'NEXORA_ORDER_ASSIGNMENT_LOCKED'
         USING ERRCODE = '42501';
     END IF;
@@ -1197,32 +1214,48 @@ DECLARE
   v_order_id uuid;
   v_status text;
 BEGIN
-  IF auth.uid() IS NULL OR public.bodega_is_admin() THEN
-    RETURN NULL;
-  END IF;
+  -- Trusted server-side maintenance may run without a user JWT. Administrators
+  -- are still subject to the same stock and assignment invariants as Bodega.
+  IF auth.uid() IS NULL THEN RETURN NULL; END IF;
 
   IF TG_TABLE_NAME = 'bodega_orders' THEN
-    v_order_id := NEW.id;
-    v_status := NEW.status;
+    v_order_id := COALESCE(NEW.id, OLD.id);
+    v_status := COALESCE(NEW.status, OLD.status);
+  ELSIF TG_TABLE_NAME = 'bodega_order_items' THEN
+    v_order_id := COALESCE(NEW.order_id, OLD.order_id);
+    SELECT o.status INTO v_status FROM public.bodega_orders o WHERE o.id = v_order_id;
   ELSE
     SELECT i.order_id INTO v_order_id
     FROM public.bodega_order_items i
     WHERE i.id = COALESCE(NEW.order_item_id, OLD.order_item_id);
-    SELECT o.status INTO v_status
-    FROM public.bodega_orders o
-    WHERE o.id = v_order_id;
+    SELECT o.status INTO v_status FROM public.bodega_orders o WHERE o.id = v_order_id;
+  END IF;
+
+  IF v_order_id IS NULL THEN RETURN NULL; END IF;
+
+  IF v_status IN ('en_preparacion', 'preparado', 'despachado') AND EXISTS (
+    SELECT 1 FROM public.bodega_order_items i
+    LEFT JOIN public.bodega_order_item_units a ON a.order_item_id = i.id
+    WHERE i.order_id = v_order_id
+    GROUP BY i.id, i.quantity
+    HAVING COUNT(a.id) > i.quantity
+  ) THEN
+    RAISE EXCEPTION 'NEXORA_ORDER_LINE_OVERASSIGNED' USING ERRCODE = '23514';
+  END IF;
+
+  IF v_status IN ('preparado', 'despachado')
+     AND NOT EXISTS (SELECT 1 FROM public.bodega_order_items i WHERE i.order_id = v_order_id) THEN
+    RAISE EXCEPTION 'NEXORA_PREPARED_ORDER_EMPTY' USING ERRCODE = '23514';
   END IF;
 
   IF v_status IN ('preparado', 'despachado') AND EXISTS (
-    SELECT 1
-    FROM public.bodega_order_items i
+    SELECT 1 FROM public.bodega_order_items i
     LEFT JOIN public.bodega_order_item_units a ON a.order_item_id = i.id
     WHERE i.order_id = v_order_id
     GROUP BY i.id, i.quantity
     HAVING COUNT(a.id) < i.quantity
   ) THEN
-    RAISE EXCEPTION 'NEXORA_PREPARED_ORDER_INCOMPLETE'
-      USING ERRCODE = '23514';
+    RAISE EXCEPTION 'NEXORA_PREPARED_ORDER_INCOMPLETE' USING ERRCODE = '23514';
   END IF;
 
   IF v_status IN ('preparado', 'despachado') AND EXISTS (
@@ -1232,42 +1265,40 @@ BEGIN
     LEFT JOIN public.bodega_units u ON u.id = a.unit_id
     WHERE i.order_id = v_order_id
       AND (
-        u.id IS NULL
-        OR u.status <> 'vendido'
+        u.id IS NULL OR u.status <> 'vendido'
         OR u.product_id IS DISTINCT FROM i.product_id
         OR (i.unit_condition IS NOT NULL AND u.unit_condition IS DISTINCT FROM i.unit_condition)
         OR (i.color IS NOT NULL AND LOWER(BTRIM(COALESCE(u.color, ''))) <> LOWER(BTRIM(i.color)))
         OR NOT EXISTS (
-          SELECT 1
-          FROM public.bodega_movements m
-          WHERE m.unit_id = u.id
-            AND m.type = 'salida'
-            AND m.reference_type = 'pedido'
-            AND m.reference_id = v_order_id
+          SELECT 1 FROM public.bodega_movements m
+          WHERE m.unit_id = u.id AND m.type = 'salida'
+            AND m.reference_type = 'pedido' AND m.reference_id = v_order_id
         )
       )
   ) THEN
-    RAISE EXCEPTION 'NEXORA_PREPARED_ORDER_WITHOUT_PHYSICAL_EXIT'
-      USING ERRCODE = '23514';
+    RAISE EXCEPTION 'NEXORA_PREPARED_ORDER_WITHOUT_PHYSICAL_EXIT' USING ERRCODE = '23514';
   END IF;
-
   RETURN NULL;
 END;
 $function$;
 
 DROP TRIGGER IF EXISTS nexora_validate_prepared_order_assignments ON public.bodega_orders;
 CREATE CONSTRAINT TRIGGER nexora_validate_prepared_order_assignments
-AFTER UPDATE OF status ON public.bodega_orders
-DEFERRABLE INITIALLY DEFERRED
-FOR EACH ROW
+AFTER INSERT OR UPDATE OF status ON public.bodega_orders
+DEFERRABLE INITIALLY DEFERRED FOR EACH ROW
 WHEN (NEW.status IN ('preparado', 'despachado'))
 EXECUTE FUNCTION public.nexora_validate_prepared_order_assignments();
 
 DROP TRIGGER IF EXISTS nexora_validate_prepared_assignment_insert ON public.bodega_order_item_units;
 CREATE CONSTRAINT TRIGGER nexora_validate_prepared_assignment_insert
-AFTER INSERT OR UPDATE ON public.bodega_order_item_units
-DEFERRABLE INITIALLY DEFERRED
-FOR EACH ROW
+AFTER INSERT OR UPDATE OR DELETE ON public.bodega_order_item_units
+DEFERRABLE INITIALLY DEFERRED FOR EACH ROW
+EXECUTE FUNCTION public.nexora_validate_prepared_order_assignments();
+
+DROP TRIGGER IF EXISTS nexora_validate_prepared_order_items ON public.bodega_order_items;
+CREATE CONSTRAINT TRIGGER nexora_validate_prepared_order_items
+AFTER INSERT OR UPDATE OR DELETE ON public.bodega_order_items
+DEFERRABLE INITIALLY DEFERRED FOR EACH ROW
 EXECUTE FUNCTION public.nexora_validate_prepared_order_assignments();
 
 -- Invoice/dispatch must respect the same cost floor as confirmarVentaPedido().

@@ -123,6 +123,7 @@ CREATE TABLE public.bodega_warranties (
   reembolso_referencia text,
   reembolso_pagado_at timestamptz
 );
+CREATE TABLE public.nexora_retail_sales (unit_id uuid PRIMARY KEY);
 CREATE TABLE public.bodega_orders (
   id uuid PRIMARY KEY,
   status text NOT NULL,
@@ -209,7 +210,8 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON
   public.bodega_profiles, public.nexora_staff_role_plans,
   public.bodega_technicians, public.bodega_movements, public.bodega_receptions,
   public.bodega_units, public.bodega_products, public.bodega_warranties, public.bodega_orders,
-  public.bodega_order_items, public.bodega_order_item_units
+  public.bodega_order_items, public.bodega_order_item_units,
+  public.nexora_retail_sales
 TO authenticated;
 GRANT SELECT ON auth.users TO authenticated;
 GRANT EXECUTE ON FUNCTION public.bodega_is_admin(), public.bodega_is_staff()

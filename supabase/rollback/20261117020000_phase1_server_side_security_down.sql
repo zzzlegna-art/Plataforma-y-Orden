@@ -9,6 +9,7 @@ DROP TRIGGER IF EXISTS nexora_guard_order_assignment_row ON public.bodega_order_
 DROP TRIGGER IF EXISTS nexora_validate_order_dispatch_pricing ON public.bodega_orders;
 DROP TRIGGER IF EXISTS nexora_validate_prepared_order_assignments ON public.bodega_orders;
 DROP TRIGGER IF EXISTS nexora_validate_prepared_assignment_insert ON public.bodega_order_item_units;
+DROP TRIGGER IF EXISTS nexora_validate_prepared_order_items ON public.bodega_order_items;
 DROP TRIGGER IF EXISTS nexora_validate_order_cancellation_returns ON public.bodega_orders;
 DROP TRIGGER IF EXISTS nexora_guard_warranty_refund_payment ON public.bodega_warranties;
 

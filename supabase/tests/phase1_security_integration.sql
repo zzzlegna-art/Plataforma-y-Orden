@@ -78,6 +78,24 @@ UPDATE public.bodega_units
 SET status='en_bodega', reception_id='80000000-0000-4000-8000-000000000001'
 WHERE id='20000000-0000-4000-8000-000000000001';
 
+-- Direct sale without an order or a POS sale is rejected.
+DO $
+BEGIN
+  BEGIN
+    UPDATE public.bodega_units SET status='vendido'
+    WHERE id='20000000-0000-4000-8000-000000000001';
+    RAISE EXCEPTION 'bodeguero unexpectedly sold a unit without an order or POS sale';
+  EXCEPTION WHEN SQLSTATE '42501' THEN NULL; END;
+END $;
+
+-- POS writes its sale record before updating the unit status.
+INSERT INTO public.bodega_units(id,serial,status)
+VALUES ('20000000-0000-4000-8000-000000000006','IMEI-POS-1','en_local');
+INSERT INTO public.nexora_retail_sales(unit_id)
+VALUES ('20000000-0000-4000-8000-000000000006');
+UPDATE public.bodega_units SET status='vendido'
+WHERE id='20000000-0000-4000-8000-000000000006';
+
 -- A sold unit cannot be put back into stock by a direct update. A real pending
 -- warranty return is an allowed path for repaired/no-fault units.
 INSERT INTO public.bodega_units(id,serial,status)
@@ -145,6 +163,23 @@ VALUES ('60000000-0000-4000-8000-000000000001',
         '50000000-0000-4000-8000-000000000001',
         '20000000-0000-4000-8000-000000000002');
 
+-- A line cannot be over-serialized, even through direct table writes.
+INSERT INTO public.bodega_units(id,serial,status,product_id,unit_condition)
+VALUES ('20000000-0000-4000-8000-000000000007','IMEI-ORDER-EXTRA','en_bodega',
+        '90000000-0000-4000-8000-000000000001','nuevo');
+DO $phase1$
+BEGIN
+  BEGIN
+    INSERT INTO public.bodega_order_item_units(id,order_item_id,unit_id)
+    VALUES ('60000000-0000-4000-8000-000000000003',
+            '50000000-0000-4000-8000-000000000001',
+            '20000000-0000-4000-8000-000000000007');
+    SET CONSTRAINTS ALL IMMEDIATE;
+    RAISE EXCEPTION 'an order line unexpectedly accepted more units than requested';
+  EXCEPTION WHEN SQLSTATE '23514' THEN NULL; END;
+END $phase1$;
+SET CONSTRAINTS ALL DEFERRED;
+
 -- The same IMEI cannot be assigned to a second order, even through direct table writes.
 INSERT INTO public.bodega_orders(id,status,created_by)
 VALUES ('40000000-0000-4000-8000-000000000002','en_preparacion',
@@ -173,6 +208,18 @@ VALUES ('30000000-0000-4000-8000-000000000003',
         '00000000-0000-4000-8000-000000000002');
 UPDATE public.bodega_orders SET status='preparado'
 WHERE id='40000000-0000-4000-8000-000000000001';
+
+-- A prepared order cannot receive additional assignments from Bodega.
+DO $
+BEGIN
+  BEGIN
+    INSERT INTO public.bodega_order_item_units(id,order_item_id,unit_id)
+    VALUES ('60000000-0000-4000-8000-000000000004',
+            '50000000-0000-4000-8000-000000000001',
+            '20000000-0000-4000-8000-000000000007');
+    RAISE EXCEPTION 'bodeguero unexpectedly added a unit to a prepared order';
+  EXCEPTION WHEN SQLSTATE '42501' THEN NULL; END;
+END $;
 
 -- In prepared state, only price edits are allowed; assignment edits and quantity
 -- changes are blocked. Bodega may then confirm the invoice/dispatch.
@@ -203,6 +250,21 @@ BEGIN
 END $$;
 RESET ROLE;
 COMMIT;
+
+-- Administrators cannot bypass physical preparation.
+BEGIN;
+SET ROLE authenticated;
+SELECT set_config('request.jwt.claim.sub','00000000-0000-4000-8000-000000000001',false);
+DO $
+BEGIN
+  BEGIN
+    UPDATE public.bodega_orders SET status='preparado'
+    WHERE id='40000000-0000-4000-8000-000000000002';
+    SET CONSTRAINTS ALL IMMEDIATE;
+    RAISE EXCEPTION 'administrator unexpectedly prepared an order without its units';
+  EXCEPTION WHEN SQLSTATE '23514' THEN NULL; END;
+END $;
+ROLLBACK;
 
 -- Administrator can complete the physical return and cancel the order.
 BEGIN;
