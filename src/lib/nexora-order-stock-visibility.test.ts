@@ -107,7 +107,7 @@ describe("Inventario global · un IMEI en pedido nunca vuelve a ofrecerse", () =
     expect(getProductStock(db,product.id).enPedidos).toBe(0);
     expect(getProductStock(db,product.id).disponible).toBe(0);
     expect(getUnitTimeline(db,"unit-0").some(e =>
-      e.descripcion.includes("Salida por pedido") && e.enlace?.codigo===order.code
+      e.descripcion.includes("Salida física por serialización confirmada") && e.enlace?.codigo===order.code
     )).toBe(true);
   });
 });
