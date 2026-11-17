@@ -1391,16 +1391,20 @@ BEGIN
        WHERE salida.type = 'salida'
          AND salida.reference_type = 'pedido'
          AND salida.reference_id = NEW.id
-         AND (
-           u.status NOT IN ('en_bodega', 'en_local')
-           OR NOT EXISTS (
-             SELECT 1
-             FROM public.bodega_movements devolucion
-             WHERE devolucion.unit_id = salida.unit_id
-               AND devolucion.type = 'devolucion'
-               AND devolucion.reference_type = 'pedido'
-               AND devolucion.reference_id = NEW.id
-           )
+         AND u.status IN ('vendido', 'en_bodega', 'en_local')
+         AND NOT EXISTS (
+           SELECT 1
+           FROM public.bodega_movements posterior
+           WHERE posterior.unit_id = salida.unit_id
+             AND posterior.created_at > salida.created_at
+         )
+         AND NOT EXISTS (
+           SELECT 1
+           FROM public.bodega_movements devolucion
+           WHERE devolucion.unit_id = salida.unit_id
+             AND devolucion.type = 'devolucion'
+             AND devolucion.reference_type = 'pedido'
+             AND devolucion.reference_id = NEW.id
          )
      ) THEN
     RAISE EXCEPTION 'NEXORA_ORDER_CANNOT_CANCEL_WITHOUT_PHYSICAL_RETURN'
