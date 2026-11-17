@@ -115,7 +115,7 @@ describe("despacho seguro de pedidos", () => {
   it("bloquea confirmar la venta cuando el precio es inferior al costo real de la unidad", () => {
     const db = emptyDb();
     db.products.push({ ...producto, cost: 175 });
-    db.orders.push({ ...pedido, status: "preparado" });
+    db.orders.push({ ...pedido, status: "en_preparacion" });
     db.orderItems.push({ ...linea, quantity: 1, unitPrice: 150, subtotal: 150 });
     db.units.push({ ...unidad, cost: 180 });
     db.orderItemUnits.push({
@@ -125,6 +125,7 @@ describe("despacho seguro de pedidos", () => {
       createdAt: pedido.createdAt,
     });
 
+    confirmarPreparacionPedido(db, actor, { orderId: pedido.id });
     expect(() => confirmarVentaPedido(db, actor, { orderId: pedido.id })).toThrow(DomainError);
     expect(db.orders[0].status).toBe("preparado");
     expect(db.units[0].status).toBe("vendido");
