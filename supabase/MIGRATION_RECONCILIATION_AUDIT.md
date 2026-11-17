@@ -143,3 +143,32 @@ Formato: archivo actual en GitHub → versión registrada en Supabase.
 ```
 
 **Interpretación:** el timestamp de un archivo no se puede reemplazar por el timestamp remoto solo porque el nombre coincida. Primero se debe recuperar el SQL exacto que corresponde a la versión aplicada y verificar equivalencia. Las 59 versiones de archivos que no están registradas incluyen tanto estas 34 discrepancias como 25 archivos adicionales sin versión remota correspondiente.
+
+
+## Verificación complementaria de objetos vivos y Fase 1 (2026-11-17)
+
+Consulta de solo lectura al proyecto activo `ivholkjldntrmagcmogh`:
+
+- `bodega_technicians` conserva la política `bodega_technicians_all` para `authenticated`, con lectura y escritura para cualquier usuario que cumpla `bodega_is_staff()`. La migración de Fase 1 la reemplaza por lectura para staff y operaciones de escritura solo para admin.
+- `bodega_movements` conserva una política INSERT cuyo `WITH CHECK` es `bodega_is_staff()`; todavía no exige que `created_by = auth.uid()`. La migración de Fase 1 incorpora esa condición.
+- No existen todavía en producción los triggers nuevos `nexora_guard_unit_sensitive_changes`, `nexora_guard_order_row`, `nexora_guard_order_item_row`, `nexora_guard_order_assignment_row` ni `nexora_guard_warranty_refund_payment`. Esto confirma que las defensas nuevas de Fase 1 aún no están aplicadas.
+- Las funciones históricas `nexora_dashboard_order_rankings`, `nexora_historical_order_detail`, `nexora_historical_orders_list` y `nexora_historical_serial_trace` ya existen como `SECURITY DEFINER`; su ejecución está denegada a `anon` y permitida a `authenticated`. Sus cuerpos actuales verifican usuario activo con rol `admin` o `bodeguero`. La migración propuesta sustituye las dos primeras y refuerza la comprobación mediante `bodega_is_staff()`. Esta diferencia debe revisarse junto con los planes de rol para confirmar que no cambia indebidamente el conjunto de usuarios autorizados.
+- Los cambios anteriores son diferencias de seguridad observadas, no evidencia de que el SQL de las 41 migraciones históricas ausentes se haya recuperado. No sustituyen la matriz histórica de equivalencias.
+
+## Estado CI del commit de auditoría
+
+En el HEAD `aa0d65fb38f16fb446126d8f95e349fab7341a0c`, GitHub Actions reportó:
+
+- `Nexora Phase 1 - server-side security SQL`: **success**.
+- `Validate platform`: **failure**.
+- `Nexora - quality checks`: **failure**.
+
+Los dos fallos generales ocurren en el paso `pnpm audit --prod`, antes de ejecutar pruebas unitarias, ESLint, TypeScript o build. El log identifica dos vulnerabilidades HIGH de `picomatch` (advisory `GHSA-fc5q-39xc-vjpf`), arrastradas por rutas de dependencias que incluyen `tailwindcss-animate -> tailwindcss -> chokidar/fast-glob`. Por tanto, esos checks no permiten concluir todavía si los pasos omitidos pasan o fallan. No se cambió el lockfile ni se eludió el control de auditoría.
+
+## Recuperación histórica: resultado adicional
+
+Se consultaron ramas y búsquedas de commits/archivos en GitHub, incluyendo los nombres de las dos migraciones del 14 de noviembre. No se encontró el contenido SQL original en las ramas revisadas ni coincidencias recuperables por nombre. Las consultas de Supabase tampoco conservan el SQL aplicado: solo el identificador de versión y nombre en el historial. La equivalencia histórica sigue sin poder demostrarse.
+
+## Decisión de seguridad
+
+La PR de Fase 1 debe permanecer abierta y sin merge mientras no se resuelva la reconciliación histórica y se completen los checks generales. No se ejecutó `migration repair`, `db push`, migración, despliegue ni cambio de datos. No se crearon recursos ni se incurrió en costos adicionales.
