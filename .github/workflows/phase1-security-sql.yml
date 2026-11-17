@@ -54,3 +54,17 @@ jobs:
 
       - name: Verify historical RPC role boundaries, RLS and operational invariants
         run: psql -X -v ON_ERROR_STOP=1 -f supabase/tests/phase1_security_integration.sql
+
+      - name: Verify below-cost dispatch is rejected by PostgreSQL
+        shell: bash
+        run: |
+          set +e
+          output="$(psql -X -v ON_ERROR_STOP=1 -f supabase/tests/phase1_security_negative_dispatch.sql 2>&1)"
+          status=$?
+          set -e
+          if [ "$status" -eq 0 ] || ! grep -q "NEXORA_ORDER_PRICE_BELOW_UNIT_COST" <<< "$output"; then
+            echo "$output"
+            echo "Expected PostgreSQL to reject the below-cost dispatch."
+            exit 1
+          fi
+          echo "Below-cost dispatch rejected as expected."
