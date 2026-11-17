@@ -240,7 +240,26 @@ BEGIN
 END $$;
 UPDATE public.bodega_orders SET status='despachado'
 WHERE id='40000000-0000-4000-8000-000000000001';
-DO $$
+-- A unit assigned to a dispatched order can be returned through warranty
+-- and assigned to a later order without rewriting its completed-order history.
+INSERT INTO public.bodega_warranties(id,unit_id,status,resolucion)
+VALUES ('70000000-0000-4000-8000-000000000006',
+        '20000000-0000-4000-8000-000000000002','reenvio_pendiente','reparado');
+UPDATE public.bodega_units SET status='en_bodega'
+WHERE id='20000000-0000-4000-8000-000000000002';
+INSERT INTO public.bodega_orders(id,status,created_by)
+VALUES ('40000000-0000-4000-8000-000000000003','en_preparacion',
+        '00000000-0000-4000-8000-000000000002');
+INSERT INTO public.bodega_order_items(id,order_id,product_id,quantity,unit_price,subtotal,unit_condition)
+VALUES ('50000000-0000-4000-8000-000000000003',
+        '40000000-0000-4000-8000-000000000003',
+        '90000000-0000-4000-8000-000000000001',1,200,200,'nuevo');
+INSERT INTO public.bodega_order_item_units(id,order_item_id,unit_id)
+VALUES ('60000000-0000-4000-8000-000000000005',
+        '50000000-0000-4000-8000-000000000003',
+        '20000000-0000-4000-8000-000000000002');
+
+DO $
 BEGIN
   BEGIN
     UPDATE public.bodega_orders SET notes='forged post-dispatch edit'
@@ -255,6 +274,16 @@ COMMIT;
 BEGIN;
 SET ROLE authenticated;
 SELECT set_config('request.jwt.claim.sub','00000000-0000-4000-8000-000000000001',false);
+INSERT INTO public.bodega_units(id,serial,status)
+VALUES ('20000000-0000-4000-8000-000000000008','IMEI-ADMIN-DIRECT-SALE','en_bodega');
+DO $admin_sale$
+BEGIN
+  BEGIN
+    UPDATE public.bodega_units SET status='vendido'
+    WHERE id='20000000-0000-4000-8000-000000000008';
+    RAISE EXCEPTION 'administrator unexpectedly sold a unit outside order/POS';
+  EXCEPTION WHEN SQLSTATE '42501' THEN NULL; END;
+END $admin_sale$;
 DO $phase2$
 BEGIN
   BEGIN
@@ -265,6 +294,29 @@ BEGIN
   EXCEPTION WHEN SQLSTATE '23514' THEN NULL; END;
 END $phase2$;
 ROLLBACK;
+
+-- A return movement is mandatory even if an administrator already changed
+-- the unit status back to stock.
+INSERT INTO public.bodega_orders(id,status,created_by)
+VALUES ('40000000-0000-4000-8000-000000000004','en_preparacion',
+        '00000000-0000-4000-8000-000000000001');
+INSERT INTO public.bodega_units(id,serial,status)
+VALUES ('20000000-0000-4000-8000-000000000009','IMEI-CANCEL-NO-RETURN','en_bodega');
+INSERT INTO public.bodega_movements(id,unit_id,type,reference_type,reference_id,created_by)
+VALUES ('30000000-0000-4000-8000-000000000005',
+        '20000000-0000-4000-8000-000000000009','salida','pedido',
+        '40000000-0000-4000-8000-000000000004',
+        '00000000-0000-4000-8000-000000000001');
+DO $cancel_guard$
+BEGIN
+  BEGIN
+    UPDATE public.bodega_orders SET status='cancelado'
+    WHERE id='40000000-0000-4000-8000-000000000004';
+    SET CONSTRAINTS ALL IMMEDIATE;
+    RAISE EXCEPTION 'administrator cancelled an order without a return movement';
+  EXCEPTION WHEN SQLSTATE '23514' THEN NULL; END;
+END $cancel_guard$;
+SET CONSTRAINTS ALL DEFERRED;
 
 -- Administrator can complete the physical return and cancel the order.
 BEGIN;
