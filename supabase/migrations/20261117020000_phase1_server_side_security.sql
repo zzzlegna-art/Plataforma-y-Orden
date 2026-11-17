@@ -1092,6 +1092,12 @@ BEFORE INSERT OR UPDATE OR DELETE ON public.bodega_order_items
 FOR EACH ROW
 EXECUTE FUNCTION public.nexora_guard_order_item_row();
 
+-- A physical unit may belong to only one active/current order assignment.
+-- Production preflight found zero duplicate unit_id values before this index was prepared.
+CREATE UNIQUE INDEX IF NOT EXISTS bodega_order_item_units_unit_id_uidx
+  ON public.bodega_order_item_units(unit_id)
+  WHERE unit_id IS NOT NULL;
+
 -- Assignments may be added during the preparation transaction (automatic spare-part
 -- serialization). Any such addition is validated at commit against sold unit + exit movement.
 CREATE OR REPLACE FUNCTION public.nexora_guard_order_assignment_row()
@@ -1187,6 +1193,9 @@ BEGIN
       AND (
         u.id IS NULL
         OR u.status <> 'vendido'
+        OR u.product_id IS DISTINCT FROM i.product_id
+        OR (i.unit_condition IS NOT NULL AND u.unit_condition IS DISTINCT FROM i.unit_condition)
+        OR (i.color IS NOT NULL AND LOWER(BTRIM(COALESCE(u.color, ''))) <> LOWER(BTRIM(i.color)))
         OR NOT EXISTS (
           SELECT 1
           FROM public.bodega_movements m
