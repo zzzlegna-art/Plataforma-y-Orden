@@ -1,7 +1,6 @@
 -- Rollback for 20261117020000_phase1_server_side_security.sql.
 -- Run only if the Phase 1 migration must be reverted.
 
-DROP INDEX IF EXISTS public.bodega_order_item_units_unit_id_uidx;
 DROP TRIGGER IF EXISTS nexora_guard_unit_sensitive_changes ON public.bodega_units;
 DROP TRIGGER IF EXISTS nexora_guard_order_row ON public.bodega_orders;
 DROP TRIGGER IF EXISTS nexora_guard_order_item_row ON public.bodega_order_items;
