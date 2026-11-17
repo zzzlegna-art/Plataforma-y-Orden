@@ -110,6 +110,7 @@ CREATE TABLE public.bodega_warranties (
   resolucion text,
   customer_id uuid,
   order_id uuid,
+  imei_manual text,
   cliente_manual text,
   reembolso_monto numeric,
   reembolso_metodo text,
