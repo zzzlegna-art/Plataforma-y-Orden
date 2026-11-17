@@ -98,7 +98,10 @@ CREATE TABLE public.bodega_units (
   serial text NOT NULL,
   previous_serials text[] NOT NULL DEFAULT '{}',
   status text NOT NULL,
-  reception_id uuid
+  reception_id uuid,
+  product_id uuid,
+  unit_condition text,
+  color text
 );
 CREATE TABLE public.bodega_warranties (
   id uuid PRIMARY KEY,
