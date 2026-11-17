@@ -187,7 +187,7 @@ La revisión final detectó y corrigió tres riesgos en la migración propuesta 
 
 1. Se retiró el índice único global de `bodega_order_item_units.unit_id`. Un índice así habría tratado las asignaciones de pedidos despachados como reservas eternas e impedido volver a vender una unidad que regrese por garantía. Ahora el trigger bloquea duplicados solo entre pedidos activos (`en_preparacion` / `preparado`), serializa asignaciones concurrentes bloqueando la fila de la unidad y conserva las asociaciones históricas de pedidos completados.
 2. El trigger de unidades ya no permite que un administrador marque directamente una unidad como `vendido` sin preparación activa de pedido o registro POS. Los cambios de identidad siguen reservados al administrador y el mantenimiento confiable sin JWT conserva su bypass de servicio.
-3. La cancelación de pedidos ahora requiere simultáneamente que cada unidad con movimiento de salida esté de nuevo en stock (`en_bodega` / `en_local`) y que exista el movimiento de devolución correspondiente. Cambiar únicamente el estado de la unidad no es suficiente.
+3. La cancelación exige movimiento de devolución cuando la salida del pedido sigue siendo el último movimiento y la unidad continúa vendida o figura en stock sin evento posterior. Si después de la salida existe un movimiento posterior de garantía (o la unidad pasó a reparación/liberación), se conserva ese historial y no se exige una segunda devolución artificial del pedido original. Cambiar solo el estado a stock, sin movimiento posterior ni devolución del pedido, no basta.
 
 Se añadieron pruebas de integración para la reventa tras garantía en una transacción posterior al despacho, la venta directa prohibida al administrador, la cancelación sin movimiento de devolución y el rechazo de asignaciones duplicadas activas.
 
@@ -206,3 +206,18 @@ Se añadieron pruebas de integración para la reventa tras garantía en una tran
 - Vercel no tiene deployment de la rama `fix/fase-1-seguridad-nexora`. El último deployment de producción observado sigue apuntando a `main`, commit `a8a575345320de40703bdb3c1c27126f91aa2f36`, estado READY. No se promovió ni desplegó la PR.
 
 La reconciliación histórica sigue bloqueada: el historial remoto contiene 105 versiones y el repositorio 89 archivos, con las discrepancias documentadas arriba. No se aplicó migración ni se reparó el historial remoto. La Fase 1 puede considerarse probada en entorno aislado, pero no liberable a producción hasta cerrar ese bloqueo.
+
+
+### Compatibilidad con triggers y acciones existentes
+
+La inspección de solo lectura identificó triggers preexistentes en producción:
+- `bodega_order_item_units_validar` / `bodega_validar_asignacion_unidad()`: bloquea unidades no disponibles y asignaciones repetidas en pedidos en preparación.
+- `nexora_00_guard_retail_legacy_assignment`: comparte el bloqueo transaccional con POS/traslados y evita asignar a mayorista un IMEI vendido por POS.
+- `nexora_guard_order_assignment` / `nexora_guard_order_assignment_custody()`: bloquea unidades comprometidas en traslados.
+- `trg_bodega_sincronizar_unidades_despacho`: sincroniza unidades al despachar un pedido.
+- `nexora_guard_pos_sold_unit` y `nexora_guard_unit_custody_update`: protegen unidades POS y custodia de traslados.
+- `nexora_guard_order_reactivation` y `nexora_guard_retail_reopen_order`: limitan reactivación de pedidos.
+
+La acción de aplicación `confirmarPreparacionPedido` registra el estado vendido y el movimiento de salida mientras el pedido sigue en `en_preparacion`; después cambia el pedido a `preparado`. `confirmarVentaPedido` verifica las salidas y cambia a `despachado` sin volver a modificar inventario. Esto hace compatible el guard nuevo de venta con el flujo normal: el trigger histórico de sincronización no debe encontrar unidades pendientes de vender en una preparación válida.
+
+La acción `cancelarPedido` devuelve a bodega únicamente unidades que siguen vendidas y cuya última salida pertenece a ese pedido; conserva unidades que ya entraron a garantía u otro estado. La validación diferida nueva respeta esa semántica y evita duplicar movimientos de devolución.
