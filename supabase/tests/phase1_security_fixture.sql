@@ -104,6 +104,7 @@ CREATE TABLE public.bodega_units (
   previous_serials text[] NOT NULL DEFAULT '{}',
   status text NOT NULL,
   reception_id uuid,
+  location text,
   product_id uuid,
   unit_condition text,
   color text,
@@ -149,6 +150,125 @@ CREATE TABLE public.bodega_order_item_units (
   unit_id uuid,
   created_at timestamptz NOT NULL DEFAULT now()
 );
+
+-- Minimal copies of production legacy triggers that coexist with Phase 1.
+CREATE OR REPLACE FUNCTION public.bodega_validar_asignacion_unidad()
+RETURNS trigger
+LANGUAGE plpgsql
+SET search_path TO 'public'
+AS $
+DECLARE
+  v_estado text;
+  v_serial text;
+  v_estado_pedido text;
+BEGIN
+  IF NEW.unit_id IS NULL THEN RETURN NEW; END IF;
+  IF EXISTS (SELECT 1 FROM public.bodega_order_item_units WHERE id = NEW.id) THEN
+    RETURN NEW;
+  END IF;
+
+  SELECT status, serial INTO v_estado, v_serial
+  FROM public.bodega_units WHERE id = NEW.unit_id FOR UPDATE;
+  IF NOT FOUND THEN RAISE EXCEPTION 'BODEGA_UNIDAD_NO_DISPONIBLE:%', NEW.unit_id; END IF;
+
+  SELECT o.status INTO v_estado_pedido
+  FROM public.bodega_order_items oi
+  JOIN public.bodega_orders o ON o.id = oi.order_id
+  WHERE oi.id = NEW.order_item_id;
+
+  IF v_estado_pedido = 'en_preparacion' AND v_estado <> 'en_bodega' THEN
+    RAISE EXCEPTION 'BODEGA_UNIDAD_NO_DISPONIBLE:%', v_serial;
+  ELSIF v_estado_pedido = 'despachado' AND v_estado NOT IN ('en_bodega','en_local') THEN
+    RAISE EXCEPTION 'BODEGA_UNIDAD_NO_DISPONIBLE:%', v_serial;
+  END IF;
+
+  IF v_estado_pedido IN ('en_preparacion','despachado') AND EXISTS (
+    SELECT 1 FROM public.bodega_order_item_units x
+    JOIN public.bodega_order_items xi ON xi.id=x.order_item_id
+    JOIN public.bodega_orders xo ON xo.id=xi.order_id
+    WHERE x.unit_id=NEW.unit_id AND x.id<>NEW.id AND xo.status='en_preparacion'
+  ) THEN
+    RAISE EXCEPTION 'BODEGA_UNIDAD_YA_ASIGNADA:%', v_serial;
+  END IF;
+  RETURN NEW;
+END;
+$;
+
+CREATE TRIGGER bodega_order_item_units_validar
+BEFORE INSERT ON public.bodega_order_item_units
+FOR EACH ROW EXECUTE FUNCTION public.bodega_validar_asignacion_unidad();
+
+CREATE OR REPLACE FUNCTION public.nexora_guard_retail_legacy_assignment()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'pg_catalog','public'
+AS $
+BEGIN
+  PERFORM pg_advisory_xact_lock(78192346);
+  IF NEW.unit_id IS NOT NULL AND EXISTS (
+    SELECT 1 FROM public.nexora_retail_sales sale WHERE sale.unit_id=NEW.unit_id
+  ) THEN
+    RAISE EXCEPTION 'IMEI vendido en POS no puede asignarse a pedido mayorista.';
+  END IF;
+  RETURN NEW;
+END;
+$;
+
+CREATE TRIGGER nexora_00_guard_retail_legacy_assignment
+BEFORE INSERT OR UPDATE OF unit_id, order_item_id ON public.bodega_order_item_units
+FOR EACH ROW EXECUTE FUNCTION public.nexora_guard_retail_legacy_assignment();
+
+CREATE OR REPLACE FUNCTION public.bodega_sincronizar_unidades_despacho()
+RETURNS trigger
+LANGUAGE plpgsql
+SET search_path TO 'public'
+AS $
+BEGIN
+  IF NEW.status='despachado' AND OLD.status IS DISTINCT FROM NEW.status THEN
+    UPDATE public.bodega_units u SET status='vendido'
+    FROM public.bodega_order_item_units oiu
+    JOIN public.bodega_order_items oi ON oi.id=oiu.order_item_id
+    WHERE oiu.unit_id=u.id AND oi.order_id=NEW.id AND u.status<>'vendido';
+  END IF;
+  RETURN NEW;
+END;
+$;
+
+CREATE TRIGGER trg_bodega_sincronizar_unidades_despacho
+AFTER INSERT OR UPDATE OF status ON public.bodega_orders
+FOR EACH ROW EXECUTE FUNCTION public.bodega_sincronizar_unidades_despacho();
+
+CREATE OR REPLACE FUNCTION public.nexora_guard_retail_legacy_unit()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'pg_catalog','public'
+AS $
+BEGIN
+  IF TG_OP='DELETE' THEN
+    IF EXISTS (SELECT 1 FROM public.nexora_retail_sales r WHERE r.unit_id=OLD.id) THEN
+      RAISE EXCEPTION 'No puedes eliminar un IMEI vendido en POS.';
+    END IF;
+    RETURN OLD;
+  END IF;
+  IF OLD.status='vendido' AND EXISTS (
+    SELECT 1 FROM public.nexora_retail_sales r WHERE r.unit_id=OLD.id
+  ) AND (
+    NEW.status IS DISTINCT FROM OLD.status
+    OR NEW.serial IS DISTINCT FROM OLD.serial
+    OR NEW.cost IS DISTINCT FROM OLD.cost
+    OR NEW.location IS DISTINCT FROM OLD.location
+  ) THEN
+    RAISE EXCEPTION 'IMEI vendido en POS no puede reactivarse fuera de devolución.';
+  END IF;
+  RETURN NEW;
+END;
+$;
+
+CREATE TRIGGER nexora_guard_pos_sold_unit
+BEFORE DELETE OR UPDATE OF status, serial, cost, location ON public.bodega_units
+FOR EACH ROW EXECUTE FUNCTION public.nexora_guard_retail_legacy_unit();
 
 INSERT INTO auth.users(id, raw_app_meta_data) VALUES
   ('00000000-0000-4000-8000-000000000001', '{}'::jsonb),
