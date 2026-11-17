@@ -329,17 +329,11 @@ END $cancel_guard$;
 SET CONSTRAINTS ALL DEFERRED;
 ROLLBACK;
 
--- Administrator can complete the physical return and cancel the order.
+-- A later warranty return supersedes the original order exit; cancellation
+-- must preserve that warranty history instead of demanding a duplicate order return.
 BEGIN;
 SET ROLE authenticated;
 SELECT set_config('request.jwt.claim.sub','00000000-0000-4000-8000-000000000001',false);
-UPDATE public.bodega_units SET status='en_bodega'
-WHERE id='20000000-0000-4000-8000-000000000002';
-INSERT INTO public.bodega_movements(id,unit_id,type,reference_type,reference_id,created_by)
-VALUES ('30000000-0000-4000-8000-000000000004',
-        '20000000-0000-4000-8000-000000000002','devolucion','pedido',
-        '40000000-0000-4000-8000-000000000001',
-        '00000000-0000-4000-8000-000000000001');
 UPDATE public.bodega_orders SET status='cancelado'
 WHERE id='40000000-0000-4000-8000-000000000001';
 UPDATE public.bodega_warranties
