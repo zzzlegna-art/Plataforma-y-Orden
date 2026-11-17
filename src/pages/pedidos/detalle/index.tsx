@@ -442,7 +442,7 @@ const PedidoDetalle = () => {
                     </Button>
                   }
                   title="Regresar a serialización"
-                  description="El pedido volverá a En preparación para seguir asignando o corrigiendo IMEI. Se conservarán todos los seriales ya ingresados; el descuento del stock disponible se revertirá temporalmente hasta que confirmes otra vez la serialización. No se registrará ninguna venta."
+                  description="El pedido volverá a En preparación para corregir o agregar IMEI. Los equipos que ya tuvieron salida física conservarán su estado vendido y su movimiento anterior; al confirmar de nuevo solo saldrán las unidades nuevas. La facturación seguirá pendiente."
                   confirmLabel="Volver a serialización"
                   onConfirm={regresarASerializacion}
                 />
