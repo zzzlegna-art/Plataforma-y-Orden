@@ -78,6 +78,33 @@ UPDATE public.bodega_units
 SET status='en_bodega', reception_id='80000000-0000-4000-8000-000000000001'
 WHERE id='20000000-0000-4000-8000-000000000001';
 
+-- A sold unit cannot be put back into stock by a direct update. A real pending
+-- warranty return is an allowed path for repaired/no-fault units.
+INSERT INTO public.bodega_units(id,serial,status)
+VALUES ('20000000-0000-4000-8000-000000000003','IMEI-SOLD-1','vendido');
+DO $phase1$
+BEGIN
+  BEGIN
+    UPDATE public.bodega_units SET status='en_bodega'
+    WHERE id='20000000-0000-4000-8000-000000000003';
+    RAISE EXCEPTION 'bodeguero unexpectedly returned a sold unit without warranty';
+  EXCEPTION WHEN SQLSTATE '42501' THEN NULL; END;
+END $phase1$;
+INSERT INTO public.bodega_warranties(id,unit_id,status,resolucion)
+VALUES ('70000000-0000-4000-8000-000000000003',
+        '20000000-0000-4000-8000-000000000003','reenvio_pendiente','reparado');
+UPDATE public.bodega_units SET status='en_bodega'
+WHERE id='20000000-0000-4000-8000-000000000003';
+
+-- A unit in repair can return only through its warranty workflow.
+INSERT INTO public.bodega_units(id,serial,status)
+VALUES ('20000000-0000-4000-8000-000000000004','IMEI-REPAIR-1','en_reparacion');
+INSERT INTO public.bodega_warranties(id,unit_id,status,resolucion)
+VALUES ('70000000-0000-4000-8000-000000000004',
+        '20000000-0000-4000-8000-000000000004','recibido','reparado');
+UPDATE public.bodega_units SET status='en_bodega'
+WHERE id='20000000-0000-4000-8000-000000000004';
+
 -- Bodegueros may manage warranty cases but cannot register payment evidence.
 INSERT INTO public.bodega_warranties(id,unit_id,status,resolucion)
 VALUES ('70000000-0000-4000-8000-000000000002',NULL,'devuelto','sin_falla');
