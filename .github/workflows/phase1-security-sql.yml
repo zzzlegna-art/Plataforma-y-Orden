@@ -68,3 +68,6 @@ jobs:
             exit 1
           fi
           echo "Below-cost dispatch rejected as expected."
+
+      - name: Verify the Phase 1 rollback script
+        run: psql -X -v ON_ERROR_STOP=1 -f supabase/rollback/20261117020000_phase1_server_side_security_down.sql
