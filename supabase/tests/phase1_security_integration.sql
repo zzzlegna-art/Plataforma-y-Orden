@@ -79,14 +79,14 @@ SET status='en_bodega', reception_id='80000000-0000-4000-8000-000000000001'
 WHERE id='20000000-0000-4000-8000-000000000001';
 
 -- Direct sale without an order or a POS sale is rejected.
-DO $
+DO $phase2$
 BEGIN
   BEGIN
     UPDATE public.bodega_units SET status='vendido'
     WHERE id='20000000-0000-4000-8000-000000000001';
     RAISE EXCEPTION 'bodeguero unexpectedly sold a unit without an order or POS sale';
   EXCEPTION WHEN SQLSTATE '42501' THEN NULL; END;
-END $;
+END $phase2$;
 
 -- POS writes its sale record before updating the unit status.
 INSERT INTO public.bodega_units(id,serial,status)
@@ -210,7 +210,7 @@ UPDATE public.bodega_orders SET status='preparado'
 WHERE id='40000000-0000-4000-8000-000000000001';
 
 -- A prepared order cannot receive additional assignments from Bodega.
-DO $
+DO $phase2$
 BEGIN
   BEGIN
     INSERT INTO public.bodega_order_item_units(id,order_item_id,unit_id)
@@ -219,7 +219,7 @@ BEGIN
             '20000000-0000-4000-8000-000000000007');
     RAISE EXCEPTION 'bodeguero unexpectedly added a unit to a prepared order';
   EXCEPTION WHEN SQLSTATE '42501' THEN NULL; END;
-END $;
+END $phase2$;
 
 -- In prepared state, only price edits are allowed; assignment edits and quantity
 -- changes are blocked. Bodega may then confirm the invoice/dispatch.
@@ -255,7 +255,7 @@ COMMIT;
 BEGIN;
 SET ROLE authenticated;
 SELECT set_config('request.jwt.claim.sub','00000000-0000-4000-8000-000000000001',false);
-DO $
+DO $phase2$
 BEGIN
   BEGIN
     UPDATE public.bodega_orders SET status='preparado'
@@ -263,7 +263,7 @@ BEGIN
     SET CONSTRAINTS ALL IMMEDIATE;
     RAISE EXCEPTION 'administrator unexpectedly prepared an order without its units';
   EXCEPTION WHEN SQLSTATE '23514' THEN NULL; END;
-END $;
+END $phase2$;
 ROLLBACK;
 
 -- Administrator can complete the physical return and cancel the order.
