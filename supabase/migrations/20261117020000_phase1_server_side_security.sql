@@ -1073,10 +1073,13 @@ BEGIN
   END IF;
 
   IF v_status = 'preparado' THEN
-    IF TG_OP <> 'UPDATE'
-       OR ROW(NEW.order_id, NEW.product_id, NEW.quantity, NEW.unit_condition, NEW.color)
-          IS DISTINCT FROM
-          ROW(OLD.order_id, OLD.product_id, OLD.quantity, OLD.unit_condition, OLD.color) THEN
+    IF TG_OP <> 'UPDATE' THEN
+      RAISE EXCEPTION 'NEXORA_PREPARED_ORDER_LINE_LOCKED'
+        USING ERRCODE = '42501';
+    END IF;
+    IF ROW(NEW.order_id, NEW.product_id, NEW.quantity, NEW.unit_condition, NEW.color)
+       IS DISTINCT FROM
+       ROW(OLD.order_id, OLD.product_id, OLD.quantity, OLD.unit_condition, OLD.color) THEN
       RAISE EXCEPTION 'NEXORA_PREPARED_ORDER_LINE_LOCKED'
         USING ERRCODE = '42501';
     END IF;
@@ -1183,10 +1186,11 @@ BEGIN
     SELECT 1
     FROM public.bodega_order_item_units a
     JOIN public.bodega_order_items i ON i.id = a.order_item_id
-    JOIN public.bodega_units u ON u.id = a.unit_id
+    LEFT JOIN public.bodega_units u ON u.id = a.unit_id
     WHERE i.order_id = v_order_id
       AND (
-        u.status <> 'vendido'
+        u.id IS NULL
+        OR u.status <> 'vendido'
         OR NOT EXISTS (
           SELECT 1
           FROM public.bodega_movements m
@@ -1215,7 +1219,7 @@ EXECUTE FUNCTION public.nexora_validate_prepared_order_assignments();
 
 DROP TRIGGER IF EXISTS nexora_validate_prepared_assignment_insert ON public.bodega_order_item_units;
 CREATE CONSTRAINT TRIGGER nexora_validate_prepared_assignment_insert
-AFTER INSERT ON public.bodega_order_item_units
+AFTER INSERT OR UPDATE ON public.bodega_order_item_units
 DEFERRABLE INITIALLY DEFERRED
 FOR EACH ROW
 EXECUTE FUNCTION public.nexora_validate_prepared_order_assignments();
