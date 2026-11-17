@@ -240,6 +240,21 @@ BEGIN
 END $$;
 UPDATE public.bodega_orders SET status='despachado'
 WHERE id='40000000-0000-4000-8000-000000000001';
+DO $post_dispatch_edit$
+BEGIN
+  BEGIN
+    UPDATE public.bodega_orders SET notes='forged post-dispatch edit'
+    WHERE id='40000000-0000-4000-8000-000000000001';
+    RAISE EXCEPTION 'bodeguero unexpectedly edited dispatched order';
+  EXCEPTION WHEN SQLSTATE '42501' THEN NULL; END;
+END $post_dispatch_edit$;
+RESET ROLE;
+COMMIT;
+
+-- Warranty return and resale happen in a later transaction than the original dispatch.
+BEGIN;
+SET ROLE authenticated;
+SELECT set_config('request.jwt.claim.sub','00000000-0000-4000-8000-000000000002',false);
 -- A unit assigned to a dispatched order can be returned through warranty
 -- and assigned to a later order without rewriting its completed-order history.
 INSERT INTO public.bodega_warranties(id,unit_id,status,resolucion)
@@ -259,14 +274,6 @@ VALUES ('60000000-0000-4000-8000-000000000005',
         '50000000-0000-4000-8000-000000000003',
         '20000000-0000-4000-8000-000000000002');
 
-DO $post_dispatch_edit$
-BEGIN
-  BEGIN
-    UPDATE public.bodega_orders SET notes='forged post-dispatch edit'
-    WHERE id='40000000-0000-4000-8000-000000000001';
-    RAISE EXCEPTION 'bodeguero unexpectedly edited dispatched order';
-  EXCEPTION WHEN SQLSTATE '42501' THEN NULL; END;
-END $post_dispatch_edit$;
 RESET ROLE;
 COMMIT;
 
