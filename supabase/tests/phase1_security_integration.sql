@@ -314,6 +314,9 @@ VALUES ('30000000-0000-4000-8000-000000000005',
         '20000000-0000-4000-8000-000000000009','salida','pedido',
         '40000000-0000-4000-8000-000000000004',
         '00000000-0000-4000-8000-000000000001');
+BEGIN;
+SET ROLE authenticated;
+SELECT set_config('request.jwt.claim.sub','00000000-0000-4000-8000-000000000001',false);
 DO $cancel_guard$
 BEGIN
   BEGIN
@@ -324,6 +327,7 @@ BEGIN
   EXCEPTION WHEN SQLSTATE '23514' THEN NULL; END;
 END $cancel_guard$;
 SET CONSTRAINTS ALL DEFERRED;
+ROLLBACK;
 
 -- Administrator can complete the physical return and cancel the order.
 BEGIN;
