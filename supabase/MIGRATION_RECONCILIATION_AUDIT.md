@@ -179,3 +179,30 @@ La PR de Fase 1 debe permanecer abierta y sin merge mientras no se resuelva la r
 La inspección del árbol confirmó que `tailwindcss-animate` solo se importa desde `tailwind.config.ts` y se usa durante la compilación de CSS; no es una dependencia de ejecución de la aplicación. Se movió de `dependencies` a `devDependencies` y se actualizó el importador raíz de `pnpm-lock.yaml` en la misma rama. No se cambió la versión del paquete ni se ocultó la auditoría.
 
 La alerta `GHSA-fc5q-39xc-vjpf` sigue sin una versión corregida publicada en el aviso consultado; GitHub describe como afectadas las versiones de picomatch hasta 4.0.7 y no informa una versión parcheada. El lockfile contiene picomatch 2.3.2 y 4.0.7 en rutas de herramientas de build. Clasificar el plugin como dependencia de desarrollo evita incluir una herramienta de compilación en el conjunto de dependencias de producción, pero **no elimina la vulnerabilidad del árbol de desarrollo**. No se afirma que la auditoría esté limpia: el commit nuevo no tiene una ejecución CI asociada disponible para verificar el resultado. La alerta debe mantenerse visible hasta que el proveedor publique una versión corregida y se actualice el árbol de dependencias.
+
+
+## Cierre técnico de Fase 1: correcciones de invariantes y estado vivo (17-11-2026)
+
+La revisión final detectó y corrigió tres riesgos en la migración propuesta antes de producción:
+
+1. Se retiró el índice único global de `bodega_order_item_units.unit_id`. Un índice así habría tratado las asignaciones de pedidos despachados como reservas eternas e impedido volver a vender una unidad que regrese por garantía. Ahora el trigger bloquea duplicados solo entre pedidos activos (`en_preparacion` / `preparado`), serializa asignaciones concurrentes bloqueando la fila de la unidad y conserva las asociaciones históricas de pedidos completados.
+2. El trigger de unidades ya no permite que un administrador marque directamente una unidad como `vendido` sin preparación activa de pedido o registro POS. Los cambios de identidad siguen reservados al administrador y el mantenimiento confiable sin JWT conserva su bypass de servicio.
+3. La cancelación de pedidos ahora requiere simultáneamente que cada unidad con movimiento de salida esté de nuevo en stock (`en_bodega` / `en_local`) y que exista el movimiento de devolución correspondiente. Cambiar únicamente el estado de la unidad no es suficiente.
+
+Se añadieron pruebas de integración para la reventa tras garantía en una transacción posterior al despacho, la venta directa prohibida al administrador, la cancelación sin movimiento de devolución y el rechazo de asignaciones duplicadas activas.
+
+### Resultado de CI más reciente observado
+
+- `Nexora Phase 1 - server-side security SQL`, run 40: **SUCCESS**. Migración, fixtures, integración, caso de venta por debajo del costo y rollback completaron.
+- `Validate platform`, run 1160: auditoría de dependencias de producción y pruebas unitarias completadas correctamente; lint/TypeScript y build aún en ejecución al momento de esta nota.
+- `Nexora - quality checks`, run 1377: auditoría de producción, configuración de despliegue, ESLint/TypeScript completados correctamente; regresión y build aún en ejecución al momento de esta nota.
+- `tailwindcss-animate` se clasificó correctamente como dependencia de desarrollo, pues solo se importa desde `tailwind.config.ts`. La auditoría de producción pasó; el árbol de desarrollo todavía contiene versiones de `picomatch` afectadas por el aviso sin versión corregida publicada. No se declara eliminado ese riesgo de desarrollo.
+
+### Verificación adicional de producción
+
+- Consulta actual: 30 pedidos operativos, 18 preparados, 8 despachados y 4 cancelados. Los conteos anteriores (29/17 preparados) cambiaron desde la auditoría inicial; no se modificaron datos para obtener este resultado.
+- 1.825? No se reemplaza el total de asignaciones de inventario de la auditoría previa; en pedidos operativos la consulta actual encontró 1.820 asignaciones (1.274 en preparados y 546 en despachados), sin IMEI repetidos entre pedidos.
+- Las 5 unidades en reparación siguen asociadas a pedidos preparados; no se alteró ese historial.
+- Vercel no tiene deployment de la rama `fix/fase-1-seguridad-nexora`. El último deployment de producción observado sigue apuntando a `main`, commit `a8a575345320de40703bdb3c1c27126f91aa2f36`, estado READY. No se promovió ni desplegó la PR.
+
+La reconciliación histórica sigue bloqueada: el historial remoto contiene 105 versiones y el repositorio 89 archivos, con las discrepancias documentadas arriba. No se aplicó migración ni se reparó el historial remoto. La Fase 1 puede considerarse probada en entorno aislado, pero no liberable a producción hasta cerrar ese bloqueo.
