@@ -97,15 +97,37 @@ END $$;
 INSERT INTO public.bodega_orders(id,status,created_by)
 VALUES ('40000000-0000-4000-8000-000000000001','en_preparacion',
         '00000000-0000-4000-8000-000000000002');
-INSERT INTO public.bodega_order_items(id,order_id,quantity,unit_price,subtotal,unit_condition)
+INSERT INTO public.bodega_order_items(id,order_id,product_id,quantity,unit_price,subtotal,unit_condition)
 VALUES ('50000000-0000-4000-8000-000000000001',
-        '40000000-0000-4000-8000-000000000001',1,200,200,'nuevo');
-INSERT INTO public.bodega_units(id,serial,status)
-VALUES ('20000000-0000-4000-8000-000000000002','IMEI-ORDER-1','en_bodega');
+        '40000000-0000-4000-8000-000000000001',
+        '90000000-0000-4000-8000-000000000001',1,200,200,'nuevo');
+INSERT INTO public.bodega_units(id,serial,status,product_id,unit_condition)
+VALUES ('20000000-0000-4000-8000-000000000002','IMEI-ORDER-1','en_bodega',
+        '90000000-0000-4000-8000-000000000001','nuevo');
 INSERT INTO public.bodega_order_item_units(id,order_item_id,unit_id)
 VALUES ('60000000-0000-4000-8000-000000000001',
         '50000000-0000-4000-8000-000000000001',
         '20000000-0000-4000-8000-000000000002');
+
+-- The same IMEI cannot be assigned to a second order, even through direct table writes.
+INSERT INTO public.bodega_orders(id,status,created_by)
+VALUES ('40000000-0000-4000-8000-000000000002','en_preparacion',
+        '00000000-0000-4000-8000-000000000002');
+INSERT INTO public.bodega_order_items(id,order_id,product_id,quantity,unit_price,subtotal,unit_condition)
+VALUES ('50000000-0000-4000-8000-000000000002',
+        '40000000-0000-4000-8000-000000000002',
+        '90000000-0000-4000-8000-000000000001',1,200,200,'nuevo');
+DO $
+BEGIN
+  BEGIN
+    INSERT INTO public.bodega_order_item_units(id,order_item_id,unit_id)
+    VALUES ('60000000-0000-4000-8000-000000000002',
+            '50000000-0000-4000-8000-000000000002',
+            '20000000-0000-4000-8000-000000000002');
+    RAISE EXCEPTION 'the same IMEI was assigned to two orders';
+  EXCEPTION WHEN unique_violation THEN NULL; END;
+END $;
+
 UPDATE public.bodega_units SET status='vendido'
 WHERE id='20000000-0000-4000-8000-000000000002';
 INSERT INTO public.bodega_movements(id,unit_id,type,reference_type,reference_id,created_by)
