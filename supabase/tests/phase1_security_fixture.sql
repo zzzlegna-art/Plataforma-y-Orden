@@ -156,7 +156,7 @@ CREATE OR REPLACE FUNCTION public.bodega_validar_asignacion_unidad()
 RETURNS trigger
 LANGUAGE plpgsql
 SET search_path TO 'public'
-AS $
+AS $legacy_assignment$
 DECLARE
   v_estado text;
   v_serial text;
@@ -192,7 +192,7 @@ BEGIN
   END IF;
   RETURN NEW;
 END;
-$;
+$legacy_assignment$;
 
 CREATE TRIGGER bodega_order_item_units_validar
 BEFORE INSERT ON public.bodega_order_item_units
@@ -203,7 +203,7 @@ RETURNS trigger
 LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path TO 'pg_catalog','public'
-AS $
+AS $legacy_retail_assignment$
 BEGIN
   PERFORM pg_advisory_xact_lock(78192346);
   IF NEW.unit_id IS NOT NULL AND EXISTS (
@@ -213,7 +213,7 @@ BEGIN
   END IF;
   RETURN NEW;
 END;
-$;
+$legacy_retail_assignment$;
 
 CREATE TRIGGER nexora_00_guard_retail_legacy_assignment
 BEFORE INSERT OR UPDATE OF unit_id, order_item_id ON public.bodega_order_item_units
@@ -223,7 +223,7 @@ CREATE OR REPLACE FUNCTION public.bodega_sincronizar_unidades_despacho()
 RETURNS trigger
 LANGUAGE plpgsql
 SET search_path TO 'public'
-AS $
+AS $legacy_dispatch_sync$
 BEGIN
   IF NEW.status='despachado' AND OLD.status IS DISTINCT FROM NEW.status THEN
     UPDATE public.bodega_units u SET status='vendido'
@@ -233,7 +233,7 @@ BEGIN
   END IF;
   RETURN NEW;
 END;
-$;
+$legacy_dispatch_sync$;
 
 CREATE TRIGGER trg_bodega_sincronizar_unidades_despacho
 AFTER INSERT OR UPDATE OF status ON public.bodega_orders
@@ -244,7 +244,7 @@ RETURNS trigger
 LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path TO 'pg_catalog','public'
-AS $
+AS $legacy_retail_unit$
 BEGIN
   IF TG_OP='DELETE' THEN
     IF EXISTS (SELECT 1 FROM public.nexora_retail_sales r WHERE r.unit_id=OLD.id) THEN
@@ -264,7 +264,7 @@ BEGIN
   END IF;
   RETURN NEW;
 END;
-$;
+$legacy_retail_unit$;
 
 CREATE TRIGGER nexora_guard_pos_sold_unit
 BEFORE DELETE OR UPDATE OF status, serial, cost, location ON public.bodega_units
