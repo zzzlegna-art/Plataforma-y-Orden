@@ -53,3 +53,93 @@ Renombrar los 34 archivos para hacer coincidir timestamps, crear archivos vacío
 La reconciliación **no está completa** porque el historial remoto no contiene el SQL original y no se encontró evidencia suficiente para reconstruir todas las 41 migraciones sin archivo coincidente. Las dos migraciones de noviembre 14 están aplicadas, pero el inventario global requiere recuperación histórica.
 
 La migración de seguridad de Fase 1 debe permanecer fuera de producción hasta cerrar este bloqueo y verificar la rama de destino.
+
+
+## Detalle de las 41 versiones aplicadas sin archivo de igual nombre lógico
+
+```text
+20261014162822 bodega6a_initial_schema
+20261014163251 add_inventory_foundation_v32
+20261014163350 inventory_movements_v33
+20261014165703 serial_management_v35_complete
+20261014165953 serial_management_v36
+20261014170534 serial_movements_v37_complete
+20261014171041 serial_reservations_v38
+20261014171356 orders_v39
+20261014171557 dispatch_v40
+20261014174219 customers_v41
+20261014174434 warranties_v42
+20261014175109 roles_v43
+20261014182954 notifications_v47
+20261016031830 secure_unused_initial_tables_with_rls
+20261016031958 install_nexora_application_schema_from_repository
+20261016032049 nexora_03_3_codigos_y_concurrencia
+20261016032054 nexora_install_04
+20261016032058 nexora_install_05
+20261016032155 nexora_install_06_documentos_garantias
+20261016032158 nexora_install_07_uso_almacenamiento
+20261016032200 nexora_install_08_recepcion_serial_unico
+20261016032203 nexora_install_09_orden_seriales_pedido
+20261016032206 nexora_install_10_tipos_producto
+20261016032208 nexora_install_11_llaves_unidades
+20261016032211 nexora_install_12_garantia_unidad_reemplazo
+20261016040538 nexora_security_integrity_hardening
+20261017101120 nexora_unique_serial_lifetime
+20261017135249 nexora_atomic_optimistic_guard
+20261017135456 nexora_check_deletions_and_catalog_updates
+20261017135936 nexora_normalize_snapshot_column_types
+20261017140514 nexora_guard_settings_and_new_ids
+20261025175458 archive_and_clear_nexora_trial_transactions_20261025
+20261102064146 nexora_multisede_traslados_seguros
+20261102092813 nexora_pos_sale_atomic_and_theme
+20261102235820 nexora_money_transfers_admin
+20261104014435 nexora_v49_cash_limits_by_site
+20261104014511 nexora_v496_protected_worker_provisioning
+20261105171923 nexora_historical_orders_private_archive_20261105
+20261105220713 selective_history_private_units_audit_control
+20261114004055 add_original_device_email_to_units
+20261114004206 preserve_previous_unit_serials
+```
+
+## Detalle de los 34 archivos cuyo nombre lógico coincide pero el timestamp difiere
+
+Formato: archivo actual en GitHub → versión registrada en Supabase.
+
+```text
+20261023072000_nexora_guardar_por_campo.sql -> 20261023072404
+20261023213000_nexora_unique_product_sku.sql -> 20261023203054
+20261027160000_nexora_proveedores.sql -> 20261027210429
+20261027161000_nexora_recepcion_proveedor.sql -> 20261027210704
+20261102060000_nexora_multisede_sedes.sql -> 20261102050111
+20261102070000_nexora_staff_sites.sql -> 20261102052314
+20261102080000_nexora_conciliacion_fisica_imei.sql -> 20261102054330
+20261102090000_nexora_initial_inventory_approval.sql -> 20261102060945
+20261102110000_nexora_site_availability_and_order_guards.sql -> 20261102074609
+20261102120000_nexora_roles_pos_preflight.sql -> 20261102083640
+20261102133000_nexora_cash_and_retail_foundation.sql -> 20261102090351
+20261102173000_nexora_launch_readiness_role_boundary.sql -> 20261102095714
+20261102183000_nexora_staff_access_audit.sql -> 20261102104028
+20261102190000_nexora_inventory_imei_directory.sql -> 20261102101950
+20261102201000_nexora_inventory_reference_summary.sql -> 20261102113023
+20261102212000_nexora_unit_multisite_timeline.sql -> 20261102171102
+20261102225000_nexora_retail_site_financial_report.sql -> 20261102183011
+20261102235000_nexora_cash_closure_audit.sql -> 20261102190946
+20261103001000_nexora_cash_event_ledger.sql -> 20261102194921
+20261103010000_nexora_initial_inventory_worklist.sql -> 20261102205511
+20261103020000_nexora_register_physical_scan_batch.sql -> 20261102211331
+20261103030000_nexora_cost_evidence_by_reception.sql -> 20261102212530
+20261103040000_nexora_warehouse_6a_admin_declaration.sql -> 20261102224157
+20261103060000_nexora_bodega_6a_central_hub.sql -> 20261102231122
+20261103181000_nexora_v49_local_initial_approval.sql -> 20261104014442
+20261103200000_nexora_v497_worker_activation.sql -> 20261104014518
+20261104064500_nexora_bodega6a_owner_historical_origin.sql -> 20261104113730
+20261104165000_nexora_worker_activation_no_local_approval.sql -> 20261104121416
+20261104185000_nexora_roles_inventory_transfer_permissions.sql -> 20261104131610
+20261104193000_nexora_invoice_assisted_capture.sql -> 20261104132049
+20261104203500_nexora_invoice_received_quantity_guard.sql -> 20261104132900
+20261104211000_nexora_invoice_edit_history.sql -> 20261104133849
+20261106033000_nexora_unified_orders_all_categories.sql -> 20261106023021
+20261106160000_nexora_dashboard_order_rankings.sql -> 20261106211319
+```
+
+**Interpretación:** el timestamp de un archivo no se puede reemplazar por el timestamp remoto solo porque el nombre coincida. Primero se debe recuperar el SQL exacto que corresponde a la versión aplicada y verificar equivalencia. Las 59 versiones de archivos que no están registradas incluyen tanto estas 34 discrepancias como 25 archivos adicionales sin versión remota correspondiente.
