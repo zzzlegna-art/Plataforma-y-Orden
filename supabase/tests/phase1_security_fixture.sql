@@ -106,7 +106,8 @@ CREATE TABLE public.bodega_units (
   reception_id uuid,
   product_id uuid,
   unit_condition text,
-  color text
+  color text,
+  cost numeric
 );
 CREATE TABLE public.bodega_warranties (
   id uuid PRIMARY KEY,
