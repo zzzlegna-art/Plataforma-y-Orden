@@ -155,15 +155,16 @@ Consulta de solo lectura al proyecto activo `ivholkjldntrmagcmogh`:
 - Las funciones históricas `nexora_dashboard_order_rankings`, `nexora_historical_order_detail`, `nexora_historical_orders_list` y `nexora_historical_serial_trace` ya existen como `SECURITY DEFINER`; su ejecución está denegada a `anon` y permitida a `authenticated`. Sus cuerpos actuales verifican usuario activo con rol `admin` o `bodeguero`. La migración propuesta sustituye las dos primeras y refuerza la comprobación mediante `bodega_is_staff()`. Esta diferencia debe revisarse junto con los planes de rol para confirmar que no cambia indebidamente el conjunto de usuarios autorizados.
 - Los cambios anteriores son diferencias de seguridad observadas, no evidencia de que el SQL de las 41 migraciones históricas ausentes se haya recuperado. No sustituyen la matriz histórica de equivalencias.
 
-## Estado CI del commit de auditoría
+## Estado CI y dependencias
 
-En el HEAD `aa0d65fb38f16fb446126d8f95e349fab7341a0c`, GitHub Actions reportó:
+En el commit inicial de auditoría `aa0d65fb38f16fb446126d8f95e349fab7341a0c`, `Validate platform` y `Nexora - quality checks` fallaron en `pnpm audit --prod`. La causa era que `tailwindcss-animate`, un plugin usado solo por `tailwind.config.ts`, estaba clasificado como dependencia de producción y arrastraba el árbol de Tailwind/chokidar/picomatch.
 
-- `Nexora Phase 1 - server-side security SQL`: **success**.
-- `Validate platform`: **failure**.
-- `Nexora - quality checks`: **failure**.
+Se movió el plugin a `devDependencies` y se sincronizó `pnpm-lock.yaml`. En las ejecuciones posteriores la auditoría de dependencias de producción pasó. El árbol de desarrollo todavía contiene versiones afectadas de `picomatch`; el aviso `GHSA-fc5q-39xc-vjpf` no publica una versión corregida, por lo que ese riesgo no se declara eliminado ni se ha ocultado la auditoría.
 
-Los dos fallos generales ocurren en el paso `pnpm audit --prod`, antes de ejecutar pruebas unitarias, ESLint, TypeScript o build. El log identifica dos vulnerabilidades HIGH de `picomatch` (advisory `GHSA-fc5q-39xc-vjpf`), arrastradas por rutas de dependencias que incluyen `tailwindcss-animate -> tailwindcss -> chokidar/fast-glob`. Por tanto, esos checks no permiten concluir todavía si los pasos omitidos pasan o fallan. No se cambió el lockfile ni se eludió el control de auditoría.
+En el último HEAD de código probado (`1bc12a2cf4e913977ee7f453511faad5f57de4b6`):
+- `Nexora Phase 1 - server-side security SQL`, run 44: **SUCCESS**.
+- `Validate platform`, run 1164: auditoría de producción pasó; pruebas unitarias en ejecución al momento de esta actualización.
+- `Nexora - quality checks`, run 1381: auditoría de producción, configuración de despliegue y ESLint/TypeScript pasaron; regresión en ejecución al momento de esta actualización.
 
 ## Recuperación histórica: resultado adicional
 
@@ -178,7 +179,7 @@ La PR de Fase 1 debe permanecer abierta y sin merge mientras no se resuelva la r
 
 La inspección del árbol confirmó que `tailwindcss-animate` solo se importa desde `tailwind.config.ts` y se usa durante la compilación de CSS; no es una dependencia de ejecución de la aplicación. Se movió de `dependencies` a `devDependencies` y se actualizó el importador raíz de `pnpm-lock.yaml` en la misma rama. No se cambió la versión del paquete ni se ocultó la auditoría.
 
-La alerta `GHSA-fc5q-39xc-vjpf` sigue sin una versión corregida publicada en el aviso consultado; GitHub describe como afectadas las versiones de picomatch hasta 4.0.7 y no informa una versión parcheada. El lockfile contiene picomatch 2.3.2 y 4.0.7 en rutas de herramientas de build. Clasificar el plugin como dependencia de desarrollo evita incluir una herramienta de compilación en el conjunto de dependencias de producción, pero **no elimina la vulnerabilidad del árbol de desarrollo**. No se afirma que la auditoría esté limpia: el commit nuevo no tiene una ejecución CI asociada disponible para verificar el resultado. La alerta debe mantenerse visible hasta que el proveedor publique una versión corregida y se actualice el árbol de dependencias.
+La alerta `GHSA-fc5q-39xc-vjpf` sigue sin una versión corregida publicada en el aviso consultado; el lockfile conserva picomatch 2.3.2 y 4.0.7 en rutas de herramientas de build. La auditoría `pnpm audit --prod` ya pasó después de clasificar correctamente el plugin como dependencia de desarrollo, pero **la vulnerabilidad del árbol de desarrollo sigue pendiente** y debe mantenerse visible hasta que exista una versión corregida.
 
 
 ## Cierre técnico de Fase 1: correcciones de invariantes y estado vivo (17-11-2026)
@@ -193,10 +194,10 @@ Se añadieron pruebas de integración para la reventa tras garantía en una tran
 
 ### Resultado de CI más reciente observado
 
-- `Nexora Phase 1 - server-side security SQL`, run 40: **SUCCESS**. Migración, fixtures, integración, caso de venta por debajo del costo y rollback completaron.
-- `Validate platform`, run 1160: auditoría de dependencias de producción y pruebas unitarias completadas correctamente; lint/TypeScript y build aún en ejecución al momento de esta nota.
-- `Nexora - quality checks`, run 1377: auditoría de producción, configuración de despliegue, ESLint/TypeScript completados correctamente; regresión y build aún en ejecución al momento de esta nota.
-- `tailwindcss-animate` se clasificó correctamente como dependencia de desarrollo, pues solo se importa desde `tailwind.config.ts`. La auditoría de producción pasó; el árbol de desarrollo todavía contiene versiones de `picomatch` afectadas por el aviso sin versión corregida publicada. No se declara eliminado ese riesgo de desarrollo.
+- `Nexora Phase 1 - server-side security SQL`, run 44: **SUCCESS**. Migración, fixtures, integración, caso de venta por debajo del costo y rollback completaron.
+- `Validate platform`, run 1164: auditoría de producción pasó; pruebas unitarias estaban en ejecución al momento de esta nota.
+- `Nexora - quality checks`, run 1381: auditoría de producción, configuración de despliegue y ESLint/TypeScript pasaron; regresión estaba en ejecución al momento de esta nota.
+- La última ejecución SQL se realizó después de corregir la semántica de devolución por garantía y los IDs de fixtures. El commit documental posterior no modificó código.
 
 ### Verificación adicional de producción
 
