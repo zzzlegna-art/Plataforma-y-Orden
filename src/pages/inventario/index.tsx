@@ -893,10 +893,10 @@ const Inventario = () => {
         title={t("product.title")}
         description={t("product.subtitle")}
         actions={
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto sm:flex-wrap sm:items-center">
             <ProductImportDialog
               trigger={
-                <Button variant="outline">
+                <Button variant="outline" className="w-full min-w-0 justify-center text-xs sm:w-auto sm:text-sm">
                   <FileUp />
                   {t("productImport.openButton")}
                 </Button>
@@ -904,6 +904,7 @@ const Inventario = () => {
             />
             <Button
               variant="outline"
+              className="w-full min-w-0 justify-center text-xs sm:w-auto sm:text-sm"
               onClick={() => {
                 setCatalogFormat("pdf");
                 setCatalogExportOpen(true);
@@ -914,6 +915,7 @@ const Inventario = () => {
             </Button>
             <Button
               variant="outline"
+              className="w-full min-w-0 justify-center text-xs sm:w-auto sm:text-sm"
               onClick={() => {
                 setExportFormat("pdf");
                 setExportOpen(true);
@@ -924,6 +926,7 @@ const Inventario = () => {
             </Button>
             <Button
               variant="outline"
+              className="w-full min-w-0 justify-center text-xs sm:w-auto sm:text-sm"
               onClick={() => {
                 setExportFormat("excel");
                 setExportOpen(true);
@@ -934,7 +937,7 @@ const Inventario = () => {
             </Button>
             <ProductFormDialog
               trigger={
-                <Button>
+                <Button className="col-span-2 w-full min-w-0 sm:col-span-1 sm:w-auto">
                   <Plus />
                   {t("product.new")}
                 </Button>
