@@ -188,6 +188,18 @@ INSERT INTO public.bodega_order_items(id,order_id,product_id,quantity,unit_price
 VALUES ('50000000-0000-4000-8000-000000000002',
         '40000000-0000-4000-8000-000000000002',
         '90000000-0000-4000-8000-000000000001',1,200,200,'nuevo');
+UPDATE public.bodega_units SET status='vendido'
+WHERE id='20000000-0000-4000-8000-000000000002';
+INSERT INTO public.bodega_movements(id,unit_id,type,reference_type,reference_id,created_by)
+VALUES ('30000000-0000-4000-8000-000000000003',
+        '20000000-0000-4000-8000-000000000002','salida','pedido',
+        '40000000-0000-4000-8000-000000000001',
+        '00000000-0000-4000-8000-000000000002');
+UPDATE public.bodega_orders SET status='preparado'
+WHERE id='40000000-0000-4000-8000-000000000001';
+
+-- The legacy trigger only blocks duplicates in en_preparacion; Phase 1 must
+-- also block reusing an IMEI already held by a prepared order.
 DO $phase1$
 BEGIN
   BEGIN
@@ -198,16 +210,6 @@ BEGIN
     RAISE EXCEPTION 'the same IMEI was assigned to two orders';
   EXCEPTION WHEN unique_violation THEN NULL; END;
 END $phase1$;
-
-UPDATE public.bodega_units SET status='vendido'
-WHERE id='20000000-0000-4000-8000-000000000002';
-INSERT INTO public.bodega_movements(id,unit_id,type,reference_type,reference_id,created_by)
-VALUES ('30000000-0000-4000-8000-000000000003',
-        '20000000-0000-4000-8000-000000000002','salida','pedido',
-        '40000000-0000-4000-8000-000000000001',
-        '00000000-0000-4000-8000-000000000002');
-UPDATE public.bodega_orders SET status='preparado'
-WHERE id='40000000-0000-4000-8000-000000000001';
 
 -- A prepared order cannot receive additional assignments from Bodega.
 DO $phase2$
