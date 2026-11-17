@@ -631,7 +631,55 @@ export const confirmarVentaPedido = (
 /** Compatibilidad para llamadas existentes: finalizar ahora significa confirmar la facturación. */
 export const finalizarPedido = confirmarVentaPedido;
 
-/** Cancela solo pedidos que aún no han tenido salida física (solo administrador). */
+/**
+ * Devuelve a inventario las unidades cuya última salida física pertenece a este pedido.
+ * Las unidades que ya pasaron a garantía u otro estado conservan su estado e historial.
+ */
+const devolverSalidasPendientesPedido = (db: Db, actor: Actor, order: Order): number => {
+  const unitIds = [...new Set(
+    db.movements
+      .filter((movement) =>
+        movement.type === "salida" &&
+        movement.referenceType === "pedido" &&
+        movement.referenceId === order.id &&
+        movement.unitId,
+      )
+      .map((movement) => movement.unitId as string),
+  )];
+
+  let devueltas = 0;
+  for (const unitId of unitIds) {
+    const unit = db.units.find((candidate) => candidate.id === unitId);
+    if (!unit || unit.status !== "vendido") continue;
+
+    const ultimoMovimiento = db.movements
+      .filter((movement) => movement.unitId === unitId)
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0];
+
+    if (
+      ultimoMovimiento?.type !== "salida" ||
+      ultimoMovimiento.referenceType !== "pedido" ||
+      ultimoMovimiento.referenceId !== order.id
+    ) continue;
+
+    unit.status = "en_bodega";
+    logMovement(db, actor, {
+      productId: unit.productId,
+      unitId: unit.id,
+      type: "devolucion",
+      referenceType: "pedido",
+      referenceId: order.id,
+      notes: `Devolución física por cancelación del pedido ${order.code}`,
+    });
+    devueltas += 1;
+  }
+  return devueltas;
+};
+
+/**
+ * Cancela un pedido no facturado. Si ya había tenido salida física (preparación
+ * confirmada), primero registra la devolución de cada unidad que siga vendida.
+ */
 export const cancelarPedido = (
   db: Db,
   actor: Actor,
@@ -642,6 +690,8 @@ export const cancelarPedido = (
   if (order.status !== "en_preparacion" && order.status !== "preparado") {
     throw new DomainError("errors.orderNotEditable");
   }
+
+  const devueltas = devolverSalidasPendientesPedido(db, actor, order);
   const itemIds = orderItems(db, order.id).map((item) => item.id);
   db.orderItemUnits = db.orderItemUnits.filter(
     (row) => !itemIds.includes(row.orderItemId),
@@ -653,7 +703,7 @@ export const cancelarPedido = (
     action: "status",
     entity: "order",
     entityId: order.id,
-    details: `${order.code} · cancelado`,
+    details: `${order.code} · cancelado · ${devueltas} unidad(es) devuelta(s) a bodega`,
   });
   return order;
 };
@@ -831,6 +881,8 @@ export const cancelarPedidoDespachado = (
         });
       }
     });
+  // Cubre también salidas históricas que ya no tengan una asignación activa.
+  const devueltasSinAsignacion = devolverSalidasPendientesPedido(db, actor, order);
   db.orderItemUnits = db.orderItemUnits.filter((row) => !itemIds.includes(row.orderItemId));
 
   const motivo = input.motivo?.trim();
@@ -842,8 +894,8 @@ export const cancelarPedidoDespachado = (
     entity: "order",
     entityId: order.id,
     details:
-      conservadas > 0
-        ? `${order.code} · cancelado · ${conservadas} unidad(es) conservan su estado (ya no estaban vendidas)`
+      conservadas > 0 || devueltasSinAsignacion > 0
+        ? `${order.code} · cancelado · ${conservadas} unidad(es) conservan su estado; ${devueltasSinAsignacion} devolución(es) adicional(es)`
         : `${order.code} · cancelado`,
   });
   return order;
