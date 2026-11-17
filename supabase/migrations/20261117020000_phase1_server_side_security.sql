@@ -938,80 +938,83 @@ LANGUAGE plpgsql
 SET search_path TO 'pg_catalog', 'public'
 AS $function$
 BEGIN
-  IF auth.uid() IS NULL OR public.bodega_is_admin() THEN
+  IF auth.uid() IS NULL THEN
     RETURN NEW;
   END IF;
 
-  IF NEW.serial IS DISTINCT FROM OLD.serial
-     OR NEW.previous_serials IS DISTINCT FROM OLD.previous_serials THEN
-    RAISE EXCEPTION 'NEXORA_ADMIN_REQUIRED_UNIT_IDENTITY'
-      USING ERRCODE = '42501';
-  END IF;
+  IF NOT public.bodega_is_admin() THEN
+    IF NEW.serial IS DISTINCT FROM OLD.serial
+       OR NEW.previous_serials IS DISTINCT FROM OLD.previous_serials THEN
+      RAISE EXCEPTION 'NEXORA_ADMIN_REQUIRED_UNIT_IDENTITY'
+        USING ERRCODE = '42501';
+    END IF;
 
-  IF NEW.status = 'liberado' AND OLD.status IS DISTINCT FROM NEW.status
-     AND NOT EXISTS (
-       SELECT 1
-       FROM public.bodega_warranties w
-       WHERE (
-           w.unit_id = OLD.id
-           OR (
-             w.unit_id IS NULL
-             AND LOWER(BTRIM(COALESCE(w.imei_manual, ''))) = LOWER(BTRIM(OLD.serial))
+    IF NEW.status = 'liberado' AND OLD.status IS DISTINCT FROM NEW.status
+       AND NOT EXISTS (
+         SELECT 1
+         FROM public.bodega_warranties w
+         WHERE (
+             w.unit_id = OLD.id
+             OR (
+               w.unit_id IS NULL
+               AND LOWER(BTRIM(COALESCE(w.imei_manual, ''))) = LOWER(BTRIM(OLD.serial))
+             )
            )
-         )
-         AND w.status = 'reenvio_pendiente'
-         AND w.resolucion = 'cambio'
-         AND w.customer_id IS NULL
-         AND w.order_id IS NULL
-         AND NULLIF(BTRIM(w.cliente_manual), '') IS NULL
-     ) THEN
-    RAISE EXCEPTION 'NEXORA_ADMIN_REQUIRED_UNIT_RELEASE'
-      USING ERRCODE = '42501';
-  END IF;
+           AND w.status = 'reenvio_pendiente'
+           AND w.resolucion = 'cambio'
+           AND w.customer_id IS NULL
+           AND w.order_id IS NULL
+           AND NULLIF(BTRIM(w.cliente_manual), '') IS NULL
+       ) THEN
+      RAISE EXCEPTION 'NEXORA_ADMIN_REQUIRED_UNIT_RELEASE'
+        USING ERRCODE = '42501';
+    END IF;
 
-  -- Any move from a non-stock state back into stock must be backed by a
-  -- confirmed reception or an active warranty return workflow.
-  IF NEW.status IN ('en_bodega', 'en_local')
-     AND OLD.status NOT IN ('en_bodega', 'en_local')
-     AND NOT (
-       NEW.status = 'en_bodega'
-       AND (
-         (
-           NEW.reception_id IS NOT NULL
-           AND NEW.reception_id IS DISTINCT FROM OLD.reception_id
-           AND EXISTS (
+    -- Any move from a non-stock state back into stock must be backed by a
+    -- confirmed reception or an active warranty return workflow.
+    IF NEW.status IN ('en_bodega', 'en_local')
+       AND OLD.status NOT IN ('en_bodega', 'en_local')
+       AND NOT (
+         NEW.status = 'en_bodega'
+         AND (
+           (
+             NEW.reception_id IS NOT NULL
+             AND NEW.reception_id IS DISTINCT FROM OLD.reception_id
+             AND EXISTS (
+               SELECT 1
+               FROM public.bodega_receptions r
+               WHERE r.id = NEW.reception_id
+                 AND r.status = 'confirmada'
+             )
+           )
+           OR EXISTS (
              SELECT 1
-             FROM public.bodega_receptions r
-             WHERE r.id = NEW.reception_id
-               AND r.status = 'confirmada'
+             FROM public.bodega_warranties w
+             WHERE (
+                 w.unit_id = OLD.id
+                 OR (
+                   w.unit_id IS NULL
+                   AND LOWER(BTRIM(COALESCE(w.imei_manual, ''))) = LOWER(BTRIM(OLD.serial))
+                 )
+               )
+               AND (
+                 w.status = 'recibido'
+                 OR (
+                   w.status = 'reenvio_pendiente'
+                   AND w.resolucion IN ('reparado', 'sin_falla')
+                 )
+               )
            )
          )
-         OR EXISTS (
-           SELECT 1
-           FROM public.bodega_warranties w
-           WHERE (
-               w.unit_id = OLD.id
-               OR (
-                 w.unit_id IS NULL
-                 AND LOWER(BTRIM(COALESCE(w.imei_manual, ''))) = LOWER(BTRIM(OLD.serial))
-               )
-             )
-             AND (
-               w.status = 'recibido'
-               OR (
-                 w.status = 'reenvio_pendiente'
-                 AND w.resolucion IN ('reparado', 'sin_falla')
-               )
-             )
-         )
-       )
-     ) THEN
-    RAISE EXCEPTION 'NEXORA_WARRANTY_OR_RECEPTION_REQUIRED_STOCK_REENTRY'
-      USING ERRCODE = '42501';
+       ) THEN
+      RAISE EXCEPTION 'NEXORA_WARRANTY_OR_RECEPTION_REQUIRED_STOCK_REENTRY'
+        USING ERRCODE = '42501';
+    END IF;
   END IF;
 
-  -- A non-admin may mark a unit sold only inside an active order preparation
-  -- or the atomic retail POS transaction (which inserts its sale row first).
+  -- Even administrators cannot mark a unit sold outside an active order
+  -- preparation or the atomic POS transaction. Trusted server-side maintenance
+  -- without a user JWT remains allowed above.
   IF NEW.status = 'vendido'
      AND OLD.status IS DISTINCT FROM NEW.status
      AND NOT EXISTS (
@@ -1150,11 +1153,9 @@ BEFORE INSERT OR UPDATE OR DELETE ON public.bodega_order_items
 FOR EACH ROW
 EXECUTE FUNCTION public.nexora_guard_order_item_row();
 
--- A physical unit may belong to only one active/current order assignment.
--- Production preflight found zero duplicate unit_id values before this index was prepared.
-CREATE UNIQUE INDEX IF NOT EXISTS bodega_order_item_units_unit_id_uidx
-  ON public.bodega_order_item_units(unit_id)
-  WHERE unit_id IS NOT NULL;
+-- Assignment uniqueness is enforced by the trigger below only for active orders.
+-- Historical dispatched assignments remain intact, so a unit returned through warranty
+-- can be assigned to a later order without rewriting its original order history.
 
 -- Assignments may be added during the preparation transaction (automatic spare-part
 -- serialization). Any such addition is validated at commit against sold unit + exit movement.
@@ -1166,31 +1167,61 @@ AS $function$
 DECLARE
   v_order_id uuid;
   v_status text;
+  v_current_assignment_id uuid;
 BEGIN
-  IF auth.uid() IS NULL OR public.bodega_is_admin() THEN
+  IF auth.uid() IS NULL THEN
     IF TG_OP = 'DELETE' THEN RETURN OLD; END IF;
     RETURN NEW;
   END IF;
 
-  IF TG_OP IN ('UPDATE', 'DELETE') THEN
-    SELECT o.status INTO v_status
-    FROM public.bodega_orders o
-    JOIN public.bodega_order_items i ON i.order_id = o.id
-    WHERE i.id = OLD.order_item_id;
-    IF v_status IN ('preparado', 'despachado', 'cancelado') THEN
-      RAISE EXCEPTION 'NEXORA_ORDER_ASSIGNMENT_LOCKED'
-        USING ERRCODE = '42501';
+  IF NOT public.bodega_is_admin() THEN
+    IF TG_OP IN ('UPDATE', 'DELETE') THEN
+      SELECT o.status INTO v_status
+      FROM public.bodega_orders o
+      JOIN public.bodega_order_items i ON i.order_id = o.id
+      WHERE i.id = OLD.order_item_id;
+      IF v_status IN ('preparado', 'despachado', 'cancelado') THEN
+        RAISE EXCEPTION 'NEXORA_ORDER_ASSIGNMENT_LOCKED'
+          USING ERRCODE = '42501';
+      END IF;
+    END IF;
+
+    IF TG_OP IN ('INSERT', 'UPDATE') THEN
+      SELECT o.id, o.status INTO v_order_id, v_status
+      FROM public.bodega_orders o
+      JOIN public.bodega_order_items i ON i.order_id = o.id
+      WHERE i.id = NEW.order_item_id;
+      IF v_status IN ('preparado', 'despachado', 'cancelado') THEN
+        RAISE EXCEPTION 'NEXORA_ORDER_ASSIGNMENT_LOCKED'
+          USING ERRCODE = '42501';
+      END IF;
     END IF;
   END IF;
 
-  IF TG_OP IN ('INSERT', 'UPDATE') THEN
-    SELECT o.id, o.status INTO v_order_id, v_status
-    FROM public.bodega_orders o
-    JOIN public.bodega_order_items i ON i.order_id = o.id
-    WHERE i.id = NEW.order_item_id;
-    IF v_status IN ('preparado', 'despachado', 'cancelado') THEN
-      RAISE EXCEPTION 'NEXORA_ORDER_ASSIGNMENT_LOCKED'
-        USING ERRCODE = '42501';
+  -- Lock the unit row so concurrent assignments for the same IMEI serialize.
+  -- Ignore assignments belonging to completed/cancelled orders: they are history,
+  -- not active reservations, and a legitimately returned unit may be sold again.
+  IF TG_OP IN ('INSERT', 'UPDATE') AND NEW.unit_id IS NOT NULL THEN
+    PERFORM 1
+    FROM public.bodega_units u
+    WHERE u.id = NEW.unit_id
+    FOR UPDATE;
+
+    IF TG_OP = 'UPDATE' THEN
+      v_current_assignment_id := OLD.id;
+    END IF;
+
+    IF EXISTS (
+      SELECT 1
+      FROM public.bodega_order_item_units a
+      JOIN public.bodega_order_items i ON i.id = a.order_item_id
+      JOIN public.bodega_orders o ON o.id = i.order_id
+      WHERE a.unit_id = NEW.unit_id
+        AND o.status IN ('en_preparacion', 'preparado')
+        AND (v_current_assignment_id IS NULL OR a.id <> v_current_assignment_id)
+    ) THEN
+      RAISE EXCEPTION 'NEXORA_UNIT_ALREADY_ASSIGNED_TO_ACTIVE_ORDER'
+        USING ERRCODE = '23505';
     END IF;
   END IF;
 
@@ -1360,14 +1391,16 @@ BEGIN
        WHERE salida.type = 'salida'
          AND salida.reference_type = 'pedido'
          AND salida.reference_id = NEW.id
-         AND u.status = 'vendido'
-         AND NOT EXISTS (
-           SELECT 1
-           FROM public.bodega_movements devolucion
-           WHERE devolucion.unit_id = salida.unit_id
-             AND devolucion.type = 'devolucion'
-             AND devolucion.reference_type = 'pedido'
-             AND devolucion.reference_id = NEW.id
+         AND (
+           u.status NOT IN ('en_bodega', 'en_local')
+           OR NOT EXISTS (
+             SELECT 1
+             FROM public.bodega_movements devolucion
+             WHERE devolucion.unit_id = salida.unit_id
+               AND devolucion.type = 'devolucion'
+               AND devolucion.reference_type = 'pedido'
+               AND devolucion.reference_id = NEW.id
+           )
          )
      ) THEN
     RAISE EXCEPTION 'NEXORA_ORDER_CANNOT_CANCEL_WITHOUT_PHYSICAL_RETURN'
