@@ -39,3 +39,68 @@
 @media(max-width:768px){.nx-operations-pedidos .nx-page-header{gap:1rem;padding:1.15rem;border-radius:19px}.nx-operations-pedidos .nx-pedidos-filters{padding:1rem;border-radius:18px}.nx-operations-pedidos .nx-pedidos-tabs{flex-wrap:nowrap;overflow-x:auto;padding-bottom:5px;scrollbar-width:thin}.nx-operations-pedidos .nx-pedidos-tabs button{flex:none}.nx-operations-pedidos .nx-pedidos-table{border-radius:18px}}
 @media(max-width:420px){.nx-premium-export-formats button{min-height:67px}.nx-premium-export-dialog{padding:18px}}
 @media(prefers-reduced-motion:reduce){.nx-operations-pedidos *{transition:none!important}}
+
+
+/* iOS/mobile: prevent the Orders page and its cards from exceeding the viewport. */
+@media (max-width: 767px) {
+  .nx-operations-pedidos {
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    overflow-x: clip;
+  }
+  .nx-operations-pedidos > *,
+  .nx-operations-pedidos .nx-page-header,
+  .nx-operations-pedidos .nx-pedidos-filters,
+  .nx-operations-pedidos .nx-pedidos-table {
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+  }
+  .nx-operations-pedidos .nx-page-header > div {
+    min-width: 0;
+    max-width: 100%;
+  }
+  .nx-operations-pedidos .nx-page-header > div:last-child {
+    display: flex;
+    width: 100%;
+    flex-wrap: wrap;
+  }
+  .nx-operations-pedidos .nx-page-header > div:last-child > * {
+    box-sizing: border-box;
+    min-width: 0;
+    max-width: 100%;
+    flex: 1 1 100%;
+    justify-content: center;
+  }
+  .nx-operations-pedidos .nx-pedidos-filters .relative.h-10,
+  .nx-operations-pedidos .nx-pedidos-filters input {
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+  }
+  .nx-operations-pedidos .nx-pedidos-tabs {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+  .nx-operations-pedidos .nx-pedidos-table > div {
+    min-width: 0;
+    max-width: 100%;
+  }
+  .nx-operations-pedidos .nx-pedidos-table [class*="space-y"] {
+    min-width: 0;
+    max-width: 100%;
+    overflow-wrap: anywhere;
+  }
+  .nx-operations-pedidos .nx-pedidos-table button {
+    box-sizing: border-box;
+    max-width: 100%;
+  }
+}
