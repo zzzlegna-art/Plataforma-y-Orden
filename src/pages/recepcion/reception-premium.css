@@ -349,3 +349,70 @@
 @media (prefers-reduced-motion: reduce) {
   .nx-reception-premium * { transition-duration: .01ms !important; }
 }
+
+
+/* iOS/mobile: keep the Recepciones workspace inside the viewport. */
+@media (max-width: 767px) {
+  .nx-reception-premium {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    overflow-x: clip;
+  }
+  .nx-reception-premium > *,
+  .nx-reception-premium .nx-reception-hero,
+  .nx-reception-premium .nx-reception-stat-grid,
+  .nx-reception-premium .nx-reception-filterbar,
+  .nx-reception-premium .nx-reception-table {
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+  }
+  .nx-reception-premium .nx-reception-hero > div:first-child {
+    flex: 1 1 100%;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+  }
+  .nx-reception-premium .nx-reception-hero__description {
+    max-width: 100%;
+    overflow-wrap: anywhere;
+  }
+  .nx-reception-premium .nx-reception-hero__actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    width: 100%;
+    min-width: 0;
+  }
+  .nx-reception-premium .nx-reception-hero__actions > * {
+    box-sizing: border-box;
+    min-width: 0;
+    max-width: 100%;
+    width: 100%;
+    justify-content: center;
+  }
+  .nx-reception-premium .nx-reception-hero__actions > :last-child {
+    grid-column: 1 / -1;
+  }
+  .nx-reception-premium .nx-reception-stat-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .nx-reception-premium .nx-reception-stat {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+  .nx-reception-premium .nx-reception-table__mobile {
+    box-sizing: border-box;
+    width: 100%;
+    min-width: 0;
+  }
+  .nx-reception-premium .nx-reception-table__mobile > div {
+    min-width: 0;
+    flex-wrap: wrap;
+  }
+  .nx-reception-premium .nx-reception-table__mobile > div > :first-child {
+    min-width: 0;
+    max-width: 100%;
+  }
+}
