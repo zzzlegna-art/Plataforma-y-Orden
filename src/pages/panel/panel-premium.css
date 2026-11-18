@@ -817,3 +817,25 @@ html.dark .nx-dashboard-showcase.nx-dashboard-premium .nx-warranty-section .roun
 .nx-dashboard-showcase.nx-dashboard-premium .nx-kpi-section .nx-wide-value{font-size:clamp(1.65rem,2vw,2rem)}
 @media(max-width:1250px){.nx-dashboard-showcase.nx-dashboard-premium .nx-kpi-section>.grid:first-child{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:480px){.nx-dashboard-showcase.nx-dashboard-premium .nx-kpi-section>.grid:first-child{grid-template-columns:minmax(0,1fr)}}
+
+
+/* iOS/mobile: stack report date fields with clear spacing instead of forcing two tight columns. */
+@media (max-width: 639px) {
+  .nx-dashboard-showcase.nx-dashboard-premium .nx-dashboard-report-filters {
+    grid-template-columns: minmax(0, 1fr);
+    column-gap: 0;
+    row-gap: .9rem;
+  }
+  .nx-dashboard-showcase.nx-dashboard-premium .nx-dashboard-report-filters > div:last-child {
+    grid-column: 1;
+    width: 100%;
+    margin-left: 0;
+  }
+  .nx-dashboard-showcase.nx-dashboard-premium .nx-dashboard-report-filters input[type="date"] {
+    display: block;
+    box-sizing: border-box;
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+  }
+}
