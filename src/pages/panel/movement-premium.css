@@ -3,9 +3,9 @@
  * Compatible con Nexora claro/oscuro, Recharts y pantallas compactas.
  */
 .nx-dashboard-showcase.nx-dashboard-premium .nx-analytics-card.nx-movement-premium {
-  --nx-movement-cyan: #087fa3;
-  --nx-movement-violet: #7750cb;
-  --nx-movement-amber: #bc7611;
+  --nx-movement-cyan: #009fbd;
+  --nx-movement-violet: #8650e8;
+  --nx-movement-amber: #d88908;
   --nx-movement-muted: hsl(var(--muted-foreground));
   --nx-movement-grid: hsl(var(--border) / .68);
   --nx-movement-guide: hsl(var(--foreground) / .37);
@@ -24,9 +24,9 @@
 }
 
 html.dark .nx-dashboard-showcase.nx-dashboard-premium .nx-analytics-card.nx-movement-premium {
-  --nx-movement-cyan: #27d3ec;
-  --nx-movement-violet: #a17dff;
-  --nx-movement-amber: #ffad2f;
+  --nx-movement-cyan: #35dff5;
+  --nx-movement-violet: #b18cff;
+  --nx-movement-amber: #ffc04d;
   --nx-movement-grid: rgb(117 159 208 / .18);
   --nx-movement-guide: rgb(191 215 248 / .46);
   --nx-movement-ring: #101f32;
