@@ -817,35 +817,3 @@ html.dark .nx-dashboard-showcase.nx-dashboard-premium .nx-warranty-section .roun
 .nx-dashboard-showcase.nx-dashboard-premium .nx-kpi-section .nx-wide-value{font-size:clamp(1.65rem,2vw,2rem)}
 @media(max-width:1250px){.nx-dashboard-showcase.nx-dashboard-premium .nx-kpi-section>.grid:first-child{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:480px){.nx-dashboard-showcase.nx-dashboard-premium .nx-kpi-section>.grid:first-child{grid-template-columns:minmax(0,1fr)}}
-
-
-/* iOS/mobile: separate dashboard report date fields for comfortable touch input. */
-@media (max-width: 640px) {
-  .nx-dashboard-showcase.nx-dashboard-premium .nx-dashboard-block--movement .nx-dashboard-report-filters {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr);
-    align-items: stretch;
-    gap: 16px;
-  }
-
-  .nx-dashboard-showcase.nx-dashboard-premium .nx-dashboard-block--movement .nx-dashboard-report-filters > div {
-    width: 100%;
-    min-width: 0;
-    margin: 0;
-  }
-
-  .nx-dashboard-showcase.nx-dashboard-premium .nx-dashboard-block--movement .nx-dashboard-report-filters input[type="date"] {
-    display: block;
-    box-sizing: border-box;
-    width: 100%;
-    min-width: 0;
-    margin-top: 6px;
-  }
-
-  .nx-dashboard-showcase.nx-dashboard-premium .nx-dashboard-block--movement .nx-dashboard-report-filters > div:last-child {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    padding-top: 2px;
-  }
-}
