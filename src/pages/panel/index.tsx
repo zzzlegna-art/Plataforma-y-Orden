@@ -447,16 +447,16 @@ const Panel = () => {
                 <AreaChart data={movementChartData} margin={{ top: 12, right: 15, left: -11, bottom: 5 }}>
                   <defs>
                     <linearGradient id="movementEntriesPremiumFill" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="var(--nx-movement-cyan)" stopOpacity={0.16} />
-                      <stop offset="100%" stopColor="var(--nx-movement-cyan)" stopOpacity={0} />
+                      <stop offset="0%" stopColor="var(--nx-movement-cyan)" stopOpacity={0.34} />
+                      <stop offset="100%" stopColor="var(--nx-movement-cyan)" stopOpacity={0.035} />
                     </linearGradient>
                     <linearGradient id="movementAssignmentsPremiumFill" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="var(--nx-movement-amber)" stopOpacity={0.12} />
-                      <stop offset="100%" stopColor="var(--nx-movement-amber)" stopOpacity={0} />
+                      <stop offset="0%" stopColor="var(--nx-movement-amber)" stopOpacity={0.32} />
+                      <stop offset="100%" stopColor="var(--nx-movement-amber)" stopOpacity={0.035} />
                     </linearGradient>
                     <linearGradient id="movementExitsPremiumFill" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="var(--nx-movement-violet)" stopOpacity={0.1} />
-                      <stop offset="100%" stopColor="var(--nx-movement-violet)" stopOpacity={0} />
+                      <stop offset="0%" stopColor="var(--nx-movement-violet)" stopOpacity={0.3} />
+                      <stop offset="100%" stopColor="var(--nx-movement-violet)" stopOpacity={0.035} />
                     </linearGradient>
                   </defs>
                   <CartesianGrid vertical={false} stroke="var(--nx-movement-grid)" strokeDasharray="3 7" />
@@ -470,7 +470,7 @@ const Panel = () => {
                     cursor={{ stroke: "var(--nx-movement-guide)", strokeWidth: 1, strokeDasharray: "4 6" }} />
                   {/* Las tres curvas mantienen el conjunto de datos y su semántica original. */}
                   <Area type="monotone" dataKey="asignaciones" name="Asignaciones"
-                    stroke="var(--nx-movement-amber)" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round"
+                    stroke="var(--nx-movement-amber)" strokeWidth={3.6} strokeLinecap="round" strokeLinejoin="round"
                     dot={false} isAnimationActive={false}
                     fill="url(#movementAssignmentsPremiumFill)"
                     activeDot={{ r: 5, fill: "var(--nx-movement-amber)", stroke: "var(--nx-movement-ring)", strokeWidth: 3 }} />
