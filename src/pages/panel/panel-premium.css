@@ -839,3 +839,80 @@ html.dark .nx-dashboard-showcase.nx-dashboard-premium .nx-warranty-section .roun
     max-width: 100%;
   }
 }
+
+
+/* iPhone: compact KPI cards in a balanced two-column dashboard grid. */
+@media (max-width: 540px) {
+  .nx-dashboard-showcase.nx-dashboard-premium .nx-kpi-section > .grid:first-child {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+  .nx-dashboard-showcase.nx-dashboard-premium .nx-kpi-section .nx-premium-stat-card {
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    min-width: 0;
+    min-height: 190px;
+    height: 100%;
+    padding: 13px;
+    border-radius: 18px;
+  }
+  .nx-dashboard-showcase.nx-dashboard-premium .nx-kpi-section .nx-premium-stat-top {
+    min-height: 54px;
+    gap: 7px;
+  }
+  .nx-dashboard-showcase.nx-dashboard-premium .nx-kpi-section .nx-premium-stat-label {
+    min-width: 0;
+    font-size: .68rem;
+    line-height: 1.35;
+    letter-spacing: .025em;
+    overflow-wrap: anywhere;
+  }
+  .nx-dashboard-showcase.nx-dashboard-premium .nx-kpi-section .nx-premium-stat-icon {
+    width: 42px;
+    height: 42px;
+    flex: 0 0 42px;
+    border-radius: 13px;
+  }
+  .nx-dashboard-showcase.nx-dashboard-premium .nx-kpi-section .nx-premium-stat-icon svg {
+    width: 22px;
+    height: 22px;
+  }
+  .nx-dashboard-showcase.nx-dashboard-premium .nx-kpi-section .nx-premium-stat-numbers {
+    min-width: 0;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .nx-dashboard-showcase.nx-dashboard-premium .nx-kpi-section .nx-premium-stat-value {
+    font-size: clamp(1.35rem, 6vw, 1.7rem);
+    overflow-wrap: anywhere;
+  }
+  .nx-dashboard-showcase.nx-dashboard-premium .nx-kpi-section .nx-premium-stat-trend {
+    font-size: .68rem;
+    padding: .25rem .45rem;
+  }
+  .nx-dashboard-showcase.nx-dashboard-premium .nx-kpi-section .nx-premium-stat-footer {
+    min-width: 0;
+    margin-top: 9px;
+    padding-right: 0;
+  }
+  .nx-dashboard-showcase.nx-dashboard-premium .nx-kpi-section .nx-premium-stat-hint {
+    max-width: 100%;
+    font-size: .7rem;
+    line-height: 1.4;
+    overflow-wrap: anywhere;
+  }
+  .nx-dashboard-showcase.nx-dashboard-premium .nx-kpi-section .nx-premium-stat-bars {
+    display: none;
+  }
+}
+@media (max-width: 360px) {
+  .nx-dashboard-showcase.nx-dashboard-premium .nx-kpi-section > .grid:first-child {
+    gap: 9px;
+  }
+  .nx-dashboard-showcase.nx-dashboard-premium .nx-kpi-section .nx-premium-stat-card {
+    min-height: 178px;
+    padding: 11px;
+  }
+}
