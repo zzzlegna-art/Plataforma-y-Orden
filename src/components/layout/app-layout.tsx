@@ -7,6 +7,7 @@ import { useNextWorkspace } from "./use-next-workspace";
 import { MobileTabBar } from "./mobile-tab-bar";
 import { SidebarNav } from "./sidebar-nav";
 import { Topbar } from "./topbar";
+import "./app-shell-premium.css";
 
 /**
  * Contenedor de la aplicación: sidebar fijo en escritorio (el contenido hace
