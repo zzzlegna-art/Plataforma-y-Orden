@@ -312,10 +312,16 @@ const Panel = () => {
             Los indicadores de stock y los rankings globales muestran su propio alcance.
           </p>
         </div>
-      <div className="flex flex-wrap items-end gap-3 nx-dashboard-report-filters rounded-xl border bg-card p-4">
-        <div><label htmlFor="reporte-desde" className="block text-xs text-muted-foreground">Reporte desde</label><input id="reporte-desde" type="date" value={reporteDesde} max={reporteHasta} onChange={(e) => { setReporteDesde(e.target.value); setMovementPreset("custom"); }} className="mt-1 rounded-md border bg-background px-3 py-2 text-sm" /></div>
-        <div><label htmlFor="reporte-hasta" className="block text-xs text-muted-foreground">Hasta</label><input id="reporte-hasta" type="date" value={reporteHasta} min={reporteDesde} onChange={(e) => { setReporteHasta(e.target.value); setMovementPreset("custom"); }} className="mt-1 rounded-md border bg-background px-3 py-2 text-sm" /></div>
-        <div className="flex flex-wrap gap-2">
+      <div className="grid grid-cols-2 items-end gap-x-4 gap-y-4 nx-dashboard-report-filters rounded-xl border bg-card p-4 sm:flex sm:flex-wrap sm:gap-3">
+        <div className="min-w-0">
+          <label htmlFor="reporte-desde" className="block text-xs text-muted-foreground">Reporte desde</label>
+          <input id="reporte-desde" type="date" value={reporteDesde} max={reporteHasta} onChange={(e) => { setReporteDesde(e.target.value); setMovementPreset("custom"); }} className="mt-1 box-border w-full min-w-0 rounded-md border bg-background px-2 py-2 text-sm sm:w-auto sm:px-3" />
+        </div>
+        <div className="min-w-0">
+          <label htmlFor="reporte-hasta" className="block text-xs text-muted-foreground">Hasta</label>
+          <input id="reporte-hasta" type="date" value={reporteHasta} min={reporteDesde} onChange={(e) => { setReporteHasta(e.target.value); setMovementPreset("custom"); }} className="mt-1 box-border w-full min-w-0 rounded-md border bg-background px-2 py-2 text-sm sm:w-auto sm:px-3" />
+        </div>
+        <div className="col-span-2 flex flex-wrap gap-2 sm:col-span-1">
           <Button type="button" disabled={reporteDesde > reporteHasta} onClick={exportarReporteOperativoExcel}>
             <FileSpreadsheet className="mr-2 h-4 w-4" />Exportar a Excel (.xlsx)
           </Button>
