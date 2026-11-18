@@ -1,0 +1,99 @@
+/* NEXORA Enterprise polish — shared visual refinements.
+   CSS only: no data, routing, permissions, or interaction logic is changed. */
+
+/* Consistent depth for common card surfaces across modules. */
+:where(.bg-card.border, .nx-operations .rounded-lg.border.bg-card, .nx-management .rounded-lg.border.bg-card) {
+  box-shadow: 0 10px 28px -24px hsl(218 55% 12% / .32);
+  transition: border-color 180ms ease, box-shadow 180ms ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  :where(.bg-card.border, .nx-operations .rounded-lg.border.bg-card, .nx-management .rounded-lg.border.bg-card):hover {
+    border-color: hsl(var(--primary) / .28);
+    box-shadow: 0 16px 34px -27px hsl(218 55% 12% / .34);
+  }
+}
+
+/* Refined form controls: calm surfaces and a clear, accessible focus state. */
+:where(input, textarea, select, [role="combobox"]) {
+  color-scheme: inherit;
+}
+
+:where(input, textarea, select, [role="combobox"]):focus-visible {
+  outline: 2px solid hsl(var(--ring) / .72);
+  outline-offset: 1px;
+  box-shadow: 0 0 0 4px hsl(var(--ring) / .10);
+}
+
+/* Dashboard cards now respect the selected theme instead of staying white in dark mode. */
+.dark .nx-dashboard-premium .nx-premium-stat-card {
+  border-color: hsl(var(--border) / .9);
+  background:
+    radial-gradient(ellipse 78% 75% at 105% 108%, var(--nx-glow), transparent 72%),
+    linear-gradient(135deg, hsl(var(--card)) 35%, hsl(var(--primary) / .09) 150%);
+  color: hsl(var(--foreground));
+  box-shadow: 0 18px 42px -30px rgb(0 0 0 / 65%), inset 0 1px 0 hsl(var(--foreground) / .035);
+}
+.dark .nx-dashboard-premium .nx-premium-stat-label,
+.dark .nx-dashboard-premium .nx-premium-stat-hint {
+  color: hsl(var(--muted-foreground));
+}
+.dark .nx-dashboard-premium .nx-premium-stat-value {
+  color: hsl(var(--foreground));
+}
+.dark .nx-dashboard-premium .nx-premium-stat-card:hover {
+  border-color: hsl(var(--primary) / .4);
+  box-shadow: 0 22px 48px -30px hsl(var(--primary) / .2);
+}
+
+.dark .nx-dashboard-premium .nx-wide-stat,
+.dark .nx-dashboard-premium .nx-actions-section {
+  border-color: hsl(var(--border));
+  background: linear-gradient(135deg, hsl(var(--card)), hsl(var(--primary) / .045));
+  box-shadow: 0 16px 38px -30px rgb(0 0 0 / 68%), inset 0 1px 0 hsl(var(--foreground) / .025);
+}
+.dark .nx-dashboard-premium .nx-wide-label,
+.dark .nx-dashboard-premium .nx-wide-hint,
+.dark .nx-dashboard-premium .nx-section-heading p {
+  color: hsl(var(--muted-foreground));
+}
+.dark .nx-dashboard-premium .nx-wide-value,
+.dark .nx-dashboard-premium .nx-section-heading h2 {
+  color: hsl(var(--foreground));
+}
+.dark .nx-dashboard-premium .nx-action-tile {
+  border-color: hsl(var(--border));
+  background: hsl(var(--background) / .58);
+  box-shadow: inset 0 1px 0 hsl(var(--foreground) / .025);
+}
+.dark .nx-dashboard-premium .nx-action-tile strong {
+  color: hsl(var(--foreground));
+}
+.dark .nx-dashboard-premium .nx-action-tile small {
+  color: hsl(var(--muted-foreground));
+}
+.dark .nx-dashboard-premium .nx-action-tile:hover {
+  border-color: hsl(var(--primary) / .42);
+  background: hsl(var(--primary) / .07);
+}
+
+/* Keep common tables crisp without changing their structure or horizontal scrolling. */
+:where(.nx-operations, .nx-management) table {
+  font-variant-numeric: tabular-nums;
+}
+:where(.nx-operations, .nx-management) thead th {
+  letter-spacing: .055em;
+}
+
+/* Native iOS safe-area spacing remains available to screens that opt into these classes. */
+@supports (padding: max(0px)) {
+  .safe-bottom {
+    padding-bottom: max(env(safe-area-inset-bottom), 0px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :where(.bg-card.border, .nx-operations .rounded-lg.border.bg-card, .nx-management .rounded-lg.border.bg-card) {
+    transition: none !important;
+  }
+}
