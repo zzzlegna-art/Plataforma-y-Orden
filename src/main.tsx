@@ -5,6 +5,7 @@ import "./i18n/config";
 import "./lib/pwa";
 import App from "./App.tsx";
 import "./index.css";
+import "./styles/nexora-premium.css";
 
 const container = document.getElementById("root");
 
