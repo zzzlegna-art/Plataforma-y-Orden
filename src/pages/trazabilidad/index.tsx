@@ -1,3 +1,4 @@
+import "./trazabilidad-premium.css";
 import { Archive, History, ScanLine, Unlock } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
