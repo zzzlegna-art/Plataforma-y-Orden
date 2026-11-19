@@ -67,7 +67,7 @@ const Proveedores = ({ embedded = false }: { embedded?: boolean }) => {
   };
 
   return (
-    <div className="space-y-5">
+    <div className="nx-suppliers-premium space-y-5">
       {embedded ? (
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="space-y-1">
