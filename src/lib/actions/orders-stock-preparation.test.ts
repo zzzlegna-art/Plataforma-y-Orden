@@ -77,6 +77,28 @@ describe("stock operativo: exclusión desde primer IMEI asignado al pedido", () 
     expect(db.movements.some((movement) => movement.type === "ajuste" && movement.notes?.includes("retirado"))).toBe(true);
   });
 
+  it("revierte una salida heredada al retirar un serial antes del despacho", () => {
+    const db = inventario();
+    db.units[0].status = "vendido";
+    db.movements.push({
+      id: "salida-antigua",
+      productId: "modelo",
+      unitId: "unidad-bodega",
+      type: "salida",
+      quantity: 1,
+      referenceType: "pedido",
+      referenceId: "pedido",
+      notes: "Salida física por serialización confirmada",
+      createdBy: actor.id,
+      createdAt: "2026-01-02T00:00:00.000Z",
+    });
+    quitarImeiPedido(db, actor, { orderId: "pedido", imei: "SERIAL-A" });
+    expect(db.units[0].status).toBe("en_bodega");
+    expect(db.movements.filter((movement) => movement.type === "salida")).toHaveLength(1);
+    expect(db.movements.filter((movement) => movement.type === "devolucion")).toHaveLength(1);
+    expect(db.orderItemUnits).toHaveLength(0);
+  });
+
   it("conserva el IMEI fuera del stock libre cuando el pedido se reabre", () => {
     const db = inventario();
     confirmarPreparacionPedido(db, actor, { orderId: "pedido" });
