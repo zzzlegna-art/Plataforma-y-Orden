@@ -1,0 +1,73 @@
+name: Nexora Phase 1 - server-side security SQL
+
+on:
+  pull_request:
+    paths:
+      - "supabase/migrations/20261117020000_phase1_server_side_security.sql"
+      - "supabase/tests/phase1_security_*"
+      - ".github/workflows/phase1-security-sql.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  phase1-security-sql:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_DB: nexora_phase1_test
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: phase1_test_only
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d nexora_phase1_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    env:
+      PGHOST: 127.0.0.1
+      PGPORT: "5432"
+      PGUSER: postgres
+      PGPASSWORD: phase1_test_only
+      PGDATABASE: nexora_phase1_test
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Ensure PostgreSQL client is available
+        run: |
+          if ! command -v psql >/dev/null 2>&1; then
+            sudo apt-get update -qq
+            sudo apt-get install -y -qq postgresql-client
+          fi
+          psql --version
+
+      - name: Create isolated schema and role fixtures
+        run: psql -X -v ON_ERROR_STOP=1 -f supabase/tests/phase1_security_fixture.sql
+
+      - name: Apply Phase 1 security migration to ephemeral PostgreSQL
+        run: psql -X -v ON_ERROR_STOP=1 -f supabase/migrations/20261117020000_phase1_server_side_security.sql
+
+      - name: Verify historical RPC role boundaries, RLS and operational invariants
+        run: psql -X -v ON_ERROR_STOP=1 -f supabase/tests/phase1_security_integration.sql
+
+      - name: Verify below-cost dispatch is rejected by PostgreSQL
+        shell: bash
+        run: |
+          set +e
+          output="$(psql -X -v ON_ERROR_STOP=1 -f supabase/tests/phase1_security_negative_dispatch.sql 2>&1)"
+          status=$?
+          set -e
+          if [ "$status" -eq 0 ] || ! grep -q "NEXORA_ORDER_PRICE_BELOW_UNIT_COST" <<< "$output"; then
+            echo "$output"
+            echo "Expected PostgreSQL to reject the below-cost dispatch."
+            exit 1
+          fi
+          echo "Below-cost dispatch rejected as expected."
+
+      - name: Verify the Phase 1 rollback script
+        run: psql -X -v ON_ERROR_STOP=1 -f supabase/rollback/20261117020000_phase1_server_side_security_down.sql

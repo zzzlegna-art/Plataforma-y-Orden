@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { DomainError, emptyDb } from "../db";
 import type { Actor, Db, UnitStatus } from "../types";
 import { createCustomer, updateCustomer } from "./customers";
-import { cancelarPedidoDespachado, confirmarVentaPedido, createOrder, quitarSerialDespachado } from "./orders";
+import { cancelarPedidoDespachado, confirmarPreparacionPedido, confirmarVentaPedido, createOrder, quitarSerialDespachado } from "./orders";
 import { importarSerialesPrevios } from "./seriales-previos";
 import { corregirUnitSerial, liberarUnitsLote } from "./units";
 import { updateSettings } from "./users";
@@ -55,15 +55,21 @@ describe("createOrder", () => {
 });
 
 describe("confirmarVentaPedido", () => {
-  it("marca las unidades como vendidas", () => {
-    const db = escenario("preparado", ["en_bodega", "en_bodega"]);
+  it("confirma la factura de unidades que ya salieron durante la preparación", () => {
+    const db = escenario("en_preparacion", ["en_bodega", "en_bodega"]);
+    confirmarPreparacionPedido(db, admin, { orderId: "o1" });
     confirmarVentaPedido(db, admin, { orderId: "o1" });
     expect(db.units.map((u) => u.status)).toEqual(["vendido", "vendido"]);
     expect(db.orders[0].status).toBe("despachado");
   });
 
   it("no despacha si una unidad ya no está disponible", () => {
-    const db = escenario("preparado", ["en_bodega", "en_reparacion"]);
+    const db = escenario("preparado", ["vendido", "en_reparacion"]);
+    db.movements.push({
+      id: "salida-un0", productId: "p1", unitId: "un0", type: "salida",
+      quantity: 1, referenceType: "pedido", referenceId: "o1",
+      createdBy: admin.id, createdAt: now,
+    });
     expect(clave(() => confirmarVentaPedido(db, admin, { orderId: "o1" }))).toBe("errors.unitNotAvailable");
   });
 

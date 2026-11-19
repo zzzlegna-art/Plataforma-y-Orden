@@ -101,13 +101,13 @@ describe("Inventario global · un IMEI en pedido nunca vuelve a ofrecerse", () =
     )).toBe(true);
 
     confirmarPreparacionPedido(db,actor,{orderId:order.id});
-    expect(db.units[0].status).toBe("en_bodega");
+    expect(db.units[0].status).toBe("vendido");
     confirmarVentaPedido(db,actor,{orderId:order.id});
     expect(db.units[0].status).toBe("vendido");
     expect(getProductStock(db,product.id).enPedidos).toBe(0);
     expect(getProductStock(db,product.id).disponible).toBe(0);
     expect(getUnitTimeline(db,"unit-0").some(e =>
-      e.descripcion.includes("venta confirmada") && e.enlace?.codigo===order.code
+      e.descripcion.includes("Salida física por serialización confirmada") && e.enlace?.codigo===order.code
     )).toBe(true);
   });
 });

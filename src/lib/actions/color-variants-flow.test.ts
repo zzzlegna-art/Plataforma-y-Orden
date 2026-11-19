@@ -58,12 +58,13 @@ describe("Una referencia con colores y precios independientes", () => {
     expect(db.units.every((u) => u.color === "Azul")).toBe(true);
     expect(db.units.every((u) => u.cost === 3900000)).toBe(true);
 
-    confirmarPreparacionPedido(db, actor, { orderId: order.id });
     cambiarColorReferenciaPedido(db, actor, { orderItemId: item.id, color: "Borgoña" });
     expect(item.color).toBe("Borgoña");
     expect(item.unitPrice).toBe(4200000);
     expect(db.orders[0].total).toBe(28 * 4200000);
     expect(db.orderItemUnits).toEqual(asignacionesAntes);
+
+    confirmarPreparacionPedido(db, actor, { orderId: order.id });
     confirmarVentaPedido(db, actor, { orderId: order.id });
     expect(db.orders[0].status).toBe("despachado");
     expect(() => cambiarColorReferenciaPedido(db, actor, {

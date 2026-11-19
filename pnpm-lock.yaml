@@ -187,9 +187,6 @@ dependencies:
   tailwind-merge:
     specifier: ^3.3.1
     version: 3.3.1
-  tailwindcss-animate:
-    specifier: ^1.0.7
-    version: 1.0.7(tailwindcss@3.4.17)
   vaul:
     specifier: ^1.1.2
     version: 1.1.2(@types/react-dom@19.1.9)(@types/react@19.1.12)(react-dom@19.1.1)(react@19.1.1)
@@ -264,6 +261,9 @@ devDependencies:
   tailwindcss:
     specifier: ^3.4.17
     version: 3.4.17
+  tailwindcss-animate:
+    specifier: ^1.0.7
+    version: 1.0.7(tailwindcss@3.4.17)
   typescript:
     specifier: ^5.9.2
     version: 5.9.2
@@ -5206,7 +5206,7 @@ packages:
       tailwindcss: '>=3.0.0 || insiders'
     dependencies:
       tailwindcss: 3.4.17
-    dev: false
+    dev: true
 
   /tailwindcss@3.4.17:
     resolution: {integrity: sha512-w33E2aCvSDP0tW9RZuNXadXlkHXqFzSkQew/aIa2i/Sj8fThxwovwlXHSPXTbAHwEIhBFXAedUhP2tueAKP8Og==}
