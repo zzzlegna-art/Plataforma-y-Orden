@@ -9,6 +9,7 @@ import {
   confirmarVentaPedido,
   editarPrecioReferencia,
   regresarPedidoASerializacion,
+  quitarImeiPedido,
 } from "./orders";
 
 const actor: Actor = { id: "admin-stock", email: "admin@example.test", fullName: "Admin", role: "admin" };
@@ -65,6 +66,15 @@ describe("stock operativo: exclusión desde primer IMEI asignado al pedido", () 
     expect(getProductStock(db, "modelo").disponible).toBe(1);
     expect(getDashboard(db).kpis.inventoryValue).toBe(120);
     expect(db.movements.filter((m) => m.type === "salida")).toHaveLength(1);
+  });
+
+  it("libera el IMEI al retirarlo antes del despacho y conserva la trazabilidad", () => {
+    const db = inventario();
+    quitarImeiPedido(db, actor, { orderId: "pedido", imei: "SERIAL-A" });
+    expect(db.orderItemUnits).toHaveLength(0);
+    expect(db.units.find((unit) => unit.id === "unidad-bodega")?.status).toBe("en_bodega");
+    expect(db.movements.filter((movement) => movement.type === "salida")).toHaveLength(0);
+    expect(db.movements.some((movement) => movement.type === "ajuste" && movement.notes?.includes("retirado"))).toBe(true);
   });
 
   it("conserva el IMEI fuera del stock libre cuando el pedido se reabre", () => {
