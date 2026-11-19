@@ -386,6 +386,33 @@ export const serializarImeiPedido = (
   return { producto: product?.name ?? "", condicion: linea.condition, orderItemId: linea.id };
 };
 
+/** Revierte una salida antigua de preparación si el pedido aún no fue despachado. */
+const restaurarSalidaPendiente = (db: Db, actor: Actor, order: Order, unit: Unit): boolean => {
+  if (order.status === "despachado" || unit.status !== "vendido") return false;
+  const salida = db.movements
+    .filter((movement) =>
+      movement.unitId === unit.id &&
+      movement.type === "salida" &&
+      movement.referenceType === "pedido" &&
+      movement.referenceId === order.id,
+    )
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0];
+  if (!salida) return false;
+  const estadoRegistrado = salida.notes?.match(/estado previo: (en_bodega|en_local)/i)?.[1];
+  const estadoPrevio = (estadoRegistrado as Unit["status"] | undefined) ??
+    (unit.location && /local/i.test(unit.location) ? "en_local" : "en_bodega");
+  unit.status = estadoPrevio;
+  logMovement(db, actor, {
+    productId: unit.productId,
+    unitId: unit.id,
+    type: "devolucion",
+    referenceType: "pedido",
+    referenceId: order.id,
+    notes: `Reingreso de ${unit.serial} al inventario tras retirar/cancelar el pedido ${order.code}; estado restaurado: ${estadoPrevio}`,
+  });
+  return true;
+};
+
 /** Quita un IMEI ya serializado en el pedido. */
 export const quitarImeiPedido = (
   db: Db,
@@ -402,31 +429,7 @@ export const quitarImeiPedido = (
   if (!row || !item || item.orderId !== order.id) {
     throw new DomainError("errors.serialNotInOrder", { serial: input.imei });
   }
-  // Compatibilidad con pedidos antiguos: antes la preparación marcaba vendido y
-  // registraba salida. Si el pedido aún no fue despachado, retirar el IMEI debe
-  // revertir esa salida sin borrar el movimiento histórico.
-  const salidaDelPedido = db.movements
-    .filter((movement) =>
-      movement.unitId === unit.id &&
-      movement.type === "salida" &&
-      movement.referenceType === "pedido" &&
-      movement.referenceId === order.id,
-    )
-    .sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0];
-  if (unit.status === "vendido" && salidaDelPedido) {
-    const estadoRegistrado = salidaDelPedido.notes?.match(/estado previo: (en_bodega|en_local)/i)?.[1];
-    const estadoPrevio = (estadoRegistrado as Unit["status"] | undefined) ??
-      (unit.location && /local/i.test(unit.location) ? "en_local" : "en_bodega");
-    unit.status = estadoPrevio;
-    logMovement(db, actor, {
-      productId: unit.productId,
-      unitId: unit.id,
-      type: "devolucion",
-      referenceType: "pedido",
-      referenceId: order.id,
-      notes: `Reingreso de ${unit.serial} al inventario tras retirarlo del pedido ${order.code}; estado restaurado: ${estadoPrevio}`,
-    });
-  }
+  restaurarSalidaPendiente(db, actor, order, unit);
   db.orderItemUnits = db.orderItemUnits.filter((r) => r.id !== row.id);
   logMovement(db, actor, {
     productId: unit.productId,
@@ -574,9 +577,8 @@ export const confirmarPreparacionPedido = (
 };
 
 /**
- * Reabre la serialización de un pedido ya enviado para corregirlo o agregar equipos.
- * Conserva los seriales vendidos y sus salidas; las nuevas unidades se despacharán
- * al confirmar otra vez la serialización.
+ * Reabre la preparación para corregir o cambiar los IMEI reservados.
+ * Los seriales permanecen en inventario hasta confirmar el despacho físico.
  */
 export const regresarPedidoASerializacion = (
   db: Db,
@@ -656,7 +658,7 @@ export const confirmarVentaPedido = (
   order.updatedAt = invoicedAt;
   logAudit(db, actor, {
     action: "status", entity: "order", entityId: order.id,
-    details: `${order.code} · facturación confirmada; salida física ya registrada en serialización`,
+    details: `${order.code} · facturación y despacho confirmados; salida física registrada`,
   });
   return order;
 };
@@ -676,6 +678,10 @@ export const cancelarPedido = (
     throw new DomainError("errors.orderNotEditable");
   }
   const itemIds = orderItems(db, order.id).map((item) => item.id);
+  for (const row of db.orderItemUnits.filter((assignment) => itemIds.includes(assignment.orderItemId))) {
+    const unit = db.units.find((candidate) => candidate.id === row.unitId);
+    if (unit) restaurarSalidaPendiente(db, actor, order, unit);
+  }
   db.orderItemUnits = db.orderItemUnits.filter(
     (row) => !itemIds.includes(row.orderItemId),
   );
