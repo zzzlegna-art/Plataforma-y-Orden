@@ -1,4 +1,5 @@
 import { useTranslation } from "react-i18next";
+import "./administracion-premium.css";
 import { useSearchParams } from "react-router-dom";
 
 import { PageHeader } from "@/components/shared/page-header";
