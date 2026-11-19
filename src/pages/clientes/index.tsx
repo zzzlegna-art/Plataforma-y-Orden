@@ -60,7 +60,7 @@ const Clientes = () => {
     db.orders.filter((order) => order.customerId === customerId).length;
 
   return (
-    <div className="space-y-5 stagger">
+    <div className="nx-customers-premium space-y-5 stagger">
       <PageHeader
         title={t("customer.title")}
         description={t("customer.subtitle")}
