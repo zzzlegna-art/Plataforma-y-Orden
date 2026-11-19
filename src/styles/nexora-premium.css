@@ -229,3 +229,95 @@
 @media(prefers-reduced-motion:reduce){
   .nx-operations-inventario>.grid.gap-3>div{transition:none}
 }
+
+
+/* Customer directory — refined CRM workspace. */
+.nx-customers-premium>.rounded-lg.border.bg-card{
+  position:relative;overflow:hidden;border-radius:18px;
+  background:
+    radial-gradient(ellipse 42% 110% at 100% 0%,hsl(var(--primary)/.09),transparent 74%),
+    linear-gradient(145deg,hsl(var(--card)),hsl(var(--secondary)/.25));
+  box-shadow:0 17px 38px -31px hsl(220 48% 12%/.45),inset 0 1px 0 hsl(var(--foreground)/.04)
+}
+.nx-customers-premium>.rounded-lg.border.bg-card input{
+  min-height:43px;border-radius:12px
+}
+.nx-customers-premium>.rounded-lg.border.bg-card button[aria-pressed="true"],
+.nx-customers-premium>.rounded-lg.border.bg-card button[data-state="active"]{
+  box-shadow:0 8px 20px -14px hsl(var(--primary)/.8)
+}
+.nx-customers-premium [data-slot="card"],
+.nx-customers-premium article{
+  border-color:hsl(var(--border)/.85);
+  box-shadow:0 13px 30px -26px hsl(220 48% 12%/.45),inset 0 1px 0 hsl(var(--foreground)/.035)
+}
+.nx-customers-premium table thead th{
+  padding-block:.85rem;background:linear-gradient(180deg,hsl(var(--muted)/.8),hsl(var(--muted)/.45))
+}
+.nx-customers-premium table tbody td{padding-block:.82rem}
+.nx-customers-premium table tbody tr:hover td{background:hsl(var(--primary)/.035)}
+.dark .nx-customers-premium>.rounded-lg.border.bg-card{
+  box-shadow:0 20px 44px -33px rgb(0 0 0/.78),inset 0 1px 0 hsl(var(--foreground)/.045)
+}
+
+/* Supplier directory — quality intelligence and supplier cards. */
+.nx-suppliers-premium>section{
+  position:relative;overflow:hidden;border-radius:20px;
+  background:
+    radial-gradient(ellipse 48% 95% at 100% 0%,hsl(var(--primary)/.105),transparent 76%),
+    linear-gradient(145deg,hsl(var(--card)) 55%,hsl(var(--secondary)/.28));
+  box-shadow:0 19px 42px -33px hsl(220 48% 12%/.48),inset 0 1px 0 hsl(var(--foreground)/.04)
+}
+.nx-suppliers-premium>section>div:nth-child(2)>div{
+  border-color:hsl(var(--border)/.8);
+  background:linear-gradient(145deg,hsl(var(--card)),hsl(var(--secondary)/.38));
+  box-shadow:inset 0 1px 0 hsl(var(--foreground)/.035),0 10px 24px -22px hsl(220 48% 12%/.42)
+}
+.nx-suppliers-premium>section>div:nth-child(3)>div{
+  border-color:hsl(var(--border)/.82);border-radius:14px;
+  background:linear-gradient(145deg,hsl(var(--muted)/.45),hsl(var(--card)));
+}
+.nx-suppliers-premium>div.rounded-xl.border.bg-card{
+  border-radius:17px;
+  background:
+    radial-gradient(ellipse 42% 100% at 100% 0%,hsl(var(--primary)/.07),transparent 75%),
+    hsl(var(--card));
+  box-shadow:0 14px 32px -27px hsl(220 48% 12%/.44),inset 0 1px 0 hsl(var(--foreground)/.035)
+}
+.nx-suppliers-premium>div.rounded-xl.border.bg-card input{min-height:43px;border-radius:12px}
+.nx-suppliers-premium>div.grid>article{
+  position:relative;overflow:hidden;border-radius:17px;
+  background:
+    radial-gradient(ellipse 48% 95% at 100% 0%,hsl(var(--primary)/.075),transparent 76%),
+    linear-gradient(145deg,hsl(var(--card)),hsl(var(--secondary)/.2));
+  box-shadow:0 16px 34px -28px hsl(220 48% 12%/.5),inset 0 1px 0 hsl(var(--foreground)/.04);
+  transition:transform 180ms ease,border-color 180ms ease,box-shadow 180ms ease
+}
+@media(hover:hover) and (pointer:fine){
+  .nx-suppliers-premium>div.grid>article:hover{
+    transform:translateY(-2px);border-color:hsl(var(--primary)/.32);
+    box-shadow:0 22px 40px -30px hsl(var(--primary)/.2),inset 0 1px 0 hsl(var(--foreground)/.04)
+  }
+}
+.nx-suppliers-premium>div.grid>article>div:first-child>div:first-child{
+  border:1px solid hsl(var(--primary)/.13);border-radius:12px;
+  background:linear-gradient(145deg,hsl(var(--primary)/.16),hsl(var(--info)/.08))
+}
+.nx-suppliers-premium>div.grid>article>div:last-child{border-color:hsl(var(--border)/.8)}
+.nx-suppliers-premium table thead th{
+  background:linear-gradient(180deg,hsl(var(--muted)/.8),hsl(var(--muted)/.45))
+}
+.dark .nx-suppliers-premium>section,
+.dark .nx-suppliers-premium>div.rounded-xl.border.bg-card,
+.dark .nx-suppliers-premium>div.grid>article{
+  box-shadow:0 22px 46px -34px rgb(0 0 0/.8),inset 0 1px 0 hsl(var(--foreground)/.045)
+}
+@media(max-width:640px){
+  .nx-customers-premium>.rounded-lg.border.bg-card{padding:.85rem}
+  .nx-suppliers-premium>section{padding:1rem}
+  .nx-suppliers-premium>div.rounded-xl.border.bg-card{padding:.85rem;gap:.6rem}
+  .nx-suppliers-premium>div.grid>article{padding:1rem}
+}
+@media(prefers-reduced-motion:reduce){
+  .nx-suppliers-premium>div.grid>article{transition:none}
+}
