@@ -168,3 +168,30 @@
   background: linear-gradient(145deg, hsl(var(--primary) / .16), hsl(var(--primary) / .07));
   box-shadow: 0 5px 16px -12px hsl(var(--primary) / .8), inset 0 1px 0 hsl(var(--primary) / .14);
 }
+
+
+/* iOS/mobile viewport correction — shared shell only, no module or business logic changes. */
+@media (max-width: 1023px) {
+  /* Keep the full 64px toolbar BELOW the iPhone safe area instead of squeezing
+     its controls into a 64px box that also contains the status-bar inset. */
+  .nx-app-topbar.safe-top {
+    box-sizing: border-box;
+    min-height: calc(4rem + env(safe-area-inset-top, 0px));
+    padding-top: env(safe-area-inset-top, 0px);
+    flex-shrink: 0;
+  }
+
+  /* The tab bar itself owns the bottom safe area. The scroll area reserves the
+     bar's complete height once, avoiding a second safe-area-sized dead zone. */
+  .safe-bottom.fixed.inset-x-0.bottom-0.z-40 {
+    box-sizing: border-box;
+    padding-bottom: max(env(safe-area-inset-bottom, 0px), 0px);
+    background-color: hsl(var(--card));
+  }
+
+  .nx-app-main {
+    min-height: 0;
+    overscroll-behavior-y: contain;
+    scroll-padding-bottom: 6.25rem;
+  }
+}
