@@ -1,3 +1,4 @@
+import "./traslados-premium.css";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
