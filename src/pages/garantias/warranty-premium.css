@@ -99,3 +99,33 @@
 @media(prefers-reduced-motion:reduce){
   .nx-warranties-premium .lote-expand>div>div[id^="garantia-operativa-"]{transition:none}
 }
+
+
+/* Mobile layout repair: keep the warranty workspace inside the viewport. */
+.nx-warranties-premium{width:100%;max-width:100%;min-width:0}
+.nx-warranties-premium>*{min-width:0;max-width:100%}
+@media(max-width:640px){
+  .nx-warranties-premium{width:100%;min-width:0;overflow-x:clip;gap:1rem}
+  .nx-warranties-premium>.nx-page-header,
+  .nx-warranties-premium>.nx-warranty-stats,
+  .nx-warranties-premium>.nx-warranty-intake{width:100%;min-width:0;max-width:100%;padding:1rem}
+  .nx-warranties-premium>.nx-page-header h1{overflow-wrap:anywhere}
+  .nx-warranties-premium>.nx-page-header p,
+  .nx-warranties-premium>.nx-warranty-stats p,
+  .nx-warranties-premium>.nx-warranty-intake p{overflow-wrap:anywhere}
+  .nx-warranties-premium>.nx-warranty-stats>div:first-child{align-items:flex-start}
+  .nx-warranties-premium>.nx-warranty-stats>div:first-child>div{min-width:0;flex:1 1 100%}
+  .nx-warranties-premium>.nx-warranty-stats>div:first-child>button{width:100%}
+  .nx-warranties-premium>.nx-warranty-tabs{
+    position:static;display:flex;flex-wrap:wrap;overflow:visible;gap:.45rem;padding:.55rem
+  }
+  .nx-warranties-premium>.nx-warranty-tabs button{flex:1 1 auto;min-width:0;max-width:100%;white-space:normal}
+  .nx-warranties-premium>.nx-warranty-intake>div:first-child{display:flex;flex-wrap:wrap;gap:.4rem}
+  .nx-warranties-premium>.nx-warranty-intake>div:first-child button{flex:1 1 auto;min-width:0;white-space:normal}
+  .nx-warranties-premium>.nx-warranty-intake input,
+  .nx-warranties-premium>.nx-warranty-intake textarea,
+  .nx-warranties-premium>.nx-warranty-intake select{width:100%;min-width:0;max-width:100%}
+  .nx-warranties-premium .grid{min-width:0}
+  .nx-warranties-premium .flex{min-width:0}
+  .nx-warranties-premium .overflow-x-auto{max-width:100%}
+}
