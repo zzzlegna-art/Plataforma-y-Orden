@@ -46,7 +46,7 @@ const TrazabilidadSeriales = () => {
   };
 
   return (
-    <div className="space-y-5 stagger">
+    <div className="nx-serial-trace-premium space-y-5 stagger">
       <PageHeader
         title={t("serialTrace.title")}
         description={t("serialTrace.subtitle")}
