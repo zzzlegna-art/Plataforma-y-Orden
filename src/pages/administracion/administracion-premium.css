@@ -47,3 +47,42 @@
  .nx-management.nx-admin [role=tabpanel] table{min-width:640px}
 }
 @media(prefers-reduced-motion:reduce){.nx-management.nx-admin [role=tabpanel] button{transition:none!important}.nx-management.nx-admin [role=tabpanel] button:hover{transform:none!important}}
+
+
+/* Mobile viewport repair — administration */
+.nx-management.nx-admin{width:100%;max-width:100%;min-width:0}
+.nx-management.nx-admin>*{min-width:0;max-width:100%}
+.nx-management.nx-admin [role=tabpanel],
+.nx-management.nx-admin [role=tabpanel]>*{min-width:0;max-width:100%}
+@media(max-width:640px){
+ .nx-management.nx-admin{width:100%;min-width:0;overflow-x:clip;gap:1rem}
+ .nx-management.nx-admin>.nx-page-header{width:100%;min-width:0;max-width:100%;padding:1rem}
+ .nx-management.nx-admin>.nx-page-header h1,
+ .nx-management.nx-admin>.nx-page-header p{max-width:100%;overflow-wrap:anywhere;word-break:normal}
+ .nx-management.nx-admin>[data-orientation],
+ .nx-management.nx-admin [role=tablist]{
+   display:flex;flex-wrap:wrap;align-items:stretch;justify-content:flex-start;
+   width:100%;min-width:0;max-width:100%;overflow:visible;white-space:normal
+ }
+ .nx-management.nx-admin [role=tab]{
+   flex:1 1 auto;min-width:0;max-width:100%;white-space:normal;
+   overflow-wrap:anywhere;line-height:1.25;text-align:center
+ }
+ .nx-management.nx-admin [role=tabpanel]{
+   width:100%;min-width:0;max-width:100%;overflow-x:clip
+ }
+ .nx-management.nx-admin [role=tabpanel] p,
+ .nx-management.nx-admin [role=tabpanel] h2,
+ .nx-management.nx-admin [role=tabpanel] h3,
+ .nx-management.nx-admin [role=tabpanel] label{
+   max-width:100%;overflow-wrap:anywhere
+ }
+ .nx-management.nx-admin [role=tabpanel] .flex,
+ .nx-management.nx-admin [role=tabpanel] .grid{min-width:0}
+ .nx-management.nx-admin [role=tabpanel] input:not([type=checkbox]):not([type=radio]),
+ .nx-management.nx-admin [role=tabpanel] textarea,
+ .nx-management.nx-admin [role=tabpanel] [role=combobox]{
+   width:100%;min-width:0;max-width:100%
+ }
+ .nx-management.nx-admin [role=tabpanel] table{display:block;width:100%;max-width:100%;overflow-x:auto}
+}
