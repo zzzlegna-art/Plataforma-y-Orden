@@ -104,3 +104,101 @@
     max-width: 100%;
   }
 }
+
+
+/* Executive visual pass: clearer hierarchy and a more deliberate operations workspace. */
+.nx-operations-pedidos .nx-page-header {
+  border-color: hsl(var(--primary) / .3);
+  background:
+    radial-gradient(ellipse 38% 125% at 94% 0%, hsl(190 92% 48% / .17), transparent 75%),
+    radial-gradient(ellipse 38% 115% at 0% 100%, hsl(216 88% 52% / .10), transparent 78%),
+    linear-gradient(118deg, hsl(var(--card)) 8%, hsl(var(--secondary) / .78) 100%);
+  box-shadow: 0 23px 48px -35px hsl(215 75% 30% / .48), inset 0 1px 0 hsl(var(--background) / .85);
+}
+.nx-operations-pedidos .nx-page-header::before {
+  content: "";
+  position: absolute;
+  inset: auto 1.5rem 0;
+  height: 2px;
+  border-radius: 99px;
+  background: linear-gradient(90deg, transparent, #1684dc 22%, #19c4d4 76%, transparent);
+  opacity: .85;
+  pointer-events: none;
+}
+.dark .nx-operations-pedidos .nx-page-header {
+  border-color: rgb(94 172 238 / .3);
+  background:
+    radial-gradient(ellipse 40% 125% at 94% 0%, rgb(12 180 208 / .19), transparent 74%),
+    radial-gradient(ellipse 38% 115% at 0% 100%, rgb(37 105 194 / .15), transparent 78%),
+    linear-gradient(118deg, #101d2d 8%, #142b42 100%);
+  box-shadow: 0 24px 54px -36px rgb(0 0 0 / .8), inset 0 1px 0 rgb(215 237 255 / .07);
+}
+.nx-operations-pedidos .nx-pedidos-filters {
+  border-color: hsl(var(--primary) / .18);
+  background:
+    linear-gradient(145deg, hsl(var(--card)), hsl(var(--secondary) / .28));
+  box-shadow: 0 18px 38px -31px hsl(215 70% 30% / .38), inset 0 1px 0 hsl(var(--background) / .8);
+}
+.nx-operations-pedidos .nx-pedidos-filters input:focus-visible {
+  border-color: hsl(var(--primary) / .75);
+  box-shadow: 0 0 0 3px hsl(var(--primary) / .13);
+}
+.nx-operations-pedidos .nx-pedidos-tabs button {
+  min-height: 40px;
+  border-color: hsl(var(--border) / .85);
+  background: linear-gradient(180deg, hsl(var(--card)), hsl(var(--secondary) / .62));
+}
+.nx-operations-pedidos .nx-pedidos-tabs button[data-active="true"] {
+  background: linear-gradient(112deg, #237ed0, #087dbb 58%, #08a8bd);
+  border-color: #168fc8;
+  color: #fff;
+  box-shadow: 0 10px 23px -13px rgb(3 125 190 / .72), inset 0 1px 0 rgb(255 255 255 / .22);
+}
+.dark .nx-operations-pedidos .nx-pedidos-tabs button:not([data-active="true"]) {
+  background: linear-gradient(180deg, #1a2b40, #142235);
+  border-color: rgb(135 170 207 / .18);
+  color: #d5e4f5;
+}
+.nx-operations-pedidos .nx-pedidos-table {
+  overflow: hidden;
+  border-color: hsl(var(--primary) / .16);
+  box-shadow: 0 22px 48px -35px hsl(215 70% 25% / .44), inset 0 1px 0 hsl(var(--background) / .8);
+}
+.nx-operations-pedidos .nx-pedidos-table thead {
+  background: linear-gradient(90deg, hsl(var(--secondary) / .92), hsl(var(--muted) / .72));
+}
+.nx-operations-pedidos .nx-pedidos-table tbody tr {
+  transition: background .18s ease, box-shadow .18s ease;
+}
+.nx-operations-pedidos .nx-pedidos-table tbody tr:hover {
+  background: linear-gradient(90deg, hsl(var(--primary) / .075), hsl(var(--primary) / .025));
+}
+.nx-operations-pedidos .nx-pedidos-table tbody tr:first-child td:first-child {
+  box-shadow: inset 3px 0 hsl(var(--primary)), inset 0 1px hsl(var(--primary) / .1);
+}
+.nx-operations-pedidos .nx-pedidos-avatar {
+  border: 1px solid hsl(var(--primary) / .2);
+  background: linear-gradient(145deg, hsl(var(--primary) / .16), hsl(var(--primary) / .07));
+  color: hsl(var(--primary));
+  box-shadow: inset 0 1px 0 hsl(var(--background) / .65);
+}
+.dark .nx-operations-pedidos .nx-pedidos-table {
+  border-color: rgb(94 156 216 / .2);
+  box-shadow: 0 22px 48px -34px rgb(0 0 0 / .82), inset 0 1px 0 rgb(220 239 255 / .045);
+}
+.dark .nx-operations-pedidos .nx-pedidos-table thead {
+  background: linear-gradient(90deg, #1a2c42, #17263a);
+}
+@media (max-width: 767px) {
+  .nx-operations-pedidos .nx-page-header {
+    background:
+      radial-gradient(ellipse 65% 90% at 100% 0%, hsl(190 92% 48% / .13), transparent 75%),
+      linear-gradient(118deg, hsl(var(--card)), hsl(var(--secondary) / .65));
+  }
+  .nx-operations-pedidos .nx-pedidos-table {
+    box-shadow: 0 15px 32px -27px hsl(215 70% 25% / .36);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .nx-operations-pedidos .nx-pedidos-table tbody tr { transition: none; }
+}
