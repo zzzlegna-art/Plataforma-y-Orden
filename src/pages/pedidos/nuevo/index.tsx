@@ -18,6 +18,7 @@ import { compararProductos } from "@/lib/product-order";
 import { etiquetaTipoProducto, TIPOS_SIN_CONDICION, tiposProductoOrdenados } from "@/lib/products";
 import { SEARCH_INPUT_PROPS } from "@/lib/search-input";
 import { cn } from "@/lib/utils";
+import "./nuevo-pedido-premium.css";
 
 type ProductMiniThumbProps = {
   imageUrl?: string;
@@ -289,7 +290,7 @@ const NuevoPedido = () => {
 
         <PageHeader title={t("order.createTitle")} description={t("order.mayoristaSubtitle")} />
 
-        <section className="shrink-0 space-y-2 rounded-xl border bg-card p-3 shadow-sm">
+        <section className="nx-order-customer shrink-0 space-y-2 rounded-xl border bg-card p-3 shadow-sm">
           <div className="grid items-start gap-3 md:grid-cols-[auto_minmax(0,1fr)] md:items-center">
             <div className="space-y-2">
               <Label>{t("order.customer")}</Label>
@@ -340,15 +341,15 @@ const NuevoPedido = () => {
           <Button type="button" size="sm" variant={vistaMovil === "pedido" ? "default" : "outline"} onClick={() => setVistaMovil("pedido")}><ShoppingCart /> Pedido ({totalReferencias})</Button>
         </div>
 
-        <section className="grid min-h-0 gap-3 lg:min-h-0 lg:flex-1 lg:grid-cols-[minmax(0,1.55fr)_minmax(19rem,.85fr)] lg:grid-rows-1 lg:overflow-hidden">
-          <div className={cn("flex min-h-0 flex-col rounded-xl border bg-card p-3 shadow-sm lg:overflow-hidden", vistaMovil === "catalogo" ? "flex" : "hidden", "lg:flex")}>
-            <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+        <section className="nx-order-workspace grid min-h-0 gap-3 lg:min-h-0 lg:flex-1 lg:grid-cols-[minmax(0,1.55fr)_minmax(19rem,.85fr)] lg:grid-rows-1 lg:overflow-hidden">
+          <div className={cn("nx-order-catalog flex min-h-0 flex-col rounded-xl border bg-card p-3 shadow-sm lg:overflow-hidden", vistaMovil === "catalogo" ? "flex" : "hidden", "lg:flex")}>
+            <div className="nx-order-catalog-head mb-3 flex flex-wrap items-center justify-between gap-2">
               <h3 className="text-sm font-semibold">{t("order.browseTitle")}</h3>
               <span className="font-tabular text-xs text-muted-foreground">
                 {t("order.refsShown", { count: lista.length })}
               </span>
             </div>
-          <div className="mb-4 flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-t pt-3">
+          <div className="nx-order-catalog-categories mb-4 flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-t pt-3">
             <div className="flex flex-wrap gap-2">
               {categorias.map((cat) => (
                 <Button
@@ -383,7 +384,7 @@ const NuevoPedido = () => {
             ) : null}
           </div>
 
-          <div className="mt-4 mb-4 flex flex-col gap-3 sm:flex-row sm:items-center">
+          <div className="nx-order-catalog-search mt-4 mb-4 flex flex-col gap-3 sm:flex-row sm:items-center">
             <Input
               {...SEARCH_INPUT_PROPS}
               value={busqueda}
@@ -455,7 +456,7 @@ const NuevoPedido = () => {
                 <p className="mt-1 text-xs text-muted-foreground">{t("order.noRefsMatchHint")}</p>
               </div>
             ) : (
-              <ul className="grid min-w-0 grid-cols-[repeat(auto-fit,minmax(min(100%,17rem),1fr))] content-start gap-2 lg:min-h-0 lg:flex-1 lg:overflow-y-auto lg:overscroll-contain lg:pr-1">
+              <ul className="nx-order-product-grid grid min-w-0 grid-cols-[repeat(auto-fit,minmax(min(100%,17rem),1fr))] content-start gap-2 lg:min-h-0 lg:flex-1 lg:overflow-y-auto lg:overscroll-contain lg:pr-1">
                 {lista.map(({ product, disponibles }) => {
                   const enPedido = cantidadEnPedido(product);
                   return (
@@ -499,9 +500,9 @@ const NuevoPedido = () => {
 
           <div
             id="pedido-actual"
-            className={cn("flex h-[calc(100dvh-20rem)] min-h-[18rem] flex-col rounded-xl border bg-card p-3 shadow-sm lg:h-full lg:overflow-hidden", vistaMovil === "pedido" ? "flex" : "hidden", "lg:flex")}
+            className={cn("nx-order-summary flex h-[calc(100dvh-20rem)] min-h-[18rem] flex-col rounded-xl border bg-card p-3 shadow-sm lg:h-full lg:overflow-hidden", vistaMovil === "pedido" ? "flex" : "hidden", "lg:flex")}
           >
-            <div className="mb-3 flex shrink-0 items-center justify-between gap-2">
+            <div className="nx-order-summary-head mb-3 flex shrink-0 items-center justify-between gap-2">
               <h3 className="text-sm font-semibold">
               {t("order.currentOrder")}{" "}
               <span className="font-normal text-muted-foreground">({t("order.referencesCount", { count: totalReferencias })})</span>
@@ -519,7 +520,7 @@ const NuevoPedido = () => {
                     const product = db.products.find((p) => p.id === linea.productId);
                     const disponibles = disponiblesDe(linea.productId, linea.condition, linea.color);
                     return (
-                      <li key={claveLinea(linea)} className="rounded-md border px-3 py-2">
+                      <li key={claveLinea(linea)} className="nx-order-summary-item rounded-md border px-3 py-2">
                         <div className="flex items-start gap-3">
                           <ProductMiniThumb
                             imageUrl={product?.imageUrl}
@@ -602,7 +603,7 @@ const NuevoPedido = () => {
 
             <Button
               type="button"
-              className="mt-4 w-full shrink-0"
+              className="nx-order-submit mt-4 w-full shrink-0"
               loading={creando}
               disabled={!customerId || lineas.length === 0 || !clienteCompatible()}
               onClick={() => void confirmar()}
