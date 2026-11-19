@@ -402,6 +402,31 @@ export const quitarImeiPedido = (
   if (!row || !item || item.orderId !== order.id) {
     throw new DomainError("errors.serialNotInOrder", { serial: input.imei });
   }
+  // Compatibilidad con pedidos antiguos: antes la preparación marcaba vendido y
+  // registraba salida. Si el pedido aún no fue despachado, retirar el IMEI debe
+  // revertir esa salida sin borrar el movimiento histórico.
+  const salidaDelPedido = db.movements
+    .filter((movement) =>
+      movement.unitId === unit.id &&
+      movement.type === "salida" &&
+      movement.referenceType === "pedido" &&
+      movement.referenceId === order.id,
+    )
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0];
+  if (unit.status === "vendido" && salidaDelPedido) {
+    const estadoRegistrado = salidaDelPedido.notes?.match(/estado previo: (en_bodega|en_local)/i)?.[1];
+    const estadoPrevio = (estadoRegistrado as Unit["status"] | undefined) ??
+      (unit.location && /local/i.test(unit.location) ? "en_local" : "en_bodega");
+    unit.status = estadoPrevio;
+    logMovement(db, actor, {
+      productId: unit.productId,
+      unitId: unit.id,
+      type: "devolucion",
+      referenceType: "pedido",
+      referenceId: order.id,
+      notes: `Reingreso de ${unit.serial} al inventario tras retirarlo del pedido ${order.code}; estado restaurado: ${estadoPrevio}`,
+    });
+  }
   db.orderItemUnits = db.orderItemUnits.filter((r) => r.id !== row.id);
   logMovement(db, actor, {
     productId: unit.productId,
@@ -517,8 +542,8 @@ const validarAsignacionesPedido = (db: Db, order: Order, items: OrderItem[]) => 
 };
 
 /**
- * Confirma la serialización y la salida física. Solo salen las unidades nuevas
- * que aún están en inventario; las ya despachadas no generan movimientos duplicados.
+ * Confirma la preparación y reserva los IMEI. La salida física ocurre al
+ * confirmar el despacho/venta, no al preparar el pedido.
  */
 export const confirmarPreparacionPedido = (
   db: Db,
@@ -534,30 +559,16 @@ export const confirmarPreparacionPedido = (
   asignarRepuestosAutomaticamente(db, order.id, items);
   validarAsignacionesPedido(db, order, items);
 
+  // Preparar confirma cantidades y reserva los IMEI mediante sus vínculos,
+  // pero NO representa una salida física. Los equipos siguen en inventario
+  // hasta que se confirme el despacho/venta.
   const preparedAt = nowIso();
-  let nuevasSalidas = 0;
-  for (const item of items) {
-    for (const row of db.orderItemUnits.filter((assignment) => assignment.orderItemId === item.id)) {
-      const unit = db.units.find((candidate) => candidate.id === row.unitId);
-      if (!unit) throw new DomainError("errors.notFound");
-      if (unit.status === "vendido" && unidadYaDespachadaEnPedido(db, unit.id, order.id)) continue;
-      if (unit.status !== "en_bodega" && unit.status !== "en_local") throw new DomainError("errors.unitNotAvailable", { serial: unit.serial });
-      unit.status = "vendido";
-      logMovement(db, actor, {
-        productId: unit.productId, unitId: unit.id, type: "salida",
-        referenceType: "pedido", referenceId: order.id,
-        notes: `Salida física por serialización confirmada del pedido ${order.code}`,
-        createdAt: preparedAt,
-      });
-      nuevasSalidas += 1;
-    }
-  }
   order.status = "preparado";
   order.deliveryDate = order.deliveryDate ?? hoyBogota();
   order.updatedAt = preparedAt;
   logAudit(db, actor, {
     action: "status", entity: "order", entityId: order.id,
-    details: `${order.code} · serialización confirmada; ${nuevasSalidas} nueva(s) salida(s) física(s)`,
+    details: `${order.code} · preparación confirmada; IMEI reservados sin salida física`,
   });
   return order;
 };
@@ -588,8 +599,8 @@ export const regresarPedidoASerializacion = (
 };
 
 /**
- * Confirma la facturación del pedido. La salida física ya ocurrió al confirmar
- * la serialización, por lo que aquí no se modifica inventario ni se crean salidas.
+ * Confirma la facturación y el despacho físico del pedido. Aquí se registra
+ * la salida de cada unidad reservada, sin duplicar movimientos heredados.
  */
 export const confirmarVentaPedido = (
   db: Db,
@@ -612,13 +623,35 @@ export const confirmarVentaPedido = (
       if (costoReal !== undefined && item.unitPrice < costoReal) {
         throw new DomainError("errors.saleBelowCost", { serial: unit.serial, costo: costoReal, precio: item.unitPrice });
       }
-      if (unit.status !== "vendido" || !unidadYaDespachadaEnPedido(db, unit.id, order.id)) {
+      const yaSalioEnEstePedido = unit.status === "vendido" && unidadYaDespachadaEnPedido(db, unit.id, order.id);
+      if (!yaSalioEnEstePedido && unit.status !== "en_bodega" && unit.status !== "en_local") {
         throw new DomainError("errors.unitNotAvailable", { serial: unit.serial });
       }
     }
   }
 
+  // La salida física se registra únicamente al confirmar el despacho/venta.
+  // Los pedidos heredados que ya tengan una salida para este mismo pedido no
+  // generan un segundo movimiento.
   const invoicedAt = nowIso();
+  for (const item of items) {
+    for (const row of db.orderItemUnits.filter((assignment) => assignment.orderItemId === item.id)) {
+      const unit = db.units.find((candidate) => candidate.id === row.unitId);
+      if (!unit) throw new DomainError("errors.notFound");
+      if (unit.status === "vendido" && unidadYaDespachadaEnPedido(db, unit.id, order.id)) continue;
+      const estadoPrevio = unit.status;
+      unit.status = "vendido";
+      logMovement(db, actor, {
+        productId: unit.productId,
+        unitId: unit.id,
+        type: "salida",
+        referenceType: "pedido",
+        referenceId: order.id,
+        notes: `Salida física por despacho confirmado del pedido ${order.code}; estado previo: ${estadoPrevio}`,
+        createdAt: invoicedAt,
+      });
+    }
+  }
   order.status = "despachado";
   order.updatedAt = invoicedAt;
   logAudit(db, actor, {
