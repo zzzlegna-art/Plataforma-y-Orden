@@ -244,3 +244,36 @@
 @media (prefers-reduced-motion: reduce) {
   .nx-order-product-grid > li { transition: none !important; }
 }
+
+/* Robust desktop catalog sizing: keep the reference list inside a real scroll area.
+   This overrides the earlier viewport-height flex sizing that could collapse the list. */
+@media (min-width: 1024px) {
+  .nx-order-builder {
+    height: auto !important;
+    min-height: 0 !important;
+  }
+  .nx-order-workspace {
+    flex: none !important;
+    height: min(72dvh, 760px);
+    min-height: 520px !important;
+    overflow: visible !important;
+    align-items: stretch;
+  }
+  .nx-order-catalog {
+    height: 100%;
+    min-height: 0 !important;
+    overflow: hidden !important;
+  }
+  .nx-order-product-grid {
+    display: grid !important;
+    flex: 1 1 0% !important;
+    min-height: 180px !important;
+    max-height: none !important;
+    overflow-y: auto !important;
+    align-content: start;
+  }
+  .nx-order-summary {
+    height: 100% !important;
+    min-height: 0 !important;
+  }
+}
