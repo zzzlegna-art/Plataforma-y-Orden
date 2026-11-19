@@ -213,7 +213,7 @@ export const TrasladosMultisedePanel = ({ sites }: { sites: readonly NexoraSite[
   };
 
   return (
-    <section className="space-y-5" aria-label="Traslados entre sedes">
+    <section className="nx-transfers-premium space-y-5" aria-label="Traslados entre sedes">
       <div className="relative overflow-hidden rounded-2xl border border-cyan-200 bg-gradient-to-br from-white via-cyan-50 to-sky-100 p-5 text-slate-900 shadow-lg shadow-cyan-950/5 dark:border-slate-800 dark:from-slate-950 dark:via-slate-900 dark:to-cyan-950 dark:text-white dark:shadow-black/20 sm:p-7">
         <div aria-hidden="true" className="pointer-events-none absolute -right-12 top-0 h-52 w-52 rounded-full bg-cyan-400/15 blur-3xl" />
         <div className="relative flex flex-wrap items-start justify-between gap-4">
