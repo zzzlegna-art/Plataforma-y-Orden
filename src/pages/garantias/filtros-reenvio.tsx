@@ -70,7 +70,7 @@ export const FiltrosReenvio = ({
           options={tecnicos.map((tecnico) => ({ value: tecnico.id, label: tecnico.nombre }))}
         />
       </div>
-      <div className="grid grid-cols-2 gap-3 sm:max-w-md">
+      <div className="nx-warranty-resend-dates grid grid-cols-2 gap-3 sm:max-w-md">
         <div className="space-y-1.5">
           <Label className="text-xs text-muted-foreground">{t("export.desde")}</Label>
           <Input
