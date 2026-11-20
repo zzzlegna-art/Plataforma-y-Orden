@@ -230,3 +230,89 @@
     radial-gradient(ellipse 75% 50% at 50% 0%, hsl(var(--primary) / .1), transparent 78%),
     linear-gradient(155deg, hsl(var(--card)), hsl(var(--card)));
 }
+
+
+/* NEXORA signature loader: orbitas circulares y núcleo de marca */
+.nx-loading-premium__loader {
+  position: relative;
+  display: grid;
+  width: 92px;
+  height: 92px;
+  place-items: center;
+  margin: 2px 0 0;
+  border-radius: 50%;
+  background: radial-gradient(circle, hsl(var(--primary) / .10), transparent 68%);
+}
+.nx-loading-premium__loader::before,
+.nx-loading-premium__loader::after,
+.nx-loading-premium__loader-orbit {
+  position: absolute;
+  content: "";
+  border-radius: 50%;
+  pointer-events: none;
+}
+.nx-loading-premium__loader::before {
+  inset: 4px;
+  border: 2px solid hsl(var(--primary) / .12);
+  border-top-color: hsl(var(--primary));
+  border-right-color: hsl(var(--info) / .75);
+  animation: nx-loader-spin 1.35s cubic-bezier(.58,.12,.42,.88) infinite;
+  filter: drop-shadow(0 0 5px hsl(var(--primary) / .2));
+}
+.nx-loading-premium__loader::after {
+  inset: 13px;
+  border: 1px dashed hsl(var(--primary) / .26);
+  animation: nx-loader-spin-reverse 5.5s linear infinite;
+}
+.nx-loading-premium__loader-orbit {
+  inset: -2px;
+  border: 1px solid hsl(var(--info) / .10);
+  animation: nx-loader-breathe 2.2s ease-in-out infinite;
+}
+.nx-loading-premium__loader-core {
+  display: grid;
+  width: 48px;
+  height: 48px;
+  place-items: center;
+  border: 1px solid hsl(var(--primary) / .22);
+  border-radius: 16px;
+  background: linear-gradient(145deg, hsl(var(--primary)), hsl(var(--info)));
+  box-shadow: 0 7px 22px hsl(var(--primary) / .28), inset 0 1px 0 rgb(255 255 255 / .38);
+  color: white;
+  font-size: 25px;
+  font-weight: 900;
+  letter-spacing: -.08em;
+  animation: nx-loader-core 2.2s ease-in-out infinite;
+}
+.nx-loading-premium__brand {
+  min-height: 76px;
+}
+.nx-loading-premium__brand-lockup {
+  height: 72px;
+}
+@keyframes nx-loader-spin {
+  to { transform: rotate(360deg); }
+}
+@keyframes nx-loader-spin-reverse {
+  to { transform: rotate(-360deg); }
+}
+@keyframes nx-loader-breathe {
+  0%, 100% { transform: scale(.94); opacity: .42; }
+  50% { transform: scale(1.08); opacity: 1; }
+}
+@keyframes nx-loader-core {
+  0%, 100% { transform: translateY(0) scale(1); }
+  50% { transform: translateY(-2px) scale(1.045); }
+}
+@media (max-width: 450px) {
+  .nx-loading-premium__loader { width: 82px; height: 82px; }
+  .nx-loading-premium__loader-core { width: 43px; height: 43px; border-radius: 14px; }
+  .nx-loading-premium__brand { min-height: 66px; }
+  .nx-loading-premium__brand-lockup { height: 64px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .nx-loading-premium__loader::before,
+  .nx-loading-premium__loader::after,
+  .nx-loading-premium__loader-orbit,
+  .nx-loading-premium__loader-core { animation: none; }
+}
