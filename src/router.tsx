@@ -28,7 +28,6 @@ const Pedidos = lazy(() => import("./pages/pedidos"));
 const NuevoPedido = lazy(() => import("./pages/pedidos/nuevo"));
 const PedidoDetalle = lazy(() => import("./pages/pedidos/detalle"));
 const PedidoHistoricoDetalle = lazy(() => import("./pages/pedidos/historial/detalle"));
-const Traslados = lazy(() => import("./pages/traslados"));
 const Recepciones = lazy(() => import("./pages/recepcion"));
 const InvoiceCapture = lazy(() => import("./pages/recepcion/factura"));
 const NuevaRecepcion = lazy(() => import("./pages/recepcion/nueva"));
@@ -88,11 +87,6 @@ export const routers = [
             path: "recepcion/nueva/:receptionId",
             name: "recepcion-captura",
             element: <RequirePermission permission="receptions.manage"><RequireSupplierReception><NuevaRecepcion /></RequireSupplierReception></RequirePermission>,
-          },
-          {
-            path: "traslados",
-            name: "traslados",
-            element: <RequirePermission permission="transfers.manage"><Traslados /></RequirePermission>,
           },
           {
             path: "inventario",
