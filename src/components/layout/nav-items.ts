@@ -8,7 +8,6 @@ import {
   Boxes,
   ShieldCheck,
   Store,
-  Truck,
   type LucideIcon,
 } from "lucide-react";
 
@@ -44,12 +43,6 @@ export const NAV_ITEMS: NavItem[] = [
     icon: PackagePlus,
     permission: "receptions.manage",
     primary: true,
-  },
-  {
-    to: "/traslados",
-    labelKey: "nav.transfers",
-    icon: Truck,
-    permission: "transfers.manage",
   },
   {
     to: "/inventario",
