@@ -129,3 +129,71 @@
   .nx-warranties-premium .flex{min-width:0}
   .nx-warranties-premium .overflow-x-auto{max-width:100%}
 }
+
+
+/* Mobile-only warranty lots: restore a clear hierarchy without touching desktop. */
+@media(max-width:640px){
+  .nx-warranties-premium .nx-warranty-lot-header{
+    display:grid!important;
+    grid-template-columns:minmax(0,1fr) auto;
+    align-items:center;
+    gap:.55rem .65rem;
+    padding:.8rem;
+  }
+  .nx-warranties-premium .nx-warranty-lot-toggle{
+    grid-column:1/-1;
+    width:100%;
+    min-width:0;
+    flex:none;
+    align-items:flex-start;
+    padding:.15rem 0;
+  }
+  .nx-warranties-premium .nx-warranty-lot-toggle>svg{margin-top:.12rem}
+  .nx-warranties-premium .nx-warranty-lot-toggle>span{
+    min-width:0;
+    width:100%;
+    white-space:normal;
+    overflow:visible;
+  }
+  .nx-warranties-premium .nx-warranty-lot-title,
+  .nx-warranties-premium .nx-warranty-lot-subtitle{
+    display:block;
+    max-width:100%;
+    overflow:visible;
+    text-overflow:clip;
+    white-space:normal;
+    overflow-wrap:anywhere;
+    word-break:normal;
+  }
+  .nx-warranties-premium .nx-warranty-lot-title{font-size:.9rem;line-height:1.35}
+  .nx-warranties-premium .nx-warranty-lot-subtitle{margin-top:.15rem;line-height:1.35}
+  .nx-warranties-premium .nx-warranty-lot-header>button:not(.nx-warranty-lot-toggle){
+    grid-column:1/-1;
+    width:100%;
+    min-width:0;
+    min-height:42px;
+    white-space:normal;
+  }
+  .nx-warranties-premium .nx-warranty-lot-header [data-slot="badge"]{
+    max-width:100%;
+    white-space:normal;
+    line-height:1.25;
+  }
+  .nx-warranties-premium .nx-warranty-actions{
+    display:grid;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:.55rem;
+    width:100%;
+  }
+  .nx-warranties-premium .nx-warranty-actions>button{
+    width:100%;
+    min-width:0;
+    min-height:42px;
+    white-space:normal;
+    line-height:1.2;
+    padding-inline:.55rem;
+  }
+  .nx-warranties-premium .nx-warranty-actions>button:last-child:nth-child(odd){
+    grid-column:1/-1;
+  }
+}
