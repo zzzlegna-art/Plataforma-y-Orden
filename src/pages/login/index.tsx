@@ -22,6 +22,7 @@ import { Label } from "@/components/ui/label";
 import { useAuth } from "@/hooks/use-auth";
 import { conTransicionCircular } from "@/lib/circular-transition";
 import { cn } from "@/lib/utils";
+import "./login-premium.css";
 
 const FEATURES = [
   { icon: ScanBarcode, key: "auth.featureReceptions" },
@@ -72,7 +73,7 @@ const Login = () => {
   };
 
   return (
-    <div className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-background px-4 pb-6 pt-16 sm:px-6 sm:py-10 lg:px-8">
+    <div className="nx-login-premium relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-background px-4 pb-6 pt-16 sm:px-6 sm:py-10 lg:px-8">
       <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden">
         <div className="absolute -left-40 -top-40 h-[28rem] w-[28rem] rounded-full bg-primary/10 blur-3xl" />
         <div className="absolute -bottom-48 -right-32 h-[30rem] w-[30rem] rounded-full bg-cyan-400/10 blur-3xl" />
