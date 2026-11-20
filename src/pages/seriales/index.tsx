@@ -56,6 +56,7 @@ import { getArchivedImeiTrace, type ArchivedImeiTrace } from "@/lib/nexora-archi
 import { ArchivedImeiHistoryPanel } from "./ArchivedImeiHistoryPanel";
 import { listSuppliers, type Supplier } from "@/lib/suppliers";
 import { MultisiteImeiHistory } from "./MultisiteImeiHistory";
+import "./seriales-premium.css";
 
 const exportarCsv = (serial: string, fechaIngreso: string, rows: ReturnType<typeof getUnitTimeline>) => {
   const header = `Serial;${serial}\nIngreso;${fechaIngreso}\nFecha;Tipo;Descripcion;Usuario\n`;
@@ -189,7 +190,7 @@ const HistorialSerial = ({ embedded = false }: { embedded?: boolean }) => {
   const liberable = unit && !enPedidoActivo && ["en_bodega", "en_local", "defectuoso"].includes(unit.status);
 
   return (
-    <div className="space-y-5 stagger">
+    <div className="nx-serial-center space-y-5 stagger">
       {!embedded ? <PageHeader title={t("serialHistory.title")} description={t("serialHistory.subtitle")} /> : null}
 
       <section className="space-y-2 rounded-lg border bg-card p-4 shadow-sm">
