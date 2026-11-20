@@ -197,3 +197,47 @@
     grid-column:1/-1;
   }
 }
+
+
+/* Warranty action dialogs: centered floating modal on phones, not a bottom sheet.
+   Scoped by explicit classes so other modules and desktop dialogs keep their behavior. */
+@media(max-width:639px){
+  .nx-warranty-dialog--centered{
+    position:fixed!important;
+    inset:auto!important;
+    top:50%!important;
+    left:50%!important;
+    right:auto!important;
+    bottom:auto!important;
+    width:min( calc(100vw - 28px), 440px )!important;
+    max-width:440px!important;
+    max-height:min(84dvh, 720px)!important;
+    min-height:0!important;
+    padding:1.15rem!important;
+    border-radius:24px!important;
+    overflow-x:hidden!important;
+    overflow-y:auto!important;
+    overscroll-behavior:contain;
+    transform:translate(-50%,-50%)!important;
+    box-shadow:0 28px 90px -28px rgb(8 24 48/.48),0 0 0 1px hsl(var(--primary)/.10),inset 0 1px 0 hsl(var(--foreground)/.06)!important;
+    animation:none!important;
+    gap:1rem!important;
+  }
+  .nx-warranty-dialog--centered [data-dialog-footer]{
+    display:grid!important;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:.6rem!important;
+    padding-top:.35rem;
+  }
+  .nx-warranty-dialog--centered [data-dialog-footer]>button{
+    width:100%;
+    min-width:0;
+    min-height:44px;
+    white-space:normal;
+  }
+  .nx-warranty-dialog--centered [data-radix-dialog-close]{
+    top:.65rem;
+    right:.65rem;
+    background:hsl(var(--muted)/.75);
+  }
+}
