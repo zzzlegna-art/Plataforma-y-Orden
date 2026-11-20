@@ -1,6 +1,5 @@
 import { useTranslation } from "react-i18next";
 import {
-  ArrowLeftRight,
   Boxes,
   BriefcaseBusiness,
   ChevronRight,
@@ -28,10 +27,10 @@ const SIDEBAR_GROUPS = [
     routes: ["/mi-sede", "/panel"],
   },
   {
-    id: "operations",
-    label: "OPERACIÓN",
-    icon: ArrowLeftRight,
-    routes: ["/recepcion", "/traslados"],
+    id: "warehouse",
+    label: "BODEGA",
+    icon: Boxes,
+    routes: ["/recepcion"],
   },
   {
     id: "inventory",
