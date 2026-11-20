@@ -308,3 +308,38 @@
 @media(prefers-reduced-motion:no-preference){
   .nx-warranty-dialog--premium{animation-duration:180ms}
 }
+
+
+/* Reenvío: separar visualmente los dos campos de fecha, especialmente en móvil. */
+.nx-warranty-resend-dates{
+  column-gap:1rem!important;
+  row-gap:.85rem!important;
+  align-items:start;
+}
+.nx-warranty-resend-dates>div{
+  min-width:0;
+}
+.nx-warranty-resend-dates input[type="date"]{
+  display:block;
+  width:100%;
+  min-width:0;
+  min-height:44px;
+  padding-inline:.7rem;
+  border-radius:12px;
+}
+@media(max-width:639px){
+  .nx-warranty-resend-dates{
+    width:100%;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    column-gap:1rem!important;
+  }
+  .nx-warranty-resend-dates>div{
+    display:flex;
+    flex-direction:column;
+    gap:.45rem;
+  }
+  .nx-warranty-resend-dates input[type="date"]{
+    font-size:clamp(.72rem,3.2vw,.875rem);
+    padding-inline:.5rem;
+  }
+}
