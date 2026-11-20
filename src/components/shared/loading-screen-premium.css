@@ -204,3 +204,29 @@
 @media (prefers-reduced-motion: reduce) {
   .nx-loading-premium__progress:before { animation: none; }
 }
+
+
+/* Fix: la capa de carga debe ocultar por completo la interfaz que sigue montada debajo. */
+.nx-loading-premium {
+  z-index: 9999;
+  background-color: hsl(var(--background));
+  background-image:
+    radial-gradient(ellipse 54% 46% at 50% 43%, hsl(var(--primary) / .13), transparent 72%),
+    radial-gradient(ellipse 34% 34% at 12% 12%, hsl(var(--info) / .075), transparent 76%),
+    radial-gradient(ellipse 36% 34% at 92% 88%, hsl(var(--primary) / .07), transparent 78%);
+}
+.nx-loading-premium__card {
+  background:
+    radial-gradient(ellipse 75% 50% at 50% 0%, hsl(var(--primary) / .075), transparent 78%),
+    linear-gradient(155deg, hsl(var(--card)), hsl(var(--card)));
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+.dark .nx-loading-premium {
+  background-color: hsl(var(--background));
+}
+.dark .nx-loading-premium__card {
+  background:
+    radial-gradient(ellipse 75% 50% at 50% 0%, hsl(var(--primary) / .1), transparent 78%),
+    linear-gradient(155deg, hsl(var(--card)), hsl(var(--card)));
+}
