@@ -85,7 +85,7 @@ export const DiagnosticoDialog = ({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>{trigger}</DialogTrigger>
-      <DialogContent className="nx-warranty-dialog--centered sm:max-w-md">
+      <DialogContent className="nx-warranty-dialog--centered sm:max-w-md nx-warranty-dialog--premium">
         <DialogHeader>
           <DialogTitle>{t("warranty.diagnoseTitle")}</DialogTitle>
           <DialogDescription>{warranty.code}</DialogDescription>
@@ -227,7 +227,7 @@ export const EntregarDialog = ({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>{trigger}</DialogTrigger>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md nx-warranty-dialog--centered nx-warranty-dialog--premium">
         <DialogHeader>
           <DialogTitle>
             {cambioInventario
@@ -407,7 +407,7 @@ export const DevolverDialog = ({
       }}
     >
       <DialogTrigger asChild>{trigger}</DialogTrigger>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md nx-warranty-dialog--centered nx-warranty-dialog--premium">
         <DialogHeader>
           <DialogTitle>{t("warranty.returnTitle")}</DialogTitle>
           <DialogDescription>{t("warranty.returnHint")}</DialogDescription>
@@ -474,7 +474,7 @@ export const TecnicosDialog = ({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>{trigger}</DialogTrigger>
-      <DialogContent className="nx-warranty-dialog--centered sm:max-w-md">
+      <DialogContent className="nx-warranty-dialog--centered sm:max-w-md nx-warranty-dialog--premium">
         <DialogHeader>
           <DialogTitle>{t("warranty.tecnicoManage")}</DialogTitle>
           <DialogDescription>{t("warranty.tecnicoManageHint")}</DialogDescription>
@@ -603,7 +603,7 @@ export const EditarMotivoGarantiaDialog = ({
       }}
     >
       <DialogTrigger asChild>{trigger}</DialogTrigger>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="sm:max-w-lg nx-warranty-dialog--centered nx-warranty-dialog--premium">
         <DialogHeader>
           <DialogTitle>{t("warranty.editReasonTitle")}</DialogTitle>
           <DialogDescription>{t("warranty.editReasonHint")}</DialogDescription>
@@ -694,7 +694,7 @@ export const EditarClienteDialog = ({
       }}
     >
       <DialogTrigger asChild>{trigger}</DialogTrigger>
-      <DialogContent>
+      <DialogContent className="nx-warranty-dialog--centered nx-warranty-dialog--premium">
         <DialogHeader>
           <DialogTitle>{t("warranty.editarClienteTitle")}</DialogTitle>
           <DialogDescription>{t("warranty.editarClienteHint")}</DialogDescription>
@@ -787,7 +787,7 @@ export const DevolucionDirectaDialog = ({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>{trigger}</DialogTrigger>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md nx-warranty-dialog--centered nx-warranty-dialog--premium">
         <DialogHeader>
           <DialogTitle>Devolver {count} equipo(s) a stock disponible</DialogTitle>
           <DialogDescription>
@@ -840,7 +840,7 @@ export const PagoReembolsoDialog = ({ warranty, trigger }: { warranty: Warranty;
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>{trigger}</DialogTrigger>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md nx-warranty-dialog--centered nx-warranty-dialog--premium">
         <DialogHeader>
           <DialogTitle>Registrar reembolso pagado</DialogTitle>
           <DialogDescription>
@@ -892,7 +892,7 @@ export const ClasificarDevueltoDialog = ({ warranty, trigger }: { warranty: Warr
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>{trigger}</DialogTrigger>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md nx-warranty-dialog--centered nx-warranty-dialog--premium">
         <DialogHeader>
           <DialogTitle>Clasificar equipo devuelto</DialogTitle>
           <DialogDescription>
