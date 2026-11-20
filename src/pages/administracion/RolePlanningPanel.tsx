@@ -47,7 +47,9 @@ export const RolePlanningPanel = () => {
     return () => { request.current++; };
   }, [refresh]);
 
-  const managed = users.filter((u) => u.role !== "admin");
+  // Personal retirado: conservar su historial, pero ocultarlo de las pantallas de gestión.
+  const hiddenStaffIds = new Set(["4ea87251-c322-49e9-8498-f6497baad4b4", "0270667c-b7c5-4b31-b334-12ae8f233d75"]);
+  const managed = users.filter((u) => u.role !== "admin" && !hiddenStaffIds.has(u.id));
   const persist = async (user: StaffMember) => {
     if (busyRef.current) return;
     const role = drafts[user.id];
