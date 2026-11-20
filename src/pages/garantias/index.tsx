@@ -203,21 +203,21 @@ const LoteGarantias = ({
   t: (key: string, params?: Record<string, unknown>) => string;
   mostrarOrigen?: boolean;
 }) => (
-  <section className="overflow-hidden rounded-lg border">
-    <div className="flex flex-wrap items-center gap-2 border-b bg-muted/40 px-3 py-2">
+  <section className="nx-warranty-lot overflow-hidden rounded-lg border">
+    <div className="nx-warranty-lot-header flex flex-wrap items-center gap-2 border-b bg-muted/40 px-3 py-2">
       <button
         type="button"
         aria-expanded={!cerrado}
         onClick={onToggle}
-        className="flex min-w-0 flex-1 items-center gap-2 text-left"
+        className="nx-warranty-lot-toggle flex min-w-0 flex-1 items-center gap-2 text-left"
       >
         <ChevronDown
           className={cn("h-4 w-4 shrink-0 transition-transform duration-200", cerrado && "-rotate-90")}
         />
         <span className="min-w-0">
-          <span className="block truncate text-sm font-semibold">{lote.title}</span>
+          <span className="nx-warranty-lot-title block truncate text-sm font-semibold">{lote.title}</span>
           {lote.subtitle ? (
-            <span className="block truncate text-xs text-muted-foreground">{lote.subtitle}</span>
+            <span className="nx-warranty-lot-subtitle block truncate text-xs text-muted-foreground">{lote.subtitle}</span>
           ) : null}
         </span>
       </button>
@@ -2187,7 +2187,7 @@ const Garantias = () => {
       {tab === "recibidos" ? (
         <div className="animate-fade-in space-y-3">
           {porTab(["recibido"]).length > 0 || isAdmin ? (
-            <div className="flex flex-wrap items-center gap-2">
+            <div className="nx-warranty-actions flex flex-wrap items-center gap-2">
               {porTab(["recibido"]).length > 0 ? (
                 <>
                   <TecnicosDialog
