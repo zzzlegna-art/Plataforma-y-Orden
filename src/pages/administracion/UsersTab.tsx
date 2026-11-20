@@ -340,7 +340,10 @@ export const UsersTab = () => {
       {u.isActive && plans[u.id]?.operationallyEnabled ? " Activo" : " Pendiente de activación"}
     </span>
   ) : <RoleBadge role={u.role} />;
-  const rows = db.users.slice().sort((a, b) => a.fullName.localeCompare(b.fullName));
+  // Cuentas retiradas de la operación: se conservan en Auth e historial, pero no se muestran en Administración.
+  const hiddenStaffIds = new Set(["4ea87251-c322-49e9-8498-f6497baad4b4", "0270667c-b7c5-4b31-b334-12ae8f233d75"]);
+  const rows = db.users.filter((user) => !hiddenStaffIds.has(user.id))
+    .slice().sort((a, b) => a.fullName.localeCompare(b.fullName));
 
   const changeRole = (target: User, role: Role) =>
     runAction((db2, actor) => updateUser(db2, actor, { id: target.id, role }), {
@@ -389,7 +392,7 @@ export const UsersTab = () => {
               ) : null}
             </div>
             {user.id === currentUser?.id ? null : prepared(user) ? (
-              <p className="text-xs text-amber-800">Cuenta protegida: gestiona su acceso desde Roles y permisos.</p>
+              <p className="text-xs text-muted-foreground">Cuenta con acceso restringido.</p>
             ) : (
               <div className="flex flex-wrap gap-2">
                 <EditUserDialog user={user} onSave={(role) => changeRole(user, role)} />
@@ -445,7 +448,7 @@ export const UsersTab = () => {
               user.id === currentUser?.id ? (
                 <span className="text-xs text-muted-foreground">{t("user.itsYou")}</span>
               ) : prepared(user) ? (
-                <span className="text-xs text-amber-800">Gestionar desde Roles y permisos</span>
+                <span className="text-xs text-muted-foreground">Acceso restringido</span>
               ) : (
                 <div className="flex flex-wrap justify-end gap-1">
                   <EditUserDialog user={user} onSave={(role) => changeRole(user, role)} />
