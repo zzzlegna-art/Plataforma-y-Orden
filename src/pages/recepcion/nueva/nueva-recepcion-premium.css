@@ -1,0 +1,236 @@
+/* NEXORA Enterprise · Reception intake workspace
+   Presentation-only layer. No changes to scanning, validation or stock operations. */
+.nx-reception-entry {
+  --entry-line: hsl(var(--border) / .82);
+  --entry-muted: hsl(var(--muted-foreground));
+  min-width: 0;
+  color: hsl(var(--foreground));
+}
+.nx-reception-entry__workspace { min-width: 0; align-items: start; }
+.nx-reception-entry__controls,
+.nx-reception-entry__capture,
+.nx-reception-entry__details,
+.nx-reception-entry__manifest { min-width: 0; }
+
+.nx-reception-entry__capture,
+.nx-reception-entry__details,
+.nx-reception-entry__manifest {
+  border-color: var(--entry-line);
+  border-radius: 19px;
+  background: linear-gradient(155deg, hsl(var(--card)), hsl(var(--secondary) / .16));
+  box-shadow: 0 18px 42px -34px hsl(215 65% 22% / .42), inset 0 1px 0 hsl(var(--background) / .85);
+}
+.nx-reception-entry__capture {
+  border-color: hsl(var(--primary) / .24);
+  background:
+    radial-gradient(ellipse 80% 34% at 100% 0%, hsl(var(--primary) / .09), transparent 76%),
+    linear-gradient(155deg, hsl(var(--card)), hsl(var(--secondary) / .2));
+}
+.nx-reception-entry__capture > h3,
+.nx-reception-entry__details > h3 {
+  display: flex;
+  align-items: center;
+  gap: .65rem;
+  padding-bottom: .85rem;
+  border-bottom: 1px solid hsl(var(--border) / .72);
+  font-size: .9rem;
+  font-weight: 850;
+  letter-spacing: -.02em;
+}
+.nx-reception-entry__capture label,
+.nx-reception-entry__details label {
+  font-weight: 700;
+}
+.nx-reception-entry__capture input,
+.nx-reception-entry__capture [role="combobox"],
+.nx-reception-entry__details input,
+.nx-reception-entry__details select,
+.nx-reception-entry__details textarea {
+  border-radius: 11px;
+}
+.nx-reception-entry__capture button,
+.nx-reception-entry__details button {
+  border-radius: 10px;
+}
+.nx-reception-entry__capture > div > label {
+  color: var(--entry-muted);
+  font-size: .69rem;
+  font-weight: 850;
+  letter-spacing: .075em;
+}
+.nx-reception-entry__capture .rounded-xl.border.border-border\/70 {
+  border-color: hsl(var(--primary) / .16);
+  background: hsl(var(--primary) / .035);
+}
+.nx-reception-entry__manifest {
+  overflow: hidden;
+  border-color: hsl(var(--primary) / .2);
+  box-shadow: 0 22px 48px -34px hsl(215 70% 24% / .46), inset 0 1px 0 hsl(var(--background) / .85);
+}
+.nx-reception-entry__manifest-head {
+  min-height: 76px;
+  padding: .95rem 1.1rem;
+  border-color: hsl(var(--border) / .78);
+  background:
+    radial-gradient(ellipse at 100% 0%, hsl(var(--primary) / .1), transparent 62%),
+    hsl(var(--secondary) / .25);
+}
+.nx-reception-entry__manifest-head h3 {
+  font-size: .9rem;
+  font-weight: 850;
+  letter-spacing: -.02em;
+}
+.nx-reception-entry__manifest-head [data-slot="badge"],
+.nx-reception-entry__manifest-head > span {
+  border-radius: 999px;
+  font-weight: 800;
+}
+.nx-reception-entry__manifest-list {
+  scrollbar-width: thin;
+  scrollbar-color: hsl(var(--primary) / .3) transparent;
+  padding: 1rem;
+}
+.nx-reception-entry__manifest-list > div {
+  padding: .85rem;
+  border: 1px solid hsl(var(--border) / .7);
+  border-radius: 15px;
+  background: hsl(var(--background) / .54);
+}
+.nx-reception-entry__manifest-list > div + div { margin-top: .15rem; }
+.nx-reception-entry__manifest-list > div > div:first-child {
+  padding-bottom: .65rem;
+  border-bottom: 1px solid hsl(var(--border) / .55);
+}
+.nx-reception-entry__manifest-list img {
+  border-radius: 13px;
+  box-shadow: 0 6px 16px -12px hsl(215 60% 20% / .5);
+}
+.nx-reception-entry__serial-grid {
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 10.5rem), 1fr));
+  gap: .5rem;
+  padding-top: .7rem;
+}
+.nx-reception-entry__serial-grid > li {
+  min-width: 0;
+  border: 1px solid hsl(var(--border) / .76);
+  border-radius: 10px;
+  background: hsl(var(--card) / .9);
+  box-shadow: 0 5px 13px -12px hsl(215 60% 20% / .5);
+}
+.nx-reception-entry__manifest-foot {
+  min-height: 44px;
+  padding-inline: 1rem;
+  border-color: hsl(var(--border) / .75);
+  background: hsl(var(--secondary) / .36);
+}
+.nx-reception-entry__details {
+  background: linear-gradient(155deg, hsl(var(--card)), hsl(var(--secondary) / .12));
+}
+.nx-reception-entry__details textarea { min-height: 76px; resize: vertical; }
+
+@media (min-width: 1024px) {
+  .nx-reception-entry { gap: 1rem; }
+  .nx-reception-entry__workspace {
+    grid-template-columns: minmax(20rem, 27rem) minmax(0, 1fr);
+    gap: 1rem;
+    align-items: start;
+  }
+  .nx-reception-entry__controls { gap: 1rem; }
+  .nx-reception-entry__capture,
+  .nx-reception-entry__details { padding: 1.15rem; }
+  .nx-reception-entry__capture { order: 1; }
+  .nx-reception-entry__details { order: 2; }
+  .nx-reception-entry__manifest {
+    position: sticky;
+    top: 1rem;
+    height: min( calc(100dvh - 9.5rem), 900px );
+    min-height: 34rem;
+    max-height: calc(100dvh - 9.5rem);
+    border-radius: 20px;
+  }
+  .nx-reception-entry__manifest-head { min-height: 82px; }
+  .nx-reception-entry__manifest-list {
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: 1rem;
+  }
+  .nx-reception-entry__serial-grid {
+    grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr));
+    gap: .55rem;
+  }
+  .nx-reception-entry__serial-grid > li {
+    transition: border-color .16s ease, background .16s ease, box-shadow .16s ease;
+  }
+  .nx-reception-entry__serial-grid > li:hover {
+    border-color: hsl(var(--primary) / .42);
+    background: hsl(var(--primary) / .035);
+    box-shadow: 0 8px 18px -14px hsl(var(--primary) / .5);
+  }
+  .nx-reception-entry__capture .flex.flex-wrap.gap-2 > button {
+    min-height: 35px;
+    padding-inline: .85rem;
+    border-radius: 999px;
+    font-size: .74rem;
+    font-weight: 750;
+  }
+  .nx-reception-entry__capture [data-state="on"] {
+    box-shadow: 0 8px 18px -13px hsl(var(--primary) / .75);
+  }
+  .nx-reception-entry__capture input:focus-visible,
+  .nx-reception-entry__details input:focus-visible,
+  .nx-reception-entry__details textarea:focus-visible,
+  .nx-reception-entry__details select:focus-visible {
+    outline: 2px solid hsl(var(--primary) / .35);
+    outline-offset: 2px;
+  }
+}
+@media (max-width: 1023px) {
+  .nx-reception-entry__manifest {
+    position: relative;
+    max-height: none;
+    min-height: 0;
+  }
+  .nx-reception-entry__manifest-list {
+    max-height: 65vh;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+}
+@media (max-width: 767px) {
+  .nx-reception-entry { gap: 1rem; padding-bottom: 5.5rem; }
+  .nx-reception-entry__workspace { gap: .85rem; }
+  .nx-reception-entry__capture,
+  .nx-reception-entry__details,
+  .nx-reception-entry__manifest { border-radius: 16px; }
+  .nx-reception-entry__capture,
+  .nx-reception-entry__details { padding: 1rem; }
+  .nx-reception-entry__manifest-head { min-height: 68px; padding: .8rem; }
+  .nx-reception-entry__manifest-list { max-height: 58vh; padding: .75rem; }
+  .nx-reception-entry__manifest-list > div { padding: .7rem; }
+  .nx-reception-entry__serial-grid {
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 9rem), 1fr));
+    gap: .4rem;
+  }
+  .nx-reception-entry__manifest-foot {
+    align-items: flex-start;
+    padding: .7rem .8rem;
+  }
+}
+.dark .nx-reception-entry__capture,
+.dark .nx-reception-entry__details,
+.dark .nx-reception-entry__manifest {
+  border-color: hsl(var(--border) / .9);
+  background: linear-gradient(155deg, hsl(var(--card)), hsl(var(--secondary) / .28));
+  box-shadow: 0 22px 48px -34px rgb(0 0 0 / .78), inset 0 1px 0 hsl(var(--foreground) / .035);
+}
+.dark .nx-reception-entry__manifest-head {
+  background: linear-gradient(110deg, hsl(var(--secondary) / .55), hsl(var(--card)));
+}
+.dark .nx-reception-entry__manifest-list > div,
+.dark .nx-reception-entry__serial-grid > li {
+  background: hsl(var(--background) / .6);
+}
+@media (prefers-reduced-motion: reduce) {
+  .nx-reception-entry * { transition: none !important; }
+}
