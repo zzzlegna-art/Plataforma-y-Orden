@@ -85,7 +85,7 @@ export const DiagnosticoDialog = ({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>{trigger}</DialogTrigger>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="nx-warranty-dialog--centered sm:max-w-md">
         <DialogHeader>
           <DialogTitle>{t("warranty.diagnoseTitle")}</DialogTitle>
           <DialogDescription>{warranty.code}</DialogDescription>
