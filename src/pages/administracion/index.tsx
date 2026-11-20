@@ -11,10 +11,6 @@ import { CatalogsTab } from "./CatalogsTab";
 import { DataTab } from "./DataTab";
 import { UsersTab } from "./UsersTab";
 import { RolesTab } from "./RolesTab";
-import { SedesTab } from "./SedesTab";
-import CajaDiariaTab from "./CajaDiariaTab";
-import TesoreriaTab from "./TesoreriaTab";
-import PosMinoristaTab from "./PosMinoristaTab";
 
 /**
  * Administración unificada. Personal de bodega administra proveedores sin acceder
@@ -26,7 +22,7 @@ const Administracion = () => {
   const [params, setParams] = useSearchParams();
   const selected = params.get("tab");
   const validTabs = isAdmin
-    ? ["users", "roles", "sites", "cash", "treasury", "pos", "catalogs", "suppliers", "audit", "data"]
+    ? ["users", "roles", "catalogs", "suppliers", "audit", "data"]
     : ["suppliers"];
   const activeTab = selected && validTabs.includes(selected)
     ? selected
@@ -51,10 +47,6 @@ const Administracion = () => {
         <TabsList className="h-auto w-full flex-wrap justify-start gap-1 p-1 sm:w-auto">
           {isAdmin ? <TabsTrigger value="users">{t("admin.tabUsers")}</TabsTrigger> : null}
           {isAdmin ? <TabsTrigger value="roles">Roles y permisos</TabsTrigger> : null}
-          {isAdmin ? <TabsTrigger value="sites">Ciudades y sedes</TabsTrigger> : null}
-          {isAdmin ? <TabsTrigger value="cash">Caja diaria</TabsTrigger> : null}
-          {isAdmin ? <TabsTrigger value="treasury">Tesorería</TabsTrigger> : null}
-          {isAdmin ? <TabsTrigger value="pos">POS minorista</TabsTrigger> : null}
           {isAdmin ? <TabsTrigger value="catalogs">{t("admin.tabCatalogs")}</TabsTrigger> : null}
           <TabsTrigger value="suppliers">{t("admin.tabSuppliers")}</TabsTrigger>
           {isAdmin ? <TabsTrigger value="audit">{t("admin.tabAudit")}</TabsTrigger> : null}
@@ -65,10 +57,6 @@ const Administracion = () => {
           <>
             <TabsContent value="users"><UsersTab /></TabsContent>
             <TabsContent value="roles"><RolesTab /></TabsContent>
-            <TabsContent value="sites"><SedesTab /></TabsContent>
-            <TabsContent value="cash"><CajaDiariaTab /></TabsContent>
-            <TabsContent value="treasury"><TesoreriaTab /></TabsContent>
-            <TabsContent value="pos"><PosMinoristaTab /></TabsContent>
             <TabsContent value="catalogs"><CatalogsTab /></TabsContent>
             <TabsContent value="audit"><AuditTab /></TabsContent>
             <TabsContent value="data"><DataTab /></TabsContent>
