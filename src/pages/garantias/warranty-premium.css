@@ -241,3 +241,70 @@
     background:hsl(var(--muted)/.75);
   }
 }
+
+
+/* Unified premium treatment for every warranty dialog (desktop + mobile). */
+.nx-warranty-dialog--premium{
+  border:1px solid hsl(var(--primary)/.18)!important;
+  border-radius:22px!important;
+  background:
+    radial-gradient(ellipse 70% 38% at 100% 0%,hsl(var(--primary)/.085),transparent 76%),
+    hsl(var(--card))!important;
+  color:hsl(var(--foreground));
+  box-shadow:0 28px 80px -34px hsl(220 48% 12%/.42),0 0 0 1px hsl(var(--foreground)/.025),inset 0 1px 0 hsl(var(--foreground)/.06)!important;
+}
+.nx-warranty-dialog--premium [data-slot="dialog-title"]{
+  font-size:1.12rem;font-weight:800;letter-spacing:-.025em;line-height:1.25;
+}
+.nx-warranty-dialog--premium [data-slot="dialog-description"]{
+  color:hsl(var(--muted-foreground));line-height:1.55;
+}
+.nx-warranty-dialog--premium input,
+.nx-warranty-dialog--premium textarea,
+.nx-warranty-dialog--premium select{
+  border-color:hsl(var(--border));
+  border-radius:12px;
+  background:hsl(var(--background));
+}
+.nx-warranty-dialog--premium input:focus-visible,
+.nx-warranty-dialog--premium textarea:focus-visible,
+.nx-warranty-dialog--premium select:focus-visible{
+  outline:2px solid hsl(var(--primary)/.28);
+  outline-offset:1px;
+}
+.nx-warranty-dialog--premium [data-dialog-footer]{
+  gap:.65rem;
+}
+.nx-warranty-dialog--premium [data-dialog-footer]>button{
+  min-height:42px;border-radius:12px;font-weight:700;
+}
+.nx-warranty-dialog--premium button.rounded-md.border{
+  border-radius:13px;
+}
+.dark .nx-warranty-dialog--premium{
+  background:
+    radial-gradient(ellipse 70% 38% at 100% 0%,hsl(var(--primary)/.14),transparent 76%),
+    hsl(var(--card))!important;
+  box-shadow:0 30px 90px -34px rgb(0 0 0/.82),0 0 0 1px hsl(var(--foreground)/.045),inset 0 1px 0 hsl(var(--foreground)/.06)!important;
+}
+@media(max-width:767px){
+  html body .nx-warranty-dialog--premium{
+    width:min(calc(100vw - 28px),440px)!important;
+    max-width:calc(100vw - 28px)!important;
+    max-height:min(82dvh,720px)!important;
+    padding:1.15rem!important;
+    border-radius:22px!important;
+  }
+  html body .nx-warranty-dialog--premium [data-dialog-footer]{
+    display:grid!important;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:.55rem!important;
+  }
+  html body .nx-warranty-dialog--premium [data-dialog-footer]>button{
+    width:100%;min-width:0;white-space:normal;min-height:44px;
+  }
+  html body .nx-warranty-dialog--premium [data-slot="dialog-header"]{padding-right:1.5rem}
+}
+@media(prefers-reduced-motion:no-preference){
+  .nx-warranty-dialog--premium{animation-duration:180ms}
+}
