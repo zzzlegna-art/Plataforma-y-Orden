@@ -474,7 +474,7 @@ export const TecnicosDialog = ({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>{trigger}</DialogTrigger>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="nx-warranty-dialog--centered sm:max-w-md">
         <DialogHeader>
           <DialogTitle>{t("warranty.tecnicoManage")}</DialogTitle>
           <DialogDescription>{t("warranty.tecnicoManageHint")}</DialogDescription>
