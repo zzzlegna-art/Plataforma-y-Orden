@@ -253,10 +253,10 @@
   color:hsl(var(--foreground));
   box-shadow:0 28px 80px -34px hsl(220 48% 12%/.42),0 0 0 1px hsl(var(--foreground)/.025),inset 0 1px 0 hsl(var(--foreground)/.06)!important;
 }
-.nx-warranty-dialog--premium [data-slot="dialog-title"]{
+.nx-warranty-dialog--premium h2{
   font-size:1.12rem;font-weight:800;letter-spacing:-.025em;line-height:1.25;
 }
-.nx-warranty-dialog--premium [data-slot="dialog-description"]{
+.nx-warranty-dialog--premium p{
   color:hsl(var(--muted-foreground));line-height:1.55;
 }
 .nx-warranty-dialog--premium input,
@@ -303,7 +303,7 @@
   html body .nx-warranty-dialog--premium [data-dialog-footer]>button{
     width:100%;min-width:0;white-space:normal;min-height:44px;
   }
-  html body .nx-warranty-dialog--premium [data-slot="dialog-header"]{padding-right:1.5rem}
+  html body .nx-warranty-dialog--premium>h2{padding-right:1.5rem}
 }
 @media(prefers-reduced-motion:no-preference){
   .nx-warranty-dialog--premium{animation-duration:180ms}
