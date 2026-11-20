@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { ArrowLeft, Boxes, Check, ClipboardList, Info, PackagePlus, Plus, Power, ScanLine, Trash2 } from "lucide-react";
+import "./nueva-recepcion-premium.css";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
 
@@ -480,7 +481,7 @@ const NuevaRecepcion = () => {
 
 
   return (
-    <div className="flex flex-1 flex-col gap-5 animate-fade-in">
+    <div className="nx-reception-entry flex flex-1 flex-col gap-5 animate-fade-in">
       <PageHeader
         title={
           <span className="flex items-center gap-2">
@@ -528,9 +529,9 @@ const NuevaRecepcion = () => {
           })}
         </div>
       </section>:null}
-      <div className="grid gap-5 lg:grid-cols-[minmax(21rem,26rem)_minmax(0,1fr)] lg:items-start">
-        <div className="flex flex-col gap-4">
-          <section className="order-2 space-y-3 rounded-xl border bg-card p-5 shadow-sm lg:order-2">
+      <div className="nx-reception-entry__workspace grid gap-5 lg:grid-cols-[minmax(21rem,26rem)_minmax(0,1fr)] lg:items-start">
+        <div className="nx-reception-entry__controls flex flex-col gap-4">
+          <section className="nx-reception-entry__details order-2 space-y-3 rounded-xl border bg-card p-5 shadow-sm lg:order-2">
             <h3 className="flex items-center gap-2 text-sm font-semibold">
               <IconoSeccion>
                 <ClipboardList />
@@ -615,7 +616,7 @@ const NuevaRecepcion = () => {
             </div>
           </section>
 
-          <section className="order-1 space-y-4 rounded-xl border border-primary/20 bg-card p-5 shadow-sm lg:order-1">
+          <section className="nx-reception-entry__capture order-1 space-y-4 rounded-xl border border-primary/20 bg-card p-5 shadow-sm lg:order-1">
             <h3 className="flex items-center gap-2 text-sm font-semibold">
               <IconoSeccion>
                 <ScanLine />
@@ -771,8 +772,8 @@ const NuevaRecepcion = () => {
           </section>
         </div>
 
-        <section className="flex flex-col overflow-hidden rounded-lg border bg-card shadow-sm lg:sticky lg:top-20 lg:max-h-[calc(100vh-7rem)]">
-          <div className="flex shrink-0 items-center justify-between gap-3 border-b px-4 py-3">
+        <section className="nx-reception-entry__manifest flex flex-col overflow-hidden rounded-lg border bg-card shadow-sm lg:sticky lg:top-20 lg:max-h-[calc(100vh-7rem)]">
+          <div className="nx-reception-entry__manifest-head flex shrink-0 items-center justify-between gap-3 border-b px-4 py-3">
             <div className="flex min-w-0 items-center gap-3">
               <IconoSeccion>
                 <Boxes />
@@ -798,7 +799,7 @@ const NuevaRecepcion = () => {
             </div>
           ) : (
             <>
-              <div className="min-h-0 flex-1 space-y-5 overflow-y-auto -mr-4 p-4 pr-4">
+              <div className="nx-reception-entry__manifest-list min-h-0 flex-1 space-y-5 overflow-y-auto -mr-4 p-4 pr-4">
                 {grupos.map((grupo) => (
                   <div key={grupo.clave}>
                     <div className="mb-2 flex items-center justify-between gap-2">
@@ -818,7 +819,7 @@ const NuevaRecepcion = () => {
                         </span>
                       </div>
                     </div>
-                    <ul className="grid grid-cols-[repeat(auto-fill,minmax(9.75rem,1fr))] gap-1.5">
+                    <ul className="nx-reception-entry__serial-grid grid grid-cols-[repeat(auto-fill,minmax(9.75rem,1fr))] gap-1.5">
                       {grupo.items.map((item) => (
                         <ReceptionItemChip
                           key={item.id}
@@ -838,7 +839,7 @@ const NuevaRecepcion = () => {
                   </div>
                 ))}
               </div>
-              <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-t bg-muted/30 px-4 py-2.5 text-xs text-muted-foreground">
+              <div className="nx-reception-entry__manifest-foot flex shrink-0 flex-wrap items-center justify-between gap-2 border-t bg-muted/30 px-4 py-2.5 text-xs text-muted-foreground">
                 <span className="inline-flex items-center gap-2">
                   <Info className="h-4 w-4 shrink-0" />
                   {t("receptions.verifyHint")}
