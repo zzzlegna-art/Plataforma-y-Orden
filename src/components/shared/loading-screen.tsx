@@ -22,6 +22,10 @@ export const LoadingScreen = ({ message }: { message: string }) => {
     <div role="status" aria-live="polite" aria-busy="true" className="nx-loading-premium">
       <div className="nx-loading-premium__card animate-fade-in">
         <span className="nx-loading-premium__eyebrow">NEXORA · CENTRO DE OPERACIONES</span>
+        <div className="nx-loading-premium__loader" aria-hidden="true">
+          <span className="nx-loading-premium__loader-orbit" />
+          <span className="nx-loading-premium__loader-core">N</span>
+        </div>
         <div className="nx-loading-premium__brand" aria-hidden="true">
           <BrandLogo variant="horizontal" className="nx-loading-premium__brand-lockup" alt="Nexora" />
         </div>
@@ -29,7 +33,6 @@ export const LoadingScreen = ({ message }: { message: string }) => {
           <p className="nx-loading-premium__title">{message}</p>
           <p className="nx-loading-premium__hint">{t(slow ? "app.loadingSlow" : "app.loadingHint")}</p>
         </div>
-        <div className="nx-loading-premium__progress" aria-hidden="true" />
         <span className="nx-loading-premium__footer">Preparando tu espacio de trabajo</span>
       </div>
     </div>
