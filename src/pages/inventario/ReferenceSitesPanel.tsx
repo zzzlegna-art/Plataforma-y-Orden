@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { Fragment, useCallback, useEffect, useRef, useState } from "react";
 import { AlertTriangle, ArrowLeft, ArrowRight, Boxes, ChevronDown, ChevronUp,
   RefreshCw, Search, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
@@ -102,8 +102,8 @@ export const ReferenceSitesPanel=()=>{
             </tr>
           </thead>
           <tbody>
-            {data?.items.map(item=><>
-              <tr key={item.productId} className="border-t bg-muted/15 font-semibold">
+            {data?.items.map(item=><Fragment key={item.productId}>
+              <tr className="border-t bg-muted/15 font-semibold">
                 <th scope="row" className="px-4 py-3 text-left">
                   {item.name}
                   <span className="mt-0.5 block font-mono text-xs font-normal text-muted-foreground">{item.sku}</span>
@@ -119,7 +119,7 @@ export const ReferenceSitesPanel=()=>{
                   {" "}{format(item.sold)} salidas históricas
                 </td>
               </tr>:null}
-            </>)}
+            </Fragment>)}
           </tbody>
         </table>
         {!loading&&data?.items.length===0?
