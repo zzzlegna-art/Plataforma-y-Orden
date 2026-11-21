@@ -90,7 +90,7 @@ export const RolePlanningPanel = () => {
           <div>
             <h3 className="text-lg font-bold">Activar personal</h3>
             <p className="mt-1 max-w-xl text-sm text-muted-foreground">
-              Activa el acceso operativo del Encargado o Vendedor dentro de Bodega 6A.
+              Activa el acceso operativo del Encargado dentro de Bodega 6A.
             </p>
           </div>
         </div>
@@ -111,7 +111,7 @@ export const RolePlanningPanel = () => {
             const draft = drafts[user.id] ?? "bodeguero";
             const changed = draft !== saved?.plannedRole;
             const protectedWorker = Boolean(saved &&
-              (saved.plannedRole==="encargado"||saved.plannedRole==="vendedor"));
+              saved.plannedRole==="encargado");
             const readyToAttempt = Boolean(protectedWorker && !user.isActive &&
               !saved?.operationallyEnabled);
             return (
