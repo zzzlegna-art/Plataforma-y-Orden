@@ -239,7 +239,6 @@ export interface Unit {
   serial: string;
   condition: UnitCondition;
   status: UnitStatus;
-  cost?: number;
   receptionId?: string;
   location?: string;
   notes?: string;
