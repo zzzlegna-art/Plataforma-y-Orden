@@ -4,11 +4,7 @@
  */
 export interface NexoraSite {
   id: string;
-  cityId: string;
   name: string;
-  siteType: "principal";
-  parentSiteId: null;
-  address: string | null;
   isActive: boolean;
 }
 
