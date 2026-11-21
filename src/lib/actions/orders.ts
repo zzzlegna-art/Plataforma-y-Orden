@@ -600,11 +600,8 @@ export const regresarPedidoASerializacion = (
   return order;
 };
 
-/**
- * Confirma la facturación y el despacho físico del pedido. Aquí se registra
- * la salida de cada unidad reservada, sin duplicar movimientos heredados.
- */
-export const confirmarVentaPedido = (
+/** Confirma el despacho operativo y registra la salida física de cada unidad reservada. */
+export const confirmarDespachoPedido = (
   db: Db,
   actor: Actor,
   input: { orderId: string },
@@ -614,17 +611,10 @@ export const confirmarVentaPedido = (
   if (order.status !== "preparado") throw new DomainError("errors.orderNotPrepared");
   const items = orderItems(db, order.id);
   validarAsignacionesPedido(db, order, items);
-  order.total = items.reduce((total, item) => total + item.subtotal, 0);
-
   for (const item of items) {
-    const product = db.products.find((p) => p.id === item.productId);
     for (const row of db.orderItemUnits.filter((assignment) => assignment.orderItemId === item.id)) {
       const unit = db.units.find((candidate) => candidate.id === row.unitId);
       if (!unit) throw new DomainError("errors.notFound");
-      const costoReal = unit.cost ?? (product ? costoSugeridoColor(product, item.color) : undefined);
-      if (costoReal !== undefined && item.unitPrice < costoReal) {
-        throw new DomainError("errors.saleBelowCost", { serial: unit.serial, costo: costoReal, precio: item.unitPrice });
-      }
       const yaSalioEnEstePedido = unit.status === "vendido" && unidadYaDespachadaEnPedido(db, unit.id, order.id);
       if (!yaSalioEnEstePedido && unit.status !== "en_bodega" && unit.status !== "en_local") {
         throw new DomainError("errors.unitNotAvailable", { serial: unit.serial });
@@ -632,7 +622,7 @@ export const confirmarVentaPedido = (
     }
   }
 
-  // La salida física se registra únicamente al confirmar el despacho/venta.
+  // La salida física se registra al confirmar el despacho.
   // Los pedidos heredados que ya tengan una salida para este mismo pedido no
   // generan un segundo movimiento.
   const invoicedAt = nowIso();
@@ -658,13 +648,13 @@ export const confirmarVentaPedido = (
   order.updatedAt = invoicedAt;
   logAudit(db, actor, {
     action: "status", entity: "order", entityId: order.id,
-    details: `${order.code} · facturación y despacho confirmados; salida física registrada`,
+    details: `${order.code} · despacho confirmado; salida física registrada`,
   });
   return order;
 };
 
-/** Compatibilidad para llamadas existentes: finalizar ahora significa confirmar la facturación. */
-export const finalizarPedido = confirmarVentaPedido;
+/** Compatibilidad temporal: finalizar un pedido equivale al despacho operativo. */
+export const finalizarPedido = confirmarDespachoPedido;
 
 /** Cancela solo pedidos que aún no han tenido salida física (solo administrador). */
 export const cancelarPedido = (
