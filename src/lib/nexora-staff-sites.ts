@@ -130,17 +130,3 @@ export const setStaffSiteActive = async (
   }).eq("id", assignmentId).select("*").single()));
 };
 
-/**
- * Cuenta las unidades físicas con estado legacy de existencia sin atribuirlas
- * a una sede nueva. Los equipos vendidos/entregados quedan excluidos.
- * Supabase PostgREST devuelve sólo el conteo; nunca descargamos IMEI.
- */
-export const countLegacyInventoryToReconcile = async (): Promise<number> => {
-  const { supabase } = await import("@/integrations/supabase/client");
-  const { count, error } = await supabase.from("bodega_units")
-    .select("id", { head: true, count: "exact" })
-    .in("status", ["en_bodega", "en_local", "en_reparacion", "defectuoso"]);
-  if (error) throw new Error(error.message);
-  if (count === null) throw new Error("No se pudo verificar el conteo anterior.");
-  return count;
-};

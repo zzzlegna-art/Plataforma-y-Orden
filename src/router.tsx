@@ -34,7 +34,7 @@ const TrazabilidadSeriales = lazy(() => import("./pages/trazabilidad"));
 
 const InventoryByRole=({ serials=false }:{serials?:boolean})=>{
   const {role}=useApp();
-  return role==="vendedor"||role==="encargado" ? <WorkerGlobalInventory serials={serials}/>
+  return role==="encargado" ? <WorkerGlobalInventory serials={serials}/>
     : serials?<TrazabilidadSeriales/>:<Inventario/>;
 };
 
