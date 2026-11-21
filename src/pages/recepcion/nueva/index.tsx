@@ -15,7 +15,6 @@ import { Badge, ConditionBadge } from "@/components/shared/status-badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { OptionSelect } from "@/components/shared/option-select";
-import { FormattedNumberInput } from "@/components/shared/formatted-number-input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
@@ -52,7 +51,7 @@ const IconoSeccion = ({ children }: { children: ReactNode }) => (
   </span>
 );
 
-type LecturaRecepcion = { serial: string; productId: string; condition: UnitCondition; cost: string };
+type LecturaRecepcion = { serial: string; productId: string; condition: UnitCondition };
 type LecturaRechazada = LecturaRecepcion & { motivo: string };
 
 const NuevaRecepcion = () => {
@@ -73,7 +72,6 @@ const NuevaRecepcion = () => {
     [db, t],
   );
   const [condition, setCondition] = useState<UnitCondition>("nuevo");
-  const [cost, setCost] = useState("");
   const [repuestoQty, setRepuestoQty] = useState("1");
   const [reference, setReference] = useState("");
   const [supplierId, setSupplierId] = useState("");
@@ -170,7 +168,7 @@ const NuevaRecepcion = () => {
       value === "repuesto"
         ? esProductoRepuesto(db, selectedProduct)
         : selectedProduct.categoria === value;
-    if (!sigueVisible) { setProductId(""); setCost(""); }
+    if (!sigueVisible) { setProductId(""); }
   };
 
   const persistHeader = async (selectedSupplierId = supplierId) => {
@@ -254,12 +252,9 @@ const NuevaRecepcion = () => {
           productId: lectura.productId,
           serial,
           condition: lectura.condition,
-          cost: lectura.cost ? Number(lectura.cost) : undefined,
         }),
       );
       if (result) {
-        // Mantener el costo opcional para escanear un lote de la misma referencia
-        // sin tener que volver a escribirlo tras cada IMEI.
         lecturasTerminadasRef.current.add(serialNormalizado);
         setRechazados((anteriores) => anteriores.filter((item) => item.serial.trim().toUpperCase() !== serialNormalizado));
         setUltimoSerialAgregado(serial.trim());
@@ -305,10 +300,10 @@ const NuevaRecepcion = () => {
   };
 
   /**
-   * Cada lectura conserva la referencia, condición y costo con que se escaneó.
+   * Cada lectura conserva la referencia y condición con que se escaneó.
    * Los reintentos reaprovechan esos valores, aunque el formulario haya cambiado.
    */
-  const handleScan = (serial: string) => encolarLectura({ serial, productId, condition, cost });
+  const handleScan = (serial: string) => encolarLectura({ serial, productId, condition });
   const reintentarLectura = (registro: LecturaRechazada) => {
     const serial = registro.serial.trim().toUpperCase();
     if (procesandoColaRef.current ||
@@ -393,12 +388,10 @@ const NuevaRecepcion = () => {
           receptionId: targetId as string,
           productId,
           condition,
-          cost: cost ? Number(cost) : undefined,
           quantity,
         }),
       );
       if (result) {
-        setCost("");
         setRepuestoQty("1");
       }
     });
@@ -522,8 +515,8 @@ const NuevaRecepcion = () => {
             return <div key={i} className="flex flex-wrap items-center gap-2 rounded-lg border px-3 py-2 text-sm">
               <span>{product?.name??line.description}: {received}/{line.quantity}</span>
               {!confirmed&&product?<Button size="sm" variant="outline"
-                onClick={()=>{setProductId(product.id);setCost(line.unitCost?.toString()??"");setRepuestoQty(String(Math.max(1,line.quantity-received)));}}>
-                Usar referencia y costo aprobado
+                onClick={()=>{setProductId(product.id);setRepuestoQty(String(Math.max(1,line.quantity-received)));}}>
+                Usar referencia
               </Button>:null}
             </div>;
           })}
@@ -671,7 +664,7 @@ const NuevaRecepcion = () => {
               <ProductPicker
                 products={productosFiltrados}
                 value={productId}
-                onChange={(id) => { if (pendientes === 0) { setProductId(id); setCost(""); } }}
+                onChange={(id) => { if (pendientes === 0) { setProductId(id);  } }}
                 placeholder={t("product.select")}
               />
               {productosFiltrados.length === 0 ? (
@@ -681,17 +674,6 @@ const NuevaRecepcion = () => {
               ) : null}
             </div>
 
-            {!esRepuesto && selectedProduct ? (
-              <div className="space-y-2 rounded-xl border border-border/70 bg-card p-3">
-                <Label>Costo real de compra por equipo (opcional)</Label>
-                <FormattedNumberInput value={cost} onValueChange={setCost}
-                  disabled={confirmed || pendientes > 0} />
-                <p className="text-xs text-muted-foreground">
-                  Registra los IMEI normalmente, sin elegir colores. Si ingresas un costo real, se
-                  conservará para la venta; el color se seleccionará después al serializar el pedido.
-                </p>
-              </div>
-            ) : null}
             {esRepuesto ? (
               <div className="space-y-2">
                 <Label>{t("receptions.quantity")}</Label>

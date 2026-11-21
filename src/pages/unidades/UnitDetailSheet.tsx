@@ -22,7 +22,7 @@ import { useRunAction } from "@/hooks/use-run-action";
 import { useStore } from "@/hooks/use-store";
 import { usePermissions } from "@/hooks/use-permissions";
 import { liberarUnit, reingresarUnit, updateUnit } from "@/lib/actions/units";
-import { formatCurrency, formatDate, formatDateTime } from "@/lib/format";
+import { formatDate, formatDateTime } from "@/lib/format";
 import { getUnitTimeline, getUnitOrigen, unitLocation } from "@/lib/selectors";
 import { describeImeiOrderAssociation } from "@/lib/nexora-imei-order-state";
 
@@ -33,7 +33,7 @@ const InfoRow = ({ label, children }: { label: string; children: React.ReactNode
   </div>
 );
 
-/** Ficha de una unidad: trazabilidad, costos, ubicación y ajustes. */
+/** Ficha de una unidad: trazabilidad, ubicación y ajustes. */
 export const UnitDetailSheet = ({
   unitId,
   onClose,
@@ -108,11 +108,6 @@ export const UnitDetailSheet = ({
               </InfoRow>
               <InfoRow label={t("unit.location")}>
                 {t(`unitLocation.${unitLocation(unit.status)}`)}
-              </InfoRow>
-              <InfoRow label={t("unit.cost")}>
-                <span className="font-tabular">
-                  {unit.cost != null ? formatCurrency(unit.cost) : "—"}
-                </span>
               </InfoRow>
               <InfoRow label={t("unit.receivedAt")}>{formatDate(unit.receivedAt)}</InfoRow>
               <InfoRow label={t("receptions.title")}>

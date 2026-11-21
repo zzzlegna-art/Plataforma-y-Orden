@@ -288,27 +288,21 @@ export type Database = {
           order_id: string
           product_id: string | null
           quantity: number
-          subtotal: number
           unit_condition: string | null
-          unit_price: number
         }
         Insert: {
           id?: string
           order_id: string
           product_id?: string | null
           quantity?: number
-          subtotal?: number
           unit_condition?: string | null
-          unit_price?: number
         }
         Update: {
           id?: string
           order_id?: string
           product_id?: string | null
           quantity?: number
-          subtotal?: number
           unit_condition?: string | null
-          unit_price?: number
         }
         Relationships: [
           {
@@ -338,7 +332,6 @@ export type Database = {
           notes: string | null
           order_date: string
           status: string
-          total: number
           updated_at: string
         }
         Insert: {
@@ -351,7 +344,6 @@ export type Database = {
           notes?: string | null
           order_date?: string
           status?: string
-          total?: number
           updated_at?: string
         }
         Update: {
@@ -364,7 +356,6 @@ export type Database = {
           notes?: string | null
           order_date?: string
           status?: string
-          total?: number
           updated_at?: string
         }
         Relationships: [
@@ -433,7 +424,6 @@ export type Database = {
           category_id: string | null
           control_started_at: string | null
           control_started_by: string | null
-          cost: number
           created_at: string
           description: string | null
           id: string
@@ -441,7 +431,6 @@ export type Database = {
           is_active: boolean
           min_stock: number
           name: string
-          price: number
           sku: string
           technical_specs: Json
           tipo_repuesto: string | null
@@ -454,7 +443,6 @@ export type Database = {
           category_id?: string | null
           control_started_at?: string | null
           control_started_by?: string | null
-          cost?: number
           created_at?: string
           description?: string | null
           id?: string
@@ -462,7 +450,6 @@ export type Database = {
           is_active?: boolean
           min_stock?: number
           name: string
-          price?: number
           sku?: string
           technical_specs?: Json
           tipo_repuesto?: string | null
@@ -475,7 +462,6 @@ export type Database = {
           category_id?: string | null
           control_started_at?: string | null
           control_started_by?: string | null
-          cost?: number
           created_at?: string
           description?: string | null
           id?: string
@@ -483,7 +469,6 @@ export type Database = {
           is_active?: boolean
           min_stock?: number
           name?: string
-          price?: number
           sku?: string
           technical_specs?: Json
           tipo_repuesto?: string | null
@@ -535,7 +520,6 @@ export type Database = {
       }
       bodega_reception_items: {
         Row: {
-          cost: number | null
           created_at: string
           id: string
           product_id: string | null
@@ -544,7 +528,6 @@ export type Database = {
           unit_condition: string
         }
         Insert: {
-          cost?: number | null
           created_at?: string
           id?: string
           product_id?: string | null
@@ -553,7 +536,6 @@ export type Database = {
           unit_condition?: string
         }
         Update: {
-          cost?: number | null
           created_at?: string
           id?: string
           product_id?: string | null
@@ -663,7 +645,6 @@ export type Database = {
         Row: {
           checked_at: string | null
           checked_by: string | null
-          cost: number | null
           created_by: string | null
           id: string
           location: string | null
@@ -678,7 +659,6 @@ export type Database = {
         Insert: {
           checked_at?: string | null
           checked_by?: string | null
-          cost?: number | null
           created_by?: string | null
           id?: string
           location?: string | null
@@ -693,7 +673,6 @@ export type Database = {
         Update: {
           checked_at?: string | null
           checked_by?: string | null
-          cost?: number | null
           created_by?: string | null
           id?: string
           location?: string | null
@@ -726,7 +705,6 @@ export type Database = {
         Row: {
           cliente_manual: string | null
           code: string
-          costo: number | null
           created_by: string | null
           customer_id: string | null
           diagnostico: string | null
@@ -749,7 +727,6 @@ export type Database = {
         Insert: {
           cliente_manual?: string | null
           code: string
-          costo?: number | null
           created_by?: string | null
           customer_id?: string | null
           diagnostico?: string | null
@@ -772,7 +749,6 @@ export type Database = {
         Update: {
           cliente_manual?: string | null
           code?: string
-          costo?: number | null
           created_by?: string | null
           customer_id?: string | null
           diagnostico?: string | null
