@@ -59,7 +59,6 @@ import {
 } from "@/lib/selectors";
 import type { UnitCondition } from "@/lib/types";
 import { RankChart } from "./rank-chart";
-import { DashboardSiteOverview } from "./dashboard-site-overview";
 import "./panel-premium.css";
 import "./movement-premium.css";
 import { MovementChartTooltip, MOVEMENT_SERIES } from "./movement-chart-tooltip";
@@ -370,8 +369,6 @@ const Panel = () => {
         </div>
         <Link to="/seriales" className="nx-hero-link">Consultar seriales <ArrowRight className="h-4 w-4" /></Link>
       </section>
-
-      <DashboardSiteOverview />
 
       </section>
 
