@@ -110,7 +110,6 @@ export const RolePlanningPanel = () => {
             const saved = plans.find((p) => p.userId === user.id);
             const draft = drafts[user.id] ?? "bodeguero";
             const changed = draft !== saved?.plannedRole;
-            const assigned = assignments.filter((s)=>s.userId===user.id&&s.isActive);
             const protectedWorker = Boolean(saved &&
               (saved.plannedRole==="encargado"||saved.plannedRole==="vendedor"));
             const readyToAttempt = Boolean(protectedWorker && !user.isActive &&
