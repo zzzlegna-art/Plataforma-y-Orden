@@ -136,7 +136,6 @@ export type Database = {
           notes: string | null
           phone: string | null
           tax_id: string | null
-          tipo: string | null
         }
         Insert: {
           address?: string | null
@@ -150,7 +149,6 @@ export type Database = {
           notes?: string | null
           phone?: string | null
           tax_id?: string | null
-          tipo?: string | null
         }
         Update: {
           address?: string | null
@@ -164,7 +162,6 @@ export type Database = {
           notes?: string | null
           phone?: string | null
           tax_id?: string | null
-          tipo?: string | null
         }
         Relationships: []
       }
