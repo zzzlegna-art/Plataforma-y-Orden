@@ -33,9 +33,6 @@ export const createCustomer = (
     address: input.address?.trim() || undefined,
     notes: input.notes?.trim() || undefined,
     isActive: input.isActive ?? true,
-    // Todo cliente hoy es mayorista (Pedidos es siempre "a clientes mayoristas"); lo que sí
-    // varía es qué le puede vender, y eso es lo que se pide al crearlo.
-    tipo: "mayorista",
     categoriaMayorista: input.categoriaMayorista ?? "ambos",
     createdAt: nowIso(),
   };
