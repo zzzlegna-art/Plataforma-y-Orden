@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { canAssignStaffToSite, type StaffMember, type StaffSiteAssignment } from "./nexora-staff-sites";
-import type { NexoraSite } from "./nexora-sites";
+import { canAssignStaffToSite, type NexoraSite, type StaffMember, type StaffSiteAssignment } from "./nexora-staff-sites";
 
 const people: StaffMember[] = [
   { id: "u1", name: "Empleado A", email: "empleado@example.com", role: "bodeguero", isActive: true },
