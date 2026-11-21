@@ -56,7 +56,6 @@ describe("carga diferida de NEXORA", () => {
     "panel",
     "mi-sede",
     "recepcion",
-    "recepcion/factura",
     "recepcion/nueva",
     "recepcion/nueva/:receptionId",
     "traslados",
