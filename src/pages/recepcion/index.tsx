@@ -447,11 +447,6 @@ const Recepciones = () => {
           >
             <Download aria-hidden="true" /> {t("export.button")}
           </Button>
-          <Button asChild variant="outline">
-            <Link to="/recepcion/factura">
-              <FileText aria-hidden="true" /> Leer factura
-            </Link>
-          </Button>
           <Button asChild className="nx-reception-primary-action">
             <Link to="/recepcion/nueva">
               <PackagePlus aria-hidden="true" />
