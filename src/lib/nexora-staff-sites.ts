@@ -78,6 +78,13 @@ const readAssignment = (row: Row): StaffSiteAssignment => ({
   createdAt: String(row.created_at),
 });
 
+
+export const listStaffMembers = async (): Promise<StaffMember[]> => {
+  const staffTable = await from("bodega_profiles");
+  return unwrap(await staffTable.select("id,email,full_name,role,is_active").order("email"))
+    .map(readStaff);
+};
+
 export const listStaffSiteAssignments = async (): Promise<{
   users: StaffMember[];
   assignments: StaffSiteAssignment[];
