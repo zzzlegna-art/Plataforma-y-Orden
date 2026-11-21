@@ -33,10 +33,9 @@ import {
   agregarSerialDespachado,
   cancelarPedido,
   cancelarPedidoDespachado,
+  confirmarDespachoPedido,
   editarCantidadReferencia,
-  editarPrecioReferencia,
   confirmarPreparacionPedido,
-  confirmarVentaPedido,
   regresarPedidoASerializacion,
   quitarImeiPedido,
   quitarReferenciaPedido,
@@ -44,9 +43,9 @@ import {
   serializarImeiPedido,
   unidadesLibres,
 } from "@/lib/actions/orders";
-import { exportExcel, exportOrderSerialRelationPdf, exportSalesInvoicePdf } from "@/lib/export";
-import { formatCurrency, formatDate, todayIso } from "@/lib/format";
-import { costoSugeridoColor, estadoPrecioVentaColor, variantePorColor } from "@/lib/color-variants";
+import { exportOrderSerialRelationPdf } from "@/lib/export";
+import { formatDate, todayIso } from "@/lib/format";
+
 import { findUnitBySerial, getOrderView } from "@/lib/selectors";
 import { ordenarLineasPedido } from "@/lib/order-line-sort";
 import type { UnitCondition } from "@/lib/types";
@@ -69,8 +68,6 @@ const PedidoDetalle = () => {
   const [addCondition, setAddCondition] = useState<UnitCondition>("nuevo");
   const [addColor, setAddColor] = useState("");
   const [cancelMotivo, setCancelMotivo] = useState("");
-  const [lineaPrecioEditando, setLineaPrecioEditando] = useState<string | null>(null);
-  const [precioBorrador, setPrecioBorrador] = useState("");
 
   // Edición de pedidos despachados: agregar/quitar seriales con validación.
   const [agregarLinea, setAgregarLinea] = useState<string | null>(null);
@@ -118,7 +115,6 @@ const PedidoDetalle = () => {
       ? [...actuales.filter((id) => id !== orderItemId), orderItemId]
       : actuales.filter((id) => id !== orderItemId));
   };
-  const totalPedido = lines.reduce((total, line) => total + line.item.subtotal, 0);
   // Los repuestos no llevan serial (se descuentan solos al finalizar): el progreso y lo que falta
   // por asignar solo cuentan las referencias que sí se escanean.
   const lineasConSerial = lines.filter((line) => !line.esRepuesto);
@@ -129,8 +125,6 @@ const PedidoDetalle = () => {
   const preparado = order.status === "preparado";
   // El administrador puede ajustar (agregar/quitar unidades) y anular pedidos ya despachados.
   const edicionDespachado = isAdmin && order.status === "despachado";
-  const ventaConfirmada = order.status === "despachado";
-  const precioEditable = editable || preparado;
   const datosDocumentoVenta = () => ({
     orderCode: order.code,
     companyName: db.settings.companyName,
@@ -280,22 +274,6 @@ const PedidoDetalle = () => {
       { success: "order.updated", key: `pedido-quitar-linea:${orderItemId}` },
     );
 
-  const guardarPrecio = async (orderItemId: string) => {
-    const precio = Number(precioBorrador);
-    if (!precioBorrador.trim() || !Number.isFinite(precio) || precio < 0) {
-      toast.error("Ingresa un precio válido, igual o superior a cero.");
-      return;
-    }
-    const result = await runAction(
-      (db2, actor) => editarPrecioReferencia(db2, actor, { orderItemId, nuevoPrecio: precio }),
-      { success: "order.updated" },
-    );
-    if (result) {
-      setLineaPrecioEditando(null);
-      setPrecioBorrador("");
-    }
-  };
-
   const agregarReferencia = async () => {
     const result = await runAction(
       (db2, actor) =>
@@ -335,11 +313,11 @@ const PedidoDetalle = () => {
     }
   };
 
-  const confirmarVenta = async () => {
-    await runAction((db2, actor) => confirmarVentaPedido(db2, actor, { orderId: order.id }), {
+  const confirmarDespacho = async () => {
+    await runAction((db2, actor) => confirmarDespachoPedido(db2, actor, { orderId: order.id }), {
       success: "order.dispatched",
       weighty: true,
-      key: `pedido-venta:${order.id}`,
+      key: `pedido-despacho:${order.id}`,
     });
   };
 
@@ -400,7 +378,7 @@ const PedidoDetalle = () => {
                   </Button>
                 }
                 title="Confirmar serialización y descontar stock"
-                description={`Las ${requested} unidades verificadas dejarán de contarse en el inventario disponible desde ahora. El pedido quedará pendiente de confirmar precios y venta. Todavía no se marcarán como vendidas ni se registrará un despacho.`}
+                description={`Las ${requested} unidades verificadas dejarán de contarse en el inventario disponible desde ahora. El pedido quedará pendiente de confirmar el despacho. Los equipos aún no registrarán salida física.`}
                 confirmLabel="Confirmar seriales y descontar"
                 onConfirm={confirmarPreparacion}
               />
@@ -431,7 +409,7 @@ const PedidoDetalle = () => {
                     </Button>
                   }
                   title="Regresar a serialización"
-                  description="El pedido volverá a En preparación para seguir asignando o corrigiendo IMEI. Se conservarán todos los seriales ya ingresados; el descuento del stock disponible se revertirá temporalmente hasta que confirmes otra vez la serialización. No se registrará ninguna venta."
+                  description="El pedido volverá a En preparación para seguir asignando o corrigiendo IMEI. Se conservarán todos los seriales ya ingresados; el descuento del stock disponible se revertirá temporalmente hasta que confirmes otra vez la serialización. No se registrará ninguna salida física."
                   confirmLabel="Volver a serialización"
                   onConfirm={regresarASerializacion}
                 />
@@ -440,13 +418,13 @@ const PedidoDetalle = () => {
                 trigger={
                   <Button disabled={runAction.pending} loading={runAction.pending}>
                     <Check />
-                    Confirmar precios y venta
+                    Confirmar despacho
                   </Button>
                 }
-                title="Confirmar precios, venta y despacho"
-                description="Los IMEI ya se descontaron del inventario disponible al confirmar la serialización. Ahora se validarán los precios frente al costo de cada unidad y se registrará la venta y el despacho, sin volver a descontar esas unidades."
-                confirmLabel="Confirmar precios y venta"
-                onConfirm={confirmarVenta}
+                title="Confirmar despacho operativo"
+                description="Se verificará que todos los IMEI sigan asignados y disponibles. Después se registrará la salida física de cada equipo y el pedido pasará a Despachado. No se manejarán precios ni costos."
+                confirmLabel="Confirmar despacho"
+                onConfirm={confirmarDespacho}
               />
               {isAdmin ? (
                 <ConfirmDialog
@@ -541,60 +519,6 @@ const PedidoDetalle = () => {
             PDF · Relación de seriales
           </Button>
         </div>
-        <h3 className="text-sm font-semibold">Factura comercial</h3>
-        <p className="mb-3 text-sm text-muted-foreground">
-          Descarga la factura comercial en PDF o Excel. Se habilita al confirmar la venta y el despacho.
-        </p>
-        <div className="flex flex-wrap gap-2">
-          <Button
-            type="button"
-            variant="outline"
-            disabled={!ventaConfirmada}
-            title={!ventaConfirmada ? "Confirma la venta y el despacho para habilitar la factura comercial." : undefined}
-            onClick={() => {
-              exportSalesInvoicePdf({
-                ...datosDocumentoVenta(),
-                filename: `factura-comercial-${order.code.toLowerCase()}-${todayIso()}.pdf`,
-              });
-            }}
-          >
-            <Receipt />
-            Factura comercial · PDF
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            disabled={!ventaConfirmada}
-            title={!ventaConfirmada ? "Confirma la venta y el despacho para habilitar la factura comercial." : undefined}
-            onClick={() => {
-              const formatoMoneda = db.settings.currency === "COP" ? '"$"#,##0' : "#,##0.00";
-              exportExcel({
-                filename: `factura-comercial-${order.code.toLowerCase()}-${todayIso()}.xlsx`,
-                sheets: [{
-                  name: "Factura comercial",
-                  title: `Factura comercial · ${order.code}`,
-                  subtitle: `Cliente: ${customer?.name ?? "Sin cliente"} · Fecha: ${formatDate(order.orderDate)}`,
-                  columns: ["Referencia", "Producto", "Condición", "Cantidad", "Precio unitario", "Subtotal"],
-                  rows: lineasOrdenadas.map((line) => [
-                    line.product?.sku ?? "—",
-                    `${line.product?.name ?? "Producto sin nombre"}${line.item.color ? ` · ${line.item.color}` : ""}`,
-                    line.esRepuesto ? "No aplica" : line.item.condition ? t(`condition.${line.item.condition}`) : "—",
-                    line.item.quantity,
-                    line.item.unitPrice,
-                    line.item.subtotal,
-                  ]),
-                  numberFormats: { 3: "#,##0", 4: formatoMoneda, 5: formatoMoneda },
-                  columnWidths: [20, 38, 16, 14, 20, 20],
-                  wrapColumns: [1],
-                  freezeRows: 4,
-                }],
-              });
-            }}
-          >
-            <FileSpreadsheet />
-            Factura comercial · Excel
-          </Button>
-        </div>
       </section>
       <div className="nx-order-summary grid gap-3 sm:grid-cols-3">
         <div className="rounded-lg border bg-card p-4">
@@ -613,15 +537,7 @@ const PedidoDetalle = () => {
             {order.deliveryDate ? formatDate(order.deliveryDate) : "—"}
           </p>
         </div>
-        <div className="rounded-lg border bg-card p-4">
-          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-            {t("order.total")}
-          </p>
-          <p className="font-tabular mt-1 text-xl font-semibold">
-            {formatCurrency(totalPedido)}
-          </p>
-          <p className="mt-1 text-xs text-muted-foreground">Total estimado de la venta</p>
-        </div>
+
       </div>
 
       {editable && pending === 0 ? <p className="rounded-lg border border-primary/30 bg-primary/5 px-4 py-3 text-sm text-primary">Verificación completa: {assigned} de {requestedSerial} equipos con IMEI asignado. Revisa físicamente las unidades antes de confirmar la preparación.</p> : null}
