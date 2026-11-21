@@ -159,8 +159,6 @@ export const ProductImportDialog = ({ trigger }: { trigger: React.ReactNode }) =
         categoryId,
         brandId,
         categoria,
-        price: row.price,
-        cost: row.cost,
         minStock: row.minStock,
         isActive: true,
       };
@@ -259,7 +257,7 @@ export const ProductImportDialog = ({ trigger }: { trigger: React.ReactNode }) =
               variant="outline"
               onClick={() => descargarCsv("plantilla-productos-nexora.csv", [[
                 "Producto", "Referencia", "Marca", "Categoría", "Descripción",
-                "Enlace de imagen", "Precio", "Costo", "Stock mínimo", "Características técnicas",
+                "Enlace de imagen", "Stock mínimo", "Características técnicas",
               ]])}
             >
               <FileSpreadsheet className="mr-2 h-4 w-4" />
