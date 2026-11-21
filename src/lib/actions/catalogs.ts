@@ -287,8 +287,6 @@ export interface ProductInput {
   brandId?: string;
   categoria?: ProductCategory;
   tipoRepuesto?: TipoRepuesto;
-  price?: number;
-  cost?: number;
   minStock: number;
   isActive?: boolean;
 }
@@ -336,8 +334,6 @@ export const createProduct = (db: Db, actor: Actor, input: ProductInput): Produc
     categoria: input.categoria || undefined,
     tipoRepuesto:
       input.categoria === "repuesto" ? input.tipoRepuesto : undefined,
-    price: 0,
-    cost: 0,
     minStock: requireNumber(input.minStock, "errors.invalidMinStock"),
     isActive: input.isActive ?? true,
     createdAt: nowIso(),
@@ -386,8 +382,6 @@ export const updateProduct = (
   } else {
     product.tipoRepuesto = undefined;
   }
-  product.price = 0;
-  product.cost = 0;
   if (input.colorVariants !== undefined) {
     const nuevas = validarVariantesColor(input.colorVariants);
     const permitidos = new Set(nuevas.map((v) => v.color.toLocaleLowerCase("es")));
