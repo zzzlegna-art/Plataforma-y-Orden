@@ -46,7 +46,7 @@ const crearCuenta = async (body: {
   email: string;
   password: string;
   nombre: string;
-  rol: Role | "encargado" | "vendedor";
+  rol: Role | "encargado";
 }) => {
   const { data, error } = await supabase.functions.invoke("bodega-gestion-usuarios", { body });
   if (error || !data?.ok) {
@@ -62,7 +62,7 @@ const CreateUserDialog = ({ onCreated }: { onCreated: () => void }) => {
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [role, setRole] = useState<Role | "encargado" | "vendedor">("bodeguero");
+  const [role, setRole] = useState<Role | "encargado">("bodeguero");
   const [saving, setSaving] = useState(false);
   const savingRef = useRef(false);
 
@@ -78,7 +78,7 @@ const CreateUserDialog = ({ onCreated }: { onCreated: () => void }) => {
         accion: "crear", email: email.trim(), password, nombre: fullName.trim(), rol: role,
       });
       if (!result.ok) { toast.error(t(result.error)); return; }
-      toast.success(role === "encargado" || role === "vendedor"
+      toast.success(role === "encargado"
         ? "Cuenta creada como pendiente: no podrá iniciar sesión hasta la activación segura."
         : t("user.created"));
       onCreated();
@@ -142,20 +142,19 @@ const CreateUserDialog = ({ onCreated }: { onCreated: () => void }) => {
               value={role}
               onChange={(value) => setRole(
                 value === "admin" || value === "bodeguero" ||
-                value === "encargado" || value === "vendedor" ? value : "bodeguero",
+                value === "encargado" ? value : "bodeguero",
               )}
               options={[
                 { value: "admin", label: t("role.admin") },
                 { value: "bodeguero", label: t("role.bodeguero") },
                 { value: "encargado", label: "Encargado (cuenta pendiente)" },
-                { value: "vendedor", label: "Vendedor (cuenta pendiente)" },
               ]}
             />
-            {(role === "encargado" || role === "vendedor") ? (
+            {(role === "encargado") ? (
               <p role="note" className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs leading-relaxed text-amber-950 dark:border-amber-400/30 dark:bg-amber-400/10 dark:text-amber-100">
                 Esta cuenta se creará INACTIVA, sin permisos heredados de Bodeguero.
                 La autorización futura requerirá sede asignada, inventario aprobado y
-                controles del servidor. No podrá ingresar ni vender antes de activarse.
+                controles del servidor. No podrá ingresar hasta que el administrador autorice su activación.
               </p>
             ) : null}
           </div>
@@ -165,7 +164,7 @@ const CreateUserDialog = ({ onCreated }: { onCreated: () => void }) => {
             {t("common.cancel")}
           </Button>
           <Button type="button" loading={saving} onClick={() => void save()}>
-            {role === "encargado" || role === "vendedor" ? "Crear cuenta pendiente" : t("common.save")}
+            {role === "encargado" ? "Crear cuenta pendiente" : t("common.save")}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -331,12 +330,12 @@ export const UsersTab = () => {
 
   const prepared = (u: User) => {
     const plan = plans[u.id];
-    return Boolean(plan && (plan.plannedRole === "encargado" || plan.plannedRole === "vendedor")
+    return Boolean(plan && (plan.plannedRole === "encargado")
       && (!u.isActive || plan.operationallyEnabled));
   };
   const roleBadge = (u: User) => prepared(u) ? (
     <span role="status" className="rounded-full border border-amber-300 bg-amber-50 px-2 py-1 text-xs font-semibold text-amber-900">
-      {plans[u.id]?.plannedRole === "encargado" ? "Encargado" : "Vendedor"} ·
+      Encargado ·
       {u.isActive && plans[u.id]?.operationallyEnabled ? " Activo" : " Pendiente de activación"}
     </span>
   ) : <RoleBadge role={u.role} />;
