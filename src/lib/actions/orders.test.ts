@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { DomainError, emptyDb } from "../db";
 import type { Actor, Order, OrderItem, Product, Unit } from "../types";
-import { confirmarPreparacionPedido, confirmarDespachoPedido, editarCantidadReferencia, editarPrecioReferencia, regresarPedidoASerializacion, serializarImeiPedido } from "./orders";
+import { confirmarPreparacionPedido, confirmarDespachoPedido, editarCantidadReferencia, regresarPedidoASerializacion, serializarImeiPedido } from "./orders";
 
 const actor: Actor = { id: "admin-test", email: "admin@example.test", fullName: "Prueba", role: "admin" };
 const producto: Product = {
