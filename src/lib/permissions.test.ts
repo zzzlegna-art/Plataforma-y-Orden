@@ -20,7 +20,7 @@ describe("permisos por rol", () => {
     expect(canManageCatalogs("admin")).toBe(true);
   });
 
-  it("limita al trabajador a la operación diaria", () => {
+  it("mantiene al bodeguero en el flujo de bodega, inventario, pedidos y garantías", () => {
     permisosOperativos.forEach((permission) => {
       expect(can("bodeguero", permission)).toBe(true);
     });
@@ -29,23 +29,25 @@ describe("permisos por rol", () => {
     expect(canManageCatalogs("bodeguero")).toBe(false);
   });
 
-  it("a Encargado y Vendedor concede consulta de inventario y traslados sin administrar", () => {
+  it("limita Encargado y Vendedor a su espacio e inventario de consulta", () => {
     for (const role of ["encargado", "vendedor"] as const) {
-      for (const permission of ["workspace.view","inventory.view","transfers.manage"] as Permission[]) {
-        expect(can(role,permission)).toBe(true);
-      }
-      for (const permission of [...permisosOperativos,"users.manage","audit.view"] as Permission[]) {
-        if (permission==="inventory.view") continue;
-        expect(can(role,permission)).toBe(false);
+      expect(can(role, "workspace.view")).toBe(true);
+      expect(can(role, "inventory.view")).toBe(true);
+      for (const permission of [
+        "dashboard.view", "inventory.manage", "receptions.manage",
+        "orders.manage", "customers.manage", "warranties.manage",
+        "users.manage", "audit.view",
+      ] as Permission[]) {
+        expect(can(role, permission)).toBe(false);
       }
       expect(canManageCatalogs(role)).toBe(false);
     }
-    expect(can("admin","workspace.view")).toBe(false);
-    expect(can("bodeguero","workspace.view")).toBe(false);
+    expect(can("admin", "workspace.view")).toBe(false);
+    expect(can("bodeguero", "workspace.view")).toBe(false);
   });
 
   it("deniega permisos si no hay un rol autenticado", () => {
-    [...permisosOperativos, "users.manage", "audit.view"].forEach((permission) => {
+    [...permisosOperativos, "users.manage", "audit.view", "workspace.view"].forEach((permission) => {
       expect(can(undefined, permission)).toBe(false);
     });
     expect(canManageCatalogs(undefined)).toBe(false);

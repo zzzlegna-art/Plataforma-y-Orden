@@ -1,11 +1,8 @@
 import type { Role } from "./types";
 
-/** Permisos de la aplicación. El bodeguero administra la operación diaria
- *  (recepción, inventario, pedidos, clientes y garantías), pero no toca
- *  usuarios, auditoría ni catálogos. */
+/** Permisos activos del flujo operativo de NEXORA. */
 export type Permission =
   | "workspace.view"
-  | "transfers.manage"
   | "dashboard.view"
   | "inventory.view"
   | "inventory.manage"
@@ -21,7 +18,6 @@ const BODEGUERO_PERMISSIONS: Permission[] = [
   "inventory.view",
   "inventory.manage",
   "receptions.manage",
-  "transfers.manage",
   "orders.manage",
   "customers.manage",
   "warranties.manage",
@@ -30,12 +26,11 @@ const BODEGUERO_PERMISSIONS: Permission[] = [
 const PERMISSIONS_BY_ROLE: Record<Role, Permission[]> = {
   admin: [...BODEGUERO_PERMISSIONS, "users.manage", "audit.view"],
   bodeguero: BODEGUERO_PERMISSIONS,
-  encargado: ["workspace.view", "inventory.view", "transfers.manage"],
-  vendedor: ["workspace.view", "inventory.view", "transfers.manage"],
+  encargado: ["workspace.view", "inventory.view"],
+  vendedor: ["workspace.view", "inventory.view"],
 };
 
-/** Los catálogos (categorías/marcas) se editan solo por administradores: los
- *  bodegueros los ven, pero cualquier escritura exige users.manage. */
+/** Los catálogos se editan solo por administradores. */
 export const canManageCatalogs = (role?: Role) => role === "admin";
 
 export const can = (role: Role | undefined, permission: Permission) =>

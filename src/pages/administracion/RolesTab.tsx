@@ -1,10 +1,10 @@
 import { useMemo, useState, type ReactNode } from "react";
-import { RolePlanningPanel } from "./RolePlanningPanel";
 import {
-  Building2, Check, ClipboardCheck, LockKeyhole,
-  PackageCheck, ShieldCheck, ShoppingBag, Store, Warehouse,
+  Check, ClipboardList, Database, LayoutDashboard, LockKeyhole,
+  PackageCheck, ShieldCheck, Store, Users, Warehouse,
 } from "lucide-react";
 
+import { RolePlanningPanel } from "./RolePlanningPanel";
 import {
   MULTISITE_CAPABILITIES, MULTISITE_ROLES, canMultisite,
   type MultisiteRole,
@@ -17,39 +17,36 @@ const ROLE_DETAILS: Record<MultisiteRole, {
 }> = {
   admin: {
     title: "Administrador",
-    description: "Control central, costos, autorizaciones y finanzas.",
+    description: "Control central de la operación y administración.",
     icon: ShieldCheck,
   },
   bodeguero: {
     title: "Bodeguero",
-    description: "Recepciones, inventario físico y garantías.",
+    description: "Recepciones, inventario, pedidos y garantías.",
     icon: Warehouse,
   },
   encargado: {
     title: "Encargado",
-    description: "Operación del local, caja y reportes propios.",
+    description: "Acceso a su espacio de trabajo y consulta de inventario.",
     icon: Store,
   },
   vendedor: {
     title: "Vendedor",
-    description: "Consulta de costos e inventario, traslados y venta.",
-    icon: ShoppingBag,
+    description: "Acceso limitado a su espacio y consulta de inventario.",
+    icon: PackageCheck,
   },
 };
 
 const CATEGORY_ICONS = {
-  "Inventario": PackageCheck,
-  "Traslados": Building2,
-  "Compras": ClipboardCheck,
-  "Ventas y caja": ShoppingBag,
-  "Finanzas": LockKeyhole,
+  "Inicio": LayoutDashboard,
+  "Bodega": Warehouse,
+  "Inventario": Database,
+  "Pedidos": ClipboardList,
+  "Garantías": ShieldCheck,
+  "Administración": Users,
 } as const;
 
-/**
- * Vista de la matriz aprobada para Nexora Multisede 2.0.
- * Solo consulta reglas de dominio; no asigna perfiles ni cambia permisos legacy.
- * Los controles efectivos se implementarán en backend/RLS antes de habilitar los roles.
- */
+/** Matriz informativa conectada al mismo catálogo de permisos de la aplicación. */
 export const RolesTab = () => {
   const [selectedRole, setSelectedRole] = useState<MultisiteRole | "todos">("todos");
   const rolesToShow = selectedRole === "todos" ? MULTISITE_ROLES : [selectedRole];
@@ -57,11 +54,12 @@ export const RolesTab = () => {
     () => [...new Set(MULTISITE_CAPABILITIES.map((capability) => capability.category))],
     [],
   );
+
   return (
-    <section aria-label="Roles y permisos multisede" className="space-y-6">
+    <section aria-label="Roles y permisos operativos" className="space-y-6">
       <header>
         <h2 className="text-xl font-semibold">Roles y permisos</h2>
-        <p className="mt-1 text-sm text-muted-foreground">Permisos y acceso del personal.</p>
+        <p className="mt-1 text-sm text-muted-foreground">Accesos para el flujo operativo de NEXORA.</p>
       </header>
 
       <div className="space-y-3">
@@ -79,6 +77,7 @@ export const RolesTab = () => {
             Mostrar todos
           </button>
         </div>
+
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
           {MULTISITE_ROLES.map((role) => {
             const meta = ROLE_DETAILS[role];
@@ -110,7 +109,7 @@ export const RolesTab = () => {
       <div className="overflow-hidden rounded-2xl border bg-card shadow-sm">
         <div className="flex flex-wrap items-start justify-between gap-3 border-b bg-muted/15 px-5 py-4">
           <div>
-            <h3 className="font-semibold">Matriz operativa aprobada</h3>
+            <h3 className="font-semibold">Matriz operativa</h3>
             <p className="mt-1 text-xs text-muted-foreground">
               {selectedRole === "todos" ? "Comparación de los cuatro roles" : `Permisos del perfil ${ROLE_DETAILS[selectedRole].title}`}
             </p>
@@ -120,6 +119,7 @@ export const RolesTab = () => {
             <span className="flex items-center gap-1"><LockKeyhole className="h-3.5 w-3.5" /> Restringido</span>
           </div>
         </div>
+
         <div className="overflow-x-auto">
           <table className="w-full min-w-[620px] border-collapse text-sm">
             <thead>
@@ -167,8 +167,6 @@ export const RolesTab = () => {
       </div>
 
       <RolePlanningPanel />
-
-
     </section>
   );
 };
