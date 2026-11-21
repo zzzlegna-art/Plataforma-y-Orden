@@ -5,7 +5,7 @@
 
 import { createId, DomainError, logAudit, logMovement, nowIso } from "../db";
 import { errorDeSerialCelular, normalizarImei } from "../imei";
-import { costoSugeridoColor, variantePorColor } from "../color-variants";
+import { variantePorColor } from "../color-variants";
 import type { Actor, Db, Unit, UnitStatus } from "../types";
 import { isSameText, requirePermission, requireText } from "./guards";
 
@@ -43,9 +43,6 @@ export const asignarColorUnit = (db: Db, actor: Actor, input: { id: string; colo
   if (!variant) throw new DomainError("Selecciona un color registrado en la referencia.");
   const anterior = unit.color ?? "Sin color";
   unit.color = variant.color;
-  // No reemplaza un costo real ya registrado. Los equipos antiguos sin costo
-  // reciben el costo sugerido del color, para que su inventario tenga valor.
-  if (unit.cost === undefined) unit.cost = costoSugeridoColor(product!, variant.color);
   logAudit(db, actor, { action: "update", entity: "unit", entityId: unit.id,
     details: `${unit.serial} · color ${anterior} → ${variant.color}` });
   return unit;
