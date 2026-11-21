@@ -102,7 +102,7 @@ const requireReplacement = (db: Db, warranty: Warranty, replacementUnitId?: stri
   if (reservadoEnOtraGarantia) {
     throw new DomainError("errors.unitNotAvailable", { serial: replacement.serial });
   }
-  if (replacement.status !== "en_bodega" && replacement.status !== "en_local") {
+  if replacement.status !== "en_bodega" {
     throw new DomainError("errors.unitNotAvailable", { serial: replacement.serial });
   }
   // En garantías previas, la referencia escrita debe corresponder a un producto del catálogo.
@@ -391,7 +391,7 @@ export const createWarrantyFallaInventario = (
       requirePermission(actor, "warranties.manage");
       const unit = findUnitBySerial(db, item.imei);
       if (!unit) throw new DomainError("errors.unitNotFound", { serial: item.imei });
-      if ((unit.status !== "en_bodega" && unit.status !== "en_local") || unitEstaEnPedidoActivo(db, unit.id)) {
+      if (unit.status !== "en_bodega" || unitEstaEnPedidoActivo(db, unit.id)) {
         throw new DomainError("errors.unitNotInInventory", { serial: item.imei });
       }
       assertNoOpenWarranty(db, unit);
@@ -648,7 +648,7 @@ export const entregarGarantia = (
             ? `Cambio por garantía ${warranty.code}: serial original ${unit.serial} queda defectuoso; reemplazado por ${replacement.serial}`
             : input.originalAptoReventa
               ? `Cambio por garantía ${warranty.code}: ${unit.serial} inspeccionado y apto para reventa, disponible en bodega; ${input.observacionInspeccion?.trim()}; reemplazado por ${replacement.serial}`
-              : `Cambio por garantía ${warranty.code}: ${unit.serial} queda en revisión, NO disponible para venta; reemplazado por ${replacement.serial}`, 
+              : `Cambio por garantía ${warranty.code}: ${unit.serial} queda en revisión, NO disponible en Bodega 6A; reemplazado por ${replacement.serial}`, 
         });
       } else if (warranty.imeiManual) {
         darDeAltaEquipoPrevio(
@@ -809,7 +809,7 @@ export const devolverGarantiasABodega = (
     if (warranty.status !== "recibido") throw new DomainError("errors.invalidTransition");
     const unit = warranty.unitId ? db.units.find((item) => item.id === warranty.unitId) : undefined;
     if (warranty.unitId && !unit) throw new DomainError("errors.notFound");
-    if (unit && !["en_reparacion", "en_bodega", "en_local", "liberado"].includes(unit.status)) {
+    if (unit && !["en_reparacion", "en_bodega", "liberado"].includes(unit.status)) {
       throw new DomainError("errors.invalidTransition");
     }
     let productId = unit?.productId ?? warranty.productId;
@@ -861,7 +861,7 @@ export const devolverGarantiasABodega = (
           type: "devolucion",
           referenceType: "garantia",
           referenceId: warranty.id,
-          notes: `Garantía ${warranty.code}: serial ${serial} devuelto a bodega desde Recibidos; disponible para venta`,
+          notes: `Garantía ${warranty.code}: serial ${serial} devuelto a bodega desde Recibidos; disponible en Bodega 6A`,
         });
       }
     } else if (warranty.imeiManual && productId) {
@@ -914,15 +914,15 @@ export const devolverGarantia = (
   if (warranty.unitId && !unit && !warranty.imeiManual) {
     throw new DomainError("errors.notFound");
   }
-  if (unit && !["en_reparacion", "en_bodega", "en_local", "liberado"].includes(unit.status)) {
+  if (unit && !["en_reparacion", "en_bodega", "liberado"].includes(unit.status)) {
     throw new DomainError("errors.invalidTransition");
   }
 
   const serial = unit?.serial ?? warranty.imeiManual ?? "serial no disponible";
-  let detalle = `Devolución a bodega: serial ${serial} disponible para venta. Motivo: ${motivo}.`;
+  let detalle = `Devolución a bodega: serial ${serial} disponible en Bodega 6A. Motivo: ${motivo}.`;
 
   if (unit) {
-    // El serial deja de estar reservado por el pedido original y vuelve al inventario vendible.
+    // El serial deja de estar reservado por el pedido original y vuelve al inventario de Bodega 6A.
     const pedido = pedidoDeUnidad(db, unit.id);
     db.orderItemUnits = db.orderItemUnits.filter((row) => row.unitId !== unit.id);
     unit.status = "en_bodega";

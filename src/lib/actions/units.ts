@@ -17,7 +17,7 @@ const findUnit = (db: Db, unitId: string) => {
 
 const assertNotComprometida = (db: Db, unit: Unit) => {
   // Unidades en garantía, vendidas o en traslado no se tocan a mano.
-  if (unit.status === "en_reparacion" || unit.status === "vendido" || unit.status === "en_transito") {
+  if (unit.status === "en_reparacion" || unit.status === "vendido") {
     throw new DomainError("errors.unitComprometida");
   }
   if (unit.status === "entregado_garantia") {
@@ -67,8 +67,8 @@ export const updateUnit = (
 };
 
 /**
- * Ajuste manual de estado entre los estados "en inventario":
- * en_bodega, en_local, defectuoso. La liberación y el reingreso
+ * Ajuste manual de estado entre los estados operativos de Bodega 6A:
+ * en_bodega y defectuoso. La liberación y el reingreso
  * tienen sus propias acciones (solo administradores).
  */
 export const setUnitStatus = (
@@ -78,7 +78,7 @@ export const setUnitStatus = (
 ): Unit => {
   requirePermission(actor, "inventory.manage");
   const unit = findUnit(db, input.id);
-  const MANUAL: UnitStatus[] = ["en_bodega", "en_local", "defectuoso"];
+  const MANUAL: UnitStatus[] = ["en_bodega", "defectuoso"];
   if (!MANUAL.includes(input.status)) {
     throw new DomainError("errors.statusNotManual");
   }
@@ -108,7 +108,7 @@ const requireAdmin = (actor: Actor) => {
 };
 
 /** Estados desde los que se puede liberar una unidad. */
-const LIBERABLES: UnitStatus[] = ["en_bodega", "en_local", "defectuoso"];
+const LIBERABLES: UnitStatus[] = ["en_bodega", "defectuoso"];
 
 /** Saca una unidad del inventario activo conservando su historial. */
 export const liberarUnit = (
@@ -141,11 +141,11 @@ export const liberarUnit = (
   return unit;
 };
 
-/** Reingresa una unidad liberada al inventario (bodega o local). */
+/** Reingresa una unidad liberada a Bodega 6A. */
 export const reingresarUnit = (
   db: Db,
   actor: Actor,
-  input: { id: string; status: "en_bodega" | "en_local"; motivo?: string },
+  input: { id: string; status: "en_bodega"; motivo?: string },
 ): Unit => {
   requireAdmin(actor);
   const unit = findUnit(db, input.id);

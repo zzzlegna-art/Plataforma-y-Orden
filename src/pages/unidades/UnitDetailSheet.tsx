@@ -66,7 +66,7 @@ export const UnitDetailSheet = ({
     : undefined;
 
   const enPedidoActivo = Boolean(order && describeImeiOrderAssociation(order.status).assigned);
-  const liberable = unit && !enPedidoActivo && ["en_bodega", "en_local", "defectuoso"].includes(unit.status);
+  const liberable = unit && !enPedidoActivo && ["en_bodega", "defectuoso"].includes(unit.status);
   // La línea de vida reúne movimientos y garantías sin modificar el historial almacenado.
   const timeline = unit ? getUnitTimeline(db, unit.id).slice().reverse() : [];
 

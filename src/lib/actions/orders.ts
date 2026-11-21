@@ -177,7 +177,7 @@ export const cambiarColorReferenciaPedido = (
   const unidades = asignaciones.map((row) => {
     const unit = db.units.find((u) => u.id === row.unitId);
     if (!unit || unit.productId !== item.productId ||
-        (unit.status !== "en_bodega" && unit.status !== "en_local")) {
+        unit.status !== "en_bodega") {
       throw new DomainError("errors.unitNotAvailable");
     }
     return unit;
@@ -281,7 +281,7 @@ export const serializarImeiPedido = (
   if (!imei) throw new DomainError("errors.serialRequired");
   const unit = db.units.find((item) => item.serial.toLowerCase() === imei.toLowerCase());
   if (!unit) throw new DomainError("errors.unitNotFound", { serial: imei });
-  if (unit.status !== "en_bodega" && unit.status !== "en_local") {
+  if unit.status !== "en_bodega" {
     throw new DomainError("errors.unitNotAvailable", { serial: imei });
   }
   if (unitEnOtroPedidoActivo(db, unit.id)) {
@@ -348,9 +348,8 @@ const restaurarSalidaPendiente = (db: Db, actor: Actor, order: Order, unit: Unit
     )
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0];
   if (!salida) return false;
-  const estadoRegistrado = salida.notes?.match(/estado previo: (en_bodega|en_local)/i)?.[1];
-  const estadoPrevio = (estadoRegistrado as Unit["status"] | undefined) ??
-    (unit.location && /local/i.test(unit.location) ? "en_local" : "en_bodega");
+  const estadoRegistrado = salida.notes?.match(/estado previo: (en_bodega)/i)?.[1];
+  const estadoPrevio: Unit["status"] = estadoRegistrado ?? "en_bodega";
   unit.status = estadoPrevio;
   logMovement(db, actor, {
     productId: unit.productId,
@@ -398,7 +397,7 @@ export const quitarImeiPedido = (
 };
 
 /**
- * Unidades libres de un producto (en bodega o en local, sin otro pedido en preparación),
+ * Unidades libres de un producto en Bodega 6A, sin otro pedido en preparación,
  * las más antiguas primero.
  */
 export const unidadesLibres = (db: Db, productId: string): Unit[] =>
@@ -406,7 +405,7 @@ export const unidadesLibres = (db: Db, productId: string): Unit[] =>
     .filter(
       (unit) =>
         unit.productId === productId &&
-        (unit.status === "en_bodega" || unit.status === "en_local") &&
+        (unit.status === "en_bodega") &&
         !unitEnOtroPedidoActivo(db, unit.id),
     )
     .sort((a, b) => a.receivedAt.localeCompare(b.receivedAt));
@@ -479,7 +478,7 @@ const validarAsignacionesPedido = (db: Db, order: Order, items: OrderItem[]) => 
         throw new DomainError("errors.unitProductMismatch");
       }
       const yaSalioEnEstePedido = unit.status === "vendido" && unidadYaDespachadaEnPedido(db, unit.id, order.id);
-      if (!yaSalioEnEstePedido && unit.status !== "en_bodega" && unit.status !== "en_local") {
+      if (!yaSalioEnEstePedido && unit.status !== "en_bodega") {
         throw new DomainError("errors.unitNotAvailable", { serial: unit.serial });
       }
       const asignadaEnOtroPedido = db.orderItemUnits.some((otra) => {
@@ -566,7 +565,7 @@ export const confirmarDespachoPedido = (
       const unit = db.units.find((candidate) => candidate.id === row.unitId);
       if (!unit) throw new DomainError("errors.notFound");
       const yaSalioEnEstePedido = unit.status === "vendido" && unidadYaDespachadaEnPedido(db, unit.id, order.id);
-      if (!yaSalioEnEstePedido && unit.status !== "en_bodega" && unit.status !== "en_local") {
+      if (!yaSalioEnEstePedido && unit.status !== "en_bodega") {
         throw new DomainError("errors.unitNotAvailable", { serial: unit.serial });
       }
     }
@@ -683,7 +682,7 @@ export const agregarSerialDespachado = (
   if (!serial) throw new DomainError("errors.serialRequired");
   const unit = db.units.find((u) => u.serial.toLowerCase() === serial.toLowerCase());
   if (!unit) throw new DomainError("errors.unitNotFound", { serial });
-  if (unit.status !== "en_bodega" && unit.status !== "en_local") {
+  if unit.status !== "en_bodega" {
     throw new DomainError("errors.unitNotAvailable", { serial });
   }
   if (unitEnOtroPedidoActivo(db, unit.id)) {

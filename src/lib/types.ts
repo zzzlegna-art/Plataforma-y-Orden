@@ -3,9 +3,8 @@
  * Todos los identificadores son strings (uuid) y las fechas ISO en texto, para que
  * un futuro backend (Postgres) use exactamente las mismas formas.
  *
- * Modelo basado en el prototipo "Bodega 6A": los equipos viven en dos ubicaciones
- * (bodega central y local) y cada serial/IMEI tiene un estado único que combina
- * su ubicación y situación comercial.
+ * Modelo operativo de una sola ubicación: Bodega 6A. Cada serial/IMEI conserva
+ * un estado único y su historial de inventario, pedidos y garantías.
  */
 
 /** Roles del sistema: administrador o bodeguero (encargado de la operación diaria
@@ -16,22 +15,18 @@ export type UnitCondition = "nuevo" | "seminuevo";
 
 /**
  * Estado de una unidad física (serial/IMEI).
- * - en_bodega: almacenada en la bodega central (disponible para pedidos/traslados)
- * - en_local: en el local (disponible para venta)
- * - vendido: entregada al cliente (venta o pedido mayorista)
+ * - en_bodega: almacenada en Bodega 6A y disponible para Pedidos
+ * - vendido: entregada al cliente; se conserva para historial y origen de garantías
  * - en_reparacion: en garantía o servicio técnico
- * - defectuoso: dañada, apartada
- * - en_transito: en un traslado en curso entre bodega y local
+ * - defectuoso: dañada o apartada
  * - entregado_garantia: entregada al cliente como resolución de garantía
- * - liberado: fuera del sistema (se puede reingresar)
+ * - liberado: fuera del inventario activo (se puede reingresar)
  */
 export type UnitStatus =
   | "en_bodega"
-  | "en_local"
   | "vendido"
   | "en_reparacion"
   | "defectuoso"
-  | "en_transito"
   | "entregado_garantia"
   | "liberado";
 
