@@ -270,8 +270,6 @@ export type CustomerCategoriaMayorista = "celulares" | "repuestos" | "ambos";
 export interface Customer {
   id: string;
   name: string;
-  /** "mayorista" (externo, recibe pedidos) o "detalle" (cliente del local). */
-  tipo?: "mayorista" | "detalle";
   categoriaMayorista?: CustomerCategoriaMayorista;
   taxId?: string;
   contactName?: string;
