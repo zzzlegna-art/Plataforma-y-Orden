@@ -12,8 +12,6 @@ export type ProductCsvRow = {
   description: string;
   imageUrl: string;
   features: string;
-  price: number;
-  cost: number;
   minStock: number;
   error?: string;
 };
@@ -43,8 +41,6 @@ const HEADER_ALIASES: Record<string, string[]> = {
   category: ["categoria", "category", "tipo", "type", "tipo de producto", "product type"],
   description: ["descripcion", "description", "detalle", "details"],
   imageUrl: ["enlace de imagen", "url de imagen", "imagen url", "image url", "image link", "url imagen", "imageurl"],
-  price: ["precio", "price", "precio de venta", "sale price"],
-  cost: ["costo", "cost", "coste"],
   minStock: ["stock minimo", "existencia minima", "existencias minimas", "minimum stock", "min stock"],
   features: ["caracteristicas", "caracteristicas tecnicas", "detalles tecnicos", "technical features", "technical details", "features"],
 };
@@ -214,8 +210,6 @@ export const parseProductCsv = (text: string): ProductCsvRow[] => {
     const get = (key: keyof typeof HEADER_ALIASES) =>
       columns[key] >= 0 ? (values[columns[key]] ?? "").trim() : "";
     const name = get("name");
-    const price = parseNumber(get("price"), "precio");
-    const cost = parseNumber(get("cost"), "costo");
     const minStock = parseNumber(get("minStock"), "stock mínimo");
     const imageUrl = get("imageUrl");
     const errors = [
@@ -224,8 +218,6 @@ export const parseProductCsv = (text: string): ProductCsvRow[] => {
         : undefined,
       !name ? "El nombre del producto es obligatorio." : undefined,
       get("sku").length > 40 ? "La referencia no puede superar los 40 caracteres." : undefined,
-      price.error,
-      cost.error,
       minStock.error,
       Number.isInteger(minStock.value)
         ? undefined
@@ -242,8 +234,6 @@ export const parseProductCsv = (text: string): ProductCsvRow[] => {
       description: get("description"),
       imageUrl,
       features: get("features"),
-      price: price.value,
-      cost: cost.value,
       minStock: minStock.value,
       error: errors.join(" "),
     };
