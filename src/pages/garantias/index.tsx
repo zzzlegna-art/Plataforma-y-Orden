@@ -1504,9 +1504,6 @@ const Garantias = () => {
               label={t(`warrantyResolution.${view.warranty.resolucion}`)}
               withDot={false}
             />
-            {view.warranty.costo ? (
-              <Badge label={`${t("warranty.cost")}: ${view.warranty.costo}`} withDot={false} />
-            ) : null}
           </div>
         ) : null}
         {view.warranty.diagnostico ? (
