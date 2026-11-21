@@ -6,7 +6,6 @@ import {
   Archive,
   CalendarDays,
   Clock3,
-  Coins,
   FileText,
   History,
   Loader2,
