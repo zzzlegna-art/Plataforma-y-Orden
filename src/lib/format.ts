@@ -2,8 +2,10 @@
 
 import { hoyBogota } from "./dates";
 
-/** Moneda por defecto mientras se cargan los ajustes guardados. */
+/** Configuración regional de la aplicación. */
 export const APP_LOCALE = "es-CO";
+
+const numberFormatter = new Intl.NumberFormat(APP_LOCALE);
 
 export const formatNumber = (value: number | undefined | null) =>
   numberFormatter.format(Number(value ?? 0));
