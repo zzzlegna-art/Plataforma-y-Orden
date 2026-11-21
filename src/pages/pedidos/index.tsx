@@ -331,7 +331,6 @@ const Pedidos = () => {
             ),
           },
           {
-          {
             key: "status",
             header: t("common.status"),
             cell: (view) => <OrderStatusBadge status={view.order.status} />,
