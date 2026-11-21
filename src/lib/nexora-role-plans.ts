@@ -1,6 +1,6 @@
 import type { StaffMember } from "@/lib/nexora-staff-sites";
 
-export type PreparatoryRole = "bodeguero" | "encargado" | "vendedor";
+export type PreparatoryRole = "bodeguero" | "encargado";
 export interface RolePlan {
   userId: string;
   plannedRole: PreparatoryRole;
@@ -10,7 +10,6 @@ export interface RolePlan {
 export const rolePlanOptions: { value: PreparatoryRole; label: string }[] = [
   { value: "bodeguero", label: "Bodeguero" },
   { value: "encargado", label: "Encargado" },
-  { value: "vendedor", label: "Vendedor" },
 ];
 
 export const validateRolePlan = (
