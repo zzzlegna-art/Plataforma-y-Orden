@@ -3,7 +3,7 @@ import { parseMultisiteImeiTimeline } from "./nexora-imei-timeline";
 
 const id="123e4567-e89b-12d3-a456-426614174000";
 const sample=()=>({
-  scope:"multisite_confirmed_only",unitId:id,serial:"000123456789012",
+  scope:"initial_approval_only",unitId:id,serial:"000123456789012",
   total:3,page:1,pageSize:25,items:[
     {eventId:"transfer:t1:returned",eventType:"transfer_returned",
       eventAt:"2026-11-02T11:00:00Z",

@@ -17,8 +17,6 @@ const fmt=(n:number)=>new Intl.NumberFormat("es-CO").format(n);
 const stateColor:Record<string,string>={
   sin_conciliar:"bg-amber-100 text-amber-900 dark:bg-amber-400/10 dark:text-amber-200",
   en_sede:"bg-emerald-100 text-emerald-900 dark:bg-emerald-400/10 dark:text-emerald-200",
-  en_transito:"bg-sky-100 text-sky-900 dark:bg-sky-400/10 dark:text-sky-200",
-  retorno_pendiente:"bg-rose-100 text-rose-900 dark:bg-rose-400/10 dark:text-rose-200",
   vendido:"bg-muted text-muted-foreground",
 };
 
@@ -84,12 +82,10 @@ export const ImeiSedesPanel=()=>{
       </div>
     </div>
     {expanded?<div id="nexora-imei-directory" className="space-y-4 border-t p-4 sm:p-6">
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         {[
           {label:"Sin conciliar",value:data?.summary.sinConciliar??0,tone:"text-amber-700 dark:text-amber-300"},
           {label:"En Bodega 6A",value:data?.summary.enSede??0,tone:"text-emerald-700 dark:text-emerald-300"},
-          {label:"En tránsito",value:data?.summary.enTransito??0,tone:"text-sky-700 dark:text-sky-300"},
-          {label:"Retorno pendiente",value:data?.summary.retornoPendiente??0,tone:"text-rose-700 dark:text-rose-300"},
           {label:"Salidas históricas",value:data?.summary.vendidos??0,tone:"text-muted-foreground"},
         ].map(k=><div key={k.label} className="rounded-xl border bg-muted/15 p-3">
           <p className={`text-xl font-bold tabular-nums ${k.tone}`}>{data?fmt(k.value):"—"}</p>

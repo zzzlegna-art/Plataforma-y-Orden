@@ -77,7 +77,7 @@ export const MultisiteImeiHistory=({unitId,serial,receivedAt,legacyTimeline}:{
     }).catch((reason:unknown)=>{
       if(id===request.current){
         setTimeline(null);
-        setError(reason instanceof Error?reason.message:"No se pudo verificar el historial multisede.");
+        setError(reason instanceof Error?reason.message:"No se pudo verificar el registro inicial.");
       }
     }).finally(()=>{if(id===request.current)setLoading(false);});
     return()=>{request.current++;};
@@ -106,7 +106,7 @@ export const MultisiteImeiHistory=({unitId,serial,receivedAt,legacyTimeline}:{
       setExportError(reason instanceof Error?reason.message:"No fue posible verificar la hoja de vida completa.");
     }finally{setExporting(false);}
   };
-  return <section aria-label="Movimientos multisede del IMEI"
+  return <section aria-label="Historial de ubicación inicial del IMEI"
     className="overflow-hidden rounded-2xl border border-border/80 bg-card text-card-foreground shadow-sm">
     <div className="flex flex-wrap items-start justify-between gap-3 bg-gradient-to-r from-emerald-50 via-white to-sky-50 p-4 dark:from-slate-950 dark:via-slate-900 dark:to-emerald-950 sm:p-5">
       <div className="flex items-start gap-3">
@@ -114,9 +114,9 @@ export const MultisiteImeiHistory=({unitId,serial,receivedAt,legacyTimeline}:{
           <History className="size-5" aria-hidden="true"/>
         </span>
         <div>
-          <h3 className="text-sm font-bold sm:text-base">Hoja de vida · movimientos multisede</h3>
+          <h3 className="text-sm font-bold sm:text-base">Hoja de vida · ubicación inicial</h3>
           <p className="mt-1 max-w-xl text-xs leading-relaxed text-slate-600 dark:text-slate-300">
-            Conciliación inicial, traslados, entregas, devoluciones y ventas confirmadas.
+            Registro de aprobación inicial del inventario en Bodega 6A.
             El historial de bodega y garantías se conserva en su sección original.
           </p>
         </div>
@@ -139,25 +139,25 @@ export const MultisiteImeiHistory=({unitId,serial,receivedAt,legacyTimeline}:{
     <div className="space-y-4 p-4 sm:p-5">
       <div className="flex items-start gap-2 rounded-lg border bg-muted/20 p-3 text-xs leading-relaxed text-muted-foreground">
         <ShieldCheck className="mt-0.5 size-4 shrink-0"/>
-        Solo se muestran movimientos respaldados por registros verificables de Supabase.
-        La ausencia de movimientos multisede no significa que el equipo no tenga historial legacy.
+        Solo se muestra la ubicación inicial respaldada por registros verificables de Supabase.
+        El historial operativo y de garantías permanece disponible en su sección original.
       </div>
       {exportError?<p role="alert" className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-950 dark:border-amber-400/25 dark:bg-amber-400/10 dark:text-amber-100">
         {exportError} No se descargó ningún archivo incompleto.
       </p>:null}
       {loading?<p role="status" className="text-sm text-muted-foreground">
-        Verificando los movimientos multisede del IMEI…
+        Verificando el registro inicial del IMEI…
       </p>:null}
       {error?<div role="alert" className="flex items-start gap-2 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-950 dark:border-amber-400/25 dark:bg-amber-400/10 dark:text-amber-100">
         <LockKeyhole className="mt-0.5 size-4 shrink-0"/>
-        <span>No fue posible verificar los movimientos multisede. {error}</span>
+        <span>No fue posible verificar el registro inicial. {error}</span>
       </div>:null}
       {!loading&&!error&&timeline?.total===0?
         <p className="rounded-lg border border-dashed bg-muted/15 p-4 text-sm text-muted-foreground">
-          Sin movimientos multisede registrados para este equipo. Su historia anterior sigue disponible abajo.
+          Sin registro de aprobación inicial para este equipo. Su historia anterior sigue disponible abajo.
         </p>:null}
       {!loading&&!error&&timeline&&timeline.items.length>0?
-        <ol className="space-y-4" aria-label="Cronología de operaciones multisede">
+        <ol className="space-y-4" aria-label="Cronología del registro inicial">
           {timeline.items.map(event=><EventRow event={event} key={event.eventId}/>)}
         </ol>:null}
       {timeline&&timeline.total>timeline.pageSize?

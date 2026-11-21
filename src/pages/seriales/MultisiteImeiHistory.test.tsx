@@ -7,7 +7,7 @@ const id="123e4567-e89b-12d3-a456-426614174000";
 vi.mock("@/lib/nexora-imei-timeline",async(importOriginal)=>{
   const original=await importOriginal<typeof import("@/lib/nexora-imei-timeline")>();
   return {...original,fetchMultisiteImeiTimeline:vi.fn(async()=>({
-    scope:"multisite_confirmed_only",unitId:id,serial:"000123456789012",
+    scope:"initial_approval_only",unitId:id,serial:"000123456789012",
     page:1,pageSize:25,total:1,
     items:[{
       eventId:"transfer:t1:received",eventType:"transfer_received",

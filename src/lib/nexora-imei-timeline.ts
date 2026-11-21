@@ -1,4 +1,4 @@
-/** Hitos multisede comprobados por IMEI; no reemplaza el historial legacy. */
+/** Registro de aprobación inicial de Bodega 6A por IMEI; no reemplaza el historial legacy. */
 export const MULTISITE_EVENT_TYPES = [
   "initial_approved","transfer_prepared","transfer_dispatched",
   "transfer_received","transfer_return_pending","transfer_returned",
@@ -17,7 +17,7 @@ export interface MultisiteImeiEvent {
   unitState:string;
 }
 export interface MultisiteImeiTimeline {
-  scope:"multisite_confirmed_only";
+  scope:"initial_approval_only";
   unitId:string;
   serial:string;
   total:number;
@@ -98,7 +98,7 @@ export const fetchMultisiteImeiTimeline=async (
     rpc:(name:string,args:Record<string,unknown>)=>Promise<{
       data:unknown;error:{message:string}|null;
     }>;
-  }).rpc("nexora_unit_multisite_timeline",{
+  }).rpc("nexora_unit_initial_approval_timeline",{
     p_unit_id:unitId,p_page:page,p_page_size:25,
   });
   if(error)throw new Error(error.message);

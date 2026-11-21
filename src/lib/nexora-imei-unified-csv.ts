@@ -1,6 +1,6 @@
 /**
  * Exportación de hoja de vida: combina el histórico anterior (movimientos,
- * garantías) con los hitos multisede comprobados para UN MISMO IMEI.
+ * garantías) con el registro inicial de ubicación para UN MISMO IMEI.
  * No modifica stock y no inventa eventos si falla alguna página.
  */
 import type { UnitTimelineItem } from "./selectors";
@@ -86,20 +86,19 @@ export const buildUnifiedImeiCsv = ({
       stableId: "legacy:" + item.id,
     })),
     ...multisite.map(item => ({
-      time: item.eventAt, origin: "Multisede confirmada",
+      time: item.eventAt, origin: "Ubicación inicial Bodega 6A",
       kind: MULTISITE_LABELS[item.eventType], description: item.description,
       from: item.originSite ?? "", to: item.destinationSite ?? "",
       reference: item.reference ?? "", user: "",
-      stableId: "multisite:" + item.eventId,
+      stableId: "initial:" + item.eventId,
     })),
   ];
-  // El sistema original mostraba su propia cronología sin mezclarse con la de multisede.
-  // El archivo ordena ambas sin descartar eventos coincidentes de distinto origen.
+  // El archivo ordena la historia operativa y el registro inicial sin descartar eventos coincidentes.
   rows.sort((a,b)=>b.time.localeCompare(a.time)||a.stableId.localeCompare(b.stableId));
   const lines = [
     [ "Serial", "'" + serial ],
     [ "Ingreso original", receivedAt ],
-    [ "Alcance", "Bodega y garantías + eventos multisede verificados" ],
+    [ "Alcance", "Bodega y garantías + registro inicial de ubicación" ],
     [],
     [ "Fecha", "Fuente", "Tipo", "Descripción", "Sede origen", "Sede destino", "Referencia", "Usuario" ],
     ...rows.map(r=>[r.time,r.origin,r.kind,r.description,r.from,r.to,r.reference,r.user]),

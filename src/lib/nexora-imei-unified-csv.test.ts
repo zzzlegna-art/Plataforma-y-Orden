@@ -14,7 +14,7 @@ const event=(index:number):MultisiteImeiEvent=>({
   destinationSite:"Local Centro",reference:"Traslado #1",unitState:"received",
 });
 const response=(page:number,total:number,items:MultisiteImeiEvent[]):MultisiteImeiTimeline=>({
-  unitId:id,serial,scope:"multisite_confirmed_only",total,page,pageSize:25,items,
+  unitId:id,serial,scope:"initial_approval_only",total,page,pageSize:25,items,
 });
 
 describe("Nexora · exportación unificada de hoja de vida IMEI",()=>{
@@ -29,7 +29,7 @@ describe("Nexora · exportación unificada de hoja de vida IMEI",()=>{
     expect(csv).toContain("'"+serial);
     expect(csv).toContain("Garantía original");
     expect(csv).toContain("Recibido en destino");
-    expect(csv).toContain("Multisede confirmada");
+    expect(csv).toContain("Ubicación inicial Bodega 6A");
     expect(csv.indexOf("Recibido en destino")).toBeLessThan(csv.indexOf("Garantía original"));
   });
   it("bloquea fórmulas de Excel y limpia saltos de línea sin destruir el texto",()=>{

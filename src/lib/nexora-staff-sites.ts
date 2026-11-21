@@ -1,5 +1,5 @@
 /**
- * Nexora Multisede: asignaciones administrativas, separadas del permiso legacy.
+ * Asignaciones del personal para Bodega 6A, separadas del permiso legacy.
  * El vínculo NO cambia roles, RLS operativa ni ubicación física de los IMEI.
  */
 import type { NexoraSite } from "./nexora-sites";
@@ -135,7 +135,7 @@ export const countLegacyInventoryToReconcile = async (): Promise<number> => {
   const { supabase } = await import("@/integrations/supabase/client");
   const { count, error } = await supabase.from("bodega_units")
     .select("id", { head: true, count: "exact" })
-    .in("status", ["en_bodega", "en_local", "en_transito", "en_reparacion", "defectuoso"]);
+    .in("status", ["en_bodega", "en_local", "en_reparacion", "defectuoso"]);
   if (error) throw new Error(error.message);
   if (count === null) throw new Error("No se pudo verificar el conteo anterior.");
   return count;

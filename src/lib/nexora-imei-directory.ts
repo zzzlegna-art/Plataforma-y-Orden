@@ -1,8 +1,7 @@
 import { parseCatalogMedia, type CatalogMedia } from "./nexora-worker-catalog-media";
 
 /** Consulta de solo lectura de seriales y trazabilidad operativa de Bodega 6A. */
-export type CustodyState =
-  | "sin_conciliar" | "en_sede" | "en_transito" | "retorno_pendiente" | "vendido";
+export type CustodyState = "sin_conciliar" | "en_sede" | "vendido";
 export type CustodyFilter = CustodyState | "all";
 
 export interface ImeiDirectoryRow extends CatalogMedia {
@@ -18,8 +17,6 @@ export interface ImeiDirectoryRow extends CatalogMedia {
 export interface DirectorySummary {
   sinConciliar: number;
   enSede: number;
-  enTransito: number;
-  retornoPendiente: number;
   vendidos: number;
   total: number;
 }
@@ -36,15 +33,11 @@ export const CUSTODY_FILTERS: readonly { value: CustodyFilter; label: string }[]
   { value: "all", label: "Todos" },
   { value: "sin_conciliar", label: "Sin conciliar" },
   { value: "en_sede", label: "En Bodega 6A" },
-  { value: "en_transito", label: "En tránsito" },
-  { value: "retorno_pendiente", label: "Retorno pendiente" },
   { value: "vendido", label: "Salidas históricas" },
 ];
 export const CUSTODY_LABEL: Record<CustodyState,string> = {
   sin_conciliar:"Pendiente de conciliación",
   en_sede:"En Bodega 6A",
-  en_transito:"En tránsito",
-  retorno_pendiente:"Retorno pendiente",
   vendido:"Salida histórica",
 };
 
@@ -76,7 +69,7 @@ const bool=(v:unknown):boolean=>{
   return v;
 };
 const states=new Set<CustodyState>([
-  "sin_conciliar","en_sede","en_transito","retorno_pendiente","vendido",
+  "sin_conciliar","en_sede","vendido",
 ]);
 export const parseImeiDirectory=(data:unknown):ImeiDirectoryResponse=>{
   const r=asObject(data),s=asObject(r.summary);
@@ -86,7 +79,6 @@ export const parseImeiDirectory=(data:unknown):ImeiDirectoryResponse=>{
     initialApproved:bool(r.initialApproved),
     summary:{
       sinConciliar:integer(s.sinConciliar),enSede:integer(s.enSede),
-      enTransito:integer(s.enTransito),retornoPendiente:integer(s.retornoPendiente),
       vendidos:integer(s.vendidos),total:integer(s.total),
     },
     page:integer(r.page),pageSize:integer(r.pageSize),matched:integer(r.matched),
