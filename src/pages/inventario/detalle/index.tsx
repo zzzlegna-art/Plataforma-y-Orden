@@ -14,7 +14,7 @@ import { useRunAction } from "@/hooks/use-run-action";
 import { useStore } from "@/hooks/use-store";
 import { useApp } from "@/hooks/use-app";
 import { deleteProduct, setProductActive } from "@/lib/actions/catalogs";
-import { formatCurrency, formatDateTime } from "@/lib/format";
+import { formatDateTime } from "@/lib/format";
 import { getMovementRows, getProductRows, getUnitRows } from "@/lib/selectors";
 import type { UnitCondition } from "@/lib/types";
 import { ProductFormDialog } from "../ProductFormDialog";
@@ -159,27 +159,9 @@ const ProductoDetalle = () => {
         ) : undefined}
       />
 
-      <div className="grid gap-3 sm:grid-cols-3">
+      <div className="grid gap-3 sm:grid-cols-1">
         <div className="rounded-lg border bg-card p-4">
-          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-            {t("product.price")}
-          </p>
-          <p className="font-tabular mt-1 text-xl font-semibold">
-            {formatCurrency(product.price)}
-          </p>
-        </div>
-        <div className="rounded-lg border bg-card p-4">
-          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-            {t("product.cost")}
-          </p>
-          <p className="font-tabular mt-1 text-xl font-semibold">
-            {formatCurrency(product.cost)}
-          </p>
-        </div>
-        <div className="rounded-lg border bg-card p-4">
-          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-            {t("product.minStock")}
-          </p>
+          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{t("product.minStock")}</p>
           <p className="font-tabular mt-1 text-xl font-semibold">{product.minStock}</p>
         </div>
       </div>
@@ -187,10 +169,10 @@ const ProductoDetalle = () => {
       <StockSummary stock={stock} />
       {(product.colorVariants?.length ?? 0) > 0 ? (
         <section className="rounded-2xl border border-primary/20 bg-card p-4 sm:p-5">
-          <h2 className="text-base font-bold">Stock y precios por color</h2>
+          <h2 className="text-base font-bold">Stock por color</h2>
           <p className="mt-1 text-xs text-muted-foreground">
-            Una sola referencia y SKU con tarifas por color. No es necesario clasificar los IMEI
-            en recepción: el color se asigna al serializar cada pedido.
+            Una sola referencia y SKU con variantes de color para identificar los equipos.
+            El color se asigna al serializar cada pedido.
           </p>
           <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
             {product.colorVariants?.map((variant) => {
@@ -208,10 +190,6 @@ const ProductoDetalle = () => {
                   <div className="flex items-center justify-between gap-2">
                     <strong className="text-sm">{variant.color}</strong>
                     <span className="rounded-full bg-primary/10 px-2 py-1 text-xs font-semibold text-primary">{disponibles} identificados</span>
-                  </div>
-                  <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
-                    <div><p className="text-muted-foreground">Costo sugerido</p><p className="font-tabular mt-1 font-bold">{formatCurrency(variant.cost)}</p></div>
-                    <div><p className="text-muted-foreground">Venta sugerida</p><p className="font-tabular mt-1 font-bold">{formatCurrency(variant.price)}</p></div>
                   </div>
                 </div>
               );
