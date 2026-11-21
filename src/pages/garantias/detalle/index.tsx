@@ -274,9 +274,6 @@ const GarantiaDetalle = () => {
           {warranty.resolucion ? (
             <div className="mt-3 flex flex-wrap gap-2">
               <Badge label={t(`warrantyResolution.${warranty.resolucion}`)} withDot={false} />
-              {warranty.costo ? (
-                <Badge label={formatCurrency(warranty.costo)} withDot={false} />
-              ) : null}
             </div>
           ) : null}
         </section>
