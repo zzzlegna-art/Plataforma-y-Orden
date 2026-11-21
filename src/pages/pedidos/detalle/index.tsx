@@ -1,7 +1,7 @@
 import "./pedido-detalle-premium.css";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { ArrowLeft, Check, Download, FileSpreadsheet, PackagePlus, Receipt, ScanLine, Undo2, Wrench } from "lucide-react";
+import { ArrowLeft, Check, Download, PackagePlus, ScanLine, Undo2, Wrench } from "lucide-react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
 
