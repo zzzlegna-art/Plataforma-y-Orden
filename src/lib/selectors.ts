@@ -21,7 +21,6 @@ import type {
 import { isOpenWarranty } from "./actions/warranties";
 import { esProductoRepuesto } from "./products";
 import { getMonthToDateEntryComparison } from "./dashboard-kpi-trends";
-import { calculateInventoryValuation, type InventoryValuationBreakdown } from "./dashboard-inventory-valuation";
 import { coincideBusquedaInventario } from "./inventory-search";
 
 /**
@@ -763,14 +762,12 @@ export const getUnitTimeline = (db: Db, unitId: string): UnitTimelineItem[] => {
 export interface ProductRanking {
   product: Product;
   quantity: number;
-  revenue: number;
   ordersCount: number;
 }
 
 export interface CustomerRanking {
   customer?: Customer;
-  total: number;
-  /** Total de unidades (celulares) compradas en pedidos despachados. */
+  /** Total de unidades (celulares) incluidas en pedidos despachados. */
   units: number;
   ordersCount: number;
 }
@@ -791,8 +788,6 @@ export interface DashboardData {
     staleWarranties: number;
     receivedThisMonth: number;
     receivedPreviousComparablePeriod: number;
-    inventoryValue: number;
-    inventoryValuation: InventoryValuationBreakdown;
   };
   lowStock: ProductRow[];
   /** Celulares con menos de STOCK_BAJO_CELULARES unidades disponibles, por condición. */
@@ -806,11 +801,6 @@ export interface DashboardData {
   staleWarranties: WarrantyView[];
   topProducts: ProductRanking[];
   topCustomers: CustomerRanking[];
-  /**
-   * ¿Los pedidos despachados tienen precios cargados? Si no, el ranking de
-   * clientes se muestra por unidades en lugar de por monto.
-   */
-  hasAmounts: boolean;
 }
 
 const OPEN_ORDER_STATUSES = ["en_preparacion"];
@@ -823,21 +813,15 @@ export const getDashboard = (db: Db): DashboardData => {
     (unit) => !descontadas.has(unit.id) && (unit.status === "en_bodega" || unit.status === "en_local"),
   ).length;
   const fueraPorGarantia = unidadesFueraPorGarantia(db);
-  const inventoryValuation = calculateInventoryValuation(
-    db.units, db.products, fueraPorGarantia, descontadas,
-  );
-  const inventoryValue = inventoryValuation.total;
-
   const receivedComparison = getMonthToDateEntryComparison(db.movements);
 
-  // Rankings de ventas: solo celulares en pedidos despachados.
+  // Rankings operativos: solo celulares incluidos en pedidos despachados.
   const dispatched = db.orders.filter((order) => order.status === "despachado");
   const byProduct = new Map<
     string,
-    { quantity: number; revenue: number; orders: Set<string> }
+    { quantity: number; orders: Set<string> }
   >();
-  const byCustomer = new Map<string, { total: number; units: number; orders: Set<string> }>();
-  let hayMontos = false;
+  const byCustomer = new Map<string, { units: number; orders: Set<string> }>();
 
   dispatched.forEach((order) => {
     const celularItems = db.orderItems.filter(
@@ -848,7 +832,6 @@ export const getDashboard = (db: Db): DashboardData => {
     if (celularItems.length === 0) return;
 
     const customerAgg = byCustomer.get(order.customerId) ?? {
-      total: 0,
       units: 0,
       orders: new Set<string>(),
     };
@@ -856,16 +839,12 @@ export const getDashboard = (db: Db): DashboardData => {
     byCustomer.set(order.customerId, customerAgg);
 
     celularItems.forEach((item) => {
-      if (item.subtotal > 0) hayMontos = true;
-      customerAgg.total += item.subtotal;
       customerAgg.units += item.quantity;
       const agg = byProduct.get(item.productId) ?? {
         quantity: 0,
-        revenue: 0,
         orders: new Set<string>(),
       };
       agg.quantity += item.quantity;
-      agg.revenue += item.subtotal;
       agg.orders.add(order.id);
       byProduct.set(item.productId, agg);
     });
@@ -878,26 +857,24 @@ export const getDashboard = (db: Db): DashboardData => {
         ? {
             product,
             quantity: agg.quantity,
-            revenue: agg.revenue,
             ordersCount: agg.orders.size,
           }
         : undefined;
     })
     .filter((row): row is ProductRanking => Boolean(row))
-    .sort((a, b) => b.quantity - a.quantity || b.revenue - a.revenue)
+    .sort((a, b) => b.quantity - a.quantity || b.ordersCount - a.ordersCount)
     .slice(0, 5);
 
   const topCustomers: CustomerRanking[] = [...byCustomer.entries()]
     .map(([customerId, agg]) => ({
       customer: db.customers.find((item) => item.id === customerId),
-      total: agg.total,
       units: agg.units,
       ordersCount: agg.orders.size,
     }))
     .filter((row) => Boolean(row.customer))
     // Si los pedidos no tienen montos cargados (todos 0), el orden lo definen
     // las unidades para que el ranking siga siendo el de los que más compran.
-    .sort((a, b) => b.total - a.total || b.units - a.units)
+    .sort((a, b) => b.units - a.units)
     .slice(0, 5);
 
   const ahora = Date.now();
@@ -918,8 +895,6 @@ export const getDashboard = (db: Db): DashboardData => {
       staleWarranties: garantiasEstancadas.length,
       receivedThisMonth: receivedComparison.current,
       receivedPreviousComparablePeriod: receivedComparison.previous,
-      inventoryValue,
-      inventoryValuation,
     },
     lowStock: rows
       .filter((row) => row.product.isActive && row.stock.lowStock)
@@ -948,7 +923,6 @@ export const getDashboard = (db: Db): DashboardData => {
     staleWarranties: garantiasEstancadas,
     topProducts,
     topCustomers,
-    hasAmounts: hayMontos,
   };
 };
 
