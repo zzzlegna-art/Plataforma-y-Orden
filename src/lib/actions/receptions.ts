@@ -9,7 +9,7 @@ import {
   nowIso,
 } from "../db";
 import type { Actor, Db, Reception, ReceptionItem, Unit, UnitCondition } from "../types";
-import { costoSugeridoColor, normalizarColor, variantePorColor } from "../color-variants";
+import { normalizarColor, variantePorColor } from "../color-variants";
 import { errorDeSerialCelular, normalizarImei } from "../imei";
 import { esProductoRepuesto } from "../products";
 import { isSameText, normalizeText, requirePermission, requireText } from "./guards";
@@ -134,7 +134,6 @@ export const addReceptionItem = (
     productId: string;
     serial?: string;
     condition: UnitCondition;
-    cost?: number;
     color?: string;
     quantity?: number;
   },
@@ -190,7 +189,6 @@ export const addReceptionItem = (
       serial,
       condition: input.condition,
       color: color || undefined,
-      cost: input.cost !== undefined && input.cost > 0 ? input.cost : (color ? costoSugeridoColor(product, color) : undefined),
       createdAt: nowIso(),
     };
     db.receptionItems.push(item);
@@ -242,7 +240,6 @@ export const updateReceptionItem = (
       throw new DomainError("El color proporcionado no pertenece a este modelo.");
     }
     item.color = color || undefined;
-    if (productoFinal && color) item.cost = costoSugeridoColor(productoFinal, color);
   }
   return item;
 };
@@ -322,7 +319,6 @@ export const confirmReception = (
       liberada.productId = item.productId;
       liberada.condition = item.condition;
       liberada.color = item.color;
-      liberada.cost = item.cost;
       liberada.status = "en_bodega";
       liberada.receptionId = reception.id;
       liberada.location = undefined;
@@ -346,7 +342,6 @@ export const confirmReception = (
       serial: item.serial,
       condition: item.condition,
       color: item.color,
-      cost: item.cost,
       status: "en_bodega",
       receptionId: reception.id,
       receivedAt: reception.receivedAt,
