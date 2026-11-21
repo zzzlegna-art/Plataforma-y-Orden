@@ -10,7 +10,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useStore } from "@/hooks/use-store";
 import { useRunAction } from "@/hooks/use-run-action";
 import { updateSettings } from "@/lib/actions/users";
-import { APP_CURRENCY, formatNumber } from "@/lib/format";
+import { formatNumber } from "@/lib/format";
 import { onEnter } from "@/lib/keys";
 import {
   LIMITE_ARCHIVOS_BYTES,
@@ -28,14 +28,12 @@ export const DataTab = () => {
   const { db } = useStore();
   const runAction = useRunAction();
   const [companyName, setCompanyName] = useState(db.settings.companyName);
-  const [currency, setCurrency] = useState(db.settings.currency || APP_CURRENCY);
   const [uso, setUso] = useState<UsoAlmacenamiento | null>(null);
   const [usoEstado, setUsoEstado] = useState<"cargando" | "listo" | "error">("cargando");
 
   useEffect(() => {
     setCompanyName(db.settings.companyName);
-    setCurrency(db.settings.currency || APP_CURRENCY);
-  }, [db.settings.companyName, db.settings.currency]);
+  }, [db.settings.companyName]);
 
   useEffect(() => {
     obtenerUsoAlmacenamiento()
@@ -47,7 +45,7 @@ export const DataTab = () => {
   }, []);
 
   const guardar = async () => {
-    await runAction((db2, actor) => updateSettings(db2, actor, { companyName, currency }), {
+    await runAction((db2, actor) => updateSettings(db2, actor, { companyName }), {
       success: "settings.saved",
     });
   };
@@ -66,16 +64,6 @@ export const DataTab = () => {
             value={companyName}
             onChange={(event) => setCompanyName(event.target.value)}
           />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="currency">{t("settings.currency")}</Label>
-          <Input
-            id="currency"
-            value={currency}
-            maxLength={3}
-            onChange={(event) => setCurrency(event.target.value.toUpperCase())}
-          />
-          <p className="text-xs text-muted-foreground">{t("settings.currencyHint")}</p>
         </div>
         <Button type="button" loading={runAction.pending} onClick={() => void guardar()}>
           <Save />

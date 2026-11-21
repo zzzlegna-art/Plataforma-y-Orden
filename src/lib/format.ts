@@ -1,30 +1,9 @@
-/** Formateo de moneda, números y fechas en español. */
+/** Formateo de números y fechas en español. */
 
 import { hoyBogota } from "./dates";
 
 /** Moneda por defecto mientras se cargan los ajustes guardados. */
-export const APP_CURRENCY = "COP";
 export const APP_LOCALE = "es-CO";
-
-const crearFormateadorMoneda = (currency: string) =>
-  new Intl.NumberFormat(APP_LOCALE, { style: "currency", currency, minimumFractionDigits: 2, maximumFractionDigits: 2 });
-
-let monedaActual = APP_CURRENCY;
-let currencyFormatter = crearFormateadorMoneda(monedaActual);
-
-/** Aplica la moneda guardada en los ajustes sin recrear el formateador si no cambió. */
-export const setAppCurrency = (value?: string | null) => {
-  const candidata = typeof value === "string" ? value.trim().toUpperCase() : "";
-  const siguiente = /^[A-Z]{3}$/.test(candidata) ? candidata : APP_CURRENCY;
-  if (siguiente === monedaActual) return;
-  monedaActual = siguiente;
-  currencyFormatter = crearFormateadorMoneda(monedaActual);
-};
-
-const numberFormatter = new Intl.NumberFormat(APP_LOCALE);
-
-export const formatCurrency = (value: number | undefined | null) =>
-  currencyFormatter.format(Number(value ?? 0));
 
 export const formatNumber = (value: number | undefined | null) =>
   numberFormatter.format(Number(value ?? 0));

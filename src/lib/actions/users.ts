@@ -47,19 +47,16 @@ export const updateUser = (
 export const updateSettings = (
   db: Db,
   actor: Actor,
-  input: { companyName: string; currency: string },
+  input: { companyName: string },
 ) => {
   requirePermission(actor, "users.manage");
   const companyName = requireText(input.companyName, "errors.companyNameRequired");
-  const currency = requireText(input.currency, "errors.currencyRequired").toUpperCase();
-  if (!/^[A-Z]{3}$/.test(currency)) throw new DomainError("errors.currencyInvalid");
   db.settings.companyName = companyName;
-  db.settings.currency = currency;
   logAudit(db, actor, {
     action: "update",
     entity: "session",
     // Sin entityId: la columna es uuid y los ajustes no son una fila con id propio.
-    details: `Ajustes: ${db.settings.companyName} · ${db.settings.currency}`,
+    details: `Ajustes: ${db.settings.companyName}`,
   });
   return db.settings;
 };

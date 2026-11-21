@@ -394,7 +394,6 @@ export interface AuditLog {
 }
 
 export interface AppSettings {
-  currency: string;
   companyName: string;
 }
 

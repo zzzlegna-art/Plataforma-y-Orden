@@ -221,3 +221,6 @@ begin
   return v_result || jsonb_build_object('movements', v_events, 'warranties', v_warranties);
 end;
 $function$;
+
+-- Currency configuration is no longer needed after removing operational price and cost features.
+alter table public.bodega_settings drop column if exists currency;

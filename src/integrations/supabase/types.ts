@@ -602,19 +602,16 @@ export type Database = {
       bodega_settings: {
         Row: {
           company_name: string
-          currency: string
           id: string
           updated_at: string
         }
         Insert: {
           company_name?: string
-          currency?: string
           id?: string
           updated_at?: string
         }
         Update: {
           company_name?: string
-          currency?: string
           id?: string
           updated_at?: string
         }

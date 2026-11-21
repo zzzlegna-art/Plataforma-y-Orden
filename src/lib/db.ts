@@ -34,7 +34,7 @@ export class DomainError extends Error {
 
 export const emptyDb = (): Db => ({
   version: DB_VERSION,
-  settings: { currency: "COP", companyName: "Mi Empresa" },
+  settings: { companyName: "Mi Empresa" },
   users: [],
   categories: [],
   productTypes: [],

@@ -544,7 +544,7 @@ const NuevoPedido = () => {
                             <OptionSelect value={linea.color || undefined}
                               onChange={(value) => cambiarColor(linea, value)}
                               options={(product?.colorVariants ?? []).map((v) => ({
-                                value: v.color, label: `${v.color} · ${v.price.toLocaleString("es-CO")}`,
+                                value: v.color, label: v.color,
                               }))}
                               placeholder="Seleccionar color" />
                             <Button size="sm" variant="outline" type="button" onClick={() => agregarOtroColor(linea)}>
