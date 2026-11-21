@@ -187,7 +187,7 @@ const HistorialSerial = ({ embedded = false }: { embedded?: boolean }) => {
     setParams({ serial }, { replace: true });
   };
 
-  const liberable = unit && !enPedidoActivo && ["en_bodega", "en_local", "defectuoso"].includes(unit.status);
+  const liberable = unit && !enPedidoActivo && ["en_bodega", "defectuoso"].includes(unit.status);
 
   return (
     <div className="nx-serial-center space-y-5 stagger">
@@ -440,7 +440,7 @@ const HistorialSerial = ({ embedded = false }: { embedded?: boolean }) => {
                   <p className="mt-1 text-sm text-muted-foreground">{unit.color || "Sin color asignado"}</p>
                   <p className="mt-1 text-xs text-muted-foreground">Los equipos ya registrados pueden clasificarse sin crear otra referencia.</p>
                 </div>
-                {can("inventory.manage") && ["en_bodega","en_local","defectuoso"].includes(unit.status) ? (
+                {can("inventory.manage") && ["en_bodega","defectuoso"].includes(unit.status) ? (
                   <div className="w-full max-w-[240px]">
                     <OptionSelect value={unit.color || undefined}
                       placeholder="Asignar color"

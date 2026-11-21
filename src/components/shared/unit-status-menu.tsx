@@ -13,12 +13,12 @@ import { useRunAction } from "@/hooks/use-run-action";
 import { setUnitStatus } from "@/lib/actions/units";
 import type { Unit, UnitStatus } from "@/lib/types";
 
-/** Ajuste manual de estado entre las ubicaciones del inventario. */
+/** Ajuste manual de estado dentro de Bodega 6A. */
 export const UnitStatusMenu = ({ unit, label }: { unit: Unit; label?: string }) => {
   const { t } = useTranslation();
   const runAction = useRunAction();
 
-  const options = (["en_bodega", "en_local", "defectuoso"] as UnitStatus[]).filter(
+  const options = (["en_bodega", "defectuoso"] as UnitStatus[]).filter(
     (status) => status !== unit.status,
   );
 
