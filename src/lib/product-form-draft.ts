@@ -86,8 +86,6 @@ export const readProductFormDraft = (
         categoryId: asString(values.categoryId, EMPTY_PRODUCT_FORM.categoryId),
         brandId: asString(values.brandId, EMPTY_PRODUCT_FORM.brandId),
         categoria: asString(values.categoria, EMPTY_PRODUCT_FORM.categoria),
-        price: asString(values.price, EMPTY_PRODUCT_FORM.price),
-        cost: asString(values.cost, EMPTY_PRODUCT_FORM.cost),
         minStock: asString(values.minStock, EMPTY_PRODUCT_FORM.minStock),
         isActive: typeof values.isActive === "boolean" ? values.isActive : EMPTY_PRODUCT_FORM.isActive,
       },
