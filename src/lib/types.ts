@@ -180,6 +180,9 @@ export interface ProductColorVariant {
   /** Nombre comercial del color dentro de esta referencia; ej. Blanco, Azul, Borgoña. */
   color: string;
   /** Datos operativos de la variante; no contiene importes comerciales. */
+  /** Campos de importes antiguos aceptados solo al leer registros previos; no se guardan ni se muestran. */
+  cost?: number;
+  price?: number;
   /** Fotografía opcional de esta variante, sin reemplazar la imagen principal del modelo. */
   imageUrl?: string;
   /** Color real de la muestra visual; no afecta stock, precios ni serialización. */
