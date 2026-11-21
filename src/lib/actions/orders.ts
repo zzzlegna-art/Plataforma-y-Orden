@@ -8,7 +8,7 @@
 import { createId, DomainError, logAudit, logMovement, nextDailyCode, nowIso } from "../db";
 import { hoyBogota } from "../dates";
 import type { Actor, Db, Order, OrderItem, OrderStatus, Unit, UnitCondition } from "../types";
-import { costoSugeridoColor, normalizarColor, precioSugeridoColor, variantePorColor } from "../color-variants";
+import { normalizarColor, variantePorColor } from "../color-variants";
 import { esProductoRepuesto } from "../products";
 import { requireNumber, requirePermission } from "./guards";
 
@@ -67,7 +67,6 @@ const buildLineas = (
     if (!product) throw new DomainError("errors.productRequired");
     const quantity = requireNumber(linea.quantity, "errors.invalidQuantity", 1);
     const color = validarColorPedido(product, linea.color);
-    const precio = precioSugeridoColor(product, color);
     const condition: UnitCondition =
       product.categoria === "repuesto" ? "nuevo" : (linea.condition ?? "nuevo");
     return {
@@ -77,8 +76,8 @@ const buildLineas = (
       quantity,
       condition,
       color,
-      unitPrice: precio,
-      subtotal: quantity * precio,
+      unitPrice: 0,
+      subtotal: 0,
     };
   });
 };
@@ -132,7 +131,6 @@ export const agregarReferenciaPedido = (
   if (!product) throw new DomainError("errors.productRequired");
   const quantity = requireNumber(input.quantity, "errors.invalidQuantity", 1);
   const color = validarColorPedido(product, input.color);
-  const precio = precioSugeridoColor(product, color);
   const condition: UnitCondition =
     product.categoria === "repuesto" ? "nuevo" : (input.condition ?? "nuevo");
 
@@ -156,8 +154,8 @@ export const agregarReferenciaPedido = (
     quantity,
     condition,
     color,
-    unitPrice: precio,
-    subtotal: quantity * precio,
+    unitPrice: 0,
+    subtotal: 0,
   };
   db.orderItems.push(item);
   recalcularTotalPedido(db, order);
@@ -196,20 +194,17 @@ export const cambiarColorReferenciaPedido = (
     return unit;
   });
   const anterior = item.color ?? "Sin asignar";
-  const precioAnterior = item.unitPrice;
   for (const unit of unidades) {
     // El color pertenece a la línea y a cada IMEI. No tocar serial, vínculo ni costo real.
     unit.color = color;
   }
   item.color = color;
-  item.unitPrice = precioSugeridoColor(product, color);
-  item.subtotal = item.unitPrice * item.quantity;
   recalcularTotalPedido(db, order);
   logAudit(db, actor, {
     action: "update",
     entity: "order",
     entityId: order.id,
-    details: `${order.code} · color de ${product.name}: ${anterior} → ${color}; ${unidades.length} IMEI conservados; precio ${precioAnterior} → ${item.unitPrice}`,
+    details: `${order.code} · color de ${product.name}: ${anterior} → ${color}; ${unidades.length} IMEI conservados`,
   });
   return item;
 };
@@ -269,37 +264,6 @@ export const editarCantidadReferencia = (
     entity: "order",
     entityId: order.id,
     details: `${order.code} · ${item.productId} → ${nueva}`,
-  });
-  return item;
-};
-
-/**
- * Ajusta el precio unitario acordado para este pedido sin alterar el precio maestro
- * del producto. Se permite en preparación o preparado; la confirmación de venta
- * valida después el precio frente al costo real de cada unidad.
- */
-export const editarPrecioReferencia = (
-  db: Db,
-  actor: Actor,
-  input: { orderItemId: string; nuevoPrecio: number },
-): OrderItem => {
-  requirePermission(actor, "orders.manage");
-  const item = db.orderItems.find((row) => row.id === input.orderItemId);
-  if (!item) throw new DomainError("errors.notFound");
-  const order = findOrder(db, item.orderId);
-  if (order.status !== "en_preparacion" && order.status !== "preparado") {
-    throw new DomainError("errors.orderNotEditable");
-  }
-  const nuevoPrecio = requireNumber(input.nuevoPrecio, "errors.invalidPrice", 0);
-  const precioAnterior = item.unitPrice;
-  item.unitPrice = nuevoPrecio;
-  item.subtotal = item.quantity * nuevoPrecio;
-  recalcularTotalPedido(db, order);
-  logAudit(db, actor, {
-    action: "update",
-    entity: "order",
-    entityId: order.id,
-    details: `${order.code} · precio ${item.productId}: ${precioAnterior} → ${nuevoPrecio}; subtotal ${item.subtotal}; total ${order.total}`,
   });
   return item;
 };
