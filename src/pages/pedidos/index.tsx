@@ -104,7 +104,6 @@ const Pedidos = () => {
         customerId: "",
         status: entry.status as OrderStatus,
         orderDate: entry.orderDate,
-        total: 0,
         createdAt: entry.orderDate,
         updatedAt: entry.orderDate,
         createdBy: "",
