@@ -34,7 +34,7 @@ import {
   getHistoricalOrderDetail,
   type HistoricalOrderDetail,
 } from "@/lib/historical-orders";
-import { formatCurrency, formatDate } from "@/lib/format";
+import { formatDate } from "@/lib/format";
 
 const fecha = (value?: string | null) => (value ? formatDate(value) : "—");
 const estado = (value?: string | null) =>
@@ -172,10 +172,6 @@ const PedidoHistoricoDetalle = () => {
               <p className="text-muted-foreground">Fecha de entrega</p>
               <p className="mt-1 flex items-center gap-2 font-medium"><CalendarDays className="h-4 w-4 shrink-0 text-primary" />{fecha(order.deliveryDate)}</p>
             </div>
-            <div className="col-span-2 border-t pt-3">
-              <p className="text-muted-foreground">Total original</p>
-              <p className="mt-1 flex items-center gap-2 font-tabular text-2xl font-extrabold"><Coins className="h-6 w-6 text-primary" />{formatCurrency(order.total)}</p>
-            </div>
             {order.notes ? (
               <div className="col-span-2">
                 <p className="text-muted-foreground">Observaciones</p>
@@ -250,12 +246,6 @@ const PedidoHistoricoDetalle = () => {
                       {line.productSku ? `SKU ${line.productSku}` : "Sin referencia"}
                       {line.color ? ` · ${line.color}` : ""}
                       {line.condition ? ` · ${line.condition}` : ""}
-                    </p>
-                  </div>
-                  <div className="text-left text-sm sm:text-right">
-                    <p className="font-tabular font-semibold">{formatCurrency(line.subtotal)}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {line.quantity} × {formatCurrency(line.unitPrice)}
                     </p>
                   </div>
                 </div>
