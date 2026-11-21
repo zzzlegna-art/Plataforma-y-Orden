@@ -7,8 +7,6 @@ export interface ProductFormValues {
   categoryId: string;
   brandId: string;
   categoria: string;
-  price: string;
-  cost: string;
   minStock: string;
   isActive: boolean;
 }
@@ -33,8 +31,6 @@ export const EMPTY_PRODUCT_FORM: ProductFormValues = {
   categoryId: "",
   brandId: "",
   categoria: "",
-  price: "0",
-  cost: "0",
   minStock: "0",
   isActive: true,
 };
