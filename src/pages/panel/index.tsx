@@ -45,7 +45,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { useStore } from "@/hooks/use-store";
-import { formatNumber } from "@/lib/format";
+import { formatCurrency, formatNumber } from "@/lib/format";
 import { crearCsv } from "@/lib/csv";
 import { exportExcel } from "@/lib/export";
 import { buildOperationalReportSheets } from "@/lib/dashboard-report";
