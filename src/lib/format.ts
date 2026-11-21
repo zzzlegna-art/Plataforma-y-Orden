@@ -10,6 +10,17 @@ const numberFormatter = new Intl.NumberFormat(APP_LOCALE);
 export const formatNumber = (value: number | undefined | null) =>
   numberFormatter.format(Number(value ?? 0));
 
+const copFormatter = new Intl.NumberFormat(APP_LOCALE, {
+  style: "currency",
+  currency: "COP",
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+});
+
+/** Montos de reembolsos de garantías, expresados siempre en pesos colombianos. */
+export const formatCurrency = (value: number | undefined | null) =>
+  copFormatter.format(Number(value ?? 0));
+
 /** Fecha corta a partir de un ISO string o "YYYY-MM-DD". */
 export const formatDate = (value?: string | null) => {
   if (!value) return "—";
