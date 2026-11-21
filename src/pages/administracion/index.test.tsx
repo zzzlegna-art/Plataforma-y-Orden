@@ -19,7 +19,6 @@ vi.mock("../proveedores", () => ({
 }));
 vi.mock("./UsersTab", () => ({ UsersTab: () => <div>Panel de usuarios</div> }));
 vi.mock("./RolesTab", () => ({ RolesTab: () => <div>Matriz real de cuatro perfiles</div> }));
-vi.mock("./SedesTab", () => ({ SedesTab: () => <div>Panel de red multisede</div> }));
 vi.mock("./CatalogsTab", () => ({ CatalogsTab: () => <div>Panel de catálogos</div> }));
 vi.mock("./AuditTab", () => ({ AuditTab: () => <div>Bitácora privada</div> }));
 vi.mock("./DataTab", () => ({ DataTab: () => <div>Datos privados</div> }));
@@ -57,7 +56,6 @@ describe("Administración unifica el directorio de proveedores", () => {
     expect(screen.getByText("Directorio real de proveedores")).toBeTruthy();
     expect(screen.getByRole("tab", { name: "admin.tabUsers" })).toBeTruthy();
     expect(screen.getByRole("tab", { name: "Roles y permisos" })).toBeTruthy();
-    expect(screen.getByRole("tab", { name: "Ciudades y sedes" })).toBeTruthy();
     await userEvent.setup().click(screen.getByRole("tab", { name: "admin.tabCatalogs" }));
     expect(screen.getByRole("tab", { name: "admin.tabCatalogs" }).getAttribute("data-state")).toBe("active");
     expect(screen.getByText("Panel de catálogos")).toBeTruthy();
@@ -81,19 +79,3 @@ describe("Matriz multisede informativa", () => {
   });
 });
 
-
-describe("Pestaña de red física multisede", () => {
-  it("solo Administrador ve la red y la ruta directa de configuración", () => {
-    isAdmin = true;
-    const admin = render(<MemoryRouter initialEntries={["/administracion?tab=sites"]}><Administracion /></MemoryRouter>);
-    expect(screen.getByText("Panel de red multisede")).toBeTruthy();
-    expect(screen.getByRole("tab", { name: "Ciudades y sedes" }).getAttribute("data-state")).toBe("active");
-    admin.unmount();
-
-    isAdmin = false;
-    render(<MemoryRouter initialEntries={["/administracion?tab=sites"]}><Administracion /></MemoryRouter>);
-    expect(screen.queryByRole("tab", { name: "Ciudades y sedes" })).toBeNull();
-    expect(screen.queryByText("Panel de red multisede")).toBeNull();
-    expect(screen.getByText("Directorio real de proveedores")).toBeTruthy();
-  });
-});
