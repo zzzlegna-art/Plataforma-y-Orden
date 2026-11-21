@@ -77,7 +77,7 @@ import { variantePorColor } from "@/lib/color-variants";
 import { imageForVariant, inventoryProductPhoto, swatchForVariant } from "@/lib/product-color-photos";
 import { coincideBusquedaInventario, indexUnitSerialsByProduct } from "@/lib/inventory-search";
 import { clearInventoryFilters, getInventoryFilters, updateInventoryFilter } from "@/lib/inventory-filters";
-import { formatCurrency, todayIso } from "@/lib/format";
+import { todayIso } from "@/lib/format";
 import { getProductRows, type ProductRow, type ProductStock } from "@/lib/selectors";
 import { etiquetaTipoProducto, tiposProductoOrdenados } from "@/lib/products";
 import type { Product, ProductCategory, ProductTechnicalSpecKey } from "@/lib/types";
@@ -574,7 +574,6 @@ const Inventario = () => {
   const [catalogExportOpen, setCatalogExportOpen] = useState(false);
   const [catalogFormat, setCatalogFormat] = useState<"pdf" | "excel" | "csv">("pdf");
   const [catalogCat, setCatalogCat] = useState("");
-  const [catalogIncludePrice, setCatalogIncludePrice] = useState(false);
   const [catalogIncludeStock, setCatalogIncludeStock] = useState(false);
   const [catalogExportProgress, setCatalogExportProgress] = useState<CatalogExportProgress | null>(null);
 
@@ -648,8 +647,6 @@ const Inventario = () => {
       row.product.name,
       row.category?.name ?? "—",
       row.brand?.name ?? "—",
-      formatCurrency(row.product.price),
-      formatCurrency(row.product.cost),
       row.stock.disponible,
       row.stock.enPedidos,
       row.stock.enInventario,
@@ -661,8 +658,6 @@ const Inventario = () => {
       t("export.producto"),
       t("export.categoria"),
       t("export.marca"),
-      t("product.salePrice"),
-      t("product.costPrice"),
       t("product.available"),
       "En pedidos (no disponibles)",
       "Inventario operativo (sin pedidos)",
@@ -726,7 +721,6 @@ const Inventario = () => {
         ].filter(Boolean).join(" / "),
         description: row.product.description?.trim() ?? "",
         imageUrl: row.product.imageUrl ?? "",
-        price: formatCurrency(row.product.price),
         stock: row.stock.enInventario,
         features: [...standardFeatures, ...customFeatures],
       };
@@ -739,7 +733,6 @@ const Inventario = () => {
       category: t("export.categoria"),
       description: t("product.description"),
       features: t("product.technicalDetails"),
-      price: t("product.price"),
       stock: t("product.enInventario"),
       image: t("catalog.image"),
       imageUrl: t("catalog.imageUrl"),
@@ -755,7 +748,6 @@ const Inventario = () => {
       subtitle: exportSubtitle(products.length),
       filename: `catalogo-nexora-${todayIso()}.${format === "pdf" ? "pdf" : format === "csv" ? "csv" : "xlsx"}`,
       products,
-      includePrice: catalogIncludePrice,
       includeStock: catalogIncludeStock,
       labels,
       onProgress: setCatalogExportProgress,
@@ -771,7 +763,6 @@ const Inventario = () => {
           labels.description,
           labels.features,
           labels.imageUrl,
-          ...(catalogIncludePrice ? [labels.price] : []),
           ...(catalogIncludeStock ? [labels.stock] : []),
         ];
         const rows = products.map((product) => [
@@ -782,7 +773,6 @@ const Inventario = () => {
           product.description ?? "",
           (product.features ?? []).map((feature) => `${feature.label}: ${feature.value}`).join(" | "),
           product.imageUrl ?? "",
-          ...(catalogIncludePrice ? [product.price ?? ""] : []),
           ...(catalogIncludeStock ? [product.stock ?? 0] : []),
         ]);
         descargarCsv(options.filename, [columns, ...rows]);
@@ -851,20 +841,6 @@ const Inventario = () => {
         <span className="font-tabular font-semibold">{row.stock.disponible} libres</span>
         <span className="font-tabular text-amber-700 dark:text-amber-300">{row.stock.enPedidos} en pedidos</span>
         <span className="text-xs text-muted-foreground">{row.stock.enSedeFisica} físicos</span>
-      </div>
-      <div className="grid grid-cols-2 gap-2" aria-label={t("product.pricing")}>
-        <div className="min-w-0 rounded-xl border border-border/70 bg-muted/30 px-3 py-2">
-          <p className="text-[11px] font-semibold text-muted-foreground">{t("product.costPrice")}</p>
-          <p className="font-tabular mt-1 break-words text-sm font-semibold text-foreground">
-            {formatCurrency(row.product.cost)}
-          </p>
-        </div>
-        <div className="min-w-0 rounded-xl border border-primary/15 bg-primary/5 px-3 py-2">
-          <p className="text-[11px] font-semibold text-muted-foreground">{t("product.salePrice")}</p>
-          <p className="font-tabular mt-1 break-words text-sm font-bold text-foreground">
-            {row.product.price > 0 ? formatCurrency(row.product.price) : t("product.noPrice")}
-          </p>
-        </div>
       </div>
       <CondicionPills stock={row.stock} />
       <div className="flex gap-2 pt-1">
@@ -1145,62 +1121,6 @@ const Inventario = () => {
             cell: (row) => <CondicionPills stock={row.stock} />,
           },
           {
-            key: "price",
-            header: t("product.salePrice"),
-            align: "right",
-            className: "whitespace-nowrap",
-            cell: (row) =>
-              row.product.price > 0 ? (
-                <span className="font-tabular text-sm font-semibold text-foreground">
-                  {formatCurrency(row.product.price)}
-                </span>
-              ) : (
-                <span className="text-xs italic text-muted-foreground">{t("product.noPrice")}</span>
-              ),
-          },
-          {
-            key: "cost",
-            header: t("product.costPrice"),
-            align: "right",
-            className: "whitespace-nowrap",
-            cell: (row) => (
-              <span className="font-tabular rounded-lg border border-border/60 bg-muted/35 px-2 py-1 text-sm font-medium text-foreground">
-                {formatCurrency(row.product.cost)}
-              </span>
-            ),
-          },
-          {
-            key: "available",
-            header: t("product.available"),
-            align: "right",
-            className: "whitespace-nowrap",
-            cell: (row) => (
-              <div className="flex items-center justify-end gap-2">
-                {row.stock.lowStock ? <LowStockBadge /> : null}
-                <span
-                  className={cn(
-                    "font-tabular min-w-8 text-sm font-semibold",
-                    row.stock.disponible === 0 && "text-destructive",
-                  )}
-                >
-                  {row.stock.disponible}
-                </span>
-              </div>
-            ),
-          },
-          {
-            key: "orders",
-            header: "En pedidos",
-            align: "right",
-            className: "whitespace-nowrap",
-            cell: (row) => (
-              <span className="font-tabular text-sm font-semibold text-amber-700 dark:text-amber-300"
-                title="IMEI comprometidos en pedidos: no son stock disponible">
-                {row.stock.enPedidos}
-              </span>
-            ),
-          },
-          {
             key: "actions",
             header: t("common.actions"),
             align: "right",
@@ -1361,17 +1281,6 @@ const Inventario = () => {
               value: type.key,
               label: etiquetaTipoProducto(t, type),
             }))}
-          />
-        </div>
-
-        <div className="flex items-center justify-between gap-3 rounded-md border px-3 py-2.5">
-          <Label htmlFor="catalog-include-price" className="cursor-pointer">
-            {t("catalog.includePrice")}
-          </Label>
-          <Switch
-            id="catalog-include-price"
-            checked={catalogIncludePrice}
-            onCheckedChange={setCatalogIncludePrice}
           />
         </div>
 
