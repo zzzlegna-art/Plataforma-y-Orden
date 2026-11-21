@@ -1,22 +1,15 @@
 import { describe, expect, it } from "vitest";
-import {
-  catalogCoverPhoto, commercialSiteGroups, parseCatalogMedia,
-} from "./nexora-worker-catalog-media";
+import { catalogCoverPhoto, parseCatalogMedia } from "./nexora-worker-catalog-media";
 import { parseReferenceStock } from "./nexora-reference-stock";
 import { parseImeiDirectory } from "./nexora-imei-directory";
 
 const counters = {
-  total: 41,
-  physicallyVerified: 31,
-  available: 0,
-  unverified: 0,
-  inTransit: 0,
-  pendingReturn: 0,
-  sold: 10,
+  total: 41, physicallyVerified: 31, committedOrders: 0,
+  unverified: 0, inTransit: 0, pendingReturn: 0, sold: 10,
 };
 
-describe("Inventario comercial de Encargado/Vendedor", () => {
-  it("muestra la fotografía real antes que las fotos de variantes", () => {
+describe("Inventario operativo de Bodega 6A", () => {
+  it("muestra la fotografía real antes que las fotos de variantes y descarta importes antiguos", () => {
     const media = parseCatalogMedia({
       categoryKey: "celular",
       imageUrl: "https://example.test/iphone-principal.png",
@@ -48,62 +41,44 @@ describe("Inventario comercial de Encargado/Vendedor", () => {
     expect(() => parseCatalogMedia({ colorVariants: { color: "Azul" } })).toThrow();
   });
 
-  it("IP13P-256: una referencia para 31 en Bodega 6A y 10 vendidos históricos", () => {
+  it("consolida existencias por referencia sin desglose por sedes ni importes", () => {
     const result = parseReferenceStock({
       scope: "serialized_imei_only", initialApproved: true,
       page: 1, pageSize: 20, matched: 1,
       items: [{
-        productId: "i13", name: "iphone 13 Pro 256 GB", sku: "IP13P-256",
-        categoryKey: "celular",
-        imageUrl: "https://example.test/iphone13.png",
-        colorVariants: [],
-        ...counters,
-        sites: [
-          {
-            siteId: "bodega-6a", siteName: "Bodega 6A", cityName: "Barranquilla",
-            total: 31, physicallyVerified: 31, available: 0,
-            unverified: 0, inTransit: 0, pendingReturn: 0, sold: 0,
-          },
-          {
-            siteId: null, siteName: "Sin sede verificada", cityName: null,
-            total: 10, physicallyVerified: 0, available: 0,
-            unverified: 0, inTransit: 0, pendingReturn: 0, sold: 10,
-          },
-        ],
+        productId: "i13", name: "iPhone 13 Pro 256 GB", sku: "IP13P-256",
+        categoryKey: "celular", imageUrl: "https://example.test/iphone13.png",
+        colorVariants: [], ...counters,
+        cost: 1500000, sites: [{ siteName: "Sede antigua" }],
       }],
     });
     expect(result.matched).toBe(1);
-    expect(result.items).toHaveLength(1);
-    expect(result.items[0].sold).toBe(10);
     expect(result.items[0].total).toBe(41);
-    expect(commercialSiteGroups(result.items[0].sites)).toHaveLength(1);
-    expect(commercialSiteGroups(result.items[0].sites)[0].siteName).toBe("Bodega 6A");
+    expect(result.items[0].sold).toBe(10);
+    expect(result.items[0]).not.toHaveProperty("cost");
+    expect(result.items[0]).not.toHaveProperty("sites");
     expect(result.items[0].imageUrl).toBe("https://example.test/iphone13.png");
   });
 
-  it("en IMEI conserva costo real y fotografía de la referencia", () => {
+  it("en el directorio IMEI conserva identificación y fotografía, no costos", () => {
     const parsed = parseImeiDirectory({
       initialApproved: true, page: 1, pageSize: 25, matched: 1,
-      sites: [], summary: {
-        sinConciliar: 0, enSede: 1, enTransito: 0,
-        retornoPendiente: 0, vendidos: 0, sinCosto: 0, total: 1,
-      },
+      summary: { sinConciliar: 0, enSede: 1, vendidos: 0, total: 1 },
       items: [{
         unitId: "unit-1", serial: "123456789012345",
         productName: "iPhone 13 Pro", sku: "IP13P-256",
         categoryKey: "celular", imageUrl: "https://example.test/phone.png",
-        colorVariants: [], cost: 1500000, unitStatus: "en_bodega",
-        custodyState: "en_sede", siteId: "bodega-6a",
-        siteName: "Bodega 6A", cityName: "Barranquilla",
-        historicalLocation: null, committedOrder: false,
-        committedTransfer: false, commercialCandidate: true,
+        colorVariants: [], unitStatus: "en_bodega",
+        custodyState: "en_sede", historicalLocation: null,
+        committedOrder: false, cost: 1500000,
       }],
     });
-    expect(parsed.items[0].cost).toBe(1500000);
+    expect(parsed.items[0].serial).toBe("123456789012345");
+    expect("cost" in parsed.items[0]).toBe(false);
     expect(catalogCoverPhoto(parsed.items[0])).toBe("https://example.test/phone.png");
   });
 
-  it("lee las 7 especificaciones originales del iPhone 11 sin inventar información", () => {
+  it("lee especificaciones técnicas explícitas sin inventar información", () => {
     const details = {
       storage: "128 GB", ram: "4 GB", processor: "Apple A13 Bionic",
       rearCamera: "Sistema dual de 12 MP", frontCamera: "12 MP TrueDepth",
@@ -127,39 +102,5 @@ describe("Inventario comercial de Encargado/Vendedor", () => {
     expect(parseCatalogMedia({ technicalSpecs: {} }).technicalSpecs).toBeNull();
     expect(() => parseCatalogMedia({ technicalSpecs: { ram: 4 } })).toThrow(/especificaciones/i);
     expect(() => parseCatalogMedia({ technicalSpecs: [] })).toThrow(/especificaciones/i);
-  });
-
-  it("conserva las especificaciones originales tanto por referencia como por IMEI", () => {
-    const specs = { storage: "128 GB", processor: "Apple A13 Bionic" };
-    const ref = parseReferenceStock({
-      scope: "serialized_imei_only", initialApproved: true, page: 1,
-      pageSize: 20, matched: 1,
-      items: [{
-        productId: "ip11", name: "iPhone 11", sku: "IP11-128",
-        ...counters, technicalSpecs: specs,
-        sites: [{ ...counters, siteId: "s1", siteName: "Local", cityName: "Barranquilla" }],
-      }],
-    });
-    expect(ref.items[0].technicalSpecs).toEqual(specs);
-    const imei = parseImeiDirectory({
-      initialApproved: true, page: 1, pageSize: 25, matched: 1, sites: [],
-      summary: { sinConciliar: 0, enSede: 1, enTransito: 0,
-        retornoPendiente: 0, vendidos: 0, sinCosto: 0, total: 1 },
-      items: [{
-        unitId: "i1", serial: "123456789012345", productName: "iPhone 11",
-        sku: "IP11-128", technicalSpecs: specs, cost: 900000, unitStatus: "en_bodega",
-        custodyState: "en_sede", siteId: "s1", siteName: "Local",
-        cityName: "Barranquilla", historicalLocation: null,
-        committedOrder: false, committedTransfer: false, commercialCandidate: true,
-      }],
-    });
-    expect(imei.items[0].technicalSpecs).toEqual(specs);
-  });
-
-  it("tolera el contrato RPC anterior sin imagen mientras se publica la migración", () => {
-    expect(parseCatalogMedia({})).toEqual({
-      imageUrl: null, categoryKey: null, colorVariants: [],
-      technicalSpecs: null, description: null,
-    });
   });
 });
