@@ -592,9 +592,7 @@ const PedidoDetalle = () => {
                     : undefined
                 }
               />
-
             </div>
-          </div>
         ))}
       </section>
 
