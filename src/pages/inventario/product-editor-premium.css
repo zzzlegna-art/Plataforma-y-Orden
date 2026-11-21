@@ -210,7 +210,7 @@
 .nx-product-editor .nx-editor-variant-columns,
 .nx-product-editor .nx-editor-variant-row {
   display:grid;
-  grid-template-columns:minmax(0,1.16fr) minmax(0,1fr) minmax(0,1fr) 40px;
+  grid-template-columns:minmax(0,1fr) 40px;
   align-items:center;
   gap:10px;
 }
@@ -388,7 +388,7 @@
 }
 
 
-/* Colores y fotografías por variante: compacto, claro/oscuro y sin afectar precios. */
+/* Colores y fotografías por variante: compacto y sin datos comerciales. */
 .nx-product-editor .nx-editor-variant-media {
   grid-column: 1 / -1;
   display: flex;
