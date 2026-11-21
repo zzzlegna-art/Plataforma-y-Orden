@@ -41,7 +41,7 @@ export const PREPARATION_STEPS = [
   },
   {
     key:"roleActivation",title:"Validar activación segura de roles",
-    detail:"Pendiente de seguridad completa de RLS, caja y acceso por sede.",
+    detail:"Pendiente de completar la revisión de seguridad, RLS y acceso por sede.",
     tab:"roles",action:"Ver controles",
   },
 ] as const;
@@ -56,7 +56,6 @@ export interface LaunchReadiness {
   cities:number;principals:number;warehouses:number;stores:number;
   activeAssignments:number;plannedRoles:number;plannedManagers:number;enabledManagers:number;
   initialApproved:boolean;legacyEligibleUnits:number;mappedUnits:number;unmappedUnits:number;
-  openCashSessions:number;retailSales:number;
   storeDetails:StorePreparation[];steps:PreparationStep[];
 }
 
@@ -103,7 +102,6 @@ export const parseLaunchReadiness=(raw:unknown):LaunchReadiness=>{
     initialApproved:r.initialApproved,
     legacyEligibleUnits:count(r.legacyEligibleUnits),
     mappedUnits:count(r.mappedUnits),unmappedUnits:count(r.unmappedUnits),
-    openCashSessions:count(r.openCashSessions),retailSales:count(r.retailSales),
     storeDetails:r.storeDetails.map((value:unknown):StorePreparation=>{
       const s=obj(value);
       if(typeof s.managerPlanned!=="boolean"||typeof s.managerEnabled!=="boolean")
