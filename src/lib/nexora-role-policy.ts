@@ -5,7 +5,7 @@
 import { can, type Permission } from "./permissions";
 import type { Role } from "./types";
 
-export const MULTISITE_ROLES = ["admin", "bodeguero", "encargado", "vendedor"] as const;
+export const MULTISITE_ROLES = ["admin", "bodeguero", "encargado"] as const;
 export type MultisiteRole = (typeof MULTISITE_ROLES)[number];
 
 export interface MultisiteCapabilitySpec {
