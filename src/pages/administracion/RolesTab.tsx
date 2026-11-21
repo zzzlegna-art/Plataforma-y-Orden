@@ -5,7 +5,6 @@ import {
 } from "lucide-react";
 
 import { RolePlanningPanel } from "./RolePlanningPanel";
-import { PersonalSedesPanel } from "./PersonalSedesPanel";
 import {
   MULTISITE_CAPABILITIES, MULTISITE_ROLES, canMultisite,
   type MultisiteRole,
@@ -167,7 +166,6 @@ export const RolesTab = () => {
         </div>
       </div>
 
-      <PersonalSedesPanel />
       <RolePlanningPanel />
     </section>
   );
