@@ -229,7 +229,6 @@ export interface ReceptionItem {
   productId: string;
   serial: string;
   condition: UnitCondition;
-  cost?: number;
   createdAt: string;
 }
 
