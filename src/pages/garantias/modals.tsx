@@ -39,7 +39,7 @@ import { cn } from "@/lib/utils";
 
 import { ReplacementSerialField } from "./replacement-serial-field";
 
-/** Registra el diagnóstico del taller con resolución y costo. */
+/** Registra el diagnóstico del taller y su resolución operativa. */
 export const DiagnosticoDialog = ({
   warranty,
   trigger,
@@ -52,7 +52,6 @@ export const DiagnosticoDialog = ({
   const [open, setOpen] = useState(false);
   const [diagnostico, setDiagnostico] = useState("");
   const [resolucion, setResolucion] = useState<WarrantyResolution | "">("");
-  const [costo, setCosto] = useState("");
   const [replacementUnitId, setReplacementUnitId] = useState("");
 
   const esCambio = resolucion === "cambio";
@@ -68,7 +67,6 @@ export const DiagnosticoDialog = ({
           warrantyId: warranty.id,
           diagnostico,
           resolucion,
-          costo: costo ? Number(costo) : undefined,
           replacementUnitId: esCambio ? replacementUnitId : undefined,
         }),
       { success: "warranty.diagnosed", key: `garantia-diagnostico:${warranty.id}` },
@@ -77,7 +75,6 @@ export const DiagnosticoDialog = ({
       setOpen(false);
       setDiagnostico("");
       setResolucion("");
-      setCosto("");
       setReplacementUnitId("");
     }
   };
@@ -124,18 +121,6 @@ export const DiagnosticoDialog = ({
               />
             </div>
           ) : null}
-          <div className="space-y-2">
-            <Label htmlFor="diagCosto">{t("warranty.cost")}</Label>
-            <Input
-              id="diagCosto"
-              type="number"
-              min={0}
-              step="0.01"
-              value={costo}
-              onChange={(event) => setCosto(event.target.value)}
-              placeholder="0"
-            />
-          </div>
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => setOpen(false)}>
