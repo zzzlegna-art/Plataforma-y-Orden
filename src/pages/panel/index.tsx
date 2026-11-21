@@ -9,7 +9,6 @@ import {
   ClipboardList,
   ChevronDown,
   Download,
-  FileSpreadsheet,
   PackagePlus,
   ShieldCheck,
   TrendingUp,
@@ -46,8 +45,6 @@ import { cn } from "@/lib/utils";
 import { useStore } from "@/hooks/use-store";
 import { formatNumber } from "@/lib/format";
 import { crearCsv } from "@/lib/csv";
-import { exportExcel } from "@/lib/export";
-import { buildOperationalReportSheets } from "@/lib/dashboard-report";
 import { getDashboardOrderRankings, type DashboardOrderRankings } from "@/lib/dashboard-order-rankings";
 import { buildDashboardMovementChartData, getLocalDateInputValue, isWithinDateRange, isPedidoSerialAssignment } from "@/lib/dashboard-date-range";
 import {
@@ -221,13 +218,6 @@ const Panel = () => {
     window.setTimeout(() => URL.revokeObjectURL(url), 1000);
   };
 
-  const exportarReporteOperativoExcel = () => {
-    if (reporteDesde && reporteHasta && reporteDesde > reporteHasta) return;
-    exportExcel({
-      filename: `nexora-reporte-operativo-${reporteDesde || "inicio"}-a-${reporteHasta || "hoy"}.xlsx`,
-      sheets: buildOperationalReportSheets(db, reporteDesde, reporteHasta),
-    });
-  };
   // Garantía que más tiempo lleva sin moverse (la lista ya viene ordenada de mayor a menor).
   const garantiaMasAntigua = data.staleWarranties[0];
   const diasMasAntigua = garantiaMasAntigua ? diasSinMovimiento(garantiaMasAntigua) : 0;
@@ -320,9 +310,6 @@ const Panel = () => {
           <input id="reporte-hasta" type="date" value={reporteHasta} min={reporteDesde} onChange={(e) => { setReporteHasta(e.target.value); setMovementPreset("custom"); }} className="mt-1 box-border w-full min-w-0 rounded-md border bg-background px-2 py-2 text-sm sm:w-auto sm:px-3" />
         </div>
         <div className="col-span-2 flex flex-wrap gap-2 sm:col-span-1">
-          <Button type="button" disabled={reporteDesde > reporteHasta} onClick={exportarReporteOperativoExcel}>
-            <FileSpreadsheet className="mr-2 h-4 w-4" />Exportar a Excel (.xlsx)
-          </Button>
           <Button type="button" variant="outline" disabled={reporteDesde > reporteHasta} onClick={exportarReporteOperativo}>
             <Download className="mr-2 h-4 w-4" />Exportar CSV
           </Button>
