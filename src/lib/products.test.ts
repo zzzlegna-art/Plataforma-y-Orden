@@ -17,7 +17,7 @@ const conTipos = (): Db => {
 };
 
 const producto = (categoria: string) => ({
-  id: "p1", sku: "S", name: "X", categoria, price: 1, cost: 1, minStock: 0, isActive: true, createdAt: now, updatedAt: now,
+  id: "p1", sku: "S", name: "X", categoria, minStock: 0, isActive: true, createdAt: now, updatedAt: now,
 });
 
 describe("mayoristaGroupDeProducto", () => {
