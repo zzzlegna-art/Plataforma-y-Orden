@@ -163,9 +163,8 @@ export const agregarReferenciaPedido = (
 };
 
 /**
- * Cambia el color y precio de una línea del pedido sin quitar sus IMEI asignados.
- * Solo se permite antes de confirmar la venta, nunca sobre una venta histórica.
- * Conserva el costo de compra ya registrado en cada unidad.
+ * Cambia el color de una línea del pedido sin quitar sus IMEI asignados.
+ * Solo se permite mientras el pedido está en preparación.
  */
 export const cambiarColorReferenciaPedido = (
   db: Db, actor: Actor, input: { orderItemId: string; color: string },
@@ -195,7 +194,7 @@ export const cambiarColorReferenciaPedido = (
   });
   const anterior = item.color ?? "Sin asignar";
   for (const unit of unidades) {
-    // El color pertenece a la línea y a cada IMEI. No tocar serial, vínculo ni costo real.
+    // El color pertenece a la línea y a cada IMEI. No tocar serial ni vínculo.
     unit.color = color;
   }
   item.color = color;
@@ -327,8 +326,7 @@ export const serializarImeiPedido = (
   // El color se fija aquí, no en recepción. Nunca sobrescribir uno ya identificado.
   if (linea.color && !unit.color) {
     unit.color = linea.color;
-    // No fijar un costo estimado en la unidad: si no tiene costo real de recepción,
-    // la validación final tomará el costo del color vigente en el pedido.
+    // El despacho no modifica el costo histórico de recepción.
   }
   db.orderItemUnits.push({ id: createId(), orderItemId: linea.id, unitId: unit.id, createdAt: nowIso() });
   // La asignación también forma parte de la vida del serial, aunque el pedido
@@ -714,8 +712,7 @@ export const agregarSerialDespachado = (
   if (item.color && !unit.color) {
     unit.color = item.color;
     const product = db.products.find((p) => p.id === unit.productId);
-    // Respetar cualquier costo real de recepción. Si falta, la línea usa
-    // el costo sugerido del color cuando se valide la venta.
+    // La salida física se registra como movimiento operativo del pedido.
   }
   db.orderItemUnits.push({ id: createId(), orderItemId: item.id, unitId: unit.id, createdAt: nowIso() });
   unit.status = "vendido";
