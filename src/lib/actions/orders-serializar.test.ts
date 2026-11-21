@@ -16,13 +16,12 @@ const dbCon = (): Db => {
   const db = emptyDb();
   db.orders = [
     {
-      id: "o1", code: "PED-1", customerId: "c1", status: "en_preparacion", orderDate: now,
-      total: 0, createdBy: "u1", createdAt: now, updatedAt: now,
+      id: "o1", code: "PED-1", customerId: "c1", status: "en_preparacion", orderDate: now, createdBy: "u1", createdAt: now, updatedAt: now,
     },
   ];
   db.orderItems = [
-    { id: "i1", orderId: "o1", productId: "p1", quantity: 1, condition: "nuevo", unitPrice: 0, subtotal: 0 },
-    { id: "i2", orderId: "o1", productId: "p2", quantity: 1, condition: "nuevo", unitPrice: 0, subtotal: 0 },
+    { id: "i1", orderId: "o1", productId: "p1", quantity: 1, condition: "nuevo" },
+    { id: "i2", orderId: "o1", productId: "p2", quantity: 1, condition: "nuevo" },
   ];
   db.units = [unidad("a", "p1", "SER-A", "nuevo"), unidad("b", "p2", "SER-B", "nuevo")];
   return db;
