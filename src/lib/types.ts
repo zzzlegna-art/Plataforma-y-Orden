@@ -179,10 +179,7 @@ export type ProductTechnicalSpecs = Partial<Record<ProductTechnicalSpecKey, stri
 export interface ProductColorVariant {
   /** Nombre comercial del color dentro de esta referencia; ej. Blanco, Azul, Borgoña. */
   color: string;
-  /** Costo de referencia por color. El IMEI conserva el costo real de compra. */
-  cost: number;
-  /** Precio de venta sugerido del color. Se puede ajustar antes de confirmar venta. */
-  price: number;
+  /** Datos operativos de la variante; no contiene importes comerciales. */
   /** Fotografía opcional de esta variante, sin reemplazar la imagen principal del modelo. */
   imageUrl?: string;
   /** Color real de la muestra visual; no afecta stock, precios ni serialización. */
@@ -201,6 +198,7 @@ export interface Product {
   brandId?: string;
   categoria?: ProductCategory;
   tipoRepuesto?: TipoRepuesto;
+  /** Campos legacy solo para compatibilidad de datos antiguos; siempre se normalizan a cero. */
   price: number;
   cost: number;
   minStock: number;
