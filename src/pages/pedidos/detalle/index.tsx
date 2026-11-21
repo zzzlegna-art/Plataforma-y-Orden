@@ -563,17 +563,7 @@ const PedidoDetalle = () => {
             Referencias ordenadas automáticamente por modelo y número, de menor a mayor.
           </p>
         </div>
-        {lineasOrdenadas.map((line) => {
-          const costos = line.units.length > 0
-            ? line.units.map((unit) => unit.cost ?? (line.product ? costoSugeridoColor(line.product, line.item.color) : 0))
-            : [line.product ? costoSugeridoColor(line.product, line.item.color) : 0];
-          const costoReferencia = Math.max(0, ...costos);
-          const precioBajoCosto = line.item.unitPrice < costoReferencia;
-          const editandoPrecio = lineaPrecioEditando === line.item.id;
-          const precioColor = variantePorColor(line.product, line.item.color)?.price;
-          const precioColorDesactualizado = precioEditable &&
-            estadoPrecioVentaColor(line.product, line.item.color, line.item.unitPrice) === "desactualizado";
-          return (
+        {lineasOrdenadas.map((line) => (
             <div key={line.item.id} className="nx-order-product-group space-y-2">
               <OrderLineCard
                 line={line}
@@ -583,7 +573,7 @@ const PedidoDetalle = () => {
                 editable={editable}
                 edicionDespachado={edicionDespachado}
                 onCambiarCantidad={(delta) => cambiarCantidad(line.item.id, delta)}
-                colorEditable={precioEditable}
+                colorEditable={editable}
                 onCambiarColor={(color) => void runAction(
                   (db2, actor) => cambiarColorReferenciaPedido(db2, actor, { orderItemId: line.item.id, color }),
                   { success: "order.updated" },
@@ -602,97 +592,10 @@ const PedidoDetalle = () => {
                     : undefined
                 }
               />
-              <div className="nx-order-pricing flex flex-wrap items-center gap-x-5 gap-y-2 rounded-lg border bg-card/70 px-4 py-3 text-sm">
-                <div>
-                  <p className="text-xs text-muted-foreground">Precio unitario</p>
-                  <p className="font-tabular font-semibold">{formatCurrency(line.item.unitPrice)}</p>
-                  {precioColorDesactualizado ? (
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="outline"
-                      className="mt-2 h-auto min-h-8 whitespace-normal border-primary/30 text-xs text-primary"
-                      loading={runAction.pending}
-                      onClick={() => void runAction(
-                        (db2, actor) => cambiarColorReferenciaPedido(db2, actor, {
-                          orderItemId: line.item.id, color: line.item.color!,
-                        }),
-                        { success: "order.updated", key: `sincronizar-precio-color:${line.item.id}` },
-                      )}
-                    >
-                      Aplicar precio de {line.item.color}: {formatCurrency(precioColor)}
-                    </Button>
-                  ) : null}
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground">Subtotal · {line.item.quantity} unidades</p>
-                  <p className="font-tabular font-semibold">{formatCurrency(line.item.subtotal)}</p>
-                </div>
-                {line.product ? (
-                  <div>
-                    <p className="text-xs text-muted-foreground">Costo de referencia</p>
-                    <p className="font-tabular">{formatCurrency(costoReferencia)}</p>
-                  </div>
-                ) : null}
-                {precioEditable ? (
-                  editandoPrecio ? (
-                    <div className="flex flex-wrap items-end gap-2 sm:ml-auto">
-                      <div className="space-y-1">
-                        <Label htmlFor={`precio-${line.item.id}`}>Nuevo precio unitario</Label>
-                        <Input
-                          id={`precio-${line.item.id}`}
-                          type="number"
-                          min="0"
-                          step="0.01"
-                          value={precioBorrador}
-                          onChange={(event) => setPrecioBorrador(event.target.value)}
-                          className="w-44"
-                        />
-                      </div>
-                      <Button
-                        type="button"
-                        size="sm"
-                        loading={runAction.pending}
-                        onClick={() => void guardarPrecio(line.item.id)}
-                      >
-                        Guardar precio
-                      </Button>
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="outline"
-                        onClick={() => {
-                          setLineaPrecioEditando(null);
-                          setPrecioBorrador("");
-                        }}
-                      >
-                        Cancelar
-                      </Button>
-                    </div>
-                  ) : (
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="outline"
-                      className="sm:ml-auto"
-                      onClick={() => {
-                        setLineaPrecioEditando(line.item.id);
-                        setPrecioBorrador(String(line.item.unitPrice));
-                      }}
-                    >
-                      Editar precio de venta
-                    </Button>
-                  )
-                ) : null}
-                {precioBajoCosto ? (
-                  <p className="basis-full rounded-md border border-warning/40 bg-warning/10 px-3 py-2 text-xs font-medium text-warning">
-                    Advertencia: el precio de venta está por debajo del costo ({formatCurrency(costoReferencia)}). Puedes ajustar el precio, pero el sistema no permitirá confirmar la venta mientras siga por debajo del costo real.
-                  </p>
-                ) : null}
-              </div>
+
             </div>
-          );
-        })}
+          </div>
+        ))}
       </section>
 
       {order.status === "despachado" ? (
