@@ -1,34 +1,40 @@
 -- Retira el perfil operativo Vendedor sin borrar el historial de auditoría.
--- La cuenta preparada nunca estuvo activa ni tuvo asignaciones de bodega.
+-- Solo elimina cuentas preparadas que nunca fueron activadas.
 
 do $$
+declare
+  v_user_id uuid;
 begin
-  if not exists (
-    select 1 from public.bodega_profiles
-    where id = '4ea87251-c322-49e9-8498-f6497baad4b4'
-      and role = 'bodeguero' and is_active = false
-  ) then
-    raise exception 'La cuenta preparada no está en el estado esperado; se cancela la migración.';
-  end if;
+  for v_user_id in
+    select au.id
+    from auth.users au
+    join public.bodega_profiles p on p.id = au.id
+    join public.nexora_staff_role_plans rp on rp.user_id = au.id
+    where au.raw_app_meta_data->>'nexora_prepared_role' = 'vendedor'
+      and p.role = 'bodeguero'
+      and p.is_active = false
+      and rp.planned_role = 'vendedor'
+      and rp.operationally_enabled = false
+  loop
+    if exists (
+      select 1 from public.nexora_worker_activation_events
+      where user_id = v_user_id
+    ) then
+      raise exception 'Una cuenta preparada con perfil Vendedor tiene historial de activación; se requiere revisión manual.';
+    end if;
 
-  if exists (
-    select 1 from public.nexora_worker_activation_events
-    where user_id = '4ea87251-c322-49e9-8498-f6497baad4b4'
-  ) then
-    raise exception 'La cuenta tiene historial de activación; se requiere revisión manual.';
-  end if;
+    delete from public.nexora_staff_role_plans
+    where user_id = v_user_id
+      and planned_role = 'vendedor'
+      and operationally_enabled = false;
+
+    update auth.users
+    set raw_app_meta_data = coalesce(raw_app_meta_data, '{}'::jsonb) - 'nexora_prepared_role'
+    where id = v_user_id
+      and raw_app_meta_data->>'nexora_prepared_role' = 'vendedor';
+  end loop;
 end
 $$;
-
-delete from public.nexora_staff_role_plans
-where user_id = '4ea87251-c322-49e9-8498-f6497baad4b4'
-  and planned_role = 'vendedor'
-  and operationally_enabled = false;
-
-update auth.users
-set raw_app_meta_data = coalesce(raw_app_meta_data, '{}'::jsonb) - 'nexora_prepared_role'
-where id = '4ea87251-c322-49e9-8498-f6497baad4b4'
-  and raw_app_meta_data->>'nexora_prepared_role' = 'vendedor';
 
 alter table public.nexora_staff_role_plans
   drop constraint if exists nexora_staff_role_plans_planned_role_check;
