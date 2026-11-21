@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { activatePreparedWorker,deactivatePreparedWorker } from "@/lib/nexora-worker";
-import { listStaffSiteAssignments, type StaffMember } from "@/lib/nexora-staff-sites";
+import { listStaffMembers, type StaffMember } from "@/lib/nexora-staff-sites";
 import {
   listRolePlans, saveRolePlan, type RolePlan, type PreparatoryRole,
   rolePlanOptions,
@@ -25,13 +25,13 @@ export const RolePlanningPanel = () => {
     setLoading(true);
     try {
       const [staff, saved] = await Promise.all([
-        listStaffSiteAssignments(), listRolePlans(),
+        listStaffMembers(), listRolePlans(),
       ]);
       if (call !== request.current) return;
-      setUsers(staff.users);
+      setUsers(staff);
       setPlans(saved);
       setDrafts(Object.fromEntries(
-        staff.users.map((user) => [
+        staff.map((user) => [
           user.id, saved.find((item) => item.userId === user.id)?.plannedRole ?? "bodeguero",
         ]),
       ));
@@ -122,7 +122,7 @@ export const RolePlanningPanel = () => {
                   <p className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
                     {saved?.operationallyEnabled ? <><BadgeCheck className="h-3.5 w-3.5" /> Rol operativo activado</>
                       : saved ? <><ClipboardList className="h-3.5 w-3.5" /> Perfil preparado, no activado</>
-                      : <><LockKeyhole className="h-3.5 w-3.5" /> Sin asignación preparada</>}
+                      : <><LockKeyhole className="h-3.5 w-3.5" /> Sin perfil preparado</>}
                     {!user.isActive ? " · Cuenta inactiva" : ""}
                   </p>
                 </div>
@@ -142,7 +142,7 @@ export const RolePlanningPanel = () => {
                     <ConfirmDialog
                       trigger={<Button variant="destructive" disabled={busy!==null}>Desactivar acceso</Button>}
                       title="Desactivar cuenta operativa"
-                      description="La persona perderá el acceso a su sede. Los registros anteriores se conservan."
+                      description="La persona perderá el acceso operativo a Bodega 6A. Los registros anteriores se conservan."
                       destructive
                       onConfirm={()=>void changeActivation(user.id,false)}
                     />
