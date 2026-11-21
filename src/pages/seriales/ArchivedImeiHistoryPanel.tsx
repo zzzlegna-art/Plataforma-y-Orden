@@ -4,7 +4,7 @@ import { Archive, CalendarDays, CheckCircle2, Clock3, History, Package, Printer,
 import { ProductThumbnail } from "@/components/shared/product-thumbnail";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { formatCurrency, formatDateTime } from "@/lib/format";
+import { formatDateTime } from "@/lib/format";
 import { imprimirEtiquetas } from "@/lib/print-labels";
 import type { ArchivedImeiTrace } from "@/lib/nexora-archived-imei-trace";
 
@@ -169,7 +169,6 @@ export const ArchivedImeiHistoryPanel = ({ trace }: { trace: ArchivedImeiTrace }
       <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border bg-background/60 p-3">
         <div className="text-sm text-muted-foreground">
           Cantidad original de la línea: <strong className="text-foreground">{trace.line.quantity}</strong>
-          {" · "}Precio unitario: <strong className="text-foreground">{formatCurrency(trace.line.unitPrice)}</strong>
         </div>
         <Button asChild size="sm" variant="outline">
           <Link to={`/pedidos/historial/${trace.order.sourceId}`}>Ver pedido completo</Link>
@@ -225,8 +224,7 @@ export const ArchivedImeiHistoryPanel = ({ trace }: { trace: ArchivedImeiTrace }
       ) : null}
 
       <p className="border-t pt-3 text-xs text-muted-foreground">
-        Información original del pedido y su trazabilidad archivada. No modifica existencias, costos,
-        sedes ni estados del inventario operativo.
+        Información original del pedido y su trazabilidad archivada. No modifica existencias ni estados del inventario operativo.
       </p>
     </section>
   );

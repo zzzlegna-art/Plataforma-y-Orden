@@ -42,7 +42,6 @@ export interface ArchivedImeiTrace {
     status: string;
     orderDate: string;
     deliveryDate: string | null;
-    total: number;
   };
   customer: {
     name: string;
@@ -63,7 +62,7 @@ export interface ArchivedImeiTrace {
     receivedAt: string | null;
     assignedAt: string | null;
   };
-  line: { sourceId: string; quantity: number; unitPrice: number };
+  line: { sourceId: string; quantity: number };
   movements: ArchivedImeiMovement[];
   warranties: ArchivedImeiWarranty[];
 }
