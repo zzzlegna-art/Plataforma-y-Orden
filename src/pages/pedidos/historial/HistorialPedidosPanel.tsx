@@ -7,7 +7,7 @@ import { SearchField } from "@/components/shared/search-field";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { listHistoricalOrders, type HistoricalOrderListItem } from "@/lib/historical-orders";
-import { formatCurrency, formatDate } from "@/lib/format";
+import { formatDate } from "@/lib/format";
 
 const ESTADOS = [
   { value: "", label: "Todos" },
@@ -95,11 +95,8 @@ export const HistorialPedidosPanel = () => {
         <span className="text-muted-foreground">{formatDate(order.orderDate)}</span>
         <Badge variant={estadoVariant(order.status)}>{etiquetaEstado(order.status)}</Badge>
       </div>
-      <div className="flex items-center justify-between border-t pt-2 text-sm">
-        <span className="text-muted-foreground">
-          {order.serialCount.toLocaleString("es-CO")} seriales · {order.lineCount} líneas
-        </span>
-        <span className="font-tabular font-semibold">{formatCurrency(order.total)}</span>
+      <div className="border-t pt-2 text-sm text-muted-foreground">
+        {order.serialCount.toLocaleString("es-CO")} seriales · {order.lineCount} líneas
       </div>
       <Button size="sm" variant="outline" className="w-full" onClick={(event) => { event.stopPropagation(); abrirDetalle(order); }}>
         <Eye className="mr-2 h-4 w-4" />
@@ -218,12 +215,6 @@ export const HistorialPedidosPanel = () => {
               header: "IMEI / seriales",
               align: "right",
               cell: (order) => <span className="font-tabular text-sm">{order.serialCount.toLocaleString("es-CO")}</span>,
-            },
-            {
-              key: "total",
-              header: "Total",
-              align: "right",
-              cell: (order) => <span className="font-tabular text-sm font-semibold">{formatCurrency(order.total)}</span>,
             },
             {
               key: "status",
