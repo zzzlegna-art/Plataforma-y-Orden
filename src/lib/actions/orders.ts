@@ -761,7 +761,6 @@ export const quitarSerialDespachado = (
   item.quantity = Math.max(0, item.quantity - 1);
   if (item.quantity === 0) {
     db.orderItems = db.orderItems.filter((r) => r.id !== item.id);
-  } else {
   }
   actualizarPedidoPorId(db, order.id);
   logAudit(db, actor, {

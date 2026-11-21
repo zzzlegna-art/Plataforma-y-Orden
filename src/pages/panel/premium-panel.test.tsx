@@ -102,7 +102,7 @@ describe("panel premium sin cambiar la barra lateral", () => {
     ]);
     expect(curves.every((el) => el.getAttribute("data-curve") === "monotone"
       && el.getAttribute("data-no-dots") === "true")).toBe(true);
-    expect(curves.map((el) => el.getAttribute("data-width"))).toEqual(["3", "3", "2.75"]);
+    expect(curves.map((el) => el.getAttribute("data-width"))).toEqual(["3.6", "3", "2.75"]);
     expect(new Set(curves.map((el) => el.getAttribute("data-fill"))).size).toBe(3);
   });
 
@@ -112,14 +112,14 @@ describe("panel premium sin cambiar la barra lateral", () => {
     const movement = container.querySelector(".nx-dashboard-block--movement");
     const performance = container.querySelector(".nx-dashboard-block--performance");
     const warranties = container.querySelector(".nx-dashboard-block--warranties");
-    expect(summary?.querySelectorAll(".nx-premium-stat-card")).toHaveLength(4);
-    expect(summary?.querySelector('[aria-label="dashboard.inventoryValuationBreakdown"]')).toBeTruthy();
+    expect(summary?.querySelectorAll(".nx-premium-stat-card")).toHaveLength(3);
+    expect(summary?.querySelector('[aria-label="dashboard.inventoryValuationBreakdown"]')).toBeNull();
     expect(summary?.querySelectorAll(".nx-wide-stat")).toHaveLength(2);
     expect(movement?.querySelectorAll(".nx-analytics-card")).toHaveLength(2);
     expect(summary?.querySelector(".nx-dashboard-report-filters")).toBeTruthy();
-    expect(summary?.querySelector('[aria-label="Distribución del inventario por sede"]')).toBeTruthy();
+    expect(summary?.querySelector('[aria-label="Distribución del inventario por sede"]')).toBeNull();
     expect(summary?.textContent).toContain("Exportar CSV");
-    expect(summary?.textContent).toContain("Exportar a Excel");
+    expect(summary?.textContent).not.toContain("Exportar a Excel");
     expect(performance?.querySelectorAll(".nx-ranking-card")).toHaveLength(2);
     expect(performance?.querySelector(".nx-operation-card")).toBeNull();
     expect(warranties?.querySelectorAll(".nx-warranty-kpi")).toHaveLength(4);

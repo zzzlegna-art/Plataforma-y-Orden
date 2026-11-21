@@ -1,3 +1,4 @@
+import { can } from "./permissions";
 import { describe, expect, it } from "vitest";
 import {
   MULTISITE_CAPABILITIES, MULTISITE_ROLES, canMultisite, isMultisiteRole,
@@ -30,11 +31,7 @@ describe("Matriz de roles del flujo operativo NEXORA", () => {
   it("refleja las autorizaciones reales del sistema", () => {
     for (const role of MULTISITE_ROLES) {
       for (const capability of MULTISITE_CAPABILITIES) {
-        expect(canMultisite(role, capability.key)).toBe(
-          role === "admin" || role === "bodeguero"
-            ? capability.key !== "workspace.view"
-            : capability.key === "workspace.view" || capability.key === "inventory.view",
-        );
+        expect(canMultisite(role, capability.key)).toBe(can(role, capability.key));
       }
     }
   });

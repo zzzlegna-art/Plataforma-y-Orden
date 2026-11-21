@@ -9,8 +9,6 @@ export interface ReferenceStockRow extends CatalogMedia {
   physicallyVerified:number;
   committedOrders:number;
   unverified:number;
-  inTransit:number;
-  pendingReturn:number;
   sold:number;
 }
 export interface ReferenceStockResult {
@@ -31,14 +29,13 @@ const asInt=(value:unknown):number=>{
     throw new Error("El servidor devolvió conteos de referencias inválidos.");
   return value;
 };
-const values=["total","physicallyVerified","committedOrders","unverified","inTransit","pendingReturn","sold"] as const;
+const values=["total","physicallyVerified","committedOrders","unverified","sold"] as const;
 type CountKey=(typeof values)[number];
 const parseCounts=(obj:Record<string,unknown>)=>{
   const counters={} as Record<CountKey,number>;
   for(const name of values)counters[name]=asInt(obj[name]);
   if(counters.committedOrders>counters.physicallyVerified||
-     counters.physicallyVerified+counters.unverified+counters.inTransit+
-       counters.pendingReturn+counters.sold!==counters.total)
+     counters.physicallyVerified+counters.unverified+counters.sold!==counters.total)
     throw new Error("Las existencias por referencia son inconsistentes.");
   return counters;
 };

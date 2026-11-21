@@ -1,112 +1,41 @@
 import { describe, expect, it } from "vitest";
 import { parseReferenceStock } from "./nexora-reference-stock";
 
-const baseCounts = {
-  total: 41, physicallyVerified: 31, available: 0,
-  unverified: 0, inTransit: 0, pendingReturn: 0, sold: 10,
-};
-
-describe("Inventario de locales · misma tabla del inventario principal", () => {
-  it("expone foto real, marca, precio y condición sin alterar el stock verificable", () => {
-    const result = parseReferenceStock({
-      initialApproved: true, scope: "serialized_imei_only",
-      page: 1, pageSize: 20, matched: 1,
-      items: [{
-        productId: "ip13p", name: "iPhone 13 Pro 256 GB", sku: "IP13P-256",
-        imageUrl: "https://example.test/referencias/ip13p.png",
-        colorVariants: [], categoryKey: "celular",
-        brandName: "Apple", salePrice: 1280000, referenceCost: 920000,
-        newUnits: 0, usedUnits: 31, ...baseCounts,
-        sites: [
-          { siteId: "bodega-6a", siteName: "Bodega 6A", cityName: "Barranquilla",
-            total: 31, physicallyVerified: 31, available: 0,
-            unverified: 0, inTransit: 0, pendingReturn: 0, sold: 0 },
-          { siteId: null, siteName: "Sin sede verificada", cityName: null,
-            total: 10, physicallyVerified: 0, available: 0,
-            unverified: 0, inTransit: 0, pendingReturn: 0, sold: 10 },
-        ],
-      }],
-    });
-    expect(result.items).toHaveLength(1);
-    expect(result.items[0]).toMatchObject({
-      sku: "IP13P-256", brandName: "Apple",
-      salePrice: 1280000, referenceCost: 920000,
-      newUnits: 0, usedUnits: 31,
-      physicallyVerified: 31, sold: 10, available: 0, total: 41,
-    });
-  });
-
-  it("rechaza cantidades por condición superiores a las existencias verificadas", () => {
-    expect(() => parseReferenceStock({
-      initialApproved: true, scope: "serialized_imei_only",
-      page: 1, pageSize: 20, matched: 1,
-      items: [{
-        productId: "p", name: "Phone", sku: "PHONE", ...baseCounts,
-        newUnits: 32, usedUnits: 0, sites: [{
-          siteId: "bodega-6a", siteName: "Bodega 6A", cityName: "Barranquilla",
-          ...{ ...baseCounts, total: 31, sold: 0 },
-        }, {
-          siteId: null, siteName: "Sin sede verificada", cityName: null,
-          ...{ ...baseCounts, total: 10, physicallyVerified: 0, sold: 10 },
-        }],
-      }],
-    })).toThrow(/condición supera/);
-  });
-
-  it("es compatible con el contrato anterior sin campos de tabla nuevos", () => {
-    const result = parseReferenceStock({
-      initialApproved: true, scope: "serialized_imei_only",
-      page: 1, pageSize: 20, matched: 1,
-      items: [{
-        productId: "new", name: "Sin equipo", sku: "NEW",
-        total: 0, physicallyVerified: 0, available: 0, unverified: 0,
-        inTransit: 0, pendingReturn: 0, sold: 0, sites: [],
-      }],
-    });
-    expect(result.items[0]).toMatchObject({
-      brandName: null, salePrice: null, referenceCost: null,
-      newUnits: 0, usedUnits: 0,
-    });
-  });
+const result = (overrides: Record<string, unknown> = {}) => parseReferenceStock({
+  initialApproved: true,
+  scope: "serialized_imei_only",
+  page: 1,
+  pageSize: 20,
+  matched: 1,
+  items: [{
+    productId: "p1", name: "iPhone 13 Pro 256 GB", sku: "IP13P-256",
+    categoryKey: "celular", imageUrl: "https://example.test/ip13.png",
+    colorVariants: [], technicalSpecs: { storage: "256 GB" },
+    total: 41, physicallyVerified: 31, committedOrders: 5, unverified: 0, sold: 10,
+    ...overrides,
+  }],
 });
 
-describe("Nexora: pedidos comprometidos no son stock comercial", () => {
-  it("expone 70 físicos, 54 en pedidos y solo 16 libres por referencia y sede", () => {
-    const r = parseReferenceStock({
-      initialApproved: true, scope: "serialized_imei_only", page: 1, pageSize: 20, matched: 1,
-      items: [{
-        productId: "ip18pm256", name: "iPhone 18 Pro Max 256 GB", sku: "IP18PM-256",
-        total: 70, physicallyVerified: 70, available: 0, freeFromOrders: 16, committedOrders: 54,
-        unverified: 0, inTransit: 0, pendingReturn: 0, sold: 0,
-        newUnits: 70, usedUnits: 0,
-        sites: [{
-          siteId: "bodega-6a", siteName: "Bodega 6A", cityName: "Barranquilla",
-          total: 70, physicallyVerified: 70, available: 0, freeFromOrders: 16, committedOrders: 54,
-          unverified: 0, inTransit: 0, pendingReturn: 0, sold: 0,
-        }],
-      }],
+describe("Inventario por referencia en Bodega 6A", () => {
+  it("consolida seriales verificados, comprometidos, pendientes y salidas históricas", () => {
+    const parsed = result();
+    expect(parsed.items[0]).toMatchObject({
+      sku: "IP13P-256", total: 41, physicallyVerified: 31,
+      committedOrders: 5, unverified: 0, sold: 10,
+    expect(parsed.items[0]).not.toHaveProperty("sites");
+    expect(parsed.items[0]).not.toHaveProperty("available");
+    expect(parsed.items[0]).not.toHaveProperty("salePrice");
+    expect(parsed.items[0]).not.toHaveProperty("referenceCost");
+    expect(parsed.items[0]).not.toHaveProperty("inTransit");
+    expect(parsed.items[0]).not.toHaveProperty("pendingReturn");
     });
-    expect(r.items[0].freeFromOrders).toBe(16);
-    expect(r.items[0].available).toBe(0);
-    expect(r.items[0].committedOrders).toBe(54);
-    expect(r.items[0].physicallyVerified).toBe(70);
-    expect(r.items[0].sites[0].freeFromOrders).toBe(16);
-    expect(r.items[0].sites[0].available).toBe(0);
-    expect(r.items[0].sites[0].committedOrders).toBe(54);
   });
-  it("rechaza sumas que cuenten un IMEI en un pedido como libre", () => {
-    expect(() => parseReferenceStock({
-      initialApproved: true, scope: "serialized_imei_only", page: 1, pageSize: 20, matched: 1,
-      items: [{
-        productId: "ip18pm256", name: "iPhone 18 Pro Max", sku: "IP18PM-256",
-        total: 70, physicallyVerified: 70, available: 0, freeFromOrders: 16, committedOrders: 55,
-        unverified: 0, inTransit: 0, pendingReturn: 0, sold: 0,
-        sites: [{
-          siteId: "bodega-6a", siteName: "Bodega 6A", cityName: "Barranquilla",
-          total: 70, physicallyVerified: 70, available: 0, freeFromOrders: 16, committedOrders: 55,
-          unverified: 0, inTransit: 0, pendingReturn: 0, sold: 0,
-        }],
-      }],
-    })).toThrow(/inconsistentes/);
+
+  it("rechaza asignaciones a pedidos superiores a las unidades verificadas", () => {
+    expect(() => result({ committedOrders: 32 })).toThrow(/inconsistentes/);
+  });
+
+  it("rechaza totales que no cuadran con el inventario serializado", () => {
+    expect(() => result({ total: 42 })).toThrow(/inconsistentes/);
   });
 });

@@ -10,11 +10,11 @@ vi.mock("@/lib/nexora-imei-timeline",async(importOriginal)=>{
     scope:"initial_approval_only",unitId:id,serial:"000123456789012",
     page:1,pageSize:25,total:1,
     items:[{
-      eventId:"transfer:t1:received",eventType:"transfer_received",
+      eventId:"initial:1",eventType:"initial_approved",
       eventAt:"2026-11-02T14:00:00.000Z",
-      description:"Recepción física de este IMEI confirmada en destino",
-      originSite:"Bodega",destinationSite:"Local Centro",
-      reference:"Traslado #1",unitState:"received",
+      description:"Aprobación inicial del inventario físico en Bodega 6A",
+      originSite:null,destinationSite:"Bodega 6A",
+      reference:"Acta de aprobación inicial",unitState:"approved",
     }],
   }))};
 });
@@ -22,13 +22,13 @@ vi.mock("@/lib/nexora-imei-timeline",async(importOriginal)=>{
 import { MultisiteImeiHistory } from "./MultisiteImeiHistory";
 
 afterEach(cleanup);
-describe("Hoja de vida · vista multisede",()=>{
-  it("muestra solo la recepción realmente confirmada con sus sedes",async()=>{
+describe("Hoja de vida · ubicación inicial",()=>{
+  it("muestra solo la aprobación inicial verificada de Bodega 6A",async()=>{
     render(<MultisiteImeiHistory unitId={id} serial="000123456789012" receivedAt="2026-11-01T10:00:00.000Z" legacyTimeline={[]} />);
-    expect(await screen.findByText("Recepción física de este IMEI confirmada en destino")).toBeTruthy();
-    expect(screen.getByText("Recepción confirmada")).toBeTruthy();
-    expect(screen.getByText(/Traslado #1/)).toBeTruthy();
-    expect(screen.getByText(/Bodega/)).toBeTruthy();
+    expect(await screen.findByText("Aprobación inicial del inventario físico en Bodega 6A")).toBeTruthy();
+    expect(screen.getByText("Inventario físico aprobado")).toBeTruthy();
+    expect(screen.getByText(/Acta de aprobación inicial/)).toBeTruthy();
+    expect(screen.getByText(/—\\s*Bodega 6A/)).toBeTruthy();
     expect(screen.queryByRole("button",{name:/vender|trasladar|eliminar/i})).toBeNull();
   });
   it("mantiene la superficie premium y la actualización sin modificar datos",async()=>{
@@ -38,6 +38,6 @@ describe("Hoja de vida · vista multisede",()=>{
     expect(container.querySelector(".dark\\:from-slate-950")).not.toBeNull();
     const button=await screen.findByRole("button",{name:"Actualizar"});
     await user.click(button);
-    expect(await screen.findByText("Recepción física de este IMEI confirmada en destino")).toBeTruthy();
+    expect(await screen.findByText("Aprobación inicial del inventario físico en Bodega 6A")).toBeTruthy();
   });
 });

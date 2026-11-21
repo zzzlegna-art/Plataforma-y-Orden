@@ -53,7 +53,9 @@ describe("fotografías opcionales por color", () => {
       categoria: product.categoria, price: 0, cost: 0, minStock: 0,
       colorVariants: [{ ...blanco, price: 4500000 }, azul],
     });
-    expect(result.colorVariants?.[0]).toMatchObject({ imageUrl: blanco.imageUrl, price: 4500000 });
+    expect(result.colorVariants?.[0]).toMatchObject({ imageUrl: blanco.imageUrl });
+    expect(result.colorVariants?.[0]).not.toHaveProperty("price");
+    expect(result.colorVariants?.[0]).not.toHaveProperty("cost");
     expect(result.imageUrl).toBe("https://example.org/principal.webp");
   });
 

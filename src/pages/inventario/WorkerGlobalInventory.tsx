@@ -216,9 +216,7 @@ const CatalogPhoto = ({
               <div className="rounded-lg border bg-background p-3"><strong className="block text-lg tabular-nums">{number(stock.committedOrders)}</strong><span className="text-xs text-muted-foreground">Asignados a pedidos</span></div>
               <div className="rounded-lg border bg-background p-3"><strong className="block text-lg tabular-nums">{number(stock.unverified)}</strong><span className="text-xs text-muted-foreground">Pendientes</span></div>
             </div>
-            {stock.inTransit>0 || stock.pendingReturn>0 || stock.sold>0 ? <p className="text-xs text-muted-foreground">
-              {number(stock.inTransit)} en tránsito · {number(stock.pendingReturn)} retornos pendientes · {number(stock.sold)} salidas históricas
-            </p> : null}
+            {stock.sold>0 ? <p className="text-xs text-muted-foreground">{number(stock.sold)} salidas históricas</p> : null}
           </section> : null}
           {unit ? <section className="space-y-2 rounded-2xl border border-border/80 bg-muted/15 p-4 text-sm">
             <h3 className="flex items-center gap-2 font-semibold"><Fingerprint className="h-4 w-4 text-primary"/> Identificación del equipo</h3>

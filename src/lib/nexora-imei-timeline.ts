@@ -52,7 +52,7 @@ export const parseMultisiteImeiTimeline=(
   input:unknown,expectedUnitId:string,
 ):MultisiteImeiTimeline=>{
   const response=record(input);
-  if(response.scope!=="multisite_confirmed_only"||response.unitId!==expectedUnitId
+  if(response.scope!=="initial_approval_only"||response.unitId!==expectedUnitId
     ||!Array.isArray(response.items))
     throw new Error("La hoja de vida del IMEI no corresponde a la unidad solicitada.");
   const total=integer(response.total);
@@ -82,7 +82,7 @@ export const parseMultisiteImeiTimeline=(
   if(items.some((item,index)=>index>0&&
     Date.parse(items[index-1].eventAt)<Date.parse(item.eventAt)))
     throw new Error("Hoja de vida: eventos fuera de orden.");
-  return {scope:"multisite_confirmed_only",unitId:expectedUnitId,
+  return {scope:"initial_approval_only",unitId:expectedUnitId,
     serial:string(response.serial),total,page,pageSize,items};
 };
 

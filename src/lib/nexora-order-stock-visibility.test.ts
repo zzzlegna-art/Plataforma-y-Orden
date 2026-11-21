@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { emptyDb } from "./db";
 import { getDashboard, getProductStock, getUnitTimeline, unidadesDescontadasPorPreparacion } from "./selectors";
-import { confirmarPreparacionPedido, confirmarVentaPedido, serializarImeiPedido } from "./actions/orders";
+import { confirmarPreparacionPedido, confirmarDespachoPedido, serializarImeiPedido } from "./actions/orders";
 import type { Actor, Order, OrderItem, Product, Unit } from "./types";
 
 const actor: Actor = {
@@ -86,7 +86,7 @@ describe("Inventario global · un IMEI en pedido nunca vuelve a ofrecerse", () =
     expect(stock.disponible).toBe(5);
   });
 
-  it("registrar serial y confirmar venta conserva eventos vinculados al pedido y estado vendido", () => {
+  it("registrar serial y confirmar despacho conserva eventos vinculados al pedido y estado vendido", () => {
     const db = emptyDb();
     db.products.push({...product});
     db.orders.push({...order});
@@ -102,12 +102,12 @@ describe("Inventario global · un IMEI en pedido nunca vuelve a ofrecerse", () =
 
     confirmarPreparacionPedido(db,actor,{orderId:order.id});
     expect(db.units[0].status).toBe("en_bodega");
-    confirmarVentaPedido(db,actor,{orderId:order.id});
+    confirmarDespachoPedido(db,actor,{orderId:order.id});
     expect(db.units[0].status).toBe("vendido");
     expect(getProductStock(db,product.id).enPedidos).toBe(0);
     expect(getProductStock(db,product.id).disponible).toBe(0);
     expect(getUnitTimeline(db,"unit-0").some(e =>
-      e.descripcion.includes("venta confirmada") && e.enlace?.codigo===order.code
+      e.descripcion.includes("despacho confirmado") && e.enlace?.codigo===order.code
     )).toBe(true);
   });
 });

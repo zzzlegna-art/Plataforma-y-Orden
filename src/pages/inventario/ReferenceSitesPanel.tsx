@@ -115,8 +115,7 @@ export const ReferenceSitesPanel=()=>{
               </tr>
               {item.total>0?<tr className="border-t text-[11px] text-muted-foreground">
                 <td colSpan={5} className="px-4 py-2">
-                  {format(item.inTransit)} en tránsito · {format(item.pendingReturn)} pendientes de retorno ·
-                  {" "}{format(item.sold)} salidas históricas
+                  {format(item.sold)} salidas históricas
                 </td>
               </tr>:null}
             </Fragment>)}

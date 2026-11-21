@@ -30,7 +30,7 @@ describe("Inventario · existencias por referencia",()=>{
     expect(within(table).getByText("iPhone 13")).toBeTruthy();
     expect(within(table).getByText("4")).toBeTruthy();
     expect(within(table).getByText("2")).toBeTruthy();
-    expect(within(table).getByText("1")).toBeTruthy();
+    expect(within(table).getAllByText("1")).toHaveLength(2);
   });
   it("mantiene la explicación de inventario serializado y no habilita ventas",async()=>{
     const user=userEvent.setup();
