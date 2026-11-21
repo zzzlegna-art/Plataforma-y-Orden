@@ -223,7 +223,6 @@ const ESPECIFICACIONES: Spec<unknown>[] = [
     aFila: (c) => ({
       id: c.id,
       name: c.name,
-      tipo: nulo(c.tipo),
       categoria_mayorista: nulo(c.categoriaMayorista),
       tax_id: nulo(c.taxId),
       contact_name: nulo(c.contactName),
@@ -237,7 +236,6 @@ const ESPECIFICACIONES: Spec<unknown>[] = [
     desdeFila: (f) => ({
       id: String(f.id),
       name: texto(f.name) ?? "Sin nombre",
-      tipo: (texto(f.tipo) as Customer["tipo"]) ?? undefined,
       categoriaMayorista:
         (texto(f.categoria_mayorista) as Customer["categoriaMayorista"]) ?? undefined,
       taxId: texto(f.tax_id) ?? undefined,
