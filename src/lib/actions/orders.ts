@@ -2,7 +2,7 @@
  * Acciones de pedidos a clientes mayoristas (flujo del prototipo Bodega 6A):
  * el pedido se arma por referencias (producto + condición + cantidad) y después
  * se serializan los IMEIs con barra de progreso por referencia. Al confirmar
- * la serialización se registra la salida física; la venta posterior es facturación.
+ * la serialización se registra la salida física; el despacho es el cierre físico del pedido.
  */
 
 import { createId, DomainError, logAudit, logMovement, nextDailyCode, nowIso } from "../db";
@@ -496,7 +496,7 @@ const validarAsignacionesPedido = (db: Db, order: Order, items: OrderItem[]) => 
 
 /**
  * Confirma la preparación y reserva los IMEI. La salida física ocurre al
- * confirmar el despacho/venta, no al preparar el pedido.
+ * confirmar el despacho, no al preparar el pedido.
  */
 export const confirmarPreparacionPedido = (
   db: Db,
@@ -514,7 +514,7 @@ export const confirmarPreparacionPedido = (
 
   // Preparar confirma cantidades y reserva los IMEI mediante sus vínculos,
   // pero NO representa una salida física. Los equipos siguen en inventario
-  // hasta que se confirme el despacho/venta.
+  // hasta que se confirme el despacho.
   const preparedAt = nowIso();
   order.status = "preparado";
   order.deliveryDate = order.deliveryDate ?? hoyBogota();
