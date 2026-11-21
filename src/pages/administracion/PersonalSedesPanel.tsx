@@ -10,15 +10,13 @@ import {
 } from "@/lib/nexora-staff-sites";
 import { siteTypeLabel, type NexoraCity, type NexoraSite } from "@/lib/nexora-sites";
 import { listRolePlans, type RolePlan } from "@/lib/nexora-role-plans";
+import { listNexoraNetwork } from "@/lib/nexora-sites";
 
 const selectStyle = "flex h-10 min-w-0 w-full rounded-md border border-input bg-background px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50";
 
-export const PersonalSedesPanel = ({
-  cities, sites,
-}: {
-  cities: readonly NexoraCity[];
-  sites: readonly NexoraSite[];
-}) => {
+export const PersonalSedesPanel = () => {
+  const [cities, setCities] = useState<NexoraCity[]>([]);
+  const [sites, setSites] = useState<NexoraSite[]>([]);
   const [people, setPeople] = useState<StaffMember[]>([]);
   const [rolePlans, setRolePlans] = useState<RolePlan[]>([]);
   const [assignments, setAssignments] = useState<StaffSiteAssignment[]>([]);
@@ -32,8 +30,8 @@ export const PersonalSedesPanel = ({
   const refresh = useCallback(async () => {
     const current = ++requestRef.current;
     setLoading(true);
-    const [staff, roles] = await Promise.allSettled([
-      listStaffSiteAssignments(), listRolePlans(),
+    const [staff, roles, network] = await Promise.allSettled([
+      listStaffSiteAssignments(), listRolePlans(), listNexoraNetwork(),
     ]);
     if (current !== requestRef.current) return;
 
@@ -47,6 +45,14 @@ export const PersonalSedesPanel = ({
       setRolePlans(roles.value);
     } else {
       setRolePlans([]);
+    }
+    if (network.status === "fulfilled") {
+      setCities(network.value.cities);
+      setSites(network.value.sites);
+    } else {
+      toast.error(network.reason instanceof Error ? network.reason.message : "No se pudo cargar la red de puntos.");
+      setCities([]);
+      setSites([]);
     }
     setLoading(false);
   }, []);
