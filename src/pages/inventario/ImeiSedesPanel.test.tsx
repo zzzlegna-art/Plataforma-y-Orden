@@ -9,65 +9,39 @@ vi.mock("@/lib/nexora-imei-directory", async (importOriginal) => {
   return {
     ...original,
     fetchImeiDirectory: vi.fn(async () => ({
-      initialApproved: false,
-      summary: {
-        sinConciliar: 1, enSede: 0, enTransito: 0, retornoPendiente: 0,
-        vendidos: 0, sinCosto: 1, total: 1,
-      },
-      sites: [], page: 1, pageSize: 25, matched: 1,
-      items: [{
-        unitId: "unit-1",
-        serial: "000012345678901",
-        productName: "iPhone 13",
-        sku: "IP13",
-        cost: null,
-        unitStatus: "en_bodega",
-        custodyState: "sin_conciliar",
-        siteId: null,
-        siteName: null,
-        cityName: null,
-        historicalLocation: "Bodega (no verificada)",
-        committedOrder: false,
-        committedTransfer: false,
-        commercialCandidate: false,
+      initialApproved: true,
+      summary: {sinConciliar:0,enSede:1,enTransito:0,retornoPendiente:0,vendidos:0,total:1},
+      page:1,pageSize:25,matched:1,
+      items:[{
+        unitId:"unit-1",serial:"000012345678901",productName:"iPhone 13",
+        sku:"IP13",unitStatus:"en_bodega",custodyState:"en_sede",
+        historicalLocation:"Bodega 6A",committedOrder:true,
       }],
     })),
   };
 });
 
 import { ImeiSedesPanel } from "./ImeiSedesPanel";
-
 afterEach(cleanup);
 
-describe("Inventario global · ficha de IMEI", () => {
-  it("abre al pulsar un IMEI y preserva la verdad física y el costo desconocido", async () => {
-    const user = userEvent.setup();
-    render(<MemoryRouter><ImeiSedesPanel /></MemoryRouter>);
-
-    await user.click(screen.getByRole("button", { name: /Ver IMEI por sede/ }));
-    await user.click(await screen.findByRole("button", {
-      name: "Abrir ficha del IMEI 000012345678901",
-    }));
-
-    const dialog = screen.getByRole("dialog");
-    expect(within(dialog).getByText("Ficha de inventario multisede")).toBeTruthy();
-    expect(within(dialog).getByText("Sin costo registrado")).toBeTruthy();
-    expect(within(dialog).getAllByText("Sin sede verificada").length).toBeGreaterThan(0);
-    expect(within(dialog).getByText("Operación restringida")).toBeTruthy();
-    expect(within(dialog).getByRole("link", { name: /Abrir hoja de vida del IMEI/ })
-      .getAttribute("href")).toBe("/seriales?serial=000012345678901");
+describe("Inventario · ficha de serial",()=>{
+  it("consulta seriales, muestra la bodega principal y conserva el vínculo con pedidos",async()=>{
+    const user=userEvent.setup();
+    render(<MemoryRouter><ImeiSedesPanel/></MemoryRouter>);
+    await user.click(screen.getByRole("button",{name:"Consultar seriales"}));
+    await user.click(await screen.findByRole("button",{name:"Abrir ficha del IMEI 000012345678901"}));
+    const dialog=screen.getByRole("dialog");
+    expect(within(dialog).getByText("Ficha del serial")).toBeTruthy();
+    expect(within(dialog).getByText("Bodega 6A")).toBeTruthy();
+    expect(within(dialog).getByText("Asignado a un pedido")).toBeTruthy();
+    expect(within(dialog).getByRole("link",{name:/Abrir hoja de vida del IMEI/}).getAttribute("href"))
+      .toBe("/seriales?serial=000012345678901");
   });
-
-  it("usa superficies semánticas adaptables a claro y oscuro y no habilita venta", async () => {
-    const user = userEvent.setup();
-    render(<MemoryRouter><ImeiSedesPanel /></MemoryRouter>);
-    await user.click(screen.getByRole("button", { name: /Ver IMEI por sede/ }));
-    await user.click(await screen.findByRole("button", {
-      name: "Abrir ficha del IMEI 000012345678901",
-    }));
-    const dialog = screen.getByRole("dialog");
-    expect(dialog.className).toContain("bg-card");
-    expect(within(dialog).getByText(/los eventos multisede confirmados cuando existan/)).toBeTruthy();
-    expect(within(dialog).queryByRole("button", { name: /vender|reservar|trasladar/i })).toBeNull();
+  it("no ofrece acciones comerciales ni de traslado",async()=>{
+    const user=userEvent.setup();
+    render(<MemoryRouter><ImeiSedesPanel/></MemoryRouter>);
+    await user.click(screen.getByRole("button",{name:"Consultar seriales"}));
+    expect(await screen.findByRole("table")).toBeTruthy();
+    expect(screen.queryByRole("button",{name:/vender|reservar|trasladar/i})).toBeNull();
   });
 });
