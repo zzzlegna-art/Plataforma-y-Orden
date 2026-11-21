@@ -136,7 +136,7 @@ export const ProductFormDialog = ({
     const draft = readProductFormDraft(draftKey);
     if (draft && (!currentProduct ||
       (draft.sourceUpdatedAt !== undefined && draft.sourceUpdatedAt === currentProduct.updatedAt))) {
-      // No recuperar precios viejos de un borrador si el producto ya fue modificado.
+      // Los borradores conservan únicamente datos operativos del producto.
       // Borradores antiguos marcaban toda edición como manual aunque nadie hubiera escrito la SKU.
       // Solo conservar ese bloqueo cuando la SKU realmente difiere de la original.
       const skuWasManuallyEdited = draft.skuManual &&
@@ -420,7 +420,7 @@ export const ProductFormDialog = ({
             <div className="nx-editor-section-heading">
               <div>
                 <h3 id="nx-editor-basics-title">Información del producto</h3>
-                <p>Identificación, categoría y precios generales de la referencia.</p>
+                <p>Identificación y clasificación de la referencia.</p>
               </div>
             </div>
             <div className="nx-editor-fields">
