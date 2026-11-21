@@ -69,7 +69,7 @@ describe("despacho seguro de pedidos", () => {
     expect(db.units[0].status).toBe("en_bodega");
     expect(db.movements.filter((movement) => movement.type === "salida")).toHaveLength(0);
 
-    confirmarVentaPedido(db, actor, { orderId: pedido.id });
+    confirmarDespachoPedido(db, actor, { orderId: pedido.id });
     expect(db.orders[0].status).toBe("despachado");
     expect(db.units[0].status).toBe("vendido");
     expect(db.movements.filter((movement) => movement.type === "salida")).toHaveLength(1);
