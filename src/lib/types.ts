@@ -180,12 +180,9 @@ export interface ProductColorVariant {
   /** Nombre comercial del color dentro de esta referencia; ej. Blanco, Azul, Borgoña. */
   color: string;
   /** Datos operativos de la variante; no contiene importes comerciales. */
-  /** Campos de importes antiguos aceptados solo al leer registros previos; no se guardan ni se muestran. */
-  cost?: number;
-  price?: number;
   /** Fotografía opcional de esta variante, sin reemplazar la imagen principal del modelo. */
   imageUrl?: string;
-  /** Color real de la muestra visual; no afecta stock, precios ni serialización. */
+  /** Color real de la muestra visual; no afecta stock ni serialización. */
   swatchHex?: string;
 }
 
@@ -202,9 +199,6 @@ export interface Product {
   categoria?: ProductCategory;
   tipoRepuesto?: TipoRepuesto;
   /** Campos legacy solo para compatibilidad de datos antiguos; siempre se normalizan a cero. */
-  /** @deprecated Campos financieros históricos; no se capturan ni persisten. */
-  price?: number;
-  cost?: number;
   minStock: number;
   isActive: boolean;
   createdAt: string;
@@ -299,8 +293,6 @@ export interface Order {
   orderDate: string;
   deliveryDate?: string;
   notes?: string;
-  /** @deprecated Importe histórico no operativo. */
-  total?: number;
   createdBy: string;
   createdAt: string;
   updatedAt: string;
@@ -314,9 +306,6 @@ export interface OrderItem {
   quantity: number;
   /** Condición solicitada (nuevo/seminuevo); los repuestos no la usan. */
   condition?: UnitCondition;
-  /** @deprecated Importes históricos no operativos. */
-  unitPrice?: number;
-  subtotal?: number;
 }
 
 /** Serial/IMEI asignado a una línea del pedido. */
@@ -368,8 +357,6 @@ export interface Warranty {
   resolucion?: WarrantyResolution;
   /** Unidad que se entregará al cliente cuando la resolución es "cambio". */
   replacementUnitId?: string;
-  /** @deprecated Costo histórico no operativo. */
-  costo?: number;
   receivedAt: string;
   resolvedAt?: string;
   notes?: string;
