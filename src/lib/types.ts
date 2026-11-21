@@ -202,8 +202,9 @@ export interface Product {
   categoria?: ProductCategory;
   tipoRepuesto?: TipoRepuesto;
   /** Campos legacy solo para compatibilidad de datos antiguos; siempre se normalizan a cero. */
-  price: number;
-  cost: number;
+  /** @deprecated Campos financieros históricos; no se capturan ni persisten. */
+  price?: number;
+  cost?: number;
   minStock: number;
   isActive: boolean;
   createdAt: string;
@@ -298,7 +299,8 @@ export interface Order {
   orderDate: string;
   deliveryDate?: string;
   notes?: string;
-  total: number;
+  /** @deprecated Importe histórico no operativo. */
+  total?: number;
   createdBy: string;
   createdAt: string;
   updatedAt: string;
@@ -312,8 +314,9 @@ export interface OrderItem {
   quantity: number;
   /** Condición solicitada (nuevo/seminuevo); los repuestos no la usan. */
   condition?: UnitCondition;
-  unitPrice: number;
-  subtotal: number;
+  /** @deprecated Importes históricos no operativos. */
+  unitPrice?: number;
+  subtotal?: number;
 }
 
 /** Serial/IMEI asignado a una línea del pedido. */
@@ -365,6 +368,7 @@ export interface Warranty {
   resolucion?: WarrantyResolution;
   /** Unidad que se entregará al cliente cuando la resolución es "cambio". */
   replacementUnitId?: string;
+  /** @deprecated Costo histórico no operativo. */
   costo?: number;
   receivedAt: string;
   resolvedAt?: string;
