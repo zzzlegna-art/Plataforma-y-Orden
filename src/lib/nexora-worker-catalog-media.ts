@@ -85,9 +85,3 @@ export const catalogCoverPhoto = (media: CatalogMedia): string | undefined =>
     media.imageUrl ?? undefined,
     media.colorVariants.map((v) => ({ imageUrl: v.imageUrl ?? undefined })),
   );
-
-/** La sede sin verificar no es una sede comercial: vendidos van en historial. */
-export const commercialSiteGroups = <
-  T extends { siteId: string | null; physicallyVerified: number; total: number }
->(sites: readonly T[]): T[] =>
-  sites.filter((site) => site.siteId !== null && site.physicallyVerified > 0);
