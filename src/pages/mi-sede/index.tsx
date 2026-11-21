@@ -72,7 +72,6 @@ export const MiSede=()=>{
       </p>
       <div className="mt-4 flex flex-wrap gap-2">
         <Button asChild size="sm" variant="outline"><Link to="/inventario">Inventario global</Link></Button>
-        <Button asChild size="sm" variant="outline"><Link to="/traslados">Traslados</Link></Button>
         <Button size="sm" variant="outline" disabled={busy||loading}
           onClick={()=>void refresh()}><RefreshCw className="size-4"/> Actualizar</Button>
       </div>
