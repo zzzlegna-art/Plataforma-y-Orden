@@ -61,7 +61,7 @@ export const CUSTODY_LABEL: Record<CustodyState,string> = {
   en_sede:"En sede",
   en_transito:"En tránsito",
   retorno_pendiente:"Retorno pendiente",
-  vendido:"Vendido",
+  vendido:"Salida histórica",
 };
 
 /** Un IMEI puede estar físicamente en una sede y comprometido en un pedido. */
