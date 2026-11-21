@@ -7,9 +7,6 @@ export interface WorkerSession {
 }
 export interface WorkerSnapshot extends WorkerSession {
   assignedUnits: number;
-  unitsWithRealCost: number;
-  cashState: "not_opened" | "open" | "closed";
-  businessDate: string;
 }
 const isObject=(x:unknown):x is Record<string,unknown>=>
   Boolean(x)&&typeof x==="object"&&!Array.isArray(x);
@@ -38,16 +35,9 @@ export const getWorkerSnapshot=async():Promise<WorkerSnapshot>=>{
   const session=parseSession(raw);
   if(!session||!isObject(raw)||
     typeof raw.assignedUnits!=="number"||!Number.isSafeInteger(raw.assignedUnits)||
-    raw.assignedUnits<0||
-    typeof raw.unitsWithRealCost!=="number"||!Number.isSafeInteger(raw.unitsWithRealCost)||
-    raw.unitsWithRealCost<0||raw.unitsWithRealCost>raw.assignedUnits||
-    !["not_opened","open","closed"].includes(String(raw.cashState))||
-    typeof raw.businessDate!=="string")
+    raw.assignedUnits<0)
     throw new Error("Los datos operativos de la sede son inválidos.");
-  return {...session,assignedUnits:raw.assignedUnits,
-    unitsWithRealCost:raw.unitsWithRealCost,
-    cashState:raw.cashState as WorkerSnapshot["cashState"],
-    businessDate:raw.businessDate};
+  return {...session,assignedUnits:raw.assignedUnits};
 };
 export const activatePreparedWorker=async(userId:string,siteId:string):Promise<void>=>{
   if(!userId||!siteId)throw new Error("Selecciona la persona y la sede del local.");
