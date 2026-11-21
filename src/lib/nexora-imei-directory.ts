@@ -51,14 +51,14 @@ export interface ImeiDirectoryResponse {
 export const CUSTODY_FILTERS: readonly { value: CustodyFilter; label: string }[] = [
   { value: "all", label: "Todos" },
   { value: "sin_conciliar", label: "Sin conciliar" },
-  { value: "en_sede", label: "En sede" },
+  { value: "en_sede", label: "En Bodega 6A" },
   { value: "en_transito", label: "En tránsito" },
   { value: "retorno_pendiente", label: "Retorno pendiente" },
-  { value: "vendido", label: "Vendidos" },
+  { value: "vendido", label: "Salidas históricas" },
 ];
 export const CUSTODY_LABEL: Record<CustodyState,string> = {
-  sin_conciliar:"Sin sede verificada",
-  en_sede:"En sede",
+  sin_conciliar:"Pendiente de conciliación",
+  en_sede:"En Bodega 6A",
   en_transito:"En tránsito",
   retorno_pendiente:"Retorno pendiente",
   vendido:"Salida histórica",
