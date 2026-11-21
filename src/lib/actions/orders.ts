@@ -23,10 +23,7 @@ const findOrder = (db: Db, orderId: string) => {
 const orderItems = (db: Db, orderId: string) =>
   db.orderItems.filter((item) => item.orderId === orderId);
 
-const recalcularTotalPedido = (db: Db, order: Order) => {
-  order.total = orderItems(db, order.id).reduce((total, item) => total + item.subtotal, 0);
-  order.updatedAt = nowIso();
-};
+const actualizarPedido = (order: Order) => { order.updatedAt = nowIso(); };
 
 const assertEnPreparacion = (order: Order) => {
   if (order.status !== "en_preparacion") {
@@ -76,8 +73,6 @@ const buildLineas = (
       quantity,
       condition,
       color,
-      unitPrice: 0,
-      subtotal: 0,
     };
   });
 };
@@ -100,13 +95,11 @@ export const createOrder = (
     status: "en_preparacion",
     orderDate: hoyBogota(),
     notes: input.nota?.trim() || undefined,
-    total: 0,
     createdBy: actor.id,
     createdAt: nowIso(),
     updatedAt: nowIso(),
   };
   const items = buildLineas(db, actor, orderId, input.lineas);
-  order.total = items.reduce((sum, item) => sum + item.subtotal, 0);
   db.orders.unshift(order);
   db.orderItems.push(...items);
   logAudit(db, actor, {
@@ -143,8 +136,7 @@ export const agregarReferenciaPedido = (
   );
   if (existente) {
     existente.quantity += quantity;
-    existente.subtotal = existente.quantity * existente.unitPrice;
-    recalcularTotalPedido(db, order);
+    actualizarPedido(order);
     return existente;
   }
   const item: OrderItem = {
@@ -154,11 +146,9 @@ export const agregarReferenciaPedido = (
     quantity,
     condition,
     color,
-    unitPrice: 0,
-    subtotal: 0,
   };
   db.orderItems.push(item);
-  recalcularTotalPedido(db, order);
+  actualizarPedido(order);
   return item;
 };
 
@@ -198,7 +188,7 @@ export const cambiarColorReferenciaPedido = (
     unit.color = color;
   }
   item.color = color;
-  recalcularTotalPedido(db, order);
+  actualizarPedido(order);
   logAudit(db, actor, {
     action: "update",
     entity: "order",
@@ -224,7 +214,7 @@ export const quitarReferenciaPedido = (
     throw new DomainError("errors.referenceHasSerials", { count: asignados.length });
   }
   db.orderItems = db.orderItems.filter((row) => row.id !== item.id);
-  recalcularTotalPedido(db, order);
+  actualizarPedido(order);
   logAudit(db, actor, {
     action: "update",
     entity: "order",
@@ -256,8 +246,7 @@ export const editarCantidadReferencia = (
     return item;
   }
   item.quantity = nueva;
-  item.subtotal = nueva * item.unitPrice;
-  recalcularTotalPedido(db, order);
+  actualizarPedido(order);
   logAudit(db, actor, {
     action: "update",
     entity: "order",
@@ -326,7 +315,6 @@ export const serializarImeiPedido = (
   // El color se fija aquí, no en recepción. Nunca sobrescribir uno ya identificado.
   if (linea.color && !unit.color) {
     unit.color = linea.color;
-    // El despacho no modifica el costo histórico de recepción.
   }
   db.orderItemUnits.push({ id: createId(), orderItemId: linea.id, unitId: unit.id, createdAt: nowIso() });
   // La asignación también forma parte de la vida del serial, aunque el pedido
@@ -671,10 +659,9 @@ const lineaDelPedido = (db: Db, orderId: string, orderItemId: string) => {
   return item;
 };
 
-const recalcularTotal = (db: Db, orderId: string) => {
+const actualizarPedidoPorId = (db: Db, orderId: string) => {
   const order = findOrder(db, orderId);
-  order.total = orderItems(db, order.id).reduce((sum, item) => sum + item.subtotal, 0);
-  order.updatedAt = nowIso();
+  actualizarPedido(order);
   return order;
 };
 
@@ -725,8 +712,7 @@ export const agregarSerialDespachado = (
     notes: `Salida por pedido ${order.code} (edición)`,
   });
   item.quantity += 1;
-  item.subtotal = item.quantity * item.unitPrice;
-  recalcularTotal(db, order.id);
+  actualizarPedidoPorId(db, order.id);
   logAudit(db, actor, {
     action: "update",
     entity: "order",
@@ -776,9 +762,8 @@ export const quitarSerialDespachado = (
   if (item.quantity === 0) {
     db.orderItems = db.orderItems.filter((r) => r.id !== item.id);
   } else {
-    item.subtotal = item.quantity * item.unitPrice;
   }
-  recalcularTotal(db, order.id);
+  actualizarPedidoPorId(db, order.id);
   logAudit(db, actor, {
     action: "update",
     entity: "order",
