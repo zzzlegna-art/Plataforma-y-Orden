@@ -12,7 +12,7 @@ import type { CustomerRanking, ProductRanking } from "./selectors";
 import type { Customer, Product } from "./types";
 
 const producto = (id: string, name: string): Product => ({
-  id, sku: id, name, price: 0, cost: 0, minStock: 0, isActive: true,
+  id, sku: id, name, minStock: 0, isActive: true,
   createdAt: "2026-01-01T00:00:00Z", updatedAt: "2026-01-01T00:00:00Z",
 });
 const cliente = (id: string, name: string): Customer => ({
