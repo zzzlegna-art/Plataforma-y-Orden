@@ -73,7 +73,7 @@ const Panel = () => {
   const rankingRefreshKey = useMemo(
     () => [
       db.orders.map((order) => `${order.id}:${order.status}:${order.customerId}`).join("|"),
-      db.orderItems.map((item) => `${item.id}:${item.orderId}:${item.productId}:${item.quantity}:${item.subtotal}`).join("|"),
+      db.orderItems.map((item) => `${item.id}:${item.orderId}:${item.productId}:${item.quantity}`).join("|"),
       db.products.map((product) => `${product.id}:${product.name}:${product.sku}`).join("|"),
       db.customers.map((customer) => `${customer.id}:${customer.name}`).join("|"),
     ].join("::"),
@@ -261,7 +261,7 @@ const Panel = () => {
   );
   const customersChart: RankDatum[] = useMemo(
     () => rankingMode === "despachados"
-      ? rankDatumsDeClientes(data.topCustomers, false).map((row, index) => ({
+      ? rankDatumsDeClientes(data.topCustomers).map((row, index) => ({
           ...row,
           detail: `${formatNumber(data.topCustomers[index].ordersCount)} pedidos despachados`,
         }))
