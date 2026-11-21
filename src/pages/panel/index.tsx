@@ -45,7 +45,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { useStore } from "@/hooks/use-store";
-import { formatCurrency, formatNumber } from "@/lib/format";
+import { formatNumber } from "@/lib/format";
 import { crearCsv } from "@/lib/csv";
 import { exportExcel } from "@/lib/export";
 import { buildOperationalReportSheets } from "@/lib/dashboard-report";
@@ -263,7 +263,7 @@ const Panel = () => {
   );
   const customersChart: RankDatum[] = useMemo(
     () => rankingMode === "despachados"
-      ? rankDatumsDeClientes(data.topCustomers, data.hasAmounts).map((row, index) => ({
+      ? rankDatumsDeClientes(data.topCustomers, false).map((row, index) => ({
           ...row,
           detail: `${formatNumber(data.topCustomers[index].ordersCount)} pedidos despachados`,
         }))
@@ -275,7 +275,7 @@ const Panel = () => {
           units: row.units,
           detail: `${formatNumber(row.ordersCount)} pedidos`,
         })),
-    [rankingMode, orderRankings?.customers, data.topCustomers, data.hasAmounts],
+    [rankingMode, orderRankings?.customers, data.topCustomers],
   );
   const mostrarRankingGlobal = rankingMode === "pedidos";
 
@@ -648,9 +648,7 @@ const Panel = () => {
                 <p className="mt-1 text-xs leading-4 text-muted-foreground">
                   {mostrarRankingGlobal
                     ? "Ordenado por unidades solicitadas; el detalle muestra cuántos pedidos realizó cada cliente."
-                    : data.hasAmounts
-                      ? "Clientes por valor de celulares despachados en NEXORA; no es un reporte de pagos."
-                      : "Clientes por unidades de celulares despachados en NEXORA; sin importes registrados."}
+                    : "Clientes ordenados por unidades de celulares despachados en NEXORA."}
                 </p>
               </div>
             </div>
@@ -678,9 +676,9 @@ const Panel = () => {
             ) : (
               <RankChart
                 data={customersChart}
-                selectedSummaryLabel={mostrarRankingGlobal ? "Unidades solicitadas por este cliente" : data.hasAmounts ? "Monto de celulares despachados" : "Unidades de celulares despachados"}
-                summaryLabel={mostrarRankingGlobal ? "Unidades de los cinco clientes destacados" : data.hasAmounts ? "Valor en pedidos despachados de los cinco clientes" : "Unidades despachadas de los cinco clientes"}
-                formatValue={(value) => !mostrarRankingGlobal && data.hasAmounts ? formatCurrency(value) : formatNumber(value)}
+                selectedSummaryLabel={mostrarRankingGlobal ? "Unidades solicitadas por este cliente" : "Unidades de celulares despachados"}
+                summaryLabel={mostrarRankingGlobal ? "Unidades de los cinco clientes destacados" : "Unidades despachadas de los cinco clientes"}
+                formatValue={(value) => formatNumber(value)}
               />
             )}
           </div>
