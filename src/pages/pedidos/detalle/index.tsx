@@ -125,29 +125,6 @@ const PedidoDetalle = () => {
   const preparado = order.status === "preparado";
   // El administrador puede ajustar (agregar/quitar unidades) y anular pedidos ya despachados.
   const edicionDespachado = isAdmin && order.status === "despachado";
-  const datosDocumentoVenta = () => ({
-    orderCode: order.code,
-    companyName: db.settings.companyName,
-    currency: db.settings.currency,
-    orderDate: formatDate(order.orderDate),
-    deliveryDate: order.deliveryDate ? formatDate(order.deliveryDate) : formatDate(order.orderDate),
-    customer: {
-      name: customer?.name ?? "Sin cliente",
-      taxId: customer?.taxId,
-      contactName: customer?.contactName,
-      email: customer?.email,
-      phone: customer?.phone,
-      address: customer?.address,
-    },
-    lines: lineasOrdenadas.map((line) => ({
-      reference: line.product?.sku ?? "—",
-      product: `${line.product?.name ?? "Producto sin nombre"}${line.item.color ? ` · ${line.item.color}` : ""}`,
-      condition: line.esRepuesto ? "No aplica" : line.item.condition ? t(`condition.${line.item.condition}`) : "—",
-      quantity: line.item.quantity,
-      unitPrice: line.item.unitPrice,
-      subtotal: line.item.subtotal,
-    })),
-  });
   const addProduct = db.products.find((p) => p.id === addProductId);
   const lineaQuitar = quitarAbierto
     ? lines.find((l) => l.item.id === quitarAbierto.orderItemId)
@@ -626,7 +603,7 @@ const PedidoDetalle = () => {
                   placeholder="Seleccionar color"
                   options={(addProduct?.colorVariants ?? []).map((v) => ({
                     value: v.color,
-                    label: `${v.color} · $${v.price.toLocaleString("es-CO")}`,
+                    label: v.color,
                   }))}
                 />
               </div>
