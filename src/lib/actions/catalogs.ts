@@ -287,8 +287,8 @@ export interface ProductInput {
   brandId?: string;
   categoria?: ProductCategory;
   tipoRepuesto?: TipoRepuesto;
-  price: number;
-  cost: number;
+  price?: number;
+  cost?: number;
   minStock: number;
   isActive?: boolean;
 }
@@ -300,9 +300,6 @@ const validarVariantesColor = (variantes: ProductColorVariant[] | undefined): Pr
     const color = normalizarColor(variante.color);
     const id = color.toLocaleLowerCase("es");
     if (!color || color.length > 50 || nombres.has(id)) throw new DomainError("Color vacío, repetido o demasiado largo.");
-    if (!Number.isFinite(variante.cost) || variante.cost < 0 || !Number.isFinite(variante.price) || variante.price < 0) {
-      throw new DomainError("Costo y precio por color deben ser valores válidos.");
-    }
     if (variante.swatchHex && !/^#[a-fA-F0-9]{6}$/.test(variante.swatchHex)) {
       throw new DomainError("El color visual debe tener formato hexadecimal válido.");
     }
@@ -312,7 +309,7 @@ const validarVariantesColor = (variantes: ProductColorVariant[] | undefined): Pr
     }
     nombres.add(id);
     return {
-      color, cost: variante.cost, price: variante.price,
+      color,
       ...(imageUrl ? { imageUrl } : {}),
       ...(variante.swatchHex ? { swatchHex: variante.swatchHex } : {}),
     };
@@ -339,8 +336,8 @@ export const createProduct = (db: Db, actor: Actor, input: ProductInput): Produc
     categoria: input.categoria || undefined,
     tipoRepuesto:
       input.categoria === "repuesto" ? input.tipoRepuesto : undefined,
-    price: requireNumber(input.price, "errors.invalidPrice"),
-    cost: requireNumber(input.cost, "errors.invalidCost"),
+    price: 0,
+    cost: 0,
     minStock: requireNumber(input.minStock, "errors.invalidMinStock"),
     isActive: input.isActive ?? true,
     createdAt: nowIso(),
@@ -389,8 +386,8 @@ export const updateProduct = (
   } else {
     product.tipoRepuesto = undefined;
   }
-  product.price = requireNumber(input.price, "errors.invalidPrice");
-  product.cost = requireNumber(input.cost, "errors.invalidCost");
+  product.price = 0;
+  product.cost = 0;
   if (input.colorVariants !== undefined) {
     const nuevas = validarVariantesColor(input.colorVariants);
     const permitidos = new Set(nuevas.map((v) => v.color.toLocaleLowerCase("es")));
