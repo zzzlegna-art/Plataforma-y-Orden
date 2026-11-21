@@ -4,16 +4,17 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { activatePreparedWorker,deactivatePreparedWorker } from "@/lib/nexora-worker";
-import { listStaffSiteAssignments, type StaffMember, type StaffSiteAssignment } from "@/lib/nexora-staff-sites";
+import { listStaffSiteAssignments, type StaffMember } from "@/lib/nexora-staff-sites";
 import {
   listRolePlans, saveRolePlan, type RolePlan, type PreparatoryRole,
   rolePlanOptions,
 } from "@/lib/nexora-role-plans";
 
+const MAIN_WAREHOUSE_ID = "cf03b83a-a23f-4bd2-a778-2c071fa9df2e";
+
 export const RolePlanningPanel = () => {
   const [users, setUsers] = useState<StaffMember[]>([]);
   const [plans, setPlans] = useState<RolePlan[]>([]);
-  const [assignments, setAssignments] = useState<StaffSiteAssignment[]>([]);
   const [drafts, setDrafts] = useState<Record<string, PreparatoryRole>>({});
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
@@ -28,7 +29,6 @@ export const RolePlanningPanel = () => {
       ]);
       if (call !== request.current) return;
       setUsers(staff.users);
-      setAssignments(staff.assignments);
       setPlans(saved);
       setDrafts(Object.fromEntries(
         staff.users.map((user) => [
@@ -71,11 +71,9 @@ export const RolePlanningPanel = () => {
     if(busyRef.current)return;
     busyRef.current=true;setBusy(userId);
     try{
-      const sites=assignments.filter((s)=>s.userId===userId&&s.isActive);
       if(enable){
-        if(sites.length!==1)throw new Error("Vincula una única sede local activa al trabajador.");
-        await activatePreparedWorker(userId,sites[0].siteId);
-        toast.success("Trabajador activado con permisos limitados a su sede.");
+        await activatePreparedWorker(userId,MAIN_WAREHOUSE_ID);
+        toast.success("Trabajador activado con permisos limitados a Bodega 6A.");
       }else{
         await deactivatePreparedWorker(userId);
         toast.success("Acceso operativo del trabajador desactivado.");
@@ -92,7 +90,7 @@ export const RolePlanningPanel = () => {
           <div>
             <h3 className="text-lg font-bold">Activar personal</h3>
             <p className="mt-1 max-w-xl text-sm text-muted-foreground">
-              Asigna un único local y activa el acceso del Encargado o Vendedor.
+              Activa el acceso operativo del Encargado o Vendedor dentro de Bodega 6A.
             </p>
           </div>
         </div>
@@ -116,7 +114,7 @@ export const RolePlanningPanel = () => {
             const protectedWorker = Boolean(saved &&
               (saved.plannedRole==="encargado"||saved.plannedRole==="vendedor"));
             const readyToAttempt = Boolean(protectedWorker && !user.isActive &&
-              !saved?.operationallyEnabled && assigned.length===1);
+              !saved?.operationallyEnabled);
             return (
               <div key={user.id} className="grid gap-3 px-5 py-4 sm:grid-cols-[minmax(0,1fr)_minmax(180px,240px)_auto] sm:items-end sm:px-6">
                 <div className="min-w-0">
@@ -127,7 +125,6 @@ export const RolePlanningPanel = () => {
                       : saved ? <><ClipboardList className="h-3.5 w-3.5" /> Perfil preparado, no activado</>
                       : <><LockKeyhole className="h-3.5 w-3.5" /> Sin asignación preparada</>}
                     {!user.isActive ? " · Cuenta inactiva" : ""}
-                    {protectedWorker ? ` · Sedes asignadas: ${assigned.length}` : ""}
                   </p>
                 </div>
                 <div className="space-y-2">
@@ -153,8 +150,8 @@ export const RolePlanningPanel = () => {
                   ) : readyToAttempt ? (
                     <ConfirmDialog
                       trigger={<Button disabled={busy!==null}>Activar acceso</Button>}
-                      title="Activar trabajador del local"
-                      description="Se verificará el rol autorizado y un único local activo. El trabajador no tendrá permisos de Bodeguero."
+                      title="Activar trabajador de Bodega 6A"
+                      description="Se verificará el rol autorizado y se vinculará a la única bodega operativa: Bodega 6A. El trabajador no tendrá permisos de Administrador ni de Bodeguero."
                       onConfirm={()=>void changeActivation(user.id,true)}
                     />
                   ) : (
@@ -165,8 +162,8 @@ export const RolePlanningPanel = () => {
                       {saved && !changed ? "Guardado" : "Guardar plan"}
                     </Button>
                   )}
-                  {protectedWorker && !saved?.operationallyEnabled && assigned.length!==1
-                    ? <span className="text-xs text-amber-700">Asigna una sede local única antes de activar</span> : null}
+                  {protectedWorker && !saved?.operationallyEnabled
+                    ? <span className="text-xs text-muted-foreground">La activación lo vinculará automáticamente a Bodega 6A</span> : null}
                 </div>
               </div>
             );
