@@ -44,18 +44,17 @@ export const rankDatumsDeProductos = (topProducts: ProductRanking[]): RankDatum[
 export const firmaRankProductos = (topProducts: ProductRanking[]): string =>
   topProducts.map((row) => `${row.product.id}:${row.quantity}`).join("|");
 
-export const rankDatumsDeClientes = (topCustomers: CustomerRanking[], porMonto: boolean): RankDatum[] =>
+export const rankDatumsDeClientes = (topCustomers: CustomerRanking[]): RankDatum[] =>
   topCustomers.map((row) => ({
     key: row.customer?.id ?? row.customer?.name ?? "sin-cliente",
     name: row.customer?.name ?? "—",
     short: shortenRankLabel(row.customer?.name ?? "—"),
-    value: porMonto ? row.total : row.units,
+    value: row.units,
     units: row.units,
   }));
 
 /** Igual que {@link firmaRankProductos}, para la gráfica de clientes. */
-export const firmaRankClientes = (topCustomers: CustomerRanking[], porMonto: boolean): string =>
-  `${porMonto ? "monto" : "unidades"}|` +
+export const firmaRankClientes = (topCustomers: CustomerRanking[]): string =>
   topCustomers
-    .map((row) => `${row.customer?.id ?? row.customer?.name ?? "sin-cliente"}:${porMonto ? row.total : row.units}`)
+    .map((row) => `${row.customer?.id ?? row.customer?.name ?? "sin-cliente"}:${row.units}`)
     .join("|");
