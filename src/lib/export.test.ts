@@ -274,7 +274,7 @@ describe("codificación de textos técnicos en PDF del inventario", () => {
     const doc = await exportProductCatalogPdf({
       title: "Catálogo de productos", subtitle: "2 registros",
       filename: "catalogo-regresion-wifi.pdf",
-      products: items, includePrice: false, includeStock: false,
+      products: items, includeStock: false,
       labels: {
         image: "Imagen", openImage: "Abrir imagen", product: "Producto",
         reference: "SKU", brand: "Marca", category: "Categoría",
