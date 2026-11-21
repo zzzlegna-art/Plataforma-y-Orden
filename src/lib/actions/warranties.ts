@@ -446,7 +446,6 @@ export const registrarDiagnostico = (
     warrantyId: string;
     diagnostico: string;
     resolucion: WarrantyResolution;
-    costo?: number;
     /** Obligatoria cuando la resolución es "cambio": el equipo que se entregará. */
     replacementUnitId?: string;
   },
@@ -461,9 +460,6 @@ export const registrarDiagnostico = (
     throw new DomainError("errors.invalidTransition");
   }
   const diagnostico = requireText(input.diagnostico, "errors.diagnosticoRequired");
-  if (input.costo !== undefined && (!Number.isFinite(input.costo) || input.costo < 0)) {
-    throw new DomainError("errors.invalidTransition");
-  }
   const replacement =
     input.resolucion === "cambio"
       ? requireReplacement(db, warranty, input.replacementUnitId)
@@ -472,15 +468,14 @@ export const registrarDiagnostico = (
   warranty.diagnostico = diagnostico;
   warranty.resolucion = input.resolucion;
   warranty.replacementUnitId = replacement?.id;
-  warranty.costo = input.costo !== undefined && input.costo > 0 ? input.costo : undefined;
   // No mover la unidad al registrar el diagnóstico: en Reenvío se decide si el equipo
   // vuelve al cliente o queda disponible en bodega. El cambio es la única excepción
   // de selección inmediata: aquí se valida el serial, pero el movimiento ocurre al confirmar.
 
   warranty.status = "reenvio_pendiente";
   const notaDiagnostico = input.resolucion === "cambio" && replacement
-    ? `Cambio aprobado · serial de reemplazo ${replacement.serial}${input.costo ? ` · costo ${input.costo}` : ""}`
-    : `${input.resolucion}${input.costo ? ` · costo ${input.costo}` : ""}`;
+    ? `Cambio aprobado · serial de reemplazo ${replacement.serial}`
+    : input.resolucion;
   addEvent(db, actor, warranty.id, "reenvio_pendiente", notaDiagnostico);
   logAudit(db, actor, {
     action: "resolve",
@@ -526,7 +521,6 @@ export const deshacerEstadoGarantia = (
     // Se borra el diagnóstico para poder registrarlo de nuevo (sigue sin haber tocado inventario).
     warranty.diagnostico = undefined;
     warranty.resolucion = undefined;
-    warranty.costo = undefined;
     warranty.replacementUnitId = undefined;
   }
   if (anterior === "recibido") warranty.tecnicoId = undefined;
