@@ -1,5 +1,5 @@
 /** Sesión y operación multisede de los trabajadores (SIN descargar el legacy). */
-export type WorkerRole = "encargado" | "vendedor";
+export type WorkerRole = "encargado";
 export interface WorkerSession {
   role: WorkerRole;
   siteId: string;
@@ -12,7 +12,7 @@ const isObject=(x:unknown):x is Record<string,unknown>=>
   Boolean(x)&&typeof x==="object"&&!Array.isArray(x);
 const parseSession=(value:unknown):WorkerSession|null=>{
   if(value===null)return null;
-  if(!isObject(value)||!["encargado","vendedor"].includes(String(value.role))||
+  if(!isObject(value)||value.role !== "encargado"||
     typeof value.siteId!=="string"||typeof value.siteName!=="string"||
     !/^[a-f0-9-]{36}$/i.test(value.siteId)||!value.siteName.trim())
     throw new Error("El servidor no confirmó una sede autorizada para la sesión.");
