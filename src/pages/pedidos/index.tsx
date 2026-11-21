@@ -150,14 +150,12 @@ const Pedidos = () => {
       view.customer?.name ?? t("order.noCustomer"),
       formatDate(view.order.orderDate),
       view.order.status === "despachado" ? view.assigned : 0,
-      view.order.status === "despachado" ? view.assigned : "—",
     ]);
     const head = [
       t("order.code"),
       t("order.customer"),
       t("order.orderDate"),
       "Unidades despachadas",
-      "Unidades asignadas",
     ];
 
     if (format === "pdf") {
