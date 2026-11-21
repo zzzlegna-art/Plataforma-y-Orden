@@ -1,7 +1,7 @@
 import { useMemo, useState, type ReactNode } from "react";
 import {
   Check, ClipboardList, Database, LayoutDashboard, LockKeyhole,
-  PackageCheck, ShieldCheck, Store, Users, Warehouse,
+  ShieldCheck, Store, Users, Warehouse,
 } from "lucide-react";
 
 import { RolePlanningPanel } from "./RolePlanningPanel";
@@ -29,11 +29,6 @@ const ROLE_DETAILS: Record<MultisiteRole, {
     title: "Encargado",
     description: "Acceso a su espacio de trabajo y consulta de inventario.",
     icon: Store,
-  },
-  vendedor: {
-    title: "Vendedor",
-    description: "Acceso limitado a su espacio y consulta de inventario.",
-    icon: PackageCheck,
   },
 };
 
@@ -111,7 +106,7 @@ export const RolesTab = () => {
           <div>
             <h3 className="font-semibold">Matriz operativa</h3>
             <p className="mt-1 text-xs text-muted-foreground">
-              {selectedRole === "todos" ? "Comparación de los cuatro roles" : `Permisos del perfil ${ROLE_DETAILS[selectedRole].title}`}
+              {selectedRole === "todos" ? "Comparación de los tres perfiles" : `Permisos del perfil ${ROLE_DETAILS[selectedRole].title}`}
             </p>
           </div>
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
