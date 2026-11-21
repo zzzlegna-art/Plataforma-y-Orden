@@ -6,18 +6,18 @@ const people: StaffMember[] = [
   { id: "u2", name: "Empleado B", email: "inactivo@example.com", role: "bodeguero", isActive: false },
 ];
 const sites: NexoraSite[] = [
-  { id: "s1", name: "Bodega central", cityId: "c1", siteType: "principal", parentSiteId: null, address: null, isActive: true },
-  { id: "s2", name: "Local", cityId: "c1", siteType: "local", parentSiteId: "s1", address: null, isActive: false },
+  { id: "s1", name: "Bodega 6A", isActive: true },
+  { id: "s2", name: "Sede desactivada", isActive: false },
 ];
 const relation: StaffSiteAssignment = {
   id: "r1", userId: "u1", siteId: "s1", isActive: true, createdAt: "2026-11-02",
 };
 
-describe("Asignaciones Nexora Multisede 2.0", () => {
+describe("Asignaciones del personal a Bodega 6A", () => {
   it("permite a un empleado activo vincularse a una sede activa", () => {
     expect(canAssignStaffToSite("u1", "s1", people, sites, [])).toBeNull();
   });
-  it("permite preparar sedes para cuentas inactivas, pero no sedes cerradas", () => {
+  it("permite preparar cuentas inactivas, pero no sedes desactivadas", () => {
     expect(canAssignStaffToSite("u2", "s1", people, sites, [])).toBeNull();
     expect(canAssignStaffToSite("u3", "s1", people, sites, [])).toMatch(/registrado/);
     expect(canAssignStaffToSite("u1", "s2", people, sites, [])).toMatch(/sede activa/);
