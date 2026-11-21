@@ -9,8 +9,6 @@ const producto: Product = {
   sku: "TAB-TEST",
   name: "Tablet para prueba",
   categoria: "tablet",
-  price: 100,
-  cost: 50,
   minStock: 0,
   isActive: true,
   createdAt: "2026-01-01T00:00:00.000Z",
