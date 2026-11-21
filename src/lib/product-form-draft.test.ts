@@ -33,8 +33,6 @@ const sampleDraft: ProductFormDraft = {
     categoryId: "phones",
     brandId: "apple",
     categoria: "celular",
-    price: "1200000",
-    cost: "900000",
     minStock: "2",
     isActive: true,
   },
