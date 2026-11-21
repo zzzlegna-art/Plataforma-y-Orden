@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { strFromU8, unzipSync } from "fflate";
 import { jsPDF } from "jspdf";
 
-import { dibujarEncabezado, subtituloDocumentoSinMarcaDuplicada, exportCompanyName, exportExcel, exportOrderSerialRelationPdf, exportPedidosHistorialExcel, exportProductCatalogExcel, exportProductCatalogPdf, exportSalesInvoicePdf, normalizeCatalogText, tituloDocumentoSinMarcaDuplicada, splitCatalogLines, posicionesFichaCatalogo, normalizeCatalogFeatureLabel, normalizeCatalogPdfText } from "./export";
+import { dibujarEncabezado, subtituloDocumentoSinMarcaDuplicada, exportCompanyName, exportExcel, exportOrderSerialRelationPdf, exportPedidosHistorialExcel, exportProductCatalogExcel, exportProductCatalogPdf, normalizeCatalogText, tituloDocumentoSinMarcaDuplicada, splitCatalogLines, posicionesFichaCatalogo, normalizeCatalogFeatureLabel, normalizeCatalogPdfText } from "./export";
 
 const ONE_PIXEL_JPEG =
   "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCAABAAEDASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwD6pooooA//2Q==";
@@ -89,135 +89,6 @@ describe("PDF de relación de seriales", () => {
     expect(pdfText).toContain("/Subtype /Image");
     expect((pdfText.match(/NEXORA/g) ?? []).length).toBeGreaterThanOrEqual(doc.getNumberOfPages());
     expect(pdfText).toContain(`Página 1 de ${doc.getNumberOfPages()}`);
-  });
-});
-
-describe("documentos comerciales de pedido", () => {
-  const input = {
-    orderCode: "PED-261025-002",
-    companyName: "NEXORA",
-    currency: "COP",
-    orderDate: "25 oct 2026",
-    deliveryDate: "25 oct 2026",
-    customer: {
-      name: "Cliente de prueba",
-      taxId: "900123456",
-      phone: "3001234567",
-      email: "cliente@example.com",
-      address: "Barranquilla",
-    },
-    lines: [
-      {
-        reference: "IPH18PM-256",
-        product: "iPhone 18 Pro Max 256 GB",
-        condition: "Nuevo",
-        quantity: 2,
-        unitPrice: 4200000,
-        subtotal: 8400000,
-        serials: ["000000006520990", "000000004102691"],
-      },
-    ],
-    filename: "documento-prueba.pdf",
-  };
-
-  it("genera factura comercial PDF con referencia, producto y valores sin incluir seriales ni avisos fiscales", () => {
-    const doc = exportSalesInvoicePdf(input);
-    expect(doc.getNumberOfPages()).toBeGreaterThan(0);
-    const pdfText = doc.output();
-    expect(pdfText).toContain("FAC-PED-261025-002");
-    expect(pdfText).toContain("IPH18PM-256");
-    expect(pdfText).toContain("iPhone 18 Pro Max 256 GB");
-    expect(pdfText).toContain("Referencia");
-    expect(pdfText).toContain("Producto");
-    expect(pdfText).toContain("Condición");
-    expect(pdfText).toContain("Cantidad");
-    expect(pdfText).toContain("Precio unitario");
-    expect(pdfText).toContain("Subtotal");
-    expect(pdfText).not.toContain("000000006520990");
-    expect(pdfText).not.toContain("000000004102691");
-    expect(pdfText).not.toContain("Impuestos y requisitos fiscales");
-    expect(pdfText).not.toContain("sistema autorizado correspondiente");
-    expect(pdfText).not.toContain("No reemplaza factura electrónica DIAN");
-    expect(pdfText).toContain("/Subtype /Image");
-    expect(pdfText).toContain("NEXORA");
-    expect(pdfText).toContain("TOTAL COMERCIAL");
-    expect(pdfText).toContain("Página 1 de 1");
-  });
-
-  it("presenta una sola vez el número de factura y únicamente cuatro datos comerciales", () => {
-    const doc = exportSalesInvoicePdf({
-      ...input,
-      customer: { ...input.customer, name: "Oscar Fedecell", taxId: "" },
-      orderDate: "27 de oct de 2026",
-      deliveryDate: "27 de oct de 2026",
-      lines: [{
-        reference: "PAN-SUN-IP13", product: "Display Sunlong iPhone 13",
-        condition: "No aplica", quantity: 20, unitPrice: 135000, subtotal: 2700000,
-      }],
-    });
-    const pdf = doc.output();
-    expect(doc.getNumberOfPages()).toBe(1);
-    expect((pdf.match(/FAC-PED-261025-002/g) ?? [])).toHaveLength(1);
-    expect(pdf).toContain("FACTURA COMERCIAL");
-    expect(pdf).toContain("FECHA DE EMISIÓN");
-    expect(pdf).toContain("NIT / IDENTIFICACIÓN");
-    expect(pdf).toContain("EMISOR");
-    expect(pdf).toContain("CLIENTE");
-    expect(pdf).toContain("Oscar Fedecell");
-    expect(pdf).toContain("No registrado");
-    expect(pdf).toContain("PAN-SUN-IP13");
-    expect(pdf).toContain("Display Sunlong iPhone 13");
-    expect(pdf).toContain("2.700.000");
-    expect(pdf).not.toContain("(PEDIDO)");
-    expect(pdf).not.toContain("(DOCUMENTO)");
-    expect(pdf).toContain("TOTAL COMERCIAL");
-  });
-
-  it("imprime en CARTA vertical y mantiene diez referencias y el total en la misma página", () => {
-    const doc = exportSalesInvoicePdf({
-      ...input,
-      orderCode: "PED-261028-004",
-      customer: { ...input.customer, name: "Ricardo Cali" },
-      lines: Array.from({ length: 10 }, (_, index) => ({
-        reference: `IP${12 + index}PM-256`,
-        product: `iPhone ${12 + index} Pro Max 256 GB`,
-        condition: "Seminuevo",
-        quantity: 10 + index,
-        unitPrice: 1996000 - index * 51000,
-        subtotal: (10 + index) * (1996000 - index * 51000),
-      })),
-    });
-    expect(doc.internal.pageSize.getWidth()).toBeCloseTo(612, 0);
-    expect(doc.internal.pageSize.getHeight()).toBeCloseTo(792, 0);
-    expect(doc.getNumberOfPages()).toBe(1);
-    const pdf = doc.output();
-    expect(pdf).toContain("FAC-PED-261028-004");
-    expect(pdf).toContain("IP21PM-256");
-    expect(pdf).toContain("TOTAL COMERCIAL");
-    expect(pdf).toContain("Página 1 de 1");
-  });
-
-  it("conserva los precios y el total en facturas extensas con varias páginas y logo oficial", () => {
-    const doc = exportSalesInvoicePdf({
-      ...input,
-      filename: "factura-multipagina.pdf",
-      lines: Array.from({ length: 80 }, (_, index) => ({
-        reference: `REF-${index + 1}`,
-        product: "iPhone de prueba 256 GB",
-        condition: "Nuevo",
-        quantity: 1,
-        unitPrice: 1250000,
-        subtotal: 1250000,
-      })),
-    });
-    const text = doc.output();
-    expect(doc.getNumberOfPages()).toBeGreaterThan(1);
-    expect(text).toContain("REF-1");
-    expect(text).toContain("REF-80");
-    expect(text).toContain("TOTAL COMERCIAL");
-    expect(text).toContain("/Subtype /Image");
-    expect((text.match(/NEXORA/g) ?? []).length).toBeGreaterThanOrEqual(doc.getNumberOfPages());
-    expect(text).toContain(`Página 1 de ${doc.getNumberOfPages()}`);
   });
 });
 
@@ -334,13 +205,12 @@ describe("fichas técnicas de relojes", () => {
         { name: "Watch Serie 11 - 42", sku: "WASE11-42", brand: "Apple", category: "Relojes", features: makeFeatures() },
         { name: "Watch Serie 11 - 46", sku: "WASE11-46", brand: "Apple", category: "Relojes", features: makeFeatures() },
       ],
-      includePrice: false,
       includeStock: false,
       labels: {
         image: "Imagen", openImage: "Abrir imagen", product: "Producto",
         reference: "SKU", brand: "Marca", category: "Categoría",
         description: "Descripción", features: "Características del equipo",
-        price: "Precio", stock: "Existencias", noDescription: "Sin descripción",
+stock: "Existencias", noDescription: "Sin descripción",
         noFeatures: "Sin características", imageUnavailable: "Sin imagen",
         moreFeatures: (count) => "+" + count + " características",
       },
@@ -409,7 +279,7 @@ describe("codificación de textos técnicos en PDF del inventario", () => {
         image: "Imagen", openImage: "Abrir imagen", product: "Producto",
         reference: "SKU", brand: "Marca", category: "Categoría",
         description: "Descripción", features: "Características del equipo",
-        price: "Precio", stock: "Existencias", noDescription: "Sin descripción",
+stock: "Existencias", noDescription: "Sin descripción",
         noFeatures: "Sin características", imageUnavailable: "Sin imagen",
         moreFeatures: (count) => "+" + count + " características",
       },
@@ -465,13 +335,12 @@ describe("catálogo PDF compacto para lotes", () => {
           { label: "Compatibilidad", value: "nano SIM + eSIM" },
         ],
       })),
-      includePrice: false,
       includeStock: false,
       labels: {
         image: "Imagen", openImage: "Abrir imagen", product: "Producto",
         reference: "SKU", brand: "Marca", category: "Categoría",
         description: "Descripción", features: "Características del equipo",
-        price: "Precio", stock: "Existencias", noDescription: "Sin descripción",
+stock: "Existencias", noDescription: "Sin descripción",
         noFeatures: "Sin características", imageUnavailable: "Sin imagen",
         moreFeatures: (count) => "+" + count + " características",
       },
@@ -507,13 +376,12 @@ describe("catálogo PDF con fichas como la referencia AirPods", () => {
           { label: "Aislación de sonido", value: "Sin cancelación activa de ruido, aislamiento pasivo" },
         ],
       })),
-      includePrice: false,
       includeStock: false,
       labels: {
         image: "Imagen", openImage: "Abrir imagen", product: "Producto",
         reference: "SKU", brand: "Marca", category: "Categoría",
         description: "Descripción", features: "Características del equipo",
-        price: "Precio", stock: "Existencias", noDescription: "Sin descripción",
+stock: "Existencias", noDescription: "Sin descripción",
         noFeatures: "Sin características", imageUnavailable: "Sin imagen",
         moreFeatures: (count) => "+" + count + " características",
       },
@@ -548,13 +416,12 @@ describe("catálogo PDF con fichas como la referencia AirPods", () => {
           { label: "Característica final", value: "Comprobado" },
         ],
       }],
-      includePrice: true,
       includeStock: true,
       labels: {
         image: "Imagen", openImage: "Abrir imagen", product: "Producto",
         reference: "SKU", brand: "Marca", category: "Categoría",
         description: "Descripción", features: "Características del equipo",
-        price: "Precio", stock: "Existencias", noDescription: "Sin descripción",
+stock: "Existencias", noDescription: "Sin descripción",
         noFeatures: "Sin características", imageUnavailable: "Sin imagen",
         moreFeatures: (count) => "+" + count + " características",
       },
@@ -565,7 +432,6 @@ describe("catálogo PDF con fichas como la referencia AirPods", () => {
     expect(pdf).toContain("Detalle 69");
     expect(pdf).toContain("Característica final");
     expect(pdf).toContain("Existencias");
-    expect(pdf).toContain("Precio");
   });
 });
 
@@ -607,13 +473,12 @@ describe("catálogo PDF legible", () => {
           { label: "Compatibilidad", value: "Apple Pencil USB-C" },
         ],
       })),
-      includePrice: false,
       includeStock: false,
       labels: {
         image: "Imagen", openImage: "Abrir imagen", product: "Producto",
         reference: "SKU", brand: "Marca", category: "Categoría",
         description: "Descripción", features: "Características del equipo",
-        price: "Precio", stock: "Existencias", noDescription: "Sin descripción",
+stock: "Existencias", noDescription: "Sin descripción",
         noFeatures: "Sin características", imageUnavailable: "Sin imagen",
         moreFeatures: (count) => "+" + count + " características",
       },
@@ -639,20 +504,18 @@ describe("catálogo PDF legible", () => {
         brand: "Apple",
         category: "Tablets",
         description: "Equipo con pantalla brillante y conectividad de última generación.",
-        price: "$1.000.000",
         stock: 5,
         features: Array.from({ length: 8 }, (_, j) => ({
           label: "Característica " + (j + 1),
           value: "Detalle técnico completo de referencia y compatibilidad para la ficha comercial.",
         })),
       })),
-      includePrice: true,
       includeStock: true,
       labels: {
         image: "Imagen", openImage: "Abrir imagen", product: "Producto",
         reference: "SKU", brand: "Marca", category: "Categoría",
         description: "Descripción", features: "Características técnicas",
-        price: "Precio", stock: "Existencias", noDescription: "Sin descripción",
+stock: "Existencias", noDescription: "Sin descripción",
         noFeatures: "Sin características", imageUnavailable: "Sin imagen",
         moreFeatures: (count) => "+" + count + " características",
       },
@@ -823,7 +686,6 @@ describe("exportExcel con miniaturas", () => {
         description: "Descripción completa del producto",
         features: [{ label: "Color", value: "Negro" }, { label: "Memoria", value: "128 GB" }],
       }],
-      includePrice: true,
       includeStock: true,
       labels: {
         image: "Imagen",
@@ -834,8 +696,7 @@ describe("exportExcel con miniaturas", () => {
         category: "Categoría",
         description: "Descripción",
         features: "Características",
-        price: "Precio",
-        stock: "Existencias",
+stock: "Existencias",
         noDescription: "Sin descripción",
         noFeatures: "Sin características",
         imageUnavailable: "Imagen no disponible",
