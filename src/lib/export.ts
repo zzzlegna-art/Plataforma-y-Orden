@@ -415,206 +415,6 @@ export const exportOrderSerialRelationPdf = ({
   return doc;
 };
 
-export interface SalesDocumentLine {
-  reference: string;
-  product: string;
-  condition?: string;
-  quantity: number;
-  unitPrice: number;
-  subtotal: number;
-}
-
-export interface SalesDocumentCustomer {
-  name: string;
-  taxId?: string;
-  contactName?: string;
-  email?: string;
-  phone?: string;
-  address?: string;
-}
-
-export interface SalesDocumentInput {
-  orderCode: string;
-  companyName?: string | null;
-  currency: string;
-  orderDate: string;
-  deliveryDate?: string;
-  customer: SalesDocumentCustomer;
-  lines: SalesDocumentLine[];
-  filename: string;
-}
-
-const formatDocumentMoney = (amount: number, currency: string) => {
-  const validCurrency = /^[A-Z]{3}$/.test(currency) ? currency : "COP";
-  try {
-    return new Intl.NumberFormat("es-CO", {
-      style: "currency",
-      currency: validCurrency,
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 2,
-    }).format(amount);
-  } catch {
-    return new Intl.NumberFormat("es-CO", { maximumFractionDigits: 2 }).format(amount);
-  }
-};
-
-/** Factura tamaño CARTA vertical (612 × 792 pt), preparada para impresión al 100 %. */
-const drawPremiumInvoiceHeader = (doc: jsPDF, number: string, margin: number) => {
-  const w = doc.internal.pageSize.getWidth();
-  const h = 88;
-  const logoW = 166, logoH = logoW * (128 / 556);
-  doc.setFillColor(...NAVY); doc.rect(0, 0, w, h, "F");
-  doc.setFillColor(12, 52, 83);
-  doc.triangle(w - 110, 0, w, 0, w - 36, 81, "F");
-  doc.setFillColor(12, 72, 111);
-  doc.triangle(w - 60, 0, w - 22, 0, w - 37, 35, "F");
-  doc.setFillColor(...CYAN);
-  doc.rect(0, 0, w, 3, "F"); doc.rect(0, h - 2, w, 2, "F");
-  doc.addImage(PDF_LOGO, "PNG", margin, (h - logoH) / 2, logoW, logoH, undefined, "FAST");
-  doc.setDrawColor(...CYAN); doc.setLineWidth(1);
-  doc.line(w - 214, 21, w - 214, 65);
-  doc.setFont("helvetica", "bold"); doc.setFontSize(14);
-  doc.setTextColor(255, 255, 255);
-  doc.text("FACTURA COMERCIAL", w - margin, 32, { align: "right" });
-  doc.setFontSize(9); doc.setTextColor(...CYAN);
-  doc.text("Nº", w - margin - 175, 56);
-  let size = 9;
-  doc.setFont("helvetica", "bold"); doc.setFontSize(size);
-  doc.setTextColor(255, 255, 255);
-  while (doc.getTextWidth(number) > 158 && size > 7) {
-    size -= 0.5; doc.setFontSize(size);
-  }
-  doc.text(number, w - margin, 56, { align: "right" });
-};
-
-/** Dos filas de datos comerciales legibles en papel carta, sin texto comprimido. */
-const drawPremiumInvoiceMetadata = (doc: jsPDF, input: SalesDocumentInput, margin: number, top: number, width: number) => {
-  const values = [
-    { label: "EMISOR", value: exportCompanyName(input.companyName), icon: 0 },
-    { label: "CLIENTE", value: input.customer.name || "Consumidor / cliente sin nombre", icon: 1 },
-    { label: "NIT / IDENTIFICACIÓN", value: input.customer.taxId || "No registrado", icon: 2 },
-    { label: "FECHA DE EMISIÓN", value: input.deliveryDate || input.orderDate, icon: 3 },
-  ];
-  const cellW = width / 2, rowH = 51, h = rowH * 2;
-  doc.setFillColor(...CYAN_PALE); doc.setDrawColor(...BORDER); doc.setLineWidth(0.7);
-  doc.roundedRect(margin, top, width, h, 6, 6, "FD");
-  doc.line(margin + cellW, top + 10, margin + cellW, top + h - 10);
-  doc.line(margin + 10, top + rowH, margin + width - 10, top + rowH);
-  values.forEach((entry, i) => {
-    const col = i % 2, row = Math.floor(i / 2);
-    const x = margin + col * cellW, y = top + row * rowH;
-    const ix = x + 12, iy = y + 12;
-    doc.setFillColor(221, 246, 252); doc.roundedRect(ix, iy, 27, 27, 5, 5, "F");
-    doc.setDrawColor(0, 126, 172); doc.setLineWidth(1.15);
-    if (entry.icon === 0) {
-      doc.rect(ix + 8, iy + 6, 11, 16);
-      doc.line(ix + 13.5, iy + 6, ix + 13.5, iy + 22);
-      doc.line(ix + 8, iy + 12, ix + 19, iy + 12);
-    } else if (entry.icon === 1) {
-      doc.circle(ix + 13.5, iy + 9, 3.5);
-      doc.roundedRect(ix + 7, iy + 16, 13, 8, 3, 3);
-    } else if (entry.icon === 2) {
-      doc.roundedRect(ix + 7, iy + 5, 13, 18, 2, 2);
-      doc.circle(ix + 13.5, iy + 12, 1.6);
-      doc.line(ix + 10, iy + 19, ix + 17, iy + 19);
-    } else {
-      doc.roundedRect(ix + 6, iy + 7, 15, 16, 2, 2);
-      doc.line(ix + 6, iy + 12, ix + 21, iy + 12);
-      doc.line(ix + 10, iy + 5, ix + 10, iy + 9);
-      doc.line(ix + 17, iy + 5, ix + 17, iy + 9);
-    }
-    const left = x + 48, available = cellW - 62;
-    doc.setFont("helvetica", "normal"); doc.setFontSize(7);
-    doc.setTextColor(...MUTED); doc.text(entry.label, left, y + 19);
-    doc.setFont("helvetica", "bold"); doc.setFontSize(9.7); doc.setTextColor(...NAVY);
-    const lines = splitCatalogLines(doc, entry.value, available, 2);
-    doc.text(lines, left, y + 34, { lineHeightFactor: 1.08 });
-  });
-  return top + h;
-};
-
-/** Genera la factura comercial premium sin repetir identificadores. */
-export const exportSalesInvoicePdf = (input: SalesDocumentInput) => {
-  const doc = new jsPDF({ orientation: "portrait", unit: "pt", format: "letter" });
-  const w = doc.internal.pageSize.getWidth(), h = doc.internal.pageSize.getHeight();
-  const margin = 27, width = w - margin * 2, headerH = 88;
-  const documentNumber = "FAC-" + input.orderCode;
-  const header = () => drawPremiumInvoiceHeader(doc, documentNumber, margin);
-  header();
-
-  const metaBottom = drawPremiumInvoiceMetadata(doc, input, margin, headerH + 15, width);
-  const contact = [
-    input.customer.address ? "Dirección: " + input.customer.address : "",
-    input.customer.phone ? "Teléfono: " + input.customer.phone : "",
-    input.customer.email ? "Correo: " + input.customer.email : "",
-  ].filter(Boolean).join("  ·  ");
-  let tableY = metaBottom + 17;
-  if (contact) {
-    doc.setFont("helvetica", "normal"); doc.setFontSize(7.5); doc.setTextColor(...MUTED);
-    const lines = splitCatalogLines(doc, contact, width, 2);
-    doc.text(lines, margin + 2, metaBottom + 13, { lineHeightFactor: 1.2 });
-    tableY = metaBottom + 17 + lines.length * 10;
-  }
-
-  const boxH = 64, totalGap = 14;
-  // Reservar el total dentro de la página que contiene las últimas referencias.
-  // Así un pedido normal no genera una hoja vacía solo con el total.
-  const reservedBottom = FOOTER_SPACE + boxH + totalGap + 12;
-  autoTable(doc, {
-    startY: tableY,
-    margin: { top: headerH + 19, left: margin, right: margin, bottom: reservedBottom },
-    head: [["Referencia", "Producto", "Condición", "Cantidad", "Precio unitario", "Subtotal"]],
-    body: input.lines.map((line) => [
-      line.reference, line.product, line.condition || "No aplica",
-      line.quantity, formatDocumentMoney(line.unitPrice, input.currency),
-      formatDocumentMoney(line.subtotal, input.currency),
-    ]),
-    showHead: "everyPage", rowPageBreak: "avoid",
-    styles: {
-      font: "helvetica", fontSize: 8.1,
-      cellPadding: { top: 7, bottom: 7, left: 6, right: 6 },
-      textColor: NAVY, lineColor: BORDER, lineWidth: 0.45,
-      valign: "middle", overflow: "linebreak",
-    },
-    headStyles: {
-      fillColor: NAVY, textColor: [255, 255, 255], lineColor: BORDER,
-      lineWidth: 0.45, fontStyle: "bold", fontSize: 8.1,
-    },
-    alternateRowStyles: { fillColor: CYAN_PALE },
-    columnStyles: {
-      0: { cellWidth: width * 0.14, fontStyle: "bold", textColor: CYAN_DARK },
-      1: { cellWidth: width * 0.28 },
-      2: { cellWidth: width * 0.13 },
-      3: { cellWidth: width * 0.095, halign: "center", fontStyle: "bold" },
-      4: { cellWidth: width * 0.185, halign: "right" },
-      5: { cellWidth: width * 0.17, halign: "right", fontStyle: "bold" },
-    },
-    didDrawPage: (data) => { if (data.pageNumber > 1) header(); },
-  });
-
-  let y = ((doc as jsPDF & { lastAutoTable?: { finalY: number } }).lastAutoTable?.finalY ?? tableY) + totalGap;
-  if (y + boxH + 8 > h - FOOTER_SPACE) {
-    doc.addPage(); header(); y = headerH + 24;
-  }
-  const total = input.lines.reduce((sum, line) => sum + line.subtotal, 0);
-  const boxW = Math.min(275, width * 0.55), boxX = w - margin - boxW;
-  doc.setFillColor(...CYAN_PALE); doc.setDrawColor(...BORDER); doc.setLineWidth(0.7);
-  doc.roundedRect(boxX, y, boxW, boxH, 6, 6, "FD");
-  doc.setFillColor(...CYAN); doc.roundedRect(boxX, y, 4, boxH, 2, 2, "F");
-  doc.setFont("helvetica", "bold"); doc.setFontSize(9); doc.setTextColor(...MUTED);
-  doc.text("TOTAL COMERCIAL", boxX + 16, y + 25);
-  const formattedTotal = formatDocumentMoney(total, input.currency);
-  let totalFont = 17; doc.setFontSize(totalFont);
-  while (doc.getTextWidth(formattedTotal) > boxW - 33 && totalFont > 10) {
-    totalFont -= 0.5; doc.setFontSize(totalFont);
-  }
-  doc.setTextColor(...NAVY);
-  doc.text(formattedTotal, boxX + boxW - 15, y + 48, { align: "right" });
-  dibujarPies(doc, "Factura comercial", margin);
-  doc.save(input.filename);
-  return doc;
-};
-
 /** Subtítulo de los reportes de garantías: fecha, nota opcional y equipos. */
 export const exportSubtitleEquipos = (count: number, note?: string) => {
   const when = new Intl.DateTimeFormat("es-MX", {
@@ -1545,7 +1345,6 @@ export interface ProductCatalogItem {
   category?: string;
   description?: string;
   imageUrl?: string;
-  price?: string;
   stock?: number;
   features: ProductCatalogFeature[];
 }
@@ -1559,7 +1358,6 @@ export interface ProductCatalogLabels {
   category: string;
   description: string;
   features: string;
-  price: string;
   stock: string;
   noDescription: string;
   noFeatures: string;
@@ -1581,7 +1379,6 @@ export interface ProductCatalogExportOptions {
   subtitle: string;
   filename: string;
   products: ProductCatalogItem[];
-  includePrice: boolean;
   includeStock: boolean;
   labels: ProductCatalogLabels;
   onProgress?: (progress: CatalogExportProgress) => void;
@@ -1761,7 +1558,7 @@ export const normalizeCatalogFeatureLabel = (label: string): string => {
 };
 
 export const exportProductCatalogPdf = async ({
-  title, subtitle, filename, products, includePrice, includeStock, labels, onProgress,
+  title, subtitle, filename, products, includeStock, labels, onProgress,
 }: ProductCatalogExportOptions) => {
   onProgress?.({ phase: "preparing", completed: 0, total: products.length, percent: 3 });
   const doc = new jsPDF({ orientation: "portrait", unit: "pt", format: "a4" });
@@ -1778,7 +1575,7 @@ export const exportProductCatalogPdf = async ({
   const detailWidth = pageW - margin - padding - detailX;
   const featureTextX = detailX + 7;
   const featureWidth = detailWidth - 7;
-  const footerHeight = includePrice || includeStock ? 28 : 0;
+  const footerHeight = includeStock ? 28 : 0;
   const lineHeight = 10.5;
   const rowGap = 1.3;
   const bottom = pageH - FOOTER_SPACE;
@@ -1976,11 +1773,6 @@ export const exportProductCatalogPdf = async ({
         doc.setFont("helvetica", "bold");
         doc.setFontSize(9.5);
         doc.setTextColor(NAVY[0], NAVY[1], NAVY[2]);
-        if (includePrice) {
-          const price = labels.price + ": " + (product.price || "—");
-          doc.text(splitCatalogLines(doc, price, cardWidth * (includeStock ? 0.55 : 0.88), 1),
-            margin + padding, footerY);
-        }
         if (includeStock) {
           doc.text(labels.stock + ": " + (product.stock ?? 0),
             pageW - margin - padding, footerY, { align: "right" });
@@ -2019,7 +1811,6 @@ export const exportProductCatalogExcel = async ({
   subtitle,
   filename,
   products,
-  includePrice,
   includeStock,
   labels,
   onProgress,
@@ -2053,7 +1844,6 @@ export const exportProductCatalogExcel = async ({
     labels.description,
     labels.features,
   ];
-  if (includePrice) columns.push(labels.price);
   if (includeStock) columns.push(labels.stock);
 
   const featureTexts = products.map((product) =>
@@ -2071,7 +1861,6 @@ export const exportProductCatalogExcel = async ({
       normalizeCatalogText(product.description || labels.noDescription),
       featureTexts[index],
     ];
-    if (includePrice) row.push(product.price || "—");
     if (includeStock) row.push(product.stock ?? 0);
     return row;
   });
@@ -2091,7 +1880,6 @@ export const exportProductCatalogExcel = async ({
   });
 
   const columnWidths = [16, 17, 34, 17, 20, 44, 55];
-  if (includePrice) columnWidths.push(15);
   if (includeStock) columnWidths.push(10);
 
   onProgress?.({ phase: "rendering", completed: products.length, total: products.length, percent: 75 });
