@@ -1,22 +1,22 @@
 import { describe, expect, it } from "vitest";
 import { DomainError, emptyDb } from "../db";
 import type { Actor, Order, OrderItem, Product, Unit } from "../types";
-import { confirmarPreparacionPedido, confirmarVentaPedido, editarCantidadReferencia, editarPrecioReferencia, regresarPedidoASerializacion, serializarImeiPedido } from "./orders";
+import { confirmarPreparacionPedido, confirmarDespachoPedido, editarCantidadReferencia, editarPrecioReferencia, regresarPedidoASerializacion, serializarImeiPedido } from "./orders";
 
 const actor: Actor = { id: "admin-test", email: "admin@example.test", fullName: "Prueba", role: "admin" };
 const producto: Product = {
   id: "producto-test", sku: "TAB-TEST", name: "Tablet test", categoria: "tablet",
-  price: 150, cost: 75, minStock: 0, isActive: true,
+  minStock: 0, isActive: true,
   createdAt: "2026-01-01T00:00:00.000Z", updatedAt: "2026-01-01T00:00:00.000Z",
 };
 const pedido: Order = {
   id: "pedido-test", code: "PED-TEST", customerId: "cliente-test", status: "en_preparacion",
-  orderDate: "2026-01-01", total: 300, createdBy: actor.id,
+  orderDate: "2026-01-01", createdBy: actor.id,
   createdAt: "2026-01-01T00:00:00.000Z", updatedAt: "2026-01-01T00:00:00.000Z",
 };
 const linea: OrderItem = {
   id: "linea-test", orderId: pedido.id, productId: producto.id,
-  condition: "nuevo", quantity: 2, unitPrice: 150, subtotal: 300,
+  condition: "nuevo", quantity: 2,
 };
 const unidad: Unit = {
   id: "unidad-test", productId: producto.id, serial: "SERIAL-12345",
@@ -55,7 +55,7 @@ describe("despacho seguro de pedidos", () => {
     const db = emptyDb();
     db.products.push(producto);
     db.orders.push({ ...pedido });
-    db.orderItems.push({ ...linea, quantity: 1, subtotal: 150 });
+    db.orderItems.push({ ...linea, quantity: 1 });
     db.units.push({ ...unidad });
     db.orderItemUnits.push({
       id: "asignacion-1",
@@ -75,61 +75,7 @@ describe("despacho seguro de pedidos", () => {
     expect(db.movements.filter((movement) => movement.type === "salida")).toHaveLength(1);
   });
 
-  it("permite negociar el precio de una línea y recalcula subtotal y total del pedido", () => {
-    const db = emptyDb();
-    db.products.push({ ...producto });
-    db.orders.push({ ...pedido, status: "preparado", total: 300 });
-    db.orderItems.push({ ...linea, quantity: 2, unitPrice: 150, subtotal: 300 });
 
-    const updated = editarPrecioReferencia(db, actor, {
-      orderItemId: linea.id,
-      nuevoPrecio: 125,
-    });
-
-    expect(updated.unitPrice).toBe(125);
-    expect(updated.subtotal).toBe(250);
-    expect(db.orders[0].total).toBe(250);
-    expect(db.products[0].price).toBe(150);
-  });
-
-  it("permite guardar precio por debajo del costo para mostrar advertencia, pero la venta sigue bloqueada", () => {
-    const db = emptyDb();
-    db.products.push({ ...producto, cost: 175 });
-    db.orders.push({ ...pedido, status: "preparado" });
-    db.orderItems.push({ ...linea, quantity: 1, subtotal: 150 });
-    db.units.push({ ...unidad, cost: 180 });
-    db.orderItemUnits.push({
-      id: "asignacion-1",
-      orderItemId: linea.id,
-      unitId: unidad.id,
-      createdAt: pedido.createdAt,
-    });
-
-    editarPrecioReferencia(db, actor, { orderItemId: linea.id, nuevoPrecio: 160 });
-    expect(db.orderItems[0].unitPrice).toBe(160);
-    expect(db.orders[0].total).toBe(160);
-    expect(() => confirmarVentaPedido(db, actor, { orderId: pedido.id })).toThrow(DomainError);
-    expect(db.orders[0].status).toBe("preparado");
-  });
-
-  it("bloquea confirmar la venta cuando el precio es inferior al costo real de la unidad", () => {
-    const db = emptyDb();
-    db.products.push({ ...producto, cost: 175 });
-    db.orders.push({ ...pedido, status: "preparado" });
-    db.orderItems.push({ ...linea, quantity: 1, unitPrice: 150, subtotal: 150 });
-    db.units.push({ ...unidad, cost: 180 });
-    db.orderItemUnits.push({
-      id: "asignacion-1",
-      orderItemId: linea.id,
-      unitId: unidad.id,
-      createdAt: pedido.createdAt,
-    });
-
-    expect(() => confirmarVentaPedido(db, actor, { orderId: pedido.id })).toThrow(DomainError);
-    expect(db.orders[0].status).toBe("preparado");
-    expect(db.units[0].status).toBe("en_bodega");
-    expect(db.movements.filter((movement) => movement.type === "salida")).toHaveLength(0);
-  });
 
 });
 
@@ -137,8 +83,8 @@ describe("regreso seguro de preparado a serialización", () => {
   it("conserva los IMEI reservados sin generar salidas antes del despacho", () => {
     const db = emptyDb();
     db.products.push({ ...producto });
-    db.orders.push({ ...pedido, status: "en_preparacion", total: 150 });
-    db.orderItems.push({ ...linea, quantity: 1, subtotal: 150 });
+    db.orders.push({ ...pedido, status: "en_preparacion" });
+    db.orderItems.push({ ...linea, quantity: 1 });
     db.units.push({ ...unidad }, { ...unidad, id: "unidad-2", serial: "SERIAL-67890" });
     db.orderItemUnits.push({
       id: "asignacion-1", orderItemId: linea.id, unitId: unidad.id, createdAt: pedido.createdAt,
@@ -168,7 +114,7 @@ describe("regreso seguro de preparado a serialización", () => {
     for (const status of ["despachado", "cancelado"] as const) {
       const db = emptyDb();
       db.orders.push({ ...pedido, status });
-      db.orderItems.push({ ...linea, quantity: 1, subtotal: 150 });
+      db.orderItems.push({ ...linea, quantity: 1 });
       db.units.push({ ...unidad });
       db.orderItemUnits.push({
         id: "asignacion-1", orderItemId: linea.id, unitId: unidad.id, createdAt: pedido.createdAt,
