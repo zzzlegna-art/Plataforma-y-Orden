@@ -49,11 +49,10 @@ describe("createWarrantyByImei · vínculo comercial de pedidos despachados", ()
     }];
     db.orders = [{
       id: "o1", code: "PED-261109-005", customerId: "c1", status: "preparado",
-      orderDate: now, total: 0, createdBy: "u1", createdAt: now, updatedAt: now,
+      orderDate: now, createdBy: "u1", createdAt: now, updatedAt: now,
     }];
     db.orderItems = [{
       id: "oi1", orderId: "o1", productId: "p1", quantity: 1,
-      unitPrice: 0, subtotal: 0,
     }];
     db.orderItemUnits = [{ id: "oiu1", orderItemId: "oi1", unitId: "un1", createdAt: now }];
 
@@ -72,16 +71,16 @@ describe("createWarrantyByImei · vínculo comercial de pedidos despachados", ()
     db.orders = [
       {
         id: "o-cancelado", code: "PED-ANTERIOR", customerId: "c-old", status: "cancelado",
-        orderDate: now, total: 0, createdBy: "u1", createdAt: now, updatedAt: now,
+        orderDate: now, createdBy: "u1", createdAt: now, updatedAt: now,
       },
       {
         id: "o-preparado", code: "PED-ACTUAL", customerId: "c1", status: "preparado",
-        orderDate: now, total: 0, createdBy: "u1", createdAt: now, updatedAt: now,
+        orderDate: now, createdBy: "u1", createdAt: now, updatedAt: now,
       },
     ];
     db.orderItems = [
-      { id: "oi-old", orderId: "o-cancelado", productId: "p1", quantity: 1, unitPrice: 0, subtotal: 0 },
-      { id: "oi-current", orderId: "o-preparado", productId: "p1", quantity: 1, unitPrice: 0, subtotal: 0 },
+      { id: "oi-old", orderId: "o-cancelado", productId: "p1", quantity: 1 },
+      { id: "oi-current", orderId: "o-preparado", productId: "p1", quantity: 1 },
     ];
     db.orderItemUnits = [
       { id: "oiu-old", orderItemId: "oi-old", unitId: "un1", createdAt: now },
@@ -101,11 +100,10 @@ describe("createWarrantyByImei · vínculo comercial de pedidos despachados", ()
     db.units = [unidad({ status: "vendido" })];
     db.orders = [{
       id: "o1", code: "PED-2", customerId: "c1", status: "despachado",
-      orderDate: now, total: 0, createdBy: "u1", createdAt: now, updatedAt: now,
+      orderDate: now, createdBy: "u1", createdAt: now, updatedAt: now,
     }];
     db.orderItems = [{
       id: "oi1", orderId: "o1", productId: "p1", quantity: 1,
-      unitPrice: 0, subtotal: 0,
     }];
     db.orderItemUnits = [{ id: "oiu1", orderItemId: "oi1", unitId: "un1", createdAt: now }];
 
@@ -136,11 +134,10 @@ describe("createWarrantyFallaInventario · recepción de unidades propias", () =
     db.units = [unidad({ status: "en_bodega" })];
     db.orders = [{
       id: "o1", code: "PED-1", customerId: "c1", status: "preparado",
-      orderDate: now, total: 0, createdBy: "u1", createdAt: now, updatedAt: now,
+      orderDate: now, createdBy: "u1", createdAt: now, updatedAt: now,
     }];
     db.orderItems = [{
       id: "oi1", orderId: "o1", productId: "p1", quantity: 1,
-      unitPrice: 0, subtotal: 0,
     }];
     db.orderItemUnits = [{ id: "oiu1", orderItemId: "oi1", unitId: "un1", createdAt: now }];
 
@@ -158,11 +155,10 @@ describe("createWarrantyFallaInventario · recepción de unidades propias", () =
     db.units = [unidad({ status: "en_bodega" })];
     db.orders = [{
       id: "o1", code: "PED-1", customerId: "c1", status: "cancelado",
-      orderDate: now, total: 0, createdBy: "u1", createdAt: now, updatedAt: now,
+      orderDate: now, createdBy: "u1", createdAt: now, updatedAt: now,
     }];
     db.orderItems = [{
       id: "oi1", orderId: "o1", productId: "p1", quantity: 1,
-      unitPrice: 0, subtotal: 0,
     }];
     db.orderItemUnits = [{ id: "oiu1", orderItemId: "oi1", unitId: "un1", createdAt: now }];
 
@@ -305,7 +301,7 @@ describe("registrarDiagnostico · resolución cambio pide el serial de reemplazo
       status: "en_servicio_tecnico",
     });
     db.products = [{
-      id: "p1", sku: "IPH13", name: "iPhone 13", price: 0, cost: 0, minStock: 0,
+      id: "p1", sku: "IPH13", name: "iPhone 13", minStock: 0,
       isActive: true, createdAt: now, updatedAt: now,
     }];
     db.units = [reemplazo({ productId: "p2" })];
@@ -412,7 +408,7 @@ describe("entregarGarantia · cambio en una garantía previa: el equipo original
       resolucion: "cambio", clienteManual: "Ana",
     });
     db.products = [{
-      id: "p9", sku: "IPH13", name: "iPhone 13", price: 0, cost: 0, minStock: 0,
+      id: "p9", sku: "IPH13", name: "iPhone 13", minStock: 0,
       isActive: true, createdAt: now, updatedAt: now,
     }];
     db.units = [
@@ -472,7 +468,7 @@ describe("devolverGarantiasABodega · cierre por lote desde Recibidos", () => {
   it("da de alta y vincula el serial de una garantía previa al devolverla directamente a bodega", () => {
     const db = emptyDb();
     db.products = [{
-      id: "p1", sku: "IPH13", name: "iPhone 13", price: 0, cost: 0, minStock: 0,
+      id: "p1", sku: "IPH13", name: "iPhone 13", minStock: 0,
       isActive: true, createdAt: now, updatedAt: now,
     }];
     db.warranties = [garantia({
@@ -505,7 +501,7 @@ describe("createWarrantyPrevia · referencia del catálogo", () => {
   const conProducto = () => {
     const db = emptyDb();
     db.products = [{
-      id: "p1", sku: "IPH13", name: "iPhone 13", price: 0, cost: 0, minStock: 0,
+      id: "p1", sku: "IPH13", name: "iPhone 13", minStock: 0,
       isActive: true, createdAt: now, updatedAt: now,
     }];
     return db;
@@ -531,10 +527,9 @@ describe("devolverGarantia · devolución directa a bodega desde el flujo habitu
   const dbConPedido = (status: Warranty["status"]) => {
     const db = dbCon({ status, customerId: "c1", orderId: "o1" }, { status: "en_reparacion" });
     db.orders.push({
-      id: "o1", code: "PED-261004-006", customerId: "c1", status: "despachado", orderDate: now,
-      total: 0, createdBy: "u1", createdAt: now, updatedAt: now,
+      id: "o1", code: "PED-261004-006", customerId: "c1", status: "despachado", orderDate: now, createdBy: "u1", createdAt: now, updatedAt: now,
     });
-    db.orderItems.push({ id: "i1", orderId: "o1", productId: "p1", quantity: 1, unitPrice: 0, subtotal: 0 });
+    db.orderItems.push({ id: "i1", orderId: "o1", productId: "p1", quantity: 1 });
     db.orderItemUnits.push({ id: "x1", orderItemId: "i1", unitId: "un1", createdAt: now });
     return db;
   };
@@ -639,14 +634,14 @@ describe("deshacerEstadoGarantia · devolver un caso al estado anterior", () => 
   it("de reenvío (reparado) a en servicio: borra el diagnóstico y conserva el técnico", () => {
     const db = conTecnico();
     enviarATecnico(db, admin, { warrantyIds: ["w1"], tecnicoId: "t1" });
-    registrarDiagnostico(db, admin, { warrantyId: "w1", diagnostico: "pantalla", resolucion: "reparado", costo: 50 });
+    registrarDiagnostico(db, admin, { warrantyId: "w1", diagnostico: "pantalla", resolucion: "reparado" });
     deshacerEstadoGarantia(db, admin, { warrantyId: "w1" });
     const w = db.warranties[0];
     expect(w.status).toBe("en_servicio_tecnico");
     expect(w.tecnicoId).toBe("t1");
     expect(w.diagnostico).toBeUndefined();
     expect(w.resolucion).toBeUndefined();
-    expect(w.costo).toBeUndefined();
+    expect("costo" in w).toBe(false);
   });
 
   it("de reenvío (cambio) sin técnico vuelve a recibido y suelta el serial de reemplazo", () => {
@@ -692,7 +687,7 @@ describe("deshacerEstadoGarantia · devolver un caso al estado anterior", () => 
       status: "en_servicio_tecnico",
     }, { status: "en_reparacion" });
     db.products = [{
-      id: "p1", sku: "IPH13", name: "iPhone 13", price: 0, cost: 0, minStock: 0,
+      id: "p1", sku: "IPH13", name: "iPhone 13", minStock: 0,
       isActive: true, createdAt: now, updatedAt: now,
     }];
     db.units.push({
