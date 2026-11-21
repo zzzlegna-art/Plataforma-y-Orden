@@ -147,7 +147,7 @@ export const ImeiSedesPanel=()=>{
                 <p className="mt-1 text-[11px] text-muted-foreground">{item.sku}</p>
               </td>
               <td className="px-4 py-3">
-                {item.siteName?<p className="flex items-center gap-1 font-medium"><MapPin className="h-3.5 w-3.5"/>Bodega 6A</p>:
+                {item.custodyState==="en_sede"?<p className="flex items-center gap-1 font-medium"><MapPin className="h-3.5 w-3.5"/>Bodega 6A</p>:
                   <span className="font-medium text-amber-800 dark:text-amber-300">Ubicación pendiente de verificar</span>}
                 <p className="mt-1 text-xs text-muted-foreground">
                   {item.historicalLocation?`Referencia histórica: ${item.historicalLocation}`:"Control central de bodega"}
@@ -206,7 +206,7 @@ export const ImeiSedesPanel=()=>{
             </div>
             <div className="rounded-xl border bg-muted/20 p-3">
               <p className="text-xs font-medium text-muted-foreground">Ubicación</p>
-              <p className="mt-1 font-semibold">{selected.siteName?"Bodega 6A":"Pendiente de verificar"}</p>
+              <p className="mt-1 font-semibold">{selected.custodyState==="en_sede"?"Bodega 6A":"Pendiente de verificar"}</p>
             </div>
             <div className="rounded-xl border bg-muted/20 p-3">
               <p className="text-xs font-medium text-muted-foreground">Relación con pedidos</p>
