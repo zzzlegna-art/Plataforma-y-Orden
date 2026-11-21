@@ -102,7 +102,7 @@ const requireReplacement = (db: Db, warranty: Warranty, replacementUnitId?: stri
   if (reservadoEnOtraGarantia) {
     throw new DomainError("errors.unitNotAvailable", { serial: replacement.serial });
   }
-  if replacement.status !== "en_bodega" {
+  if (replacement.status !== "en_bodega") {
     throw new DomainError("errors.unitNotAvailable", { serial: replacement.serial });
   }
   // En garantías previas, la referencia escrita debe corresponder a un producto del catálogo.

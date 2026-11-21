@@ -281,7 +281,7 @@ export const serializarImeiPedido = (
   if (!imei) throw new DomainError("errors.serialRequired");
   const unit = db.units.find((item) => item.serial.toLowerCase() === imei.toLowerCase());
   if (!unit) throw new DomainError("errors.unitNotFound", { serial: imei });
-  if unit.status !== "en_bodega" {
+  if (unit.status !== "en_bodega") {
     throw new DomainError("errors.unitNotAvailable", { serial: imei });
   }
   if (unitEnOtroPedidoActivo(db, unit.id)) {
@@ -682,7 +682,7 @@ export const agregarSerialDespachado = (
   if (!serial) throw new DomainError("errors.serialRequired");
   const unit = db.units.find((u) => u.serial.toLowerCase() === serial.toLowerCase());
   if (!unit) throw new DomainError("errors.unitNotFound", { serial });
-  if unit.status !== "en_bodega" {
+  if (unit.status !== "en_bodega") {
     throw new DomainError("errors.unitNotAvailable", { serial });
   }
   if (unitEnOtroPedidoActivo(db, unit.id)) {
