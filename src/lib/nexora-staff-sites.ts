@@ -2,7 +2,15 @@
  * Asignaciones del personal para Bodega 6A, separadas del permiso legacy.
  * El vínculo NO cambia roles, RLS operativa ni ubicación física de los IMEI.
  */
-import type { NexoraSite } from "./nexora-sites";
+export interface NexoraSite {
+  id: string;
+  cityId: string;
+  name: string;
+  siteType: "principal";
+  parentSiteId: null;
+  address: string | null;
+  isActive: boolean;
+}
 
 export interface StaffMember {
   id: string;
