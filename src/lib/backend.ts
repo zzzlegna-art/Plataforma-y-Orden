@@ -663,13 +663,10 @@ const leerAjustes = async (): Promise<Db["settings"]> => {
     .maybeSingle();
   if (error) {
     console.error(`No se pudieron leer los ajustes: ${error.message}`);
-    return { currency: "MXN", companyName: "Bodega 6A" };
+    return { companyName: "Bodega 6A" };
   }
   const fila = (data ?? {}) as Fila;
-  return {
-    currency: texto(fila.currency) ?? "MXN",
-    companyName: texto(fila.company_name) ?? "Bodega 6A",
-  };
+  return { companyName: texto(fila.company_name) ?? "Bodega 6A" };
 };
 
 /** Carga completa del inventario desde el servidor. */
@@ -816,11 +813,10 @@ export const calcularPasos = (previo: Db, siguiente: Db): Paso[] => {
       op: "upsert",
       tabla: "bodega_settings",
       solo_alta: false,
-      esperados: [{ id: "default", currency: previo.settings.currency, company_name: previo.settings.companyName }],
+      esperados: [{ id: "default", company_name: previo.settings.companyName }],
       filas: [
         {
           id: "default",
-          currency: siguiente.settings.currency,
           company_name: siguiente.settings.companyName,
         },
       ],
@@ -1223,7 +1219,6 @@ export type CambioRemoto = {
 };
 
 const ajustesDesdeFila = (fila: Fila): Db["settings"] => ({
-  currency: texto(fila.currency) ?? "MXN",
   companyName: texto(fila.company_name) ?? "Bodega 6A",
 });
 
