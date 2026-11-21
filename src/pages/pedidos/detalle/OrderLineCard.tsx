@@ -9,7 +9,7 @@ import { ConditionBadge } from "@/components/shared/status-badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import type { OrderLineView } from "@/lib/selectors";
-import { estadoPrecioVentaColor, variantePorColor } from "@/lib/color-variants";
+import { variantePorColor } from "@/lib/color-variants";
 import { cn } from "@/lib/utils";
 
 /** Tarjeta de progreso de una referencia del pedido: cantidad y serialización. */
@@ -53,7 +53,6 @@ export const OrderLineCard = ({
   onToggleSerialPdfSelection?: (checked: boolean) => void;
 }) => {
   const { t } = useTranslation();
-  const estadoPrecio = estadoPrecioVentaColor(line.product, line.item.color, line.item.unitPrice);
   const [failedImageUrl, setFailedImageUrl] = useState<string | null>(null);
   const colorImageUrl = variantePorColor(line.product, line.item.color)?.imageUrl;
   const productImageUrl = colorImageUrl || line.product?.imageUrl;
@@ -197,22 +196,10 @@ export const OrderLineCard = ({
                       onChange={onCambiarColor}
                       options={(line.product?.colorVariants ?? []).map((variant) => ({
                         value: variant.color,
-                        label: variant.price > 0
-                          ? `${variant.color} · Venta $ ${variant.price.toLocaleString("es-CO")}`
-                          : `${variant.color} · Precio de venta pendiente`,
+                        label: variant.color,
                       }))}
                       placeholder="Seleccionar color"
                     />
-                    {line.serializados > 0 ? (
-                      <p className="text-[11px] leading-relaxed text-muted-foreground">
-                        Cambiar el color actualiza el precio y conserva los {line.serializados} IMEI asignados.
-                      </p>
-                    ) : null}
-                    {estadoPrecio === "pendiente" ? (
-                      <p className="text-[11px] text-amber-700 dark:text-amber-300">
-                        No hay un precio de venta de este color guardado en el servidor. Comprueba «Venta sugerida» en Inventario → Editar producto y verifica que el guardado se complete.
-                      </p>
-                    ) : null}
                   </>
                 ) : (
                   <p className="text-sm font-medium">{line.item.color || "Sin asignar"}</p>
