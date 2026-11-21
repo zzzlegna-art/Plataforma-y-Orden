@@ -22,7 +22,7 @@ const conLosCincoDeSiempre = (): Db => {
 };
 
 describe("Nexora V4: sólo Administrador modifica referencias", () => {
-  const input={name:"iPhone 15",categoria:"celular" as const,price:1000,cost:800,minStock:0};
+  const input={name:"iPhone 15",categoria:"celular" as const,minStock:0};
   it("el Bodeguero no puede crear, modificar, activar ni eliminar referencias",()=>{
     const db=emptyDb();
     expect(()=>createProduct(db,bodeguero,input)).toThrow(DomainError);
@@ -113,8 +113,7 @@ describe("deleteProductType", () => {
     const db = conLosCincoDeSiempre();
     const tipo = createProductType(db, admin, { name: "Parlantes", mayoristaGroup: "celulares" });
     db.products.push({
-      id: "p1", sku: "S1", name: "Parlante JBL", categoria: tipo.key,
-      price: 1, cost: 1, minStock: 0, isActive: true, createdAt: now, updatedAt: now,
+      id: "p1", sku: "S1", name: "Parlante JBL", categoria: tipo.key, minStock: 0, isActive: true, createdAt: now, updatedAt: now,
     });
     expect(() => deleteProductType(db, admin, { id: tipo.id })).toThrow(DomainError);
   });
@@ -125,7 +124,7 @@ describe("actualización automática de SKU al editar referencias", () => {
     const db = emptyDb();
     const original = createProduct(db, admin, {
       sku: "CODIGO-ANTIGUO", name: "iPhone 13 128 GB",
-      categoria: "celular", price: 1, cost: 1, minStock: 0,
+      categoria: "celular", minStock: 0,
     });
     expect(generarSkuAlEditar(db, original.name, original.categoria, original)).toBe("CODIGO-ANTIGUO");
     expect(generarSkuAlEditar(db, "iPhone 13 128 GB  ", original.categoria, original))
@@ -136,7 +135,7 @@ describe("actualización automática de SKU al editar referencias", () => {
     const db = emptyDb();
     const original = createProduct(db, admin, {
       sku: "IP13-128", name: "iPhone 13 128 GB",
-      categoria: "celular", price: 1, cost: 1, minStock: 0,
+      categoria: "celular", minStock: 0,
     });
     expect(generarSkuAlEditar(db, "iPhone 14 Pro Max 256 GB", "celular", original)).toBe("IP14PM-256");
     expect(generarSkuAlEditar(db, "iPhone 13 128 GB", "celular", original)).toBe("IP13-128");
@@ -146,7 +145,7 @@ describe("actualización automática de SKU al editar referencias", () => {
     const db = emptyDb();
     const battery = createProduct(db, admin, {
       sku: "IP13", name: "Batería iPhone 13",
-      categoria: "repuesto", price: 1, cost: 1, minStock: 0,
+      categoria: "repuesto", minStock: 0,
     });
     expect(generarSkuAlEditar(db, "Batería iPhone 13 Pro Max con flex", "repuesto", battery))
       .toBe("BAT-IP13PM-CF");
@@ -158,11 +157,11 @@ describe("actualización automática de SKU al editar referencias", () => {
     const db = emptyDb();
     const original = createProduct(db, admin, {
       sku: "BAT-IP11", name: "Batería iPhone 11",
-      categoria: "repuesto", price: 1, cost: 1, minStock: 0,
+      categoria: "repuesto", minStock: 0,
     });
     const other = createProduct(db, admin, {
       sku: "BAT-IP13PM-CF", name: "Batería iPhone 13 Pro Max con flex",
-      categoria: "repuesto", price: 1, cost: 1, minStock: 0,
+      categoria: "repuesto", minStock: 0,
     });
     expect(generarSkuAlEditar(db, other.name, "repuesto", original)).toBe("BAT-IP13PM-CF-2");
     expect(db.products.find((item) => item.id === other.id)?.sku).toBe("BAT-IP13PM-CF");
@@ -173,13 +172,13 @@ describe("actualización automática de SKU al editar referencias", () => {
     const db = emptyDb();
     const original = createProduct(db, admin, {
       sku: "IP11", name: "Batería iPhone 11",
-      categoria: "repuesto", price: 1, cost: 1, minStock: 0,
+      categoria: "repuesto", minStock: 0,
     });
     const sku = generarSkuAlEditar(db, "Batería iPhone 11 sin flex", "repuesto", original);
     expect(original.sku).toBe("IP11"); // Solo previsualización hasta Guardar.
     const updated = updateProduct(db, admin, {
       id: original.id, sku, name: "Batería iPhone 11 sin flex",
-      categoria: "repuesto", price: 1, cost: 1, minStock: 0,
+      categoria: "repuesto", minStock: 0,
     });
     expect(updated.id).toBe(original.id);
     expect(updated.sku).toBe("BAT-IP11-SF");
@@ -230,30 +229,30 @@ describe("SKU corta automática", () => {
   it("crea un celular y su batería con SKU distintas aunque compartan modelo", () => {
     const db = emptyDb();
     const phone = createProduct(db, admin, {
-      name: "iPhone 13 128 GB", categoria: "celular", price: 1, cost: 1, minStock: 0,
+      name: "iPhone 13 128 GB", categoria: "celular", minStock: 0,
     });
     const battery = createProduct(db, admin, {
-      name: "Batería iPhone 13", categoria: "repuesto", price: 1, cost: 1, minStock: 0,
+      name: "Batería iPhone 13", categoria: "repuesto", minStock: 0,
     });
     const batteryAgain = createProduct(db, admin, {
-      name: "Batería iPhone 13", categoria: "repuesto", price: 1, cost: 1, minStock: 0,
+      name: "Batería iPhone 13", categoria: "repuesto", minStock: 0,
     });
     expect(phone.sku).toBe("IP13-128");
     expect(battery.sku).toBe("BAT-IP13");
     expect(batteryAgain.sku).toBe("BAT-IP13-2");
     expect(() => createProduct(db, admin, {
-      name: "Otra batería", categoria: "repuesto", sku: "bat-ip13", price: 1, cost: 1, minStock: 0,
+      name: "Otra batería", categoria: "repuesto", sku: "bat-ip13", minStock: 0,
     })).toThrow(DomainError);
   });
 
   it("respeta SKU históricas y manuales al editar y no modifica los demás productos", () => {
     const db = emptyDb();
     const antiguo = createProduct(db, admin, {
-      name: "Batería iPhone 11", sku: "IP11", categoria: "repuesto", price: 1, cost: 1, minStock: 0,
+      name: "Batería iPhone 11", sku: "IP11", categoria: "repuesto", minStock: 0,
     });
     const edited = updateProduct(db, admin, {
       id: antiguo.id, name: "Batería iPhone 11 sin flex", sku: antiguo.sku,
-      categoria: "repuesto", price: 1, cost: 1, minStock: 0,
+      categoria: "repuesto", minStock: 0,
     });
     expect(edited.sku).toBe("IP11");
     expect(generarSkuProducto(db, "Batería iPhone 11 sin flex", undefined, undefined, "repuesto"))
@@ -265,8 +264,7 @@ describe("SKU corta automática", () => {
     const reserved = new Set(["BAT-IP13", "BAT-IP13-2"]);
     expect(generarSkuProducto(db, "Batería iPhone 13", undefined, reserved, "repuesto")).toBe("BAT-IP13-3");
     db.products.push({
-      id: "old-battery", sku: " BAT-IP13 ", name: "Batería de prueba",
-      price: 1, cost: 1, minStock: 0, isActive: true, createdAt: now, updatedAt: now,
+      id: "old-battery", sku: " BAT-IP13 ", name: "Batería de prueba", minStock: 0, isActive: true, createdAt: now, updatedAt: now,
     });
     expect(generarSkuProducto(db, "Batería iPhone 13", undefined, undefined, "repuesto")).toBe("BAT-IP13-2");
   });
@@ -274,12 +272,11 @@ describe("SKU corta automática", () => {
   it("trata los SKU existentes con espacios externos como duplicados al crear", () => {
     const db = emptyDb();
     db.products.push({
-      id: "p1", sku: " IP13-128 ", name: "iPhone 13 128 GB",
-      price: 1, cost: 1, minStock: 0, isActive: true, createdAt: now, updatedAt: now,
+      id: "p1", sku: " IP13-128 ", name: "iPhone 13 128 GB", minStock: 0, isActive: true, createdAt: now, updatedAt: now,
     });
 
     expect(() => createProduct(db, admin, {
-      name: "Otro iPhone", sku: "ip13-128", price: 1, cost: 1, minStock: 0,
+      name: "Otro iPhone", sku: "ip13-128", minStock: 0,
     })).toThrow(DomainError);
     expect(generarSkuProducto(db, "iPhone 13 128 GB")).toBe("IP13-128-2");
   });
@@ -288,17 +285,15 @@ describe("SKU corta automática", () => {
     const db = emptyDb();
     db.products.push(
       {
-        id: "p1", sku: " IP13-128 ", name: "iPhone 13 128 GB",
-        price: 1, cost: 1, minStock: 0, isActive: true, createdAt: now, updatedAt: now,
+        id: "p1", sku: " IP13-128 ", name: "iPhone 13 128 GB", minStock: 0, isActive: true, createdAt: now, updatedAt: now,
       },
       {
-        id: "p2", sku: "OTHER", name: "Otro producto",
-        price: 1, cost: 1, minStock: 0, isActive: true, createdAt: now, updatedAt: now,
+        id: "p2", sku: "OTHER", name: "Otro producto", minStock: 0, isActive: true, createdAt: now, updatedAt: now,
       },
     );
 
     expect(() => updateProduct(db, admin, {
-      id: "p2", name: "Otro producto", sku: "ip13-128", price: 1, cost: 1, minStock: 0,
+      id: "p2", name: "Otro producto", sku: "ip13-128", minStock: 0,
     })).toThrow(DomainError);
   });
 
@@ -312,8 +307,7 @@ describe("SKU corta automática", () => {
   it("mantiene el código corto y agrega sufijo si ya existe", () => {
     const db = emptyDb();
     db.products.push({
-      id: "p1", sku: "IP13-128", name: "iPhone 13 128 GB",
-      price: 1, cost: 1, minStock: 0, isActive: true, createdAt: now, updatedAt: now,
+      id: "p1", sku: "IP13-128", name: "iPhone 13 128 GB", minStock: 0, isActive: true, createdAt: now, updatedAt: now,
     });
     expect(generarSkuProducto(db, "iPhone 13 128 GB")).toBe("IP13-128-2");
   });
@@ -321,7 +315,7 @@ describe("SKU corta automática", () => {
   it("al crear un producto genera SKU si se deja vacía", () => {
     const db = emptyDb();
     const created = createProduct(db, admin, {
-      name: "iPhone 13 128 GB", price: 1, cost: 1, minStock: 0,
+      name: "iPhone 13 128 GB", minStock: 0,
     });
     expect(created.sku).toBe("IP13-128");
   });
@@ -330,8 +324,6 @@ describe("SKU corta automática", () => {
     const db = emptyDb();
     const created = createProduct(db, admin, {
       name: "iPhone 13 128 GB",
-      price: 1,
-      cost: 0.5,
       minStock: 2,
       imageUrl: "https://example.supabase.co/storage/v1/object/public/product-images/products/a.jpg",
     });
@@ -340,8 +332,6 @@ describe("SKU corta automática", () => {
     const updated = updateProduct(db, admin, {
       id: created.id,
       name: created.name,
-      price: created.price,
-      cost: created.cost,
       minStock: created.minStock,
       imageUrl: null,
     });
@@ -352,7 +342,7 @@ describe("SKU corta automática", () => {
   it("guarda solo las características que corresponden al tipo de equipo", () => {
     const db = emptyDb();
     const phone = createProduct(db, admin, {
-      name: "iPhone 13 128 GB", categoria: "celular", price: 1, cost: 1, minStock: 0,
+      name: "iPhone 13 128 GB", categoria: "celular", minStock: 0,
       technicalSpecs: {
         storage: " 128 GB ", ram: "4 GB", waterResistance: "dato que no corresponde a celular",
       },
@@ -360,13 +350,13 @@ describe("SKU corta automática", () => {
     expect(phone.technicalSpecs).toEqual({ storage: "128 GB", ram: "4 GB" });
 
     const watch = updateProduct(db, admin, {
-      id: phone.id, name: phone.name, categoria: "reloj", price: phone.price, cost: phone.cost,
+      id: phone.id, name: phone.name, categoria: "reloj",
       minStock: phone.minStock, technicalSpecs: { caseSize: "45 mm", ram: "dato que no corresponde a reloj" },
     });
     expect(watch.technicalSpecs).toEqual({ caseSize: "45 mm" });
 
     const sparePart = createProduct(db, admin, {
-      name: "Display iPhone 13", categoria: "repuesto", price: 1, cost: 1, minStock: 0,
+      name: "Display iPhone 13", categoria: "repuesto", minStock: 0,
       technicalSpecs: { storage: "no debe guardarse" },
     });
     expect(sparePart.technicalSpecs).toBeUndefined();
@@ -374,35 +364,10 @@ describe("SKU corta automática", () => {
 });
 
 
-describe("validación de números finitos", () => {
-  it("rechaza valores infinitos para precio, costo y stock mínimo antes de guardar", () => {
-    const fields = ["price", "cost", "minStock"] as const;
-
-    for (const field of fields) {
-      const db = emptyDb();
-      expect(() =>
-        createProduct(db, admin, {
-          name: "Producto de prueba",
-          price: 1,
-          cost: 1,
-          minStock: 0,
-          [field]: Infinity,
-        }),
-      ).toThrow(DomainError);
-      expect(db.products).toHaveLength(0);
-    }
-  });
-
-  it("rechaza Infinity aunque llegue como texto numérico", () => {
+describe("validación de stock mínimo", () => {
+  it("rechaza stock mínimo infinito antes de guardar", () => {
     const db = emptyDb();
-    expect(() =>
-      createProduct(db, admin, {
-        name: "Producto de prueba",
-        price: "1e309",
-        cost: 1,
-        minStock: 0,
-      }),
-    ).toThrow(DomainError);
+    expect(() => createProduct(db, admin, { name: "Producto de prueba", minStock: Infinity })).toThrow(DomainError);
     expect(db.products).toHaveLength(0);
   });
 });
