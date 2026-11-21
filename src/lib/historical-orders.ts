@@ -3,7 +3,6 @@ export interface HistoricalOrderListItem {
   code: string;
   status: string;
   orderDate: string;
-  total: number;
   customerName: string;
   lineCount: number;
   requestedUnits: number;
@@ -25,8 +24,6 @@ export interface HistoricalOrderLine {
   productName: string;
   productSku: string;
   quantity: number;
-  unitPrice: number;
-  subtotal: number;
   condition: string | null;
   color: string | null;
   serials: HistoricalSerial[];
@@ -82,7 +79,6 @@ export interface HistoricalOrderDetail {
     status: string;
     orderDate: string;
     deliveryDate: string | null;
-    total: number;
     notes: string | null;
     createdAt: string | null;
     updatedAt: string | null;
@@ -133,7 +129,6 @@ export async function listHistoricalOrders(
         code: String(item.code ?? "Pedido histórico"),
         status: String(item.status ?? "desconocido"),
         orderDate: String(item.orderDate ?? ""),
-        total: Number(item.total ?? 0),
         customerName: String(item.customerName ?? "Cliente histórico"),
         lineCount: Number(item.lineCount ?? 0),
         requestedUnits: Number(item.requestedUnits ?? 0),
