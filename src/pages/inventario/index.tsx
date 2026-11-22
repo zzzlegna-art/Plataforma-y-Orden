@@ -816,6 +816,9 @@ const Inventario = () => {
                 {row.product.sku}
                 {row.brand ? ` · ${row.brand.name}` : ""}
               </p>
+              {productTypesByKey.get(row.product.categoria)?.name ? (
+                <p className="text-xs text-muted-foreground">{productTypesByKey.get(row.product.categoria)?.name}</p>
+              ) : null}
             </div>
             <div className="flex shrink-0 flex-col items-end gap-1">
               {row.stock.lowStock ? <LowStockBadge /> : null}
@@ -1088,7 +1091,12 @@ const Inventario = () => {
             key: "catalog",
             header: t("product.typeBrand"),
             cell: (row) =>
-              row.brand ? <span className="text-sm">{row.brand.name}</span> : <span className="text-muted-foreground">—</span>,
+              (productTypesByKey.get(row.product.categoria)?.name || row.brand?.name) ? (
+                <div className="space-y-0.5 text-sm">
+                  <p>{productTypesByKey.get(row.product.categoria)?.name ?? "—"}</p>
+                  {row.brand ? <p className="text-xs text-muted-foreground">{row.brand.name}</p> : null}
+                </div>
+              ) : <span className="text-muted-foreground">—</span>,
           },
           {
             key: "condition",
