@@ -2,7 +2,7 @@ import "./pedidos-premium.css";
 import "./pedidos-visual-v2.css";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { ClipboardList, Download, Eye, FileSpreadsheet, FileText, Plus, Clock3, Truck, XCircle, ListFilter, CircleDot, PackageCheck, Layers3 } from "lucide-react";
+import { ClipboardList, Download, Eye, FileSpreadsheet, FileText, Plus, Clock3, CircleDot, PackageCheck, Layers3 } from "lucide-react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 
@@ -136,12 +136,20 @@ const Pedidos = () => {
       );
   }, [allRows, search, status]);
 
+  const statusCounts = useMemo(
+    () => STATUSES.reduce((counts, option) => {
+      counts[option] = allRows.filter((view) => view.order.status === option).length;
+      return counts;
+    }, {} as Record<(typeof STATUSES)[number], number>),
+    [allRows],
+  );
+
   const summary = useMemo(() => ({
     total: allRows.length,
-    inProgress: allRows.filter((view) => view.order.status === "en_preparacion").length,
-    prepared: allRows.filter((view) => view.order.status === "preparado").length,
-    dispatched: allRows.filter((view) => view.order.status === "despachado").length,
-  }), [allRows]);
+    inProgress: statusCounts.en_preparacion,
+    prepared: statusCounts.preparado,
+    dispatched: statusCounts.despachado,
+  }), [allRows.length, statusCounts]);
 
   const exportar = (format: "pdf" | "excel") => {
     const base = soloFiltrado ? rows : allRows;
@@ -281,26 +289,34 @@ const Pedidos = () => {
           placeholder={t("order.searchPlaceholder")}
           className="sm:max-w-xs"
         />
-        <div className="nx-pedidos-tabs flex flex-wrap gap-2">
+        <div className="nx-pedidos-tabs flex flex-wrap gap-2" role="group" aria-label="Filtrar pedidos por estado">
           <Button
             data-active={status === ""}
-            variant={status === "" ? "default" : "outline"}
+            aria-pressed={status === ""}
+            aria-label={t("common.all")}
+            aria-describedby="pedidos-filtro-todos-count"
+            variant="outline"
             size="sm"
+            className="nx-pedidos-filter shrink-0"
             onClick={() => setStatus("")}
           >
-            <ListFilter className="mr-1" />
             {t("common.all")}
+            <span id="pedidos-filtro-todos-count" className="nx-pedidos-filter__count">{summary.total.toLocaleString("es-CO")}</span>
           </Button>
           {STATUSES.map((option) => (
             <Button
               key={option}
               data-active={status === option}
-              variant={status === option ? "default" : "outline"}
+              aria-pressed={status === option}
+              aria-label={t(`orderStatus.${option}`)}
+              aria-describedby={`pedidos-filtro-${option}-count`}
+              variant="outline"
               size="sm"
+              className="nx-pedidos-filter shrink-0"
               onClick={() => setStatus(option)}
             >
-              {option === "en_preparacion" ? <CircleDot className="mr-1" /> : option === "preparado" ? <Clock3 className="mr-1" /> : option === "despachado" ? <Truck className="mr-1" /> : <XCircle className="mr-1" />}
               {t(`orderStatus.${option}`)}
+              <span id={`pedidos-filtro-${option}-count`} className="nx-pedidos-filter__count">{statusCounts[option].toLocaleString("es-CO")}</span>
             </Button>
           ))}
         </div>

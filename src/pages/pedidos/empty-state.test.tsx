@@ -82,6 +82,12 @@ describe("Pedidos · estado vacío con acción", () => {
     ], total: 3 });
     render(<I18nextProvider i18n={i18n}><Almacen initialDb={db} /></I18nextProvider>);
     await screen.findAllByText("PED-HIST-NEW");
+    const filters = within(screen.getByRole("group", { name: "Filtrar pedidos por estado" }))
+      .getAllByRole("button");
+    // Las cápsulas cuentan todos los pedidos, incluidos los históricos, sin alterar filtros.
+    expect(filters.map((button) => button.querySelector(".nx-pedidos-filter__count")?.textContent))
+      .toEqual(["4", "0", "0", "3", "1"]);
+    expect(filters[0].getAttribute("aria-pressed")).toBe("true");
     const orderedCodes = screen.getAllByRole("row").map((row) =>
       within(row).queryByText(/^PED-(CURRENT|HIST-OLD|HIST-NEW|HIST-CANCEL)$/)?.textContent,
     ).filter(Boolean);
