@@ -440,3 +440,172 @@
 @media (prefers-reduced-motion: reduce) {
   .nx-pedidos-metric, .nx-premium-export-formats button { transition: none; }
 }
+
+
+/* NEXORA · Pedidos — indicadores con el mismo lenguaje visual de Recepciones.
+   Replica el acento superior, los anillos, los fondos tonalizados y la jerarquía
+   tipográfica de .nx-reception-stat, manteniendo los datos reales de Pedidos. */
+.nx-operations-pedidos .nx-pedidos-overview {
+  gap: .8rem;
+}
+.nx-operations-pedidos .nx-pedidos-metric {
+  min-height: 124px;
+  padding: 1.05rem 1.15rem;
+  border: 1px solid color-mix(in srgb, var(--stat-tone) 24%, hsl(var(--border) / .83));
+  border-radius: 19px;
+  background:
+    radial-gradient(ellipse at 105% 115%, var(--stat-wash), transparent 65%),
+    hsl(var(--card));
+  box-shadow:
+    0 18px 38px -30px color-mix(in srgb, var(--stat-tone) 22%, transparent),
+    inset 0 1px 0 hsl(var(--background) / .82);
+  display: block;
+  isolation: isolate;
+}
+.nx-operations-pedidos .nx-pedidos-metric[data-tone="cyan"] {
+  --stat-tone: #048cb9;
+  --stat-wash: rgb(6 182 212 / 12%);
+  --stat-icon: rgb(6 182 212 / 13%);
+}
+.nx-operations-pedidos .nx-pedidos-metric[data-tone="green"] {
+  --stat-tone: #089777;
+  --stat-wash: rgb(18 194 153 / 13%);
+  --stat-icon: rgb(15 169 139 / 14%);
+}
+.nx-operations-pedidos .nx-pedidos-metric[data-tone="amber"] {
+  --stat-tone: #c57b0c;
+  --stat-wash: rgb(245 166 40 / 13%);
+  --stat-icon: rgb(245 166 40 / 15%);
+}
+.nx-operations-pedidos .nx-pedidos-metric[data-tone="blue"] {
+  --stat-tone: #326fce;
+  --stat-wash: rgb(79 121 243 / 13%);
+  --stat-icon: rgb(79 121 243 / 13%);
+}
+.dark .nx-operations-pedidos .nx-pedidos-metric[data-tone="cyan"] { --stat-tone: #50d7ed; }
+.dark .nx-operations-pedidos .nx-pedidos-metric[data-tone="green"] { --stat-tone: #64dfbd; }
+.dark .nx-operations-pedidos .nx-pedidos-metric[data-tone="amber"] { --stat-tone: #ffc46b; }
+.dark .nx-operations-pedidos .nx-pedidos-metric[data-tone="blue"] { --stat-tone: #a5c9ff; }
+.nx-operations-pedidos .nx-pedidos-metric::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  width: auto;
+  height: 3px;
+  background: linear-gradient(90deg, var(--stat-tone), color-mix(in srgb, var(--stat-tone) 10%, transparent));
+  pointer-events: none;
+}
+.nx-operations-pedidos .nx-pedidos-metric::after {
+  content: "";
+  position: absolute;
+  inset: auto;
+  width: 125px;
+  height: 125px;
+  right: -65px;
+  top: -70px;
+  border: 1px solid color-mix(in srgb, var(--stat-tone) 24%, transparent);
+  border-radius: 50%;
+  box-shadow:
+    0 0 0 14px color-mix(in srgb, var(--stat-tone) 5%, transparent),
+    0 0 0 29px color-mix(in srgb, var(--stat-tone) 3%, transparent);
+  background: none;
+  opacity: 1;
+  transform: none;
+  pointer-events: none;
+}
+.nx-operations-pedidos .nx-pedidos-metric-copy {
+  position: relative;
+  z-index: 1;
+  min-width: 0;
+}
+.nx-operations-pedidos .nx-pedidos-metric-label {
+  padding-right: 2.65rem;
+  color: hsl(var(--muted-foreground));
+  font-size: .74rem;
+  font-weight: 700;
+  letter-spacing: .025em;
+  text-transform: none;
+  line-height: 1.45;
+}
+.nx-operations-pedidos .nx-pedidos-metric-value {
+  display: block;
+  margin-top: .2rem;
+  color: hsl(var(--foreground));
+  font-size: clamp(1.6rem, 2.5vw, 2.1rem);
+  line-height: 1.12;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -.04em;
+}
+.nx-operations-pedidos .nx-pedidos-metric-hint {
+  display: block;
+  margin-top: .35rem;
+  color: var(--stat-tone);
+  font-size: .72rem;
+  font-weight: 600;
+  line-height: 1.4;
+}
+.nx-operations-pedidos .nx-pedidos-metric-icon {
+  position: absolute;
+  z-index: 2;
+  top: 1.05rem;
+  right: 1.15rem;
+  width: 37px;
+  height: 37px;
+  border: 1px solid color-mix(in srgb, var(--stat-tone) 23%, transparent);
+  border-radius: 12px;
+  color: var(--stat-tone);
+  background: var(--stat-icon);
+  box-shadow:
+    0 8px 18px -13px var(--stat-tone),
+    inset 0 1px 0 rgb(255 255 255 / .2);
+}
+.nx-operations-pedidos .nx-pedidos-metric-icon svg {
+  width: 20px;
+  height: 20px;
+}
+.dark .nx-operations-pedidos .nx-pedidos-metric {
+  background:
+    radial-gradient(ellipse at 105% 115%, var(--stat-wash), transparent 65%),
+    hsl(var(--card));
+  box-shadow:
+    0 21px 45px -33px rgb(0 0 0 / 74%),
+    inset 0 1px 0 hsl(var(--foreground) / .045);
+}
+@media (max-width: 767px) {
+  .nx-operations-pedidos .nx-pedidos-metric {
+    min-height: 116px;
+    padding: .9rem;
+  }
+  .nx-operations-pedidos .nx-pedidos-metric-icon {
+    top: .9rem;
+    right: .9rem;
+    width: 35px;
+    height: 35px;
+  }
+  .nx-operations-pedidos .nx-pedidos-metric-value {
+    font-size: 1.72rem;
+  }
+}
+@media (max-width: 420px) {
+  .nx-operations-pedidos .nx-pedidos-metric {
+    padding: .82rem;
+  }
+  .nx-operations-pedidos .nx-pedidos-metric-icon {
+    top: .82rem;
+    right: .82rem;
+    width: 31px;
+    height: 31px;
+  }
+  .nx-operations-pedidos .nx-pedidos-metric-icon svg {
+    width: 18px;
+    height: 18px;
+  }
+  .nx-operations-pedidos .nx-pedidos-metric-label {
+    padding-right: 1.85rem;
+    font-size: .69rem;
+  }
+  .nx-operations-pedidos .nx-pedidos-metric-hint {
+    font-size: .68rem;
+  }
+}
