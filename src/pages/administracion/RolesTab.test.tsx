@@ -22,12 +22,12 @@ describe("Matriz operativa de roles", () => {
     expect(screen.queryByText("Gestionar traslados")).toBeNull();
   });
 
-  it("muestra al Administrador con acceso total a los nueve permisos vigentes", () => {
+  it("muestra al Administrador con acceso total a los diez permisos vigentes", () => {
     render(<RolesTab />);
     const adminCard = screen.getByRole("button", { name: /Ver permisos de Administrador/i });
-    expect(within(adminCard).getByText("9 de 9 permisos")).toBeTruthy();
-    expect(screen.getAllByLabelText("Administrador: permitido")).toHaveLength(9);
-    expect(screen.queryByText(/espacio operativo asignado/i)).toBeNull();
+    expect(within(adminCard).getByText("10 de 10 permisos")).toBeTruthy();
+    expect(screen.getAllByLabelText("Administrador: permitido")).toHaveLength(10);
+    expect(screen.getByText("Consultar el espacio operativo asignado")).toBeTruthy();
   });
 
   it("conserva Pedidos para Bodeguero y la administración para Administrador", async () => {
@@ -36,6 +36,8 @@ describe("Matriz operativa de roles", () => {
     await user.click(screen.getByRole("button", { name: "Ver permisos de Bodeguero" }));
     const ordersRow = screen.getByRole("row", { name: /Gestionar pedidos y despachos/i });
     expect(within(ordersRow).getByLabelText("Bodeguero: permitido")).toBeTruthy();
+    const workspaceRow = screen.getByRole("row", { name: /Consultar el espacio operativo asignado/i });
+    expect(within(workspaceRow).getByLabelText("Bodeguero: permitido")).toBeTruthy();
 
     await user.click(screen.getByRole("button", { name: "Ver permisos de Administrador" }));
     const usersRow = screen.getByRole("row", { name: /Administrar usuarios y perfiles/i });
