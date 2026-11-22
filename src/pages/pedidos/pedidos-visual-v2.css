@@ -609,3 +609,97 @@
     font-size: .68rem;
   }
 }
+
+
+/* Pedidos · filtros con la misma geometría y estados que Recepciones.
+   Los contadores son dinámicos y la interfaz funciona en ambos temas. */
+.nx-operations-pedidos .nx-pedidos-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .4rem;
+}
+.nx-operations-pedidos .nx-pedidos-tabs .nx-pedidos-filter {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  gap: .55rem;
+  min-height: 39px;
+  padding: .5rem .9rem;
+  border: 1px solid hsl(var(--border) / .8);
+  border-radius: 999px;
+  background: hsl(var(--secondary) / .34);
+  color: hsl(var(--foreground));
+  font-size: .79rem;
+  font-weight: 700;
+  box-shadow: none;
+  transition: transform .16s ease, box-shadow .16s ease, border-color .16s ease, background .16s ease;
+}
+.nx-operations-pedidos .nx-pedidos-tabs .nx-pedidos-filter[data-active="true"] {
+  border-color: #168fc8;
+  background: linear-gradient(112deg, #237ed0, #087dbb 58%, #08a8bd);
+  color: #fff;
+  box-shadow: 0 10px 22px -13px rgb(3 125 190 / .7), inset 0 1px 0 rgb(255 255 255 / .2);
+}
+.nx-operations-pedidos .nx-pedidos-filter__count {
+  display: inline-grid;
+  min-width: 21px;
+  height: 20px;
+  padding-inline: 5px;
+  place-items: center;
+  border-radius: 999px;
+  background: hsl(var(--muted));
+  color: hsl(var(--muted-foreground));
+  font-size: .69rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+.nx-operations-pedidos .nx-pedidos-tabs .nx-pedidos-filter[data-active="true"] .nx-pedidos-filter__count {
+  background: rgb(255 255 255 / .17);
+  color: #fff;
+}
+.dark .nx-operations-pedidos .nx-pedidos-tabs .nx-pedidos-filter[data-active="false"] {
+  border-color: rgb(135 170 207 / .18);
+  background: linear-gradient(180deg, #1a2b40, #142235);
+  color: #d5e4f5;
+}
+.dark .nx-operations-pedidos .nx-pedidos-tabs .nx-pedidos-filter[data-active="false"] .nx-pedidos-filter__count {
+  background: hsl(var(--muted) / .7);
+  color: hsl(var(--muted-foreground));
+}
+@media (hover: hover) {
+  .nx-operations-pedidos .nx-pedidos-tabs .nx-pedidos-filter[data-active="false"]:hover {
+    transform: translateY(-1px);
+    border-color: hsl(var(--primary) / .4);
+    background: hsl(var(--primary) / .065);
+  }
+  .nx-operations-pedidos .nx-pedidos-tabs .nx-pedidos-filter[data-active="true"]:hover {
+    background: linear-gradient(112deg, #258cdd, #098acb 58%, #0ab5c8);
+  }
+}
+.nx-operations-pedidos .nx-pedidos-tabs .nx-pedidos-filter:focus-visible {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: 3px;
+}
+@media (max-width: 767px) {
+  .nx-operations-pedidos .nx-pedidos-tabs {
+    flex-wrap: nowrap;
+    gap: .4rem;
+    overflow-x: auto;
+    padding: .2rem .1rem .65rem;
+    scrollbar-width: thin;
+  }
+  .nx-operations-pedidos .nx-pedidos-tabs .nx-pedidos-filter {
+    min-height: 39px;
+    padding: .5rem .85rem;
+    white-space: nowrap;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .nx-operations-pedidos .nx-pedidos-tabs .nx-pedidos-filter {
+    transition: none;
+    transform: none;
+  }
+}
