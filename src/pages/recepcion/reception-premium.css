@@ -530,3 +530,46 @@
 @media (prefers-reduced-motion: reduce) {
   .nx-reception-premium .nx-reception-table tbody tr { transition: none; }
 }
+
+
+/* NEXORA · Recepciones — acabado premium de segunda capa */
+.nx-reception-premium .nx-reception-filterbar{
+  gap:.85rem;
+  padding:1rem 1.1rem;
+  border-radius:18px;
+  background:
+    radial-gradient(ellipse 45% 150% at 100% 0%,hsl(var(--primary)/.09),transparent 75%),
+    linear-gradient(145deg,var(--rec-surface),hsl(var(--secondary)/.32));
+}
+.nx-reception-premium .nx-reception-filterbar__search input{
+  min-height:44px;
+  border-radius:13px;
+  background:hsl(var(--background)/.78);
+  box-shadow:inset 0 1px 2px rgb(0 0 0/.08);
+}
+.nx-reception-premium .nx-reception-filter{
+  min-height:39px;
+  border:1px solid hsl(var(--border)/.8);
+  background:hsl(var(--secondary)/.34);
+  transition:transform .16s ease,box-shadow .16s ease,border-color .16s ease;
+}
+@media(hover:hover){
+  .nx-reception-premium .nx-reception-filter:hover{transform:translateY(-1px);border-color:hsl(var(--primary)/.4);}
+}
+.nx-reception-premium .nx-reception-table{
+  overflow:hidden;
+  border-radius:20px;
+  background:linear-gradient(155deg,var(--rec-surface),hsl(var(--secondary)/.12));
+}
+.nx-reception-premium .nx-reception-table thead th{padding-inline:1rem;}
+.nx-reception-premium .nx-reception-table tbody td{padding-inline:1rem;}
+.nx-reception-premium .nx-reception-table tbody tr{transition:background .18s ease,box-shadow .18s ease;}
+.nx-reception-premium .nx-reception-table tbody tr:hover{box-shadow:inset 3px 0 hsl(var(--primary)/.65);}
+.nx-reception-premium .nx-reception-table__actions button{min-height:36px;font-weight:700;}
+.nx-reception-premium [data-slot="sheet-content"]{border-color:hsl(var(--primary)/.2);background:linear-gradient(155deg,hsl(var(--card)),hsl(var(--secondary)/.22));}
+@media(max-width:767px){
+  .nx-reception-premium .nx-reception-filterbar{padding:.8rem;border-radius:16px;}
+  .nx-reception-premium .nx-reception-filterbar__tabs{gap:.35rem;}
+  .nx-reception-premium .nx-reception-filter{padding:.48rem .72rem;font-size:.75rem;}
+  .nx-reception-premium .nx-reception-table__mobile{padding:.85rem;border-radius:15px;}
+}
