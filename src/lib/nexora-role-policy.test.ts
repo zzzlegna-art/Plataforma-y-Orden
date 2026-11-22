@@ -29,11 +29,17 @@ describe("Matriz de roles del flujo operativo NEXORA", () => {
     ]));
   });
 
-  it("refleja las autorizaciones reales del sistema", () => {
-    for (const role of MULTISITE_ROLES) {
-      for (const capability of MULTISITE_CAPABILITIES) {
-        expect(canMultisite(role, capability.key)).toBe(can(role, capability.key));
-      }
+  it("garantiza acceso completo al Administrador en toda la matriz", () => {
+    expect(MULTISITE_CAPABILITIES).toHaveLength(9);
+    for (const capability of MULTISITE_CAPABILITIES) {
+      expect(canMultisite("admin", capability.key)).toBe(true);
+      expect(can("admin", capability.key)).toBe(true);
+    }
+  });
+
+  it("refleja las autorizaciones operativas del Bodeguero", () => {
+    for (const capability of MULTISITE_CAPABILITIES) {
+      expect(canMultisite("bodeguero", capability.key)).toBe(can("bodeguero", capability.key));
     }
   });
 

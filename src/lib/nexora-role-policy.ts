@@ -82,5 +82,7 @@ export const canMultisite = (
   permission: MultisiteCapability,
 ): boolean => {
   if (!isMultisiteRole(role)) return false;
+  // Administrador siempre tiene todas las capacidades que aparecen en esta matriz.
+  if (role === "admin") return true;
   return can(role as Role, permission);
 };

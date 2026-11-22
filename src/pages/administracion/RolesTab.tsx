@@ -16,12 +16,12 @@ const ROLE_DETAILS: Record<MultisiteRole, {
 }> = {
   admin: {
     title: "Administrador",
-    description: "Control central de la operación y administración.",
+    description: "Acceso completo a todas las funciones operativas y administrativas.",
     icon: ShieldCheck,
   },
   bodeguero: {
     title: "Bodeguero",
-    description: "Recepciones, inventario, pedidos y garantías.",
+    description: "Acceso al trabajo diario de bodega, inventario, pedidos y garantías.",
     icon: Warehouse,
   },
 };
@@ -55,7 +55,7 @@ export const RolesTab = () => {
         <div className="flex flex-wrap items-end justify-between gap-2">
           <div>
             <h3 className="text-base font-semibold">Perfiles de la empresa</h3>
-            <p className="text-sm text-muted-foreground">Selecciona un perfil para consultar sus autorizaciones.</p>
+            <p className="text-sm text-muted-foreground">Administrador tiene acceso total; Bodeguero conserva los permisos de operación diaria.</p>
           </div>
           <button
             type="button"
@@ -100,7 +100,7 @@ export const RolesTab = () => {
           <div>
             <h3 className="font-semibold">Matriz operativa</h3>
             <p className="mt-1 text-xs text-muted-foreground">
-              {selectedRole === "todos" ? "Comparación de los dos perfiles" : `Permisos del perfil ${ROLE_DETAILS[selectedRole].title}`}
+              {selectedRole === "todos" ? "Comparación de los permisos de Administrador y Bodeguero" : `Permisos del perfil ${ROLE_DETAILS[selectedRole].title}`}
             </p>
           </div>
           <div className="flex items-center gap-2 text-xs text-muted-foreground">

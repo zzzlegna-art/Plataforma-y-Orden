@@ -22,6 +22,14 @@ describe("Matriz operativa de roles", () => {
     expect(screen.queryByText("Gestionar traslados")).toBeNull();
   });
 
+  it("muestra al Administrador con acceso total a los nueve permisos vigentes", () => {
+    render(<RolesTab />);
+    const adminCard = screen.getByRole("button", { name: /Ver permisos de Administrador/i });
+    expect(within(adminCard).getByText("9 de 9 permisos")).toBeTruthy();
+    expect(screen.getAllByLabelText("Administrador: permitido")).toHaveLength(9);
+    expect(screen.queryByText(/espacio operativo asignado/i)).toBeNull();
+  });
+
   it("conserva Pedidos para Bodeguero y la administración para Administrador", async () => {
     const user = userEvent.setup();
     render(<RolesTab />);
