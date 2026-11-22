@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Building2, PencilLine, Plus, RefreshCw, Search } from "lucide-react";
+import { Building2, PencilLine, Plus, Power, RefreshCw, Search } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -126,39 +126,39 @@ const Proveedores = ({ embedded = false }: { embedded?: boolean }) => {
       ) : (
         <div className="nx-supplier-cards grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {visible.map((supplier) => (
-            <article key={supplier.id} className="nx-supplier-card rounded-xl border bg-card p-4 shadow-sm">
-              <div className="flex items-start justify-between gap-2">
-                <div className="flex min-w-0 items-start gap-3">
-                  <div className="rounded-lg bg-primary/10 p-2 text-primary">
-                    <Building2 className="h-5 w-5" />
-                  </div>
-                  <div className="min-w-0">
-                    <h2 className="break-words font-semibold">{supplier.name}</h2>
-                    <p className="text-xs text-muted-foreground">{supplier.taxId || "Sin NIT registrado"}</p>
-                  </div>
+            <article key={supplier.id} className="nx-supplier-card nx-supplier-card-clean rounded-xl border bg-card shadow-sm">
+              <header className="nx-supplier-card-head">
+                <span className="nx-supplier-card-icon" aria-hidden="true"><Building2 className="h-5 w-5" /></span>
+                <div className="nx-supplier-card-identity">
+                  <h2 className="break-words font-semibold">{supplier.name}</h2>
+                  <p className="text-xs text-muted-foreground">{supplier.taxId ? `NIT: ${supplier.taxId}` : "Sin NIT registrado"}</p>
                 </div>
                 <span className={supplier.isActive
-                  ? "rounded-full bg-emerald-500/10 px-2 py-0.5 text-xs text-emerald-600"
-                  : "rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground"}>
+                  ? "nx-supplier-card-status nx-supplier-card-status--active"
+                  : "nx-supplier-card-status nx-supplier-card-status--inactive"}>
+                  <span aria-hidden="true" className="nx-supplier-card-status-dot" />
                   {supplier.isActive ? "Activo" : "Inactivo"}
                 </span>
-              </div>
-              <div className="mt-4 space-y-1 text-sm text-muted-foreground">
-                {supplier.contactName ? <p>Contacto: {supplier.contactName}</p> : null}
-                {supplier.phone ? <p>Tel: {supplier.phone}</p> : null}
-                {supplier.email ? <p className="break-all">{supplier.email}</p> : null}
-                {supplier.address ? <p>{supplier.address}</p> : null}
-              </div>
-              <div className="mt-4 flex gap-2 border-t pt-3">
+              </header>
+              {(supplier.contactName || supplier.phone || supplier.email || supplier.address) ? (
+                <div className="nx-supplier-card-details text-sm text-muted-foreground">
+                  {supplier.contactName ? <p><span>Contacto</span>{supplier.contactName}</p> : null}
+                  {supplier.phone ? <p><span>Teléfono</span>{supplier.phone}</p> : null}
+                  {supplier.email ? <p className="break-all"><span>Correo</span>{supplier.email}</p> : null}
+                  {supplier.address ? <p><span>Dirección</span>{supplier.address}</p> : null}
+                </div>
+              ) : null}
+              <footer className="nx-supplier-card-actions">
                 <SupplierFormDialog supplier={supplier} onSaved={() => void refresh()}
-                  trigger={<Button size="sm" variant="outline" className="flex-1" disabled={busySupplierIds.has(supplier.id)}>
+                  trigger={<Button size="sm" variant="outline" className="nx-supplier-card-edit" disabled={busySupplierIds.has(supplier.id)}>
                     <PencilLine className="h-4 w-4" /> Editar
                   </Button>} />
-                <Button size="sm" variant="ghost" loading={busySupplierIds.has(supplier.id)}
+                <Button size="sm" variant="ghost" className="nx-supplier-card-toggle" loading={busySupplierIds.has(supplier.id)}
                   onClick={() => void toggle(supplier)}>
+                  <Power className="h-3.5 w-3.5" />
                   {supplier.isActive ? "Desactivar" : "Reactivar"}
                 </Button>
-              </div>
+              </footer>
             </article>
           ))}
         </div>
