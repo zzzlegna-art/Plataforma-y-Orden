@@ -2,7 +2,6 @@ import type { Role } from "./types";
 
 /** Permisos activos del flujo operativo de NEXORA. */
 export type Permission =
-  | "workspace.view"
   | "dashboard.view"
   | "inventory.view"
   | "inventory.manage"

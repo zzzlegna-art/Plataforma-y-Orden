@@ -17,12 +17,6 @@ export interface MultisiteCapabilitySpec {
 
 export const MULTISITE_CAPABILITIES = [
   {
-    key: "workspace.view",
-    label: "Acceder al espacio de trabajo",
-    description: "Consultar el espacio operativo asignado.",
-    category: "Inicio",
-  },
-  {
     key: "dashboard.view",
     label: "Consultar el panel operativo",
     description: "Ver indicadores y actividad de la operación.",
