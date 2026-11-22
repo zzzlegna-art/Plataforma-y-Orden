@@ -68,9 +68,11 @@ export const Topbar = ({ onOpenMenu, nextSlot, nextFreeSlot, onOpenNext }: {
     (a, b) => b.to.length - a.to.length,
   )[0];
 
-  const title = productMatch
-    ? t("nav.productDetail")
-    : orderMatch
+  const title = location.pathname === "/pedidos/nuevo"
+    ? t("order.createTitle")
+    : productMatch
+      ? t("nav.productDetail")
+      : orderMatch
       ? t("nav.orderDetail")
       : warrantyMatch
         ? t("nav.warrantyDetail")

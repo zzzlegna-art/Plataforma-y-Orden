@@ -19,6 +19,7 @@ import { etiquetaTipoProducto, TIPOS_SIN_CONDICION, tiposProductoOrdenados } fro
 import { SEARCH_INPUT_PROPS } from "@/lib/search-input";
 import { cn } from "@/lib/utils";
 import "./nuevo-pedido-premium.css";
+import "./nuevo-pedido-visual-v2.css";
 
 type ProductMiniThumbProps = {
   imageUrl?: string;
@@ -289,6 +290,24 @@ const NuevoPedido = () => {
         </Button>
 
         <PageHeader title={t("order.createTitle")} description={t("order.mayoristaSubtitle")} />
+
+        <nav className="nx-order-steps" aria-label="Progreso de creación de pedido">
+          {[
+            { number: "01", title: "Cliente", hint: "Selecciona el destinatario", done: Boolean(cliente), active: !cliente },
+            { number: "02", title: "Referencias", hint: "Añade los productos", done: lineas.length > 0, active: Boolean(cliente) && lineas.length === 0 },
+            { number: "03", title: "Confirmación", hint: "Revisa y crea el pedido", done: false, active: Boolean(cliente) && lineas.length > 0 },
+          ].map((step) => (
+            <div key={step.number} className="nx-order-step" data-active={step.active} data-complete={step.done}>
+              <span className="nx-order-step-marker" aria-hidden="true">
+                {step.done ? <Check className="h-4 w-4" /> : step.number}
+              </span>
+              <div className="nx-order-step-copy">
+                <strong>{step.title}</strong>
+                <span>{step.hint}</span>
+              </div>
+            </div>
+          ))}
+        </nav>
 
         <section className="nx-order-customer shrink-0 space-y-2 rounded-xl border bg-card p-3 shadow-sm">
           <div className="grid items-start gap-3 md:grid-cols-[auto_minmax(0,1fr)] md:items-center">

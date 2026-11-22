@@ -1,7 +1,8 @@
 import "./pedidos-premium.css";
+import "./pedidos-visual-v2.css";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { ClipboardList, Download, Eye, FileSpreadsheet, FileText, Plus, Clock3, Truck, XCircle, ListFilter, CircleDot } from "lucide-react";
+import { ClipboardList, Download, Eye, FileSpreadsheet, FileText, Plus, Clock3, Truck, XCircle, ListFilter, CircleDot, PackageCheck, Layers3 } from "lucide-react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 
@@ -135,6 +136,13 @@ const Pedidos = () => {
       );
   }, [allRows, search, status]);
 
+  const summary = useMemo(() => ({
+    total: allRows.length,
+    inProgress: allRows.filter((view) => view.order.status === "en_preparacion").length,
+    prepared: allRows.filter((view) => view.order.status === "preparado").length,
+    dispatched: allRows.filter((view) => view.order.status === "despachado").length,
+  }), [allRows]);
+
   const exportar = (format: "pdf" | "excel") => {
     const base = soloFiltrado ? rows : allRows;
     if (base.length === 0) {
@@ -238,6 +246,24 @@ const Pedidos = () => {
         }
       />
 
+      <section className="nx-pedidos-overview" aria-label="Resumen operativo de pedidos">
+        {[
+          { label: "Total de pedidos", value: summary.total, hint: "Registros históricos y actuales", tone: "cyan", icon: Layers3 },
+          { label: "En preparación", value: summary.inProgress, hint: "Pendientes de completar", tone: "blue", icon: CircleDot },
+          { label: "Listos para venta", value: summary.prepared, hint: "Preparados y pendientes", tone: "amber", icon: Clock3 },
+          { label: "Despachados", value: summary.dispatched, hint: "Pedidos finalizados", tone: "green", icon: PackageCheck },
+        ].map(({ label, value, hint, tone, icon: Icon }) => (
+          <article className="nx-pedidos-metric" data-tone={tone} key={label}>
+            <div className="nx-pedidos-metric-copy">
+              <p className="nx-pedidos-metric-label">{label}</p>
+              <strong className="nx-pedidos-metric-value">{value.toLocaleString("es-CO")}</strong>
+              <span className="nx-pedidos-metric-hint">{hint}</span>
+            </div>
+            <span className="nx-pedidos-metric-icon" aria-hidden="true"><Icon /></span>
+          </article>
+        ))}
+      </section>
+
       {historicalError ? (
         <p role="alert" className="text-xs text-muted-foreground">
           Los pedidos de Nexora siguen disponibles. La consulta del historial de Techrez no respondió:
@@ -245,6 +271,10 @@ const Pedidos = () => {
         </p>
       ) : null}
       <div className="nx-pedidos-filters space-y-3">
+        <div className="nx-pedidos-filter-titlebar">
+          <h2>Explorar pedidos</h2>
+          <span>{rows.length.toLocaleString("es-CO")} resultados</span>
+        </div>
         <SearchField
           value={search}
           onChange={setSearch}
@@ -301,7 +331,7 @@ const Pedidos = () => {
           {
             key: "code",
             header: t("order.code"),
-            cell: (view) => <span className="font-tabular font-medium">{view.order.code}</span>,
+            cell: (view) => <span className="nx-pedidos-order-code font-tabular">{view.order.code}</span>,
           },
           {
             key: "customer",
@@ -324,7 +354,7 @@ const Pedidos = () => {
             header: t("order.units"),
             align: "right",
             cell: (view) => (
-              <span className="font-tabular text-sm">
+              <span className="nx-pedidos-units font-tabular">
                 {t("order.serializedOf", { assigned: view.assigned, requested: view.requested })}
               </span>
             ),
@@ -376,11 +406,13 @@ const Pedidos = () => {
             <div className="nx-premium-export-formats grid grid-cols-2 gap-3">
               <Button type="button" variant="outline" onClick={() => exportar("pdf")}>
                 <FileText />
-                {t("export.pdf")}
+                <span className="nx-export-format-name">{t("export.pdf")}</span>
+                <span className="nx-export-format-description">Documento listo para compartir</span>
               </Button>
               <Button type="button" variant="outline" onClick={() => exportar("excel")}>
                 <FileSpreadsheet />
-                {t("export.excel")}
+                <span className="nx-export-format-name">{t("export.excel")}</span>
+                <span className="nx-export-format-description">Hoja de cálculo editable</span>
               </Button>
             </div>
           </div>
