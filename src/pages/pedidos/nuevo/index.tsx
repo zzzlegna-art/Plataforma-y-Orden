@@ -79,7 +79,7 @@ const NuevoPedido = () => {
 
   const [clienteFiltro, setClienteFiltro] = useState<CustomerCategoriaMayorista | undefined>(undefined);
   const mayoristas = db.customers
-    .filter((c) => c.isActive && c.tipo === "mayorista")
+    .filter((c) => c.isActive)
     .filter((c) => {
       if (!clienteFiltro) return true;
       const propia = c.categoriaMayorista ?? "ambos";
