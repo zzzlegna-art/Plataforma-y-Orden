@@ -293,26 +293,30 @@ const Pedidos = () => {
           <Button
             data-active={status === ""}
             aria-pressed={status === ""}
+            aria-label={t("common.all")}
+            aria-describedby="pedidos-filtro-todos-count"
             variant="outline"
             size="sm"
             className="nx-pedidos-filter shrink-0"
             onClick={() => setStatus("")}
           >
             {t("common.all")}
-            <span className="nx-pedidos-filter__count">{summary.total.toLocaleString("es-CO")}</span>
+            <span id="pedidos-filtro-todos-count" className="nx-pedidos-filter__count">{summary.total.toLocaleString("es-CO")}</span>
           </Button>
           {STATUSES.map((option) => (
             <Button
               key={option}
               data-active={status === option}
               aria-pressed={status === option}
+              aria-label={t(`orderStatus.${option}`)}
+              aria-describedby={`pedidos-filtro-${option}-count`}
               variant="outline"
               size="sm"
               className="nx-pedidos-filter shrink-0"
               onClick={() => setStatus(option)}
             >
               {t(`orderStatus.${option}`)}
-              <span className="nx-pedidos-filter__count">{statusCounts[option].toLocaleString("es-CO")}</span>
+              <span id={`pedidos-filtro-${option}-count`} className="nx-pedidos-filter__count">{statusCounts[option].toLocaleString("es-CO")}</span>
             </Button>
           ))}
         </div>
