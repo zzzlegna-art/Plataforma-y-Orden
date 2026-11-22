@@ -8,34 +8,29 @@ import { RolesTab } from "./RolesTab";
 afterEach(cleanup);
 
 describe("Matriz operativa de roles", () => {
-  it("muestra cuatro perfiles y solo módulos del flujo vigente", () => {
+  it("muestra únicamente Administrador y Bodeguero", () => {
     render(<RolesTab />);
-    for (const role of ["Administrador", "Bodeguero", "Encargado", "Vendedor"]) {
+    for (const role of ["Administrador", "Bodeguero"]) {
       expect(screen.getByRole("button", { name: `Ver permisos de ${role}` })).toBeTruthy();
     }
+    expect(screen.queryByRole("button", { name: /Encargado|Vendedor/i })).toBeNull();
     expect(screen.getByRole("table")).toBeTruthy();
     expect(screen.getByText("Consultar inventario y seriales")).toBeTruthy();
     expect(screen.getByText("Gestionar pedidos y despachos")).toBeTruthy();
     expect(screen.getByText("Gestionar garantías")).toBeTruthy();
     expect(screen.queryByText("Ventas y caja")).toBeNull();
     expect(screen.queryByText("Gestionar traslados")).toBeNull();
-    expect(screen.queryByText("Gestionar transferencias de dinero entre sedes")).toBeNull();
   });
 
-  it("refleja el acceso limitado de Encargado y conserva Pedidos para Bodeguero", async () => {
+  it("conserva Pedidos para Bodeguero y la administración para Administrador", async () => {
     const user = userEvent.setup();
     render(<RolesTab />);
-
-    await user.click(screen.getByRole("button", { name: "Ver permisos de Encargado" }));
-    const inventoryRow = screen.getByRole("row", { name: /Consultar inventario y seriales/i });
-    expect(within(inventoryRow).getByLabelText("Encargado: permitido")).toBeTruthy();
+    await user.click(screen.getByRole("button", { name: "Ver permisos de Bodeguero" }));
     const ordersRow = screen.getByRole("row", { name: /Gestionar pedidos y despachos/i });
-    expect(within(ordersRow).getByLabelText("Encargado: restringido")).toBeTruthy();
+    expect(within(ordersRow).getByLabelText("Bodeguero: permitido")).toBeTruthy();
 
-    await user.click(screen.getByRole("button", { name: "Mostrar todos" }));
-    const bodegueroOrders = screen.getByRole("row", { name: /Gestionar pedidos y despachos/i });
-    expect(within(bodegueroOrders).getByLabelText("Bodeguero: permitido")).toBeTruthy();
-    expect(screen.getByRole("columnheader", { name: "Administrador" })).toBeTruthy();
-    expect(screen.getByRole("columnheader", { name: "Vendedor" })).toBeTruthy();
+    await user.click(screen.getByRole("button", { name: "Ver permisos de Administrador" }));
+    const usersRow = screen.getByRole("row", { name: /Administrar usuarios y perfiles/i });
+    expect(within(usersRow).getByLabelText("Administrador: permitido")).toBeTruthy();
   });
 });
