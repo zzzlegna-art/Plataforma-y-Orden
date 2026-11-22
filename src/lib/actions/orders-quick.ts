@@ -133,7 +133,20 @@ export const crearPedidoRapidoPorSeriales = (
     lineas: [...lines.values()],
   });
   for (const entry of resolved) {
-    serializarImeiPedido(db, actor, { orderId: order.id, imei: entry.serial });
+    // Dos unidades del mismo modelo pueden tener distintos colores. La línea
+    // se identifica explícitamente para no depender del orden de escaneo.
+    const item = db.orderItems.find((candidate) =>
+      candidate.orderId === order.id &&
+      candidate.productId === entry.product.id &&
+      candidate.condition === entry.unit.condition &&
+      (candidate.color ?? "") === (entry.color ?? ""),
+    );
+    if (!item) throw new DomainError("No se encontró la línea de esta referencia.");
+    serializarImeiPedido(db, actor, {
+      orderId: order.id,
+      imei: entry.serial,
+      orderItemId: item.id,
+    });
   }
   confirmarPreparacionPedido(db, actor, { orderId: order.id });
   return order;

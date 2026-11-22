@@ -74,6 +74,22 @@ describe("pedidos rápidos por IMEI", () => {
     expect(db.orders).toHaveLength(0);
   });
 
+  it("respeta el color seleccionado aunque se escaneen variantes del mismo modelo sin color de origen", () => {
+    const db = fixture();
+    db.units[0].color = undefined;
+    const order = crearPedidoRapidoPorSeriales(db, actor, {
+      customerId: "buyer",
+      serials: [{ serial: "IMEI-1", color: "Azul" }, { serial: "IMEI-2", color: "Negro" }],
+    });
+    const bySerial = Object.fromEntries(db.orderItemUnits.map((assignment) => {
+      const unit = db.units.find((candidate) => candidate.id === assignment.unitId);
+      const line = db.orderItems.find((candidate) => candidate.id === assignment.orderItemId);
+      return [unit?.serial, line?.color];
+    }));
+    expect(bySerial).toEqual({ "IMEI-1": "Azul", "IMEI-2": "Negro" });
+    expect(db.orders.find((candidate) => candidate.id === order.id)?.status).toBe("preparado");
+  });
+
   it("respeta categoría del cliente y permisos", () => {
     const db = fixture();
     db.customers[0].categoriaMayorista = "repuestos";
