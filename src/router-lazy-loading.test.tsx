@@ -60,6 +60,7 @@ describe("carga diferida de NEXORA", () => {
     "inventario/:productId",
     "pedidos",
     "pedidos/nuevo",
+    "pedidos/rapido",
     "pedidos/:orderId",
     "pedidos/historial/:sourceId",
     "clientes",

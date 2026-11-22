@@ -2,7 +2,7 @@ import "./pedidos-premium.css";
 import "./pedidos-visual-v2.css";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { ClipboardList, Download, Eye, FileSpreadsheet, FileText, Plus, Clock3, CircleDot, PackageCheck, Layers3 } from "lucide-react";
+import { ClipboardList, Download, Eye, FileSpreadsheet, FileText, Plus, Clock3, CircleDot, PackageCheck, Layers3, ScanLine } from "lucide-react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 
@@ -243,6 +243,12 @@ const Pedidos = () => {
             >
               <Download />
               {t("export.button")}
+            </Button>
+            <Button variant="outline" asChild className="border-primary/40 bg-primary/10 text-primary hover:bg-primary/15">
+              <Link to="/pedidos/rapido">
+                <ScanLine />
+                Pedido rápido
+              </Link>
             </Button>
             <Button asChild>
               <Link to="/pedidos/nuevo">

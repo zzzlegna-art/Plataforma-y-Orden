@@ -1,7 +1,7 @@
 import { useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
-import { ArrowLeft, Plus, Check, ShoppingCart, Trash2, Package } from "lucide-react";
+import { ArrowLeft, Plus, Check, ShoppingCart, Trash2, Package, ScanLine } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 
 import { PageHeader } from "@/components/shared/page-header";
@@ -289,7 +289,15 @@ const NuevoPedido = () => {
           </Link>
         </Button>
 
-        <PageHeader title={t("order.createTitle")} description={t("order.mayoristaSubtitle")} />
+        <PageHeader
+          title={t("order.createTitle")}
+          description={t("order.mayoristaSubtitle")}
+          actions={
+            <Button variant="outline" asChild>
+              <Link to="/pedidos/rapido"><ScanLine /> Pedido rápido por IMEI</Link>
+            </Button>
+          }
+        />
 
         <nav className="nx-order-steps" aria-label="Progreso de creación de pedido">
           {[

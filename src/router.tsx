@@ -19,6 +19,7 @@ const ProductoDetalle = lazy(() => import("./pages/inventario/detalle"));
 const Panel = lazy(() => import("./pages/panel"));
 const Pedidos = lazy(() => import("./pages/pedidos"));
 const NuevoPedido = lazy(() => import("./pages/pedidos/nuevo"));
+const PedidoRapido = lazy(() => import("./pages/pedidos/rapido"));
 const PedidoDetalle = lazy(() => import("./pages/pedidos/detalle"));
 const PedidoHistoricoDetalle = lazy(() => import("./pages/pedidos/historial/detalle"));
 const Recepciones = lazy(() => import("./pages/recepcion"));
@@ -112,6 +113,11 @@ export const routers = [
             path: "pedidos/nuevo",
             name: "pedido-nuevo",
             element: <RequirePermission permission="orders.manage"><NuevoPedido /></RequirePermission>,
+          },
+          {
+            path: "pedidos/rapido",
+            name: "pedido-rapido",
+            element: <RequirePermission permission="orders.manage"><PedidoRapido /></RequirePermission>,
           },
           {
             path: "pedidos/:orderId",
