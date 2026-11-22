@@ -33,8 +33,7 @@ export const SupplierQualityChart = ({ suppliers }: { suppliers: Supplier[] }) =
   return (
     <section className="nx-supplier-quality-v2 space-y-4 rounded-2xl border bg-card p-4 shadow-sm md:p-5"
       aria-labelledby="supplier-quality-heading">
-      <div className="nx-supplier-quality-head">
-      <div className="flex flex-wrap items-start justify-between gap-3">
+      <div className="nx-supplier-quality-head flex flex-wrap items-start justify-between gap-3">
         <div>
           <p className="mb-1 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-primary">
             <BarChart3 className="h-4 w-4" /> Control de calidad
