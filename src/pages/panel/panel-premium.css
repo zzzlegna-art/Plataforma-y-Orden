@@ -1071,3 +1071,72 @@ html.dark .nx-dashboard-showcase.nx-dashboard-premium .nx-hero-strip {
     transform: none;
   }
 }
+
+
+/* NEXORA Dashboard refinement — balanced desktop composition and mobile-safe analytics. */
+.nx-dashboard-showcase.nx-dashboard-premium .nx-kpi-section > .grid:first-child {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.nx-dashboard-showcase.nx-dashboard-premium .nx-dashboard-analytics {
+  align-items: stretch;
+}
+.nx-dashboard-showcase.nx-dashboard-premium .nx-analytics-card {
+  display: flex;
+  flex-direction: column;
+}
+.nx-dashboard-showcase.nx-dashboard-premium .nx-operations-chart-layout {
+  flex: 1;
+  align-content: center;
+  min-height: 320px;
+}
+.nx-dashboard-showcase.nx-dashboard-premium .nx-operations-donut {
+  height: clamp(230px, 21vw, 290px);
+}
+.nx-dashboard-showcase.nx-dashboard-premium .nx-operations-legend {
+  gap: 1.05rem;
+}
+.nx-dashboard-showcase.nx-dashboard-premium .nx-dashboard-block--performance .nx-ranking-card {
+  background:
+    radial-gradient(ellipse 60% 45% at 100% 0%, hsl(var(--primary) / .075), transparent 75%),
+    linear-gradient(145deg, hsl(var(--card)), hsl(var(--secondary) / .22));
+}
+.nx-dashboard-showcase.nx-dashboard-premium .nx-warranty-kpi {
+  transition: transform .2s ease, border-color .2s ease, box-shadow .2s ease;
+}
+@media (hover: hover) and (pointer: fine) {
+  .nx-dashboard-showcase.nx-dashboard-premium .nx-warranty-kpi:hover {
+    transform: translateY(-3px);
+    border-color: hsl(var(--primary) / .34);
+    box-shadow: 0 22px 42px -29px hsl(var(--primary) / .28), inset 0 1px 0 rgb(255 255 255 / .08);
+  }
+}
+@media (max-width: 1250px) {
+  .nx-dashboard-showcase.nx-dashboard-premium .nx-kpi-section > .grid:first-child {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 540px) {
+  .nx-dashboard-showcase.nx-dashboard-premium .nx-kpi-section > .grid:first-child {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .nx-dashboard-showcase.nx-dashboard-premium .nx-operations-chart-layout {
+    min-height: 0;
+    gap: .35rem;
+  }
+  .nx-dashboard-showcase.nx-dashboard-premium .nx-operations-donut {
+    height: 220px;
+  }
+}
+@media (max-width: 360px) {
+  .nx-dashboard-showcase.nx-dashboard-premium .nx-kpi-section > .grid:first-child {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .nx-dashboard-showcase.nx-dashboard-premium .nx-warranty-kpi {
+    transition: none;
+  }
+  .nx-dashboard-showcase.nx-dashboard-premium .nx-warranty-kpi:hover {
+    transform: none;
+  }
+}
