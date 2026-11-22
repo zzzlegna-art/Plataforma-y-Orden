@@ -142,6 +142,7 @@ export const OrderLineCard = ({
   return (
     <div
       id={`linea-${line.item.id}`}
+      data-complete={complete}
       className={cn(
         "nx-order-line-card rounded-lg border bg-card p-4 shadow-sm transition-[box-shadow,border-color] duration-300 motion-reduce:transition-none",
         destacada && "border-primary shadow-elegant ring-2 ring-primary/60",
@@ -275,13 +276,16 @@ export const OrderLineCard = ({
       )}
 
       {autoRepuesto ? null : line.units.length > 0 ? (
-        // Los seriales ya ingresados van como etiquetas compactas en cuadrícula: caben varios por
-        // fila y se alinean en columnas, en vez de una fila ancha por cada uno.
-        <ul className="mt-3 grid grid-cols-[repeat(auto-fill,minmax(min(100%,16.5rem),1fr))] gap-1.5">
+        <>
+          <div className="nx-order-serials-heading">
+            <span>IMEI VINCULADOS</span>
+            <span>{line.units.length} / {line.item.quantity}</span>
+          </div>
+          <ul className="nx-order-serial-grid mt-3 grid grid-cols-[repeat(auto-fill,minmax(min(100%,16.5rem),1fr))] gap-1.5">
           {line.units.map((unit) => (
             <li
               key={unit.id}
-              className="flex min-w-0 flex-wrap animate-fade-in items-center gap-1.5 rounded-md border bg-background/40 py-1 pl-2.5 pr-1 motion-reduce:animate-none"
+              className="nx-order-imei flex min-w-0 flex-wrap animate-fade-in items-center gap-1.5 rounded-md border bg-background/40 py-1 pl-2.5 pr-1 motion-reduce:animate-none"
             >
               <span className="mr-auto whitespace-nowrap font-mono text-[12px] font-medium tabular-nums tracking-tight sm:text-[13px]" title={unit.serial}>{unit.serial}</span>
               <CopySerialButton serial={unit.serial} />
@@ -299,7 +303,8 @@ export const OrderLineCard = ({
               ) : null}
             </li>
           ))}
-        </ul>
+          </ul>
+        </>
       ) : (
         <p className="mt-3 rounded-md border border-dashed px-2.5 py-2 text-xs text-muted-foreground">
           {t("order.noSerials")}

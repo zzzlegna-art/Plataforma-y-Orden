@@ -1,4 +1,5 @@
 import "./pedido-detalle-premium.css";
+import "./pedido-detalle-v3.css";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ArrowLeft, Check, Download, PackagePlus, ScanLine, Undo2, Wrench } from "lucide-react";
@@ -310,8 +311,8 @@ const PedidoDetalle = () => {
   };
 
   return (
-    <div className="nx-order-detail-premium space-y-5 stagger">
-      <Button variant="ghost" size="sm" asChild className="-ml-2 w-fit">
+    <div className="nx-order-detail-premium nx-order-detail-v3 space-y-5 stagger">
+      <Button variant="ghost" size="sm" asChild className="nx-order-back -ml-2 w-fit">
         <Link
           to="/pedidos"
           onClick={(event) => {
@@ -328,7 +329,12 @@ const PedidoDetalle = () => {
         </Link>
       </Button>
 
-      <PageHeader
+      <section className="nx-order-masthead" aria-label="Resumen del pedido">
+        <div className="nx-order-masthead-top">
+          <span><ScanLine size={14} aria-hidden="true" /> NEXORA / CENTRO DE PREPARACIÓN</span>
+          <span>EXPEDIENTE DE PEDIDO</span>
+        </div>
+        <PageHeader
         className="nx-order-hero nx-page-header flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
         title={<span className="font-tabular">{order.code}</span>}
         description={
@@ -435,19 +441,34 @@ const PedidoDetalle = () => {
             />
           ) : null
         }
-      />
+        />
+        <div className="nx-order-masthead-bottom">
+          <span><span className="nx-order-masthead-signal" aria-hidden="true" /> PREPARACIÓN Y CONTROL DE SERIALES</span>
+          <span>REFERENCIAS · VERIFICACIÓN · DESPACHO</span>
+        </div>
+      </section>
 
       <section className="nx-order-documents rounded-xl border bg-card p-4 shadow-sm">
-        <div className="mb-3 flex items-center gap-2">
-          <Download className="h-4 w-4 text-primary" />
-          <h2 className="text-sm font-semibold">Documentos del pedido</h2>
-        </div>
-        <div className="nx-order-documents-first mb-4 border-b pb-4">
-          <h3 className="text-sm font-semibold">Relación de seriales · empaque</h3>
-          <p className="my-2 text-sm text-muted-foreground">
-            PDF con las referencias y cada IMEI asignado, listo para imprimir e incluir dentro de la caja.
-          </p>
-          <div className="mb-3 flex flex-wrap items-center justify-between gap-3 rounded-lg border bg-card px-3 py-2.5">
+        <header className="nx-order-documents-header">
+          <span className="nx-order-documents-icon" aria-hidden="true"><Download /></span>
+          <div>
+            <p className="nx-order-documents-kicker">ARCHIVO / EMBALAJE</p>
+            <h2 className="text-sm font-semibold">Documentos del pedido</h2>
+          </div>
+          <span>RELACIÓN DE IMEI</span>
+        </header>
+        <div className="nx-order-documents-content">
+          <div className="nx-order-documents-description">
+            <h3 className="text-sm font-semibold">Relación de seriales · empaque</h3>
+            <p className="my-2 text-sm text-muted-foreground">
+              PDF con las referencias y cada IMEI asignado, listo para imprimir e incluir dentro de la caja.
+            </p>
+            <span className="nx-order-documents-note">
+              {assigned.toLocaleString("es-CO")} IMEI vinculados al pedido
+            </span>
+          </div>
+          <div className="nx-order-documents-tools">
+          <div className="nx-order-documents-selector mb-3 flex flex-wrap items-center justify-between gap-3 rounded-lg border bg-card px-3 py-2.5">
             <div className="min-w-0">
               <p className="text-sm font-medium">Referencias para la relación</p>
               <p className="text-xs text-muted-foreground">
@@ -495,6 +516,7 @@ const PedidoDetalle = () => {
             <Download />
             PDF · Relación de seriales
           </Button>
+          </div>
         </div>
       </section>
       <div className="nx-order-summary grid gap-3 sm:grid-cols-3">
@@ -514,7 +536,32 @@ const PedidoDetalle = () => {
             {order.deliveryDate ? formatDate(order.deliveryDate) : "—"}
           </p>
         </div>
-
+        <div className="rounded-lg border bg-card p-4">
+          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">IMEI pendientes</p>
+          <p className="font-tabular mt-1 text-xl font-semibold">{Math.max(0, pending).toLocaleString("es-CO")}</p>
+        </div>
+        <div className="nx-order-overall-progress">
+          <div className="nx-order-overall-progress-heading">
+            <span>Avance de serialización</span>
+            <strong>{requestedSerial > 0 ? Math.min(100, Math.round((assigned / requestedSerial) * 100)) : 0}%</strong>
+          </div>
+          <div
+            className="nx-order-overall-track"
+            role="progressbar"
+            aria-label="Avance de serialización del pedido"
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-valuenow={requestedSerial > 0 ? Math.min(100, Math.round((assigned / requestedSerial) * 100)) : 0}
+          >
+            <div
+              className="nx-order-overall-fill"
+              style={{ width: `${requestedSerial > 0 ? Math.min(100, Math.round((assigned / requestedSerial) * 100)) : 0}%` }}
+            />
+          </div>
+          <p className="nx-order-overall-help">
+            {requestedSerial > 0 ? `${assigned} de ${requestedSerial} equipos vinculados a su IMEI` : "Este pedido no requiere asignación de seriales."}
+          </p>
+        </div>
       </div>
 
       {editable && pending === 0 ? <p className="rounded-lg border border-primary/30 bg-primary/5 px-4 py-3 text-sm text-primary">Verificación completa: {assigned} de {requestedSerial} equipos con IMEI asignado. Revisa físicamente las unidades antes de confirmar la preparación.</p> : null}
@@ -534,11 +581,15 @@ const PedidoDetalle = () => {
       ) : null}
 
       <section className="nx-order-lines space-y-3">
-        <div>
-          <h3 className="text-sm font-semibold">{t("order.linesTitle")}</h3>
-          <p className="mt-1 text-xs text-muted-foreground">
-            Referencias ordenadas automáticamente por modelo y número, de menor a mayor.
-          </p>
+        <div className="nx-order-lines-header">
+          <div>
+            <p className="nx-order-lines-kicker">PREPARACIÓN / REFERENCIAS</p>
+            <h3 className="text-sm font-semibold">{t("order.linesTitle")}</h3>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Referencias ordenadas automáticamente por modelo y número, de menor a mayor.
+            </p>
+          </div>
+          <span className="nx-order-lines-counter">{lineasOrdenadas.length} referencias</span>
         </div>
         {lineasOrdenadas.map((line) => (
             <div key={line.item.id} className="nx-order-product-group space-y-2">
@@ -581,7 +632,7 @@ const PedidoDetalle = () => {
       ) : null}
 
       <Dialog open={addOpen} onOpenChange={setAddOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="nx-order-detail-dialog sm:max-w-md">
           <DialogHeader>
             <DialogTitle>{t("order.addReference")}</DialogTitle>
             <DialogDescription>{t("order.addReferenceHint")}</DialogDescription>
@@ -659,7 +710,7 @@ const PedidoDetalle = () => {
           if (!abierto) setAgregarLinea(null);
         }}
       >
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="nx-order-detail-dialog sm:max-w-md">
           <DialogHeader>
             <DialogTitle>{t("order.addSerialTitle")}</DialogTitle>
             <DialogDescription>{t("order.addSerialHint")}</DialogDescription>
@@ -692,7 +743,7 @@ const PedidoDetalle = () => {
           if (!abierto) setQuitarAbierto(null);
         }}
       >
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="nx-order-detail-dialog sm:max-w-md">
           <DialogHeader>
             <DialogTitle>{t("order.removeSerialTitle")}</DialogTitle>
             <DialogDescription>{t("order.removeSerialHint")}</DialogDescription>

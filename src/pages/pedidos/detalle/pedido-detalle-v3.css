@@ -1,0 +1,568 @@
+/* NEXORA · Pedidos / Detalle v3 — Logistics Preparation Studio
+   Premium UI treatment only. No alteration to order actions or serial logic.
+   Tokens automatically support light and dark themes. */
+.nx-order-detail-premium.nx-order-detail-v3 {
+  --od-ink: hsl(var(--foreground));
+  --od-muted: hsl(var(--muted-foreground));
+  --od-surface: hsl(var(--card));
+  --od-line: hsl(var(--border) / .78);
+  --od-aqua: hsl(var(--primary));
+  --od-aqua-soft: hsl(var(--primary) / .09);
+  --od-green: hsl(var(--success));
+  max-width: 1740px;
+  margin-inline: auto;
+  padding-bottom: 2.5rem;
+  gap: 1.15rem;
+}
+.nx-order-detail-v3 .nx-order-back {
+  width: fit-content;
+  gap: .35rem;
+  padding: .5rem .75rem;
+  margin-left: -.75rem;
+  color: var(--od-muted);
+  font-size: .8rem;
+  font-weight: 750;
+  border-radius: 9px;
+}
+.nx-order-detail-v3 .nx-order-back:hover {
+  background: var(--od-aqua-soft);
+  color: var(--od-ink);
+}
+.nx-order-detail-v3 .nx-order-masthead {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  border: 1px solid hsl(var(--primary) / .23);
+  border-radius: 22px;
+  background:
+    radial-gradient(ellipse 58% 145% at 100% -15%, hsl(var(--primary) / .14), transparent 74%),
+    linear-gradient(120deg, hsl(var(--card)), hsl(var(--secondary) / .24));
+  box-shadow: 0 23px 51px -38px hsl(214 62% 22% / .46), inset 0 1px 0 hsl(var(--background) / .75);
+}
+.nx-order-detail-v3 .nx-order-masthead::after {
+  position: absolute;
+  content: "";
+  z-index: -1;
+  pointer-events: none;
+  right: -34px;
+  top: -64px;
+  width: 260px;
+  height: 260px;
+  border-radius: 50%;
+  border: 1px solid hsl(var(--primary) / .13);
+  box-shadow: 0 0 0 22px hsl(var(--primary) / .027), 0 0 0 46px hsl(var(--primary) / .022);
+}
+.nx-order-masthead-top,
+.nx-order-masthead-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: .7rem clamp(1.25rem, 2.4vw, 2.15rem);
+  color: var(--od-muted);
+  font-size: .64rem;
+  font-weight: 830;
+  letter-spacing: .105em;
+  line-height: 1.5;
+}
+.nx-order-masthead-top {
+  border-bottom: 1px solid var(--od-line);
+  background: hsl(var(--primary) / .027);
+}
+.nx-order-masthead-top span:first-child,
+.nx-order-masthead-bottom span:first-child {
+  display: inline-flex;
+  align-items: center;
+  gap: .5rem;
+}
+.nx-order-masthead-top span:first-child {
+  color: hsl(var(--primary));
+}
+.nx-order-masthead-bottom {
+  border-top: 1px solid var(--od-line);
+  letter-spacing: .045em;
+}
+.nx-order-masthead-signal {
+  width: 7px;
+  height: 7px;
+  flex: none;
+  border-radius: 2px;
+  background: var(--od-green);
+  box-shadow: 0 0 0 4px hsl(var(--success) / .09);
+}
+.nx-order-detail-v3 .nx-order-hero {
+  min-height: 132px;
+  display: flex;
+  gap: 1.5rem;
+  margin: 0;
+  padding: clamp(1.4rem, 2.4vw, 2rem) clamp(1.25rem, 2.4vw, 2.15rem);
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+.nx-order-detail-v3 .nx-order-hero::before {
+  display: none;
+}
+.nx-order-detail-v3 .nx-order-hero h1 {
+  font-size: clamp(1.65rem, 2.7vw, 2.28rem);
+  line-height: 1.1;
+  font-weight: 840;
+  letter-spacing: -.045em;
+  font-variant-numeric: tabular-nums;
+}
+.nx-order-detail-v3 .nx-order-hero p {
+  display: flex;
+  align-items: center;
+  gap: .6rem;
+  flex-wrap: wrap;
+  margin-top: .75rem;
+  font-size: .83rem;
+}
+.nx-order-detail-v3 .nx-order-hero > div:last-child {
+  align-items: center;
+  gap: .55rem;
+}
+.nx-order-detail-v3 .nx-order-hero [data-slot="button"] {
+  min-height: 43px;
+  border-radius: 10px;
+  font-size: .8rem;
+  font-weight: 770;
+  box-shadow: none;
+}
+.nx-order-detail-v3 .nx-order-hero [data-slot="button"]:not([data-variant="outline"]):not(:disabled) {
+  box-shadow: 0 12px 27px -17px hsl(var(--primary) / .66);
+}
+.nx-order-detail-v3 .nx-order-hero [data-slot="button"].text-destructive {
+  border-color: hsl(var(--destructive) / .21);
+  color: hsl(var(--destructive));
+  background: hsl(var(--card) / .78);
+}
+/* Document station. Fixes the previous blank half-width, giant-height grid. */
+.nx-order-detail-v3 .nx-order-documents {
+  display: block !important;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid var(--od-line);
+  border-radius: 18px;
+  background: var(--od-surface);
+  box-shadow: 0 18px 42px -35px hsl(214 65% 20% / .48);
+}
+.nx-order-detail-v3 .nx-order-documents-header {
+  display: flex;
+  align-items: center;
+  gap: .85rem;
+  margin: 0;
+  padding: 1rem clamp(1rem, 2vw, 1.6rem);
+  border-bottom: 1px solid var(--od-line);
+  background: hsl(var(--secondary) / .16);
+}
+.nx-order-documents-icon {
+  display: grid;
+  place-items: center;
+  width: 41px;
+  height: 41px;
+  flex: none;
+  border: 1px solid hsl(var(--primary) / .22);
+  border-radius: 11px;
+  background: hsl(var(--primary) / .095);
+  color: hsl(var(--primary));
+}
+.nx-order-detail-v3 .nx-order-documents-header svg {
+  width: 19px;
+  height: 19px;
+  padding: 0;
+  border-radius: 0;
+  background: none;
+}
+.nx-order-documents-kicker,
+.nx-order-lines-kicker {
+  margin-bottom: .26rem;
+  color: hsl(var(--primary)) !important;
+  font-size: .61rem !important;
+  font-weight: 840;
+  letter-spacing: .13em;
+}
+.nx-order-detail-v3 .nx-order-documents-header h2 {
+  font-size: .94rem;
+  font-weight: 820;
+  letter-spacing: -.018em;
+}
+.nx-order-documents-header > span:last-child {
+  margin-left: auto;
+  color: var(--od-muted);
+  font-size: .64rem;
+  font-weight: 780;
+  letter-spacing: .09em;
+}
+.nx-order-documents-content {
+  display: grid;
+  grid-template-columns: minmax(0, .85fr) minmax(0, 1.15fr);
+  align-items: stretch;
+  gap: 0;
+  padding: clamp(1rem, 2vw, 1.55rem);
+}
+.nx-order-documents-description {
+  min-width: 0;
+  padding: .25rem 1.35rem .25rem 0;
+  border-right: 1px solid var(--od-line);
+}
+.nx-order-documents-description h3 {
+  font-size: 1.04rem;
+  font-weight: 830;
+  letter-spacing: -.025em;
+  line-height: 1.3;
+}
+.nx-order-documents-description p {
+  max-width: 390px;
+  font-size: .79rem;
+  line-height: 1.65;
+  color: var(--od-muted);
+}
+.nx-order-documents-note {
+  display: inline-flex;
+  margin-top: 1.05rem;
+  padding: .42rem .65rem;
+  border: 1px solid hsl(var(--primary) / .17);
+  border-radius: 8px;
+  background: var(--od-aqua-soft);
+  color: hsl(var(--primary));
+  font-size: .72rem;
+  font-weight: 770;
+  font-variant-numeric: tabular-nums;
+}
+.nx-order-documents-tools {
+  min-width: 0;
+  padding-left: clamp(1rem, 2vw, 1.6rem);
+}
+.nx-order-documents-tools > .nx-order-documents-selector {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .85rem;
+  padding: .9rem 1rem;
+  margin-bottom: .9rem;
+  border: 1px solid var(--od-line);
+  border-radius: 11px;
+  background: hsl(var(--secondary) / .13);
+  box-shadow: none;
+}
+.nx-order-documents-selector > div:first-child { flex: 1 1 230px; }
+.nx-order-documents-selector > div:first-child > p:first-child { font-weight: 780; }
+.nx-order-documents-selector > div:last-child { flex-wrap: wrap; justify-content: flex-start; }
+.nx-order-documents-selector label { border-radius: 8px; }
+.nx-order-documents-tools > button[data-slot="button"] {
+  min-height: 43px;
+  border-radius: 10px;
+  border-color: hsl(var(--primary) / .24);
+  background: hsl(var(--primary) / .075);
+  color: var(--od-ink);
+  font-size: .78rem;
+  font-weight: 780;
+  box-shadow: none;
+}
+.nx-order-documents-tools > button[data-slot="button"]:not(:disabled):hover {
+  background: hsl(var(--primary) / .13);
+  border-color: hsl(var(--primary) / .45);
+}
+.nx-order-documents-tools > button[data-slot="button"]:disabled { opacity: .56; }
+/* Preparation snapshot: three compact figures and one shared progress track. */
+.nx-order-detail-v3 .nx-order-summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: .75rem;
+}
+.nx-order-detail-v3 .nx-order-summary > div:not(.nx-order-overall-progress) {
+  min-height: 105px;
+  padding: 1.05rem 1.15rem;
+  border: 1px solid var(--od-line);
+  border-radius: 15px;
+  background:
+    linear-gradient(120deg, hsl(var(--card)), hsl(var(--secondary) / .2));
+  box-shadow: 0 16px 36px -34px hsl(215 67% 20% / .4);
+}
+.nx-order-detail-v3 .nx-order-summary > div:not(.nx-order-overall-progress)::before { display: none; }
+.nx-order-detail-v3 .nx-order-summary > div:not(.nx-order-overall-progress)::after {
+  content: "";
+  display: block;
+  margin-top: .82rem;
+  width: 27px;
+  height: 3px;
+  border-radius: 2px;
+  background: hsl(var(--primary) / .75);
+}
+.nx-order-detail-v3 .nx-order-summary > div:nth-child(2)::after { background: hsl(var(--info) / .75); }
+.nx-order-detail-v3 .nx-order-summary > div:nth-child(3)::after { background: hsl(var(--warning) / .85); }
+.nx-order-detail-v3 .nx-order-summary p:first-child {
+  color: var(--od-muted);
+  font-size: .69rem;
+  font-weight: 790;
+  letter-spacing: .083em;
+}
+.nx-order-detail-v3 .nx-order-summary .font-tabular {
+  font-size: clamp(1.4rem, 2.5vw, 1.85rem);
+  color: var(--od-ink);
+  letter-spacing: -.05em;
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+}
+.nx-order-detail-v3 .nx-order-overall-progress {
+  grid-column: 1 / -1;
+  padding: 1rem 1.15rem;
+  border: 1px solid var(--od-line);
+  border-radius: 14px;
+  background: hsl(var(--card));
+}
+.nx-order-overall-progress-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: .75rem;
+  font-size: .76rem;
+  font-weight: 790;
+  color: var(--od-ink);
+}
+.nx-order-overall-progress-heading strong {
+  color: hsl(var(--primary));
+  font-size: 1rem;
+  font-weight: 850;
+  font-variant-numeric: tabular-nums;
+}
+.nx-order-overall-track {
+  height: 8px;
+  overflow: hidden;
+  background: hsl(var(--muted));
+  border-radius: 999px;
+}
+.nx-order-overall-fill {
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, hsl(var(--primary)), hsl(var(--success)));
+  transition: width .32s ease;
+}
+.nx-order-overall-help {
+  margin-top: .55rem;
+  font-size: .72rem;
+  color: var(--od-muted);
+}
+/* Distinct product files for each reference. */
+.nx-order-detail-v3 .nx-order-lines {
+  margin-top: .5rem;
+  gap: .85rem;
+}
+.nx-order-lines-header {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: .9rem;
+  padding-inline: .1rem;
+}
+.nx-order-detail-v3 .nx-order-lines-header h3 {
+  color: var(--od-ink);
+  font-size: 1.16rem;
+  font-weight: 835;
+  letter-spacing: -.035em;
+}
+.nx-order-lines-counter {
+  display: inline-flex;
+  align-items: center;
+  flex: none;
+  gap: .4rem;
+  padding: .5rem .75rem;
+  border: 1px solid var(--od-line);
+  border-radius: 9px;
+  background: hsl(var(--card));
+  color: var(--od-muted);
+  font-size: .72rem;
+  font-weight: 780;
+  font-variant-numeric: tabular-nums;
+}
+.nx-order-detail-v3 .nx-order-product-group {
+  position: relative;
+  isolation: isolate;
+  margin-block: .85rem;
+  overflow: hidden;
+  border: 1px solid var(--od-line);
+  border-radius: 16px;
+  background: var(--od-surface);
+  box-shadow: 0 13px 38px -34px hsl(215 65% 20% / .48);
+}
+.nx-order-detail-v3 .nx-order-product-group::before {
+  content: "";
+  position: absolute;
+  z-index: 1;
+  inset: 0 auto 0 0;
+  width: 3px;
+  background: hsl(var(--primary) / .65);
+  pointer-events: none;
+}
+.nx-order-detail-v3 .nx-order-product-group:has([data-complete="true"])::before {
+  background: hsl(var(--success) / .85);
+}
+.nx-order-detail-v3 .nx-order-product-group .nx-order-line-card {
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+.nx-order-detail-v3 .nx-order-line-card > div:first-child {
+  padding: clamp(1rem, 1.8vw, 1.35rem);
+  gap: 1rem;
+  border-bottom: 1px solid var(--od-line);
+  background:
+    radial-gradient(ellipse 44% 130% at 100% -25%, hsl(var(--primary) / .07), transparent 70%),
+    hsl(var(--secondary) / .13);
+}
+.nx-order-detail-v3 .nx-order-line-card > div:first-child > div:first-child > div:nth-child(2) {
+  border-color: hsl(var(--primary) / .22);
+  border-radius: 11px;
+  background: hsl(var(--background) / .86);
+}
+.nx-order-detail-v3 .nx-order-line-card > div:first-child p.truncate.font-medium {
+  color: var(--od-ink);
+  font-size: .9rem;
+  font-weight: 815;
+}
+.nx-order-detail-v3 .nx-order-line-card > div:first-child .font-tabular {
+  font-variant-numeric: tabular-nums;
+}
+.nx-order-detail-v3 .nx-order-line-card > div:first-child button[data-slot="button"] {
+  border-radius: 9px;
+}
+.nx-order-detail-v3 .nx-order-line-card > .mt-3.h-2 {
+  height: 7px;
+  margin: 1rem 1.35rem .65rem;
+  background: hsl(var(--secondary));
+  border-radius: 999px;
+}
+.nx-order-detail-v3 .nx-order-line-card > .mt-3.h-2 > div {
+  background: linear-gradient(90deg, hsl(var(--primary)), hsl(var(--success)));
+  border-radius: 999px;
+}
+.nx-order-detail-v3 .nx-order-line-card > p.mt-1 {
+  margin: .4rem 1.35rem .85rem;
+  font-size: .72rem;
+  font-weight: 730;
+}
+.nx-order-detail-v3 .nx-order-line-card > .nx-order-serials-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .7rem;
+  margin: .9rem 1.35rem .45rem;
+  color: var(--od-muted);
+  font-size: .63rem;
+  font-weight: 800;
+  letter-spacing: .085em;
+}
+.nx-order-serials-heading span:last-child {
+  color: hsl(var(--primary));
+  letter-spacing: .02em;
+  font-variant-numeric: tabular-nums;
+}
+.nx-order-detail-v3 .nx-order-line-card > .nx-order-serial-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 15rem), 1fr));
+  gap: .48rem;
+  margin: .5rem 1.35rem 1.25rem;
+}
+.nx-order-detail-v3 .nx-order-line-card li.nx-order-imei {
+  min-height: 37px;
+  display: flex;
+  align-items: center;
+  gap: .35rem;
+  padding: .27rem .27rem .27rem .78rem;
+  border: 1px solid hsl(var(--border) / .8);
+  border-radius: 8px;
+  background: hsl(var(--secondary) / .23);
+  transition: border-color .15s ease, background .15s ease;
+}
+.nx-order-detail-v3 .nx-order-line-card li.nx-order-imei:hover {
+  border-color: hsl(var(--primary) / .4);
+  background: hsl(var(--primary) / .057);
+}
+.nx-order-detail-v3 .nx-order-line-card li.nx-order-imei span.font-mono {
+  min-width: 0;
+  max-width: 100%;
+  color: var(--od-ink);
+  font-size: .76rem;
+  font-weight: 760;
+  font-variant-numeric: tabular-nums;
+}
+.nx-order-detail-v3 .nx-order-line-card li.nx-order-imei button {
+  border-radius: 7px;
+}
+.nx-order-detail-v3 .nx-order-line-card > .mt-3.rounded-md.border {
+  margin: 1rem 1.35rem;
+  padding: .85rem;
+}
+.nx-order-detail-v3 .nx-order-pricing { border-color: var(--od-line); }
+/* Dialogs are portal-mounted. Scoped by their own class, including focus fields. */
+.nx-order-detail-dialog {
+  border: 1px solid hsl(var(--primary) / .22);
+  border-radius: 18px;
+  background:
+    radial-gradient(ellipse 85% 46% at 100% -20%, hsl(var(--primary) / .1), transparent 85%),
+    hsl(var(--card));
+  box-shadow: 0 29px 75px -35px rgb(0 0 0 / .46);
+}
+.nx-order-detail-dialog h2 { font-size: 1.35rem; letter-spacing: -.025em; }
+.nx-order-detail-dialog input,
+.nx-order-detail-dialog textarea { border-radius: 9px; background: hsl(var(--background) / .78); }
+.nx-order-detail-dialog button { border-radius: 10px; }
+.dark .nx-order-detail-v3 .nx-order-masthead,
+.dark .nx-order-detail-v3 .nx-order-documents,
+.dark .nx-order-detail-v3 .nx-order-product-group {
+  box-shadow: 0 21px 43px -34px rgb(0 0 0 / .86), inset 0 1px 0 hsl(var(--foreground) / .035);
+}
+.dark .nx-order-detail-v3 .nx-order-line-card li.nx-order-imei {
+  background: hsl(var(--secondary) / .22);
+}
+@media (max-width: 1050px) {
+  .nx-order-documents-content { grid-template-columns: 1fr; }
+  .nx-order-documents-description {
+    padding: 0 0 1rem;
+    border-right: 0;
+    border-bottom: 1px solid var(--od-line);
+  }
+  .nx-order-documents-tools { padding: 1.05rem 0 0; }
+}
+@media (max-width: 767px) {
+  .nx-order-detail-v3 .nx-order-masthead { border-radius: 17px; }
+  .nx-order-masthead-top, .nx-order-masthead-bottom { padding: .62rem 1rem; font-size: .57rem; }
+  .nx-order-masthead-top > span:last-child, .nx-order-masthead-bottom > span:last-child { display: none; }
+  .nx-order-detail-v3 .nx-order-hero { min-height: 0; padding: 1.25rem 1rem; gap: 1.15rem; }
+  .nx-order-detail-v3 .nx-order-hero h1 { font-size: 1.65rem; }
+  .nx-order-detail-v3 .nx-order-hero > div:last-child { align-items: stretch; }
+  .nx-order-detail-v3 .nx-order-hero [data-slot="button"] { min-height: 43px; }
+  .nx-order-detail-v3 .nx-order-documents { border-radius: 15px; }
+  .nx-order-documents-header { padding: .85rem 1rem; }
+  .nx-order-documents-content { padding: 1rem; }
+  .nx-order-documents-header > span:last-child { display: none; }
+  .nx-order-detail-v3 .nx-order-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .nx-order-detail-v3 .nx-order-summary > div:not(.nx-order-overall-progress) { min-height: 98px; padding: .95rem; }
+  .nx-order-detail-v3 .nx-order-summary > div:nth-child(3) { grid-column: 1/-1; }
+  .nx-order-detail-v3 .nx-order-product-group { border-radius: 13px; }
+  .nx-order-lines-header { flex-wrap: wrap; }
+  .nx-order-detail-v3 .nx-order-line-card > div:first-child { padding: .95rem; }
+  .nx-order-detail-v3 .nx-order-line-card > .nx-order-serial-grid { margin: .5rem .95rem 1rem; }
+  .nx-order-detail-v3 .nx-order-line-card > .nx-order-serials-heading { margin-inline: .95rem; }
+  .nx-order-detail-v3 .nx-order-line-card > .mt-3.h-2 { margin-inline: .95rem; }
+  .nx-order-detail-v3 .nx-order-line-card > p.mt-1 { margin-inline: .95rem; }
+  .nx-order-detail-v3 .nx-order-line-card > .mt-3.rounded-md.border { margin-inline: .95rem; }
+}
+@media (max-width: 410px) {
+  .nx-order-detail-v3 .nx-order-summary { grid-template-columns: 1fr; }
+  .nx-order-detail-v3 .nx-order-summary > div:nth-child(3) { grid-column: auto; }
+  .nx-order-documents-tools > button[data-slot="button"] { width: 100%; }
+  .nx-order-documents-selector > div:last-child { flex: 1 1 100%; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .nx-order-detail-v3 .nx-order-line-card li.nx-order-imei,
+  .nx-order-detail-v3 .nx-order-overall-fill,
+  .nx-order-detail-v3 a,
+  .nx-order-detail-v3 button { transition: none !important; transform: none !important; }
+}
