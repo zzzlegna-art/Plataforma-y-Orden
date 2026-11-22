@@ -118,29 +118,30 @@ const Unidades = ({ embedded = false }: { embedded?: boolean }) => {
   );
 
   return (
-    <div className="space-y-5 stagger">
+    <div className="nx-trace-units space-y-5 stagger">
       {!embedded ? <PageHeader title={t("unit.title")} description={t("unit.subtitle")} /> : null}
 
-      <section className="space-y-3 rounded-xl border bg-card p-4 shadow-sm">
+      <section className="nx-trace-monitor space-y-3 rounded-xl border bg-card p-4 shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div>
+            <div className="nx-trace-section-kicker">MONITOREO / ALERTAS INFORMATIVAS</div>
             <h2 className="text-sm font-semibold">Control inteligente de inventario</h2>
             <p className="text-xs text-muted-foreground">Alertas informativas. Ningún equipo cambia de estado automáticamente.</p>
           </div>
           {controlFiltro !== "todos" ? <Button size="sm" variant="outline" onClick={() => setControlFiltro("todos")}>Quitar filtro</Button> : null}
         </div>
-        <div className="grid gap-3 sm:grid-cols-3">
-          <button type="button" onClick={() => setControlFiltro(controlFiltro === "duplicados" ? "todos" : "duplicados")} className={`rounded-lg border p-3 text-left transition-colors hover:bg-muted/50 ${controlFiltro === "duplicados" ? "border-primary bg-primary/5" : ""}`}>
+        <div className="nx-trace-monitor-grid grid gap-3 sm:grid-cols-3">
+          <button type="button" aria-pressed={controlFiltro === "duplicados"} onClick={() => setControlFiltro(controlFiltro === "duplicados" ? "todos" : "duplicados")} className={`nx-trace-monitor-item rounded-lg border p-3 text-left transition-colors hover:bg-muted/50 ${controlFiltro === "duplicados" ? "border-primary bg-primary/5" : ""}`}>
             <div className="flex items-center gap-2 text-xs text-muted-foreground"><AlertTriangle className="h-4 w-4" /> Seriales duplicados</div>
             <p className="mt-2 text-2xl font-bold tabular-nums">{control.grupos}</p>
             <p className="text-xs text-muted-foreground">{control.duplicados.size} registros involucrados · Ver equipos <ArrowRight className="inline h-3 w-3" /></p>
           </button>
-          <button type="button" onClick={() => setControlFiltro(controlFiltro === "antiguos" ? "todos" : "antiguos")} className={`rounded-lg border p-3 text-left transition-colors hover:bg-muted/50 ${controlFiltro === "antiguos" ? "border-primary bg-primary/5" : ""}`}>
+          <button type="button" aria-pressed={controlFiltro === "antiguos"} onClick={() => setControlFiltro(controlFiltro === "antiguos" ? "todos" : "antiguos")} className={`nx-trace-monitor-item rounded-lg border p-3 text-left transition-colors hover:bg-muted/50 ${controlFiltro === "antiguos" ? "border-primary bg-primary/5" : ""}`}>
             <div className="flex items-center gap-2 text-xs text-muted-foreground"><Clock3 className="h-4 w-4" /> Equipos sin vender</div>
             <p className="mt-2 text-2xl font-bold tabular-nums">{control.antiguos.size}</p>
             <p className="text-xs text-muted-foreground">Con {diasMinimos} días o más desde su ingreso · Ver equipos <ArrowRight className="inline h-3 w-3" /></p>
           </button>
-          <div className="rounded-lg border p-3">
+          <div className="nx-trace-monitor-config rounded-lg border p-3">
             <label htmlFor="antiguedad-inventario" className="flex items-center gap-2 text-xs text-muted-foreground"><ShieldCheck className="h-4 w-4" /> Umbral de antigüedad</label>
             <select id="antiguedad-inventario" value={diasMinimos} onChange={(event) => setDiasMinimos(Number(event.target.value))} className="mt-3 h-10 w-full rounded-md border border-input bg-background px-3 text-sm">
               <option value={30}>30 días</option>
@@ -153,23 +154,24 @@ const Unidades = ({ embedded = false }: { embedded?: boolean }) => {
         {controlFiltro !== "todos" ? <p className="text-xs text-muted-foreground">Mostrando {controlFiltro === "duplicados" ? "registros con serial repetido" : `equipos disponibles con al menos ${diasMinimos} días desde su ingreso`}. Puedes combinarlo con los filtros de abajo.</p> : null}
       </section>
 
-      <div className="grid gap-4 lg:grid-cols-[22rem_1fr]">
-        <section className="space-y-2 rounded-lg border bg-card p-4 shadow-sm">
+      <div className="nx-trace-workbench grid gap-4 lg:grid-cols-[22rem_1fr]">
+        <section className="nx-trace-scan-panel space-y-2 rounded-lg border bg-card p-4 shadow-sm">
           <h3 className="flex items-center gap-2 text-sm font-semibold">
             <ScanLine className="h-4 w-4 text-primary" />
             {t("unit.scanTitle")}
           </h3>
           <SerialScanInput onScan={handleScan} />
         </section>
-        <div className="space-y-3 rounded-lg border bg-card p-4 shadow-sm">
+        <div className="nx-trace-query-panel space-y-3 rounded-lg border bg-card p-4 shadow-sm">
           <SearchField
             value={search}
             onChange={setSearch}
             placeholder={t("unit.searchPlaceholder")}
           />
-          <div className="flex flex-wrap gap-2">
+          <div className="nx-trace-status-tabs flex flex-wrap gap-2">
             <Button
               variant={status === "" ? "default" : "outline"}
+              aria-pressed={status === ""}
               size="sm"
               onClick={() => setStatus("")}
             >
@@ -179,6 +181,7 @@ const Unidades = ({ embedded = false }: { embedded?: boolean }) => {
               <Button
                 key={option}
                 variant={status === option ? "default" : "outline"}
+                aria-pressed={status === option}
                 size="sm"
                 onClick={() => setStatus(option)}
               >
@@ -210,6 +213,7 @@ const Unidades = ({ embedded = false }: { embedded?: boolean }) => {
       </div>
 
       <DataTable<UnitRow>
+        className="nx-trace-table"
         rows={rows}
         rowKey={(row) => row.unit.id}
         onRowClick={(row) => setSelectedId(row.unit.id)}
@@ -224,7 +228,7 @@ const Unidades = ({ embedded = false }: { embedded?: boolean }) => {
             header: t("unit.serial"),
             cell: (row) => (
               <span className="inline-flex items-center gap-1">
-                <span className="font-tabular font-medium">{row.unit.serial}</span>
+                <span className="nx-trace-serial-value font-tabular font-medium">{row.unit.serial}</span>
                 <CopySerialButton serial={row.unit.serial} />
               </span>
             ),

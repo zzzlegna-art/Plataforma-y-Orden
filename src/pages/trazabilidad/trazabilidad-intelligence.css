@@ -1,0 +1,575 @@
+/* NEXORA / SERIAL INTELLIGENCE CENTER · November 2026
+   Independent visual identity: tracking, identification, historical evidence.
+   No workflow, permission, inventory or Supabase logic changes.
+   Light/dark themes use existing NEXORA tokens. */
+.nx-trace-lab {
+  --trace-line: hsl(var(--border) / .82);
+  --trace-ink: hsl(var(--foreground));
+  --trace-muted: hsl(var(--muted-foreground));
+  --trace-card: hsl(var(--card));
+  --trace-accent: hsl(var(--primary));
+  width: 100%;
+  max-width: 1740px;
+  margin-inline: auto;
+  padding-bottom: 2rem;
+}
+.nx-trace-lab > .nx-trace-masthead {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  border: 1px solid hsl(var(--primary) / .3);
+  border-radius: 21px;
+  background:
+    radial-gradient(ellipse 58% 145% at 100% -18%, hsl(var(--primary) / .15), transparent 74%),
+    linear-gradient(105deg, hsl(var(--card)), hsl(var(--secondary) / .33));
+  box-shadow: 0 20px 48px -38px hsl(215 70% 23% / .49), inset 0 1px 0 hsl(var(--background) / .7);
+}
+.nx-trace-masthead::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  right: -3%;
+  top: -35%;
+  width: 39%;
+  height: 185%;
+  opacity: .72;
+  pointer-events: none;
+  background:
+    repeating-linear-gradient(0deg, transparent 0 26px, hsl(var(--primary) / .085) 27px 28px),
+    repeating-linear-gradient(90deg, transparent 0 26px, hsl(var(--primary) / .085) 27px 28px);
+  mask-image: linear-gradient(90deg, transparent, black 38%);
+}
+.nx-trace-masthead::after {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  right: 10%;
+  top: 21%;
+  width: 135px;
+  height: 135px;
+  border: 1px solid hsl(var(--primary) / .14);
+  border-radius: 50%;
+  box-shadow: 0 0 0 17px hsl(var(--primary) / .028), 0 0 0 34px hsl(var(--primary) / .024);
+  pointer-events: none;
+}
+.nx-trace-masthead-top,
+.nx-trace-masthead-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: .71rem clamp(1.3rem, 2.5vw, 2.3rem);
+  font-size: .64rem;
+  font-weight: 820;
+  letter-spacing: .125em;
+  line-height: 1.5;
+}
+.nx-trace-masthead-top {
+  color: hsl(var(--primary));
+  border-bottom: 1px solid var(--trace-line);
+  background: hsl(var(--primary) / .035);
+}
+.nx-trace-masthead-foot {
+  color: var(--trace-muted);
+  border-top: 1px solid hsl(var(--border) / .65);
+  letter-spacing: .08em;
+}
+.nx-trace-identity,
+.nx-trace-masthead-foot > span:first-child {
+  display: inline-flex;
+  align-items: center;
+  gap: .55rem;
+}
+.nx-trace-version { color: var(--trace-muted); }
+.nx-trace-signal {
+  width: 7px;
+  height: 7px;
+  border-radius: 2px;
+  background: hsl(var(--primary));
+  box-shadow: 0 0 0 4px hsl(var(--primary) / .09);
+}
+.nx-trace-lab .nx-trace-page-title {
+  position: relative;
+  min-height: 137px;
+  padding: clamp(1.35rem, 2.7vw, 2.15rem) clamp(1.3rem, 2.5vw, 2.3rem);
+  border: none;
+  background: transparent;
+  box-shadow: none;
+}
+.nx-trace-page-title::before,
+.nx-trace-page-title::after { display: none; }
+.nx-trace-lab .nx-trace-page-title h1 {
+  font-size: clamp(2rem, 3vw, 2.65rem);
+  font-weight: 820;
+  line-height: 1.1;
+  letter-spacing: -.055em;
+}
+.nx-trace-lab .nx-trace-page-title p {
+  max-width: 510px;
+  margin-top: .7rem;
+  color: var(--trace-muted);
+  font-size: .89rem;
+  line-height: 1.6;
+}
+/* Command console navigation; an active tab looks like a selected terminal channel. */
+.nx-serial-trace-premium.nx-trace-lab > .nx-trace-nav {
+  position: sticky;
+  top: .5rem;
+  z-index: 20;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: .5rem;
+  padding: .55rem;
+  border: 1px solid var(--trace-line);
+  border-radius: 14px;
+  background: hsl(var(--card) / .94);
+  box-shadow: 0 13px 32px -28px hsl(215 66% 20% / .5);
+  backdrop-filter: blur(14px);
+}
+.nx-trace-lab > .nx-trace-nav > .nx-trace-nav-item {
+  min-height: 49px;
+  gap: .45rem;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  background: transparent;
+  box-shadow: none;
+  color: var(--trace-muted);
+  font-size: .84rem;
+  font-weight: 770;
+  transition: color .17s ease, border-color .17s ease, background .17s ease, box-shadow .17s ease;
+}
+.nx-trace-lab > .nx-trace-nav > .nx-trace-nav-item[aria-pressed="true"] {
+  border-color: hsl(var(--primary) / .3);
+  background:
+    linear-gradient(110deg, hsl(var(--primary) / .19), hsl(var(--primary) / .07));
+  box-shadow: inset 0 -2px 0 hsl(var(--primary) / .92);
+  color: var(--trace-ink);
+}
+.nx-trace-lab > .nx-trace-nav > .nx-trace-nav-item[aria-pressed="true"] svg {
+  color: hsl(var(--primary));
+}
+.nx-trace-lab > .nx-trace-nav > .nx-trace-nav-item:not([aria-pressed="true"]):hover {
+  border-color: hsl(var(--primary) / .25);
+  background: hsl(var(--primary) / .055);
+  color: var(--trace-ink);
+}
+.nx-trace-lab > .nx-trace-nav .nx-trace-nav-item:focus-visible { outline: 2px solid hsl(var(--ring)); outline-offset: 2px; }
+/* Status and monitoring are always informational. */
+.nx-trace-lab .nx-trace-monitor,
+.nx-trace-lab .nx-trace-scan-panel,
+.nx-trace-lab .nx-trace-query-panel,
+.nx-trace-lab .nx-trace-history-scanner,
+.nx-trace-lab .nx-trace-legacy-search,
+.nx-trace-lab .nx-trace-legacy-import,
+.nx-trace-lab .nx-trace-release-form {
+  border: 1px solid var(--trace-line);
+  border-radius: 17px;
+  background: var(--trace-card);
+  box-shadow: 0 17px 39px -35px hsl(215 67% 23% / .48), inset 0 1px 0 hsl(var(--background) / .7);
+}
+.nx-trace-lab .nx-trace-monitor {
+  position: relative;
+  padding: 1.25rem;
+  background:
+    linear-gradient(115deg, hsl(var(--card)), hsl(var(--secondary) / .19));
+}
+.nx-trace-section-kicker {
+  color: hsl(var(--primary));
+  font-size: .65rem;
+  font-weight: 850;
+  letter-spacing: .125em;
+  margin-bottom: .42rem;
+}
+.nx-trace-monitor h2 { color: var(--trace-ink); font-size: .94rem; font-weight: 820; letter-spacing: -.012em; }
+.nx-trace-monitor > div:first-child p { margin-top: .25rem; line-height: 1.55; }
+.nx-trace-monitor-grid { gap: .8rem; }
+.nx-trace-lab .nx-trace-monitor-item,
+.nx-trace-lab .nx-trace-monitor-config {
+  position: relative;
+  overflow: hidden;
+  min-height: 128px;
+  padding: 1.05rem;
+  border: 1px solid hsl(var(--border) / .85);
+  border-radius: 12px;
+  background: hsl(var(--background) / .62);
+  box-shadow: none;
+  text-align: left;
+}
+.nx-trace-lab .nx-trace-monitor-item::before,
+.nx-trace-lab .nx-trace-monitor-config::before {
+  content: "";
+  position: absolute;
+  left: 1rem;
+  top: 0;
+  height: 2px;
+  width: 35px;
+  border-radius: 0 0 3px 3px;
+  background: hsl(var(--primary) / .7);
+}
+.nx-trace-lab .nx-trace-monitor-item:nth-child(2)::before { background: hsl(var(--warning) / .85); }
+.nx-trace-monitor-grid > :is(button,div) > div:first-child {
+  color: var(--trace-muted);
+  font-size: .74rem;
+  font-weight: 760;
+}
+.nx-trace-monitor-grid > button > p:nth-child(2) {
+  margin-top: .85rem;
+  font-size: 2rem;
+  color: var(--trace-ink);
+  font-variant-numeric: tabular-nums;
+  font-weight: 830;
+  letter-spacing: -.055em;
+}
+.nx-trace-monitor-grid > button > p:last-child { margin-top: .42rem; line-height: 1.5; }
+.nx-trace-lab .nx-trace-monitor-item[aria-pressed="true"] {
+  border-color: hsl(var(--primary) / .65);
+  background: hsl(var(--primary) / .075);
+  box-shadow: 0 0 0 2px hsl(var(--primary) / .07);
+}
+.nx-trace-monitor-config select {
+  min-height: 42px;
+  border-radius: 9px;
+  border-color: var(--trace-line);
+  background: var(--trace-card);
+}
+.nx-trace-workbench {
+  grid-template-columns: minmax(250px, .66fr) minmax(0, 2fr);
+  align-items: stretch;
+  gap: .85rem;
+}
+.nx-trace-lab .nx-trace-scan-panel {
+  position: relative;
+  padding: 1.15rem;
+  border-color: hsl(var(--primary) / .25);
+  background:
+    radial-gradient(ellipse 82% 105% at 100% 0%, hsl(var(--primary) / .09), transparent 74%),
+    hsl(var(--card));
+}
+.nx-trace-scan-panel h3 {
+  color: var(--trace-ink);
+  font-size: .88rem;
+  font-weight: 825;
+  padding-bottom: .7rem;
+  border-bottom: 1px solid var(--trace-line);
+}
+.nx-trace-lab .nx-trace-scan-panel input,
+.nx-trace-lab .nx-trace-history-scanner input,
+.nx-trace-lab .nx-trace-legacy-search input {
+  min-height: 49px;
+  border: 1px solid hsl(var(--primary) / .33);
+  border-radius: 10px;
+  background: hsl(var(--background) / .83);
+  font-variant-numeric: tabular-nums;
+}
+.nx-trace-lab .nx-trace-query-panel {
+  padding: 1.1rem;
+}
+.nx-trace-query-panel > div:first-child input,
+.nx-trace-query-panel [role="combobox"] {
+  min-height: 43px;
+  border-radius: 9px;
+  border-color: var(--trace-line);
+  background: hsl(var(--background) / .77);
+}
+.nx-trace-status-tabs {
+  gap: .42rem;
+  padding: .75rem 0;
+  border-bottom: 1px solid hsl(var(--border) / .6);
+}
+.nx-trace-status-tabs > button {
+  min-height: 37px;
+  padding-inline: .77rem;
+  border: 1px solid hsl(var(--border) / .8);
+  border-radius: 8px;
+  color: var(--trace-muted);
+  background: hsl(var(--secondary) / .2);
+  font-size: .75rem;
+  font-weight: 750;
+  box-shadow: none;
+}
+.nx-trace-status-tabs > button[data-active="true"],
+.nx-trace-status-tabs > button[data-state="active"],
+.nx-trace-status-tabs > button.bg-primary {
+  color: hsl(var(--foreground));
+  border-color: hsl(var(--primary) / .35);
+  background: hsl(var(--primary) / .13);
+  box-shadow: inset 0 -2px 0 hsl(var(--primary));
+}
+/* Serial inventory: coded rows, deliberate spacing, technical identifier typography. */
+.nx-trace-lab .nx-trace-table {
+  border: 1px solid var(--trace-line);
+  overflow: hidden;
+  border-radius: 15px;
+  background: hsl(var(--card));
+  box-shadow: 0 16px 37px -31px hsl(215 65% 22% / .47);
+}
+.nx-trace-table thead tr {
+  background: hsl(var(--secondary) / .42);
+}
+.nx-trace-lab .nx-trace-table th {
+  height: 57px;
+  padding: .95rem;
+  color: hsl(var(--muted-foreground));
+  font-size: .68rem;
+  letter-spacing: .1em;
+  font-weight: 820;
+  text-transform: uppercase;
+}
+.nx-trace-table tbody tr { height: 78px; border-color: hsl(var(--border) / .62); }
+.nx-trace-table tbody tr:nth-child(even) { background: hsl(var(--secondary) / .08); }
+.nx-trace-table tbody tr:hover { background: hsl(var(--primary) / .06); }
+.nx-trace-table tbody td { padding: .9rem .95rem; }
+.nx-trace-serial-value {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: .82rem;
+  font-weight: 750;
+  color: var(--trace-ink);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -.018em;
+}
+/* Serial history: evidence dossier + provenance + chronological ledger. */
+.nx-trace-lab .nx-trace-history-scanner {
+  position: relative;
+  padding: 1.25rem;
+  border-color: hsl(var(--primary) / .29);
+  background:
+    linear-gradient(95deg, hsl(var(--primary) / .055), transparent 55%),
+    var(--trace-card);
+}
+.nx-trace-lab .nx-trace-history-scanner::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 1.2rem;
+  width: 48px;
+  height: 3px;
+  border-radius: 0 0 4px 4px;
+  background: var(--trace-accent);
+}
+.nx-trace-history > .nx-trace-identity-card {
+  border: 1px solid hsl(var(--primary) / .24);
+  border-radius: 16px;
+  padding: 1.3rem;
+  background:
+    radial-gradient(ellipse 46% 85% at 100% -25%, hsl(var(--primary) / .11), transparent 82%),
+    var(--trace-card);
+}
+.nx-trace-identity-card > div:first-child > div:first-child {
+  align-items: center;
+}
+.nx-trace-identity-card > div:first-child p.font-tabular {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  color: hsl(var(--primary));
+}
+.nx-trace-history .nx-trace-timeline-card {
+  border: 1px solid var(--trace-line);
+  border-radius: 16px;
+  background: var(--trace-card);
+  padding: 1.3rem;
+}
+.nx-trace-timeline-card > h3 {
+  padding-bottom: .95rem;
+  border-bottom: 1px solid var(--trace-line);
+  color: var(--trace-ink);
+  font-size: .92rem;
+  font-weight: 820;
+}
+.nx-trace-timeline-card ol { margin-top: 1rem; }
+.nx-trace-timeline-card ol li {
+  min-height: 68px;
+  padding-bottom: .85rem;
+  border-left-color: hsl(var(--primary) / .23);
+}
+.nx-trace-timeline-card ol li > span:first-child {
+  background: hsl(var(--primary));
+  box-shadow: 0 0 0 4px hsl(var(--primary) / .10);
+}
+.nx-trace-multisite,
+.nx-trace-archived-record {
+  overflow: hidden;
+  border: 1px solid var(--trace-line) !important;
+  border-radius: 16px !important;
+  background: var(--trace-card) !important;
+  box-shadow: 0 17px 36px -33px hsl(215 65% 20% / .45);
+}
+.nx-trace-multisite > div:first-child {
+  border-bottom: 1px solid var(--trace-line);
+  background:
+    linear-gradient(92deg, hsl(var(--primary) / .08), hsl(var(--card)) 78%) !important;
+}
+.nx-trace-multisite > div:first-child h3 { font-size: .94rem; letter-spacing: -.02em; }
+.nx-trace-multisite ol li { border-left-color: hsl(var(--primary) / .26); }
+.nx-trace-multisite ol li > span:first-child { box-shadow: 0 0 0 4px hsl(var(--primary) / .09); }
+.nx-trace-archived-record > div:first-child {
+  border-bottom: 1px solid var(--trace-line);
+  padding-bottom: 1rem;
+}
+.nx-trace-archived-record ol li { border-left-color: hsl(var(--primary) / .23); }
+/* Historical serials: archival library with inset tabs and file-style cards. */
+.nx-trace-legacy {
+  width: 100%;
+  min-width: 0;
+}
+.nx-trace-legacy-tabs {
+  gap: 0;
+  padding-bottom: 0;
+  border-bottom: 1px solid var(--trace-line);
+}
+.nx-trace-legacy-tabs > button {
+  min-height: 43px;
+  margin: 0 .8rem 0 0;
+  padding: .5rem .6rem .8rem;
+  border: none;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  color: var(--trace-muted);
+  font-weight: 790;
+  font-size: .79rem;
+}
+.nx-trace-legacy-tabs > button[aria-pressed="true"] {
+  border-bottom-color: hsl(var(--primary));
+  background: transparent;
+  color: hsl(var(--primary));
+  box-shadow: none;
+}
+.nx-trace-legacy-search,
+.nx-trace-legacy-import {
+  padding: 1.25rem;
+}
+.nx-trace-legacy-search .rounded-2xl.border,
+.nx-trace-legacy-import .rounded-md.border {
+  border-color: var(--trace-line);
+}
+.nx-trace-legacy .font-tabular {
+  font-variant-numeric: tabular-nums;
+}
+.nx-trace-legacy .font-mono { overflow-wrap: anywhere; }
+/* Controlled release is an admin console rather than another work order. */
+.nx-trace-release-form {
+  padding: clamp(1.15rem, 2.5vw, 1.85rem);
+  border-color: hsl(var(--primary) / .26) !important;
+  background:
+    linear-gradient(96deg, hsl(var(--primary) / .055), transparent 42%),
+    var(--trace-card) !important;
+}
+.nx-trace-release-heading {
+  padding-bottom: 1.1rem;
+  margin-bottom: 1.2rem;
+  border-bottom: 1px solid var(--trace-line);
+}
+.nx-trace-release-heading h2 {
+  font-size: clamp(1.12rem, 2vw, 1.48rem);
+  font-weight: 830;
+  letter-spacing: -.04em;
+}
+.nx-trace-release-heading p {
+  margin-top: .4rem;
+  max-width: 580px;
+  color: var(--trace-muted);
+  font-size: .81rem;
+  line-height: 1.55;
+}
+.nx-trace-release-form label {
+  display: block;
+  color: var(--trace-ink);
+  font-weight: 760;
+  font-size: .8rem;
+}
+.nx-trace-release-form input,
+.nx-trace-release-form textarea {
+  border: 1px solid var(--trace-line);
+  border-radius: 10px;
+  background: hsl(var(--background) / .8);
+}
+.nx-trace-release-form textarea {
+  min-height: 145px;
+  padding: .9rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: .82rem;
+  line-height: 1.7;
+}
+.nx-trace-release-form > div:last-child button,
+.nx-trace-release-form > button {
+  min-height: 46px;
+  border-radius: 10px;
+}
+.nx-trace-release > section:last-child ul {
+  border-color: var(--trace-line);
+  border-radius: 11px;
+}
+.nx-trace-release > section:last-child li:nth-child(2n) { background: hsl(var(--secondary) / .09); }
+/* The unit dossier lives in a sheet portal and needs a global class scope. */
+.nx-trace-unit-sheet {
+  border-left: 1px solid hsl(var(--primary) / .29);
+  background:
+    linear-gradient(145deg, hsl(var(--primary) / .044), transparent 47%),
+    hsl(var(--card));
+  box-shadow: -22px 0 60px -37px rgb(0 0 0 / .4);
+}
+.nx-trace-unit-sheet > div:first-child { border-bottom: 1px solid hsl(var(--border) / .75); padding-bottom: 1.15rem; }
+.nx-trace-unit-sheet h2 {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: clamp(1.3rem, 2vw, 1.72rem);
+  letter-spacing: -.035em;
+}
+.nx-trace-unit-sheet section[aria-label="Historial del serial"] {
+  border-radius: 12px;
+  border-color: hsl(var(--primary) / .21);
+  background: hsl(var(--card));
+}
+.nx-trace-unit-sheet section[aria-label="Historial del serial"] > div:first-child {
+  background: linear-gradient(105deg, hsl(var(--primary) / .085), hsl(var(--card)));
+}
+.nx-trace-unit-sheet section[aria-label="Historial del serial"] ol li { border-color: hsl(var(--primary) / .21); }
+.nx-trace-unit-sheet input, .nx-trace-unit-sheet textarea { border-radius: 9px; }
+.dark .nx-trace-lab > .nx-trace-masthead,
+.dark .nx-trace-lab .nx-trace-monitor,
+.dark .nx-trace-lab .nx-trace-query-panel,
+.dark .nx-trace-lab .nx-trace-scan-panel,
+.dark .nx-trace-lab .nx-trace-history-scanner {
+  box-shadow: 0 18px 39px -33px rgb(0 0 0 / .81), inset 0 1px 0 hsl(var(--foreground) / .04);
+}
+.dark .nx-trace-lab > .nx-trace-nav { background: hsl(var(--card) / .94); }
+.dark .nx-trace-lab .nx-trace-monitor-item,
+.dark .nx-trace-lab .nx-trace-monitor-config { background: hsl(var(--background) / .52); }
+@media (max-width: 1100px) {
+  .nx-trace-workbench { grid-template-columns: 1fr; }
+}
+@media (max-width: 767px) {
+  .nx-trace-lab { gap: .95rem; }
+  .nx-trace-lab > .nx-trace-masthead { border-radius: 16px; }
+  .nx-trace-masthead-top,
+  .nx-trace-masthead-foot { padding: .65rem 1rem; font-size: .55rem; }
+  .nx-trace-version { display: none; }
+  .nx-trace-lab .nx-trace-page-title { min-height: 0; padding: 1.45rem 1rem; }
+  .nx-trace-lab .nx-trace-page-title h1 { font-size: 1.95rem; }
+  .nx-serial-trace-premium.nx-trace-lab > .nx-trace-nav {
+    top: .3rem;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: .4rem;
+    padding: .45rem;
+    border-radius: 12px;
+  }
+  .nx-trace-lab > .nx-trace-nav > .nx-trace-nav-item { min-height: 43px; padding: .45rem .5rem; font-size: .75rem; }
+  .nx-trace-lab .nx-trace-monitor { padding: 1rem; }
+  .nx-trace-monitor-grid { grid-template-columns: 1fr; }
+  .nx-trace-lab .nx-trace-monitor-item,
+  .nx-trace-lab .nx-trace-monitor-config { min-height: 103px; padding: .85rem; }
+  .nx-trace-monitor-grid > button > p:nth-child(2) { font-size: 1.7rem; margin-top: .45rem; }
+  .nx-trace-lab .nx-trace-scan-panel,
+  .nx-trace-lab .nx-trace-query-panel,
+  .nx-trace-lab .nx-trace-history-scanner { padding: 1rem; }
+  .nx-trace-status-tabs { flex-wrap: nowrap; overflow-x: auto; padding: .5rem .1rem .85rem; scrollbar-width: thin; }
+  .nx-trace-status-tabs > button { flex: none; white-space: nowrap; }
+  .nx-trace-lab .nx-trace-table { border-radius: 12px; }
+  .nx-trace-unit-sheet { max-width: 100%; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .nx-trace-lab :is(button,a,input,textarea),
+  .nx-trace-unit-sheet :is(button,a) {
+    transition: none !important;
+    transform: none !important;
+  }
+}

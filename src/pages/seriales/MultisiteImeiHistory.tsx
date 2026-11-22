@@ -107,7 +107,7 @@ export const MultisiteImeiHistory=({unitId,serial,receivedAt,legacyTimeline}:{
     }finally{setExporting(false);}
   };
   return <section aria-label="Historial de ubicación inicial del IMEI"
-    className="overflow-hidden rounded-2xl border border-border/80 bg-card text-card-foreground shadow-sm">
+    className="nx-trace-multisite overflow-hidden rounded-2xl border border-border/80 bg-card text-card-foreground shadow-sm">
     <div className="flex flex-wrap items-start justify-between gap-3 bg-gradient-to-r from-emerald-50 via-white to-sky-50 p-4 dark:from-slate-950 dark:via-slate-900 dark:to-emerald-950 sm:p-5">
       <div className="flex items-start gap-3">
         <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-emerald-100 text-emerald-900 dark:bg-emerald-400/10 dark:text-emerald-200">

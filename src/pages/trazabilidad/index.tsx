@@ -1,4 +1,5 @@
 import "./trazabilidad-premium.css";
+import "./trazabilidad-intelligence.css";
 import { Archive, History, ScanLine, Unlock } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
@@ -47,14 +48,21 @@ const TrazabilidadSeriales = () => {
   };
 
   return (
-    <div className="nx-serial-trace-premium space-y-5 stagger">
-      <PageHeader
-        title={t("serialTrace.title")}
-        description={t("serialTrace.subtitle")}
-      />
+    <div className="nx-serial-trace-premium nx-trace-lab space-y-5 stagger">
+      <header className="nx-trace-masthead">
+        <div className="nx-trace-masthead-top">
+          <span className="nx-trace-identity"><ScanLine size={15} aria-hidden="true" /> NEXORA / INTELLIGENCE CENTER</span>
+          <span className="nx-trace-version">SERIAL TRACKING SYSTEM</span>
+        </div>
+        <PageHeader className="nx-trace-page-title" title={t("serialTrace.title")} description={t("serialTrace.subtitle")} />
+        <div className="nx-trace-masthead-foot">
+          <span><span className="nx-trace-signal" aria-hidden="true" /> IDENTIFICACIÓN DE EQUIPOS</span>
+          <span>CONSULTA / HISTORIAL / CONTROL</span>
+        </div>
+      </header>
 
       <div
-        className="grid grid-cols-2 gap-2 rounded-lg border bg-card p-2 shadow-sm sm:grid-cols-4"
+        className="nx-trace-nav grid grid-cols-2 gap-2 rounded-lg border bg-card p-2 shadow-sm sm:grid-cols-4"
         role="group"
         aria-label={t("serialTrace.tabsLabel")}
       >
@@ -62,7 +70,7 @@ const TrazabilidadSeriales = () => {
           type="button"
           variant={activeTab === "seriales" ? "default" : "outline"}
           size="sm"
-          className="min-w-0"
+          className="nx-trace-nav-item min-w-0"
           aria-pressed={activeTab === "seriales"}
           onClick={() => changeTab("seriales")}
         >
@@ -73,7 +81,7 @@ const TrazabilidadSeriales = () => {
           type="button"
           variant={activeTab === "historial" ? "default" : "outline"}
           size="sm"
-          className="min-w-0"
+          className="nx-trace-nav-item min-w-0"
           aria-pressed={activeTab === "historial"}
           onClick={() => changeTab("historial")}
         >
@@ -84,7 +92,7 @@ const TrazabilidadSeriales = () => {
           type="button"
           variant={activeTab === "previos" ? "default" : "outline"}
           size="sm"
-          className="min-w-0"
+          className="nx-trace-nav-item min-w-0"
           aria-pressed={activeTab === "previos"}
           onClick={() => changeTab("previos")}
         >
@@ -96,7 +104,7 @@ const TrazabilidadSeriales = () => {
             type="button"
             variant={activeTab === "liberar" ? "default" : "outline"}
             size="sm"
-            className="min-w-0"
+            className="nx-trace-nav-item min-w-0"
             aria-pressed={activeTab === "liberar"}
             onClick={() => changeTab("liberar")}
           >

@@ -72,7 +72,7 @@ export const UnitDetailSheet = ({
 
   return (
     <Sheet open={Boolean(unit)} onOpenChange={(open) => !open && onClose()}>
-      <SheetContent side="right" className="w-full overflow-y-auto pr-0 sm:max-w-2xl">
+      <SheetContent side="right" className="nx-trace-unit-sheet w-full overflow-y-auto pr-0 sm:max-w-2xl">
         <SheetHeader className="pr-6">
           <div className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-primary">
             <History className="h-4 w-4" aria-hidden="true" /> Hoja de vida del equipo

@@ -343,14 +343,15 @@ const SerialesPrevios = ({ embedded = false }: { embedded?: boolean }) => {
   };
 
   return (
-    <div className="space-y-5 stagger">
+    <div className="nx-trace-legacy space-y-5 stagger">
       {!embedded ? <PageHeader title={t("serialesPrevios.title")} description={t("serialesPrevios.subtitle")} /> : null}
 
-      <div className="flex flex-wrap gap-2">
+      <div className="nx-trace-legacy-tabs flex flex-wrap gap-2" role="group" aria-label="Consultar seriales previos">
         {(["buscar", "importar", "lista"] as Tab[]).map((option) => (
           <Button
             key={option}
             variant={tab === option ? "default" : "outline"}
+            aria-pressed={tab === option}
             size="sm"
             onClick={() => setTab(option)}
           >
@@ -360,7 +361,7 @@ const SerialesPrevios = ({ embedded = false }: { embedded?: boolean }) => {
       </div>
 
       {tab === "buscar" ? (
-        <section className="space-y-3 rounded-lg border bg-card p-4 shadow-sm">
+        <section className="nx-trace-legacy-search space-y-3 rounded-lg border bg-card p-4 shadow-sm">
           <SerialScanInput onScan={setBuscado} hint={t("serialesPrevios.buscarHint")} />
           {buscado ? (
             encontrado ? (
@@ -491,7 +492,7 @@ const SerialesPrevios = ({ embedded = false }: { embedded?: boolean }) => {
       {tab === "importar" ? (
         isAdmin ? (
           <div className="space-y-4">
-            <section className="space-y-3 rounded-lg border bg-card p-4 shadow-sm">
+            <section className="nx-trace-legacy-import space-y-3 rounded-lg border bg-card p-4 shadow-sm">
               <div className="flex items-start gap-3">
                 <FileSpreadsheet className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
                 <div className="space-y-1">

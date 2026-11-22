@@ -190,10 +190,11 @@ const HistorialSerial = ({ embedded = false }: { embedded?: boolean }) => {
   const liberable = unit && !enPedidoActivo && ["en_bodega", "defectuoso"].includes(unit.status);
 
   return (
-    <div className="nx-serial-center space-y-5 stagger">
+    <div className="nx-serial-center nx-trace-history space-y-5 stagger">
       {!embedded ? <PageHeader title={t("serialHistory.title")} description={t("serialHistory.subtitle")} /> : null}
 
-      <section className="space-y-2 rounded-lg border bg-card p-4 shadow-sm">
+      <section className="nx-trace-history-scanner space-y-2 rounded-lg border bg-card p-4 shadow-sm">
+        <div className="nx-trace-section-kicker">CONSULTA FORENSE / SERIAL O IMEI</div>
         <SerialScanInput onScan={handleScan} />
       </section>
 
@@ -397,7 +398,7 @@ const HistorialSerial = ({ embedded = false }: { embedded?: boolean }) => {
 
       {unit ? (
         <>
-          <section className="rounded-lg border bg-card p-4 shadow-sm">
+          <section className="nx-trace-identity-card rounded-lg border bg-card p-4 shadow-sm">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div className="flex min-w-0 items-start gap-3">
                 <ProductThumbnail src={product?.imageUrl} alt={product?.name ?? "Referencia"} size="lg" />
@@ -624,7 +625,7 @@ const HistorialSerial = ({ embedded = false }: { embedded?: boolean }) => {
           <MultisiteImeiHistory key={unit.id} unitId={unit.id} serial={unit.serial}
             receivedAt={unit.receivedAt} legacyTimeline={timeline} />
 
-          <section className="rounded-lg border bg-card p-4 shadow-sm">
+          <section className="nx-trace-timeline-card rounded-lg border bg-card p-4 shadow-sm">
             <h3 className="mb-4 flex items-center gap-2 text-sm font-semibold">
               <History className="h-4 w-4 text-primary" />
               {t("serialHistory.timeline")}

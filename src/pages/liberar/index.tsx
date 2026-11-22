@@ -49,10 +49,15 @@ const LiberarSeriales = ({ embedded = false }: { embedded?: boolean }) => {
   const conProblema = resultados ? resultados.length - liberados : 0;
 
   return (
-    <div className="space-y-5 stagger">
+    <div className="nx-trace-release space-y-5 stagger">
       {!embedded ? <PageHeader title={t("liberar.title")} description={t("liberar.subtitle")} /> : null}
 
-      <section className="space-y-3 rounded-lg border bg-card p-4 shadow-sm">
+      <section className="nx-trace-release-form space-y-3 rounded-lg border bg-card p-4 shadow-sm">
+        <div className="nx-trace-release-heading">
+          <div className="nx-trace-section-kicker">ADMINISTRACIÓN / OPERACIÓN AUTORIZADA</div>
+          <h2>Liberación de identificadores</h2>
+          <p>Prepara la lista de seriales y verifica la información antes de confirmar.</p>
+        </div>
         <div className="space-y-2">
           <Label>{t("liberar.motivo")}</Label>
           <Input

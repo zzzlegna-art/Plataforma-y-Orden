@@ -61,7 +61,7 @@ export const ArchivedImeiHistoryPanel = ({ trace }: { trace: ArchivedImeiTrace }
   const hasImage = Boolean(trace.product.imageUrl);
 
   return (
-    <section aria-label="Hoja de vida histórica del serial" className="space-y-4 rounded-2xl border border-primary/25 bg-card p-4 shadow-sm sm:p-5">
+    <section aria-label="Hoja de vida histórica del serial" className="nx-trace-archived-record space-y-4 rounded-2xl border border-primary/25 bg-card p-4 shadow-sm sm:p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="flex items-center gap-3">
           <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary">
