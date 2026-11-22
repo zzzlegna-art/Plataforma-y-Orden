@@ -63,27 +63,6 @@ export type Database = {
         }
         Relationships: []
       }
-      bodega_categories: {
-        Row: {
-          created_at: string
-          description: string | null
-          id: string
-          name: string
-        }
-        Insert: {
-          created_at?: string
-          description?: string | null
-          id?: string
-          name: string
-        }
-        Update: {
-          created_at?: string
-          description?: string | null
-          id?: string
-          name?: string
-        }
-        Relationships: []
-      }
       bodega_customers: {
         Row: {
           address: string | null
@@ -379,7 +358,6 @@ export type Database = {
           color_variants: Json
           brand_id: string | null
           categoria: string | null
-          category_id: string | null
           control_started_at: string | null
           control_started_by: string | null
           created_at: string
@@ -398,7 +376,6 @@ export type Database = {
           color_variants?: Json
           brand_id?: string | null
           categoria?: string | null
-          category_id?: string | null
           control_started_at?: string | null
           control_started_by?: string | null
           created_at?: string
@@ -417,7 +394,6 @@ export type Database = {
           color_variants?: Json
           brand_id?: string | null
           categoria?: string | null
-          category_id?: string | null
           control_started_at?: string | null
           control_started_by?: string | null
           created_at?: string
@@ -438,13 +414,6 @@ export type Database = {
             columns: ["brand_id"]
             isOneToOne: false
             referencedRelation: "bodega_brands"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "bodega_products_category_id_fkey"
-            columns: ["category_id"]
-            isOneToOne: false
-            referencedRelation: "bodega_categories"
             referencedColumns: ["id"]
           },
         ]

@@ -15,7 +15,6 @@ import { soloFecha } from "./dates";
 import type {
   AuditLog,
   Brand,
-  Category,
   Customer,
   Db,
   Order,
@@ -116,23 +115,6 @@ const spec = <T,>(definicion: Spec<T>): Spec<unknown> => definicion as unknown a
  * (catálogo → inventario → comercio → garantías → bitácoras).
  */
 const ESPECIFICACIONES: Spec<unknown>[] = [
-  spec<Category>({
-    coleccion: "categories",
-    tabla: "bodega_categories",
-    borrable: true,
-    aFila: (c) => ({
-      id: c.id,
-      name: c.name,
-      description: nulo(c.description),
-      created_at: c.createdAt,
-    }),
-    desdeFila: (f) => ({
-      id: String(f.id),
-      name: texto(f.name) ?? "Sin nombre",
-      description: texto(f.description) ?? undefined,
-      createdAt: fecha(f.created_at),
-    }),
-  }),
   spec<ProductType>({
     coleccion: "productTypes",
     tabla: "bodega_product_types",
@@ -179,7 +161,6 @@ const ESPECIFICACIONES: Spec<unknown>[] = [
         ...(variant.imageUrl ? { imageUrl: variant.imageUrl } : {}),
         ...(variant.swatchHex ? { swatchHex: variant.swatchHex } : {}),
       })),
-      category_id: nulo(p.categoryId),
       brand_id: nulo(p.brandId),
       categoria: nulo(p.categoria),
       tipo_repuesto: nulo(p.tipoRepuesto),
@@ -203,7 +184,6 @@ const ESPECIFICACIONES: Spec<unknown>[] = [
         true,
         false,
       ),
-      categoryId: texto(f.category_id) ?? undefined,
       brandId: texto(f.brand_id) ?? undefined,
       categoria: (texto(f.categoria) as Product["categoria"]) ?? undefined,
       tipoRepuesto: (texto(f.tipo_repuesto) as Product["tipoRepuesto"]) ?? undefined,

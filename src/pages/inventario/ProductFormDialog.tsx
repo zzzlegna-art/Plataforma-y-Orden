@@ -166,7 +166,6 @@ export const ProductFormDialog = ({
             sku: currentProduct.sku,
             name: currentProduct.name,
             description: currentProduct.description ?? "",
-            categoryId: currentProduct.categoryId ?? "",
             brandId: currentProduct.brandId ?? "",
             categoria: currentProduct.categoria ?? "",
             minStock: String(currentProduct.minStock),
@@ -336,7 +335,6 @@ export const ProductFormDialog = ({
         imageUrl,
         technicalSpecs: getProductTechnicalSpecsForCategory(form.categoria, technicalSpecs, technicalEnabled) ?? {},
         colorVariants: form.categoria === "repuesto" ? [] : variantsWithPhotos,
-        categoryId: form.categoryId || undefined,
         brandId: form.brandId || undefined,
         categoria: (form.categoria || undefined) as ProductCategory | undefined,
         minStock: Number(form.minStock),
@@ -487,18 +485,6 @@ export const ProductFormDialog = ({
               }))}
             />
             <p className="text-xs text-muted-foreground">{t("product.typeHint")}</p>
-          </div>
-          <div className="space-y-2">
-            <Label>{t("product.category")}</Label>
-            <OptionSelect
-              value={form.categoryId}
-              onChange={(value) => setForm({ ...form, categoryId: value })}
-              emptyLabel={t("common.none")}
-              options={db.categories.map((category) => ({
-                value: category.id,
-                label: category.name,
-              }))}
-            />
           </div>
           <div className="space-y-2">
             <Label>{t("product.brand")}</Label>

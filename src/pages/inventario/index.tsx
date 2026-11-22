@@ -234,13 +234,11 @@ const TECHNICAL_SPEC_ICONS: Record<ProductTechnicalSpecKey, LucideIcon> = {
 const ProductThumbnail = ({
   product,
   brandName,
-  categoryName,
   technicalEnabled,
   size = "sm",
 }: {
   product: Product;
   brandName?: string;
-  categoryName?: string;
   technicalEnabled?: boolean;
   size?: "sm" | "md";
 }) => {
@@ -341,7 +339,6 @@ const ProductThumbnail = ({
             </div>
             <div className="nx-inventory-zoom-meta" aria-label="Información del producto">
               {brandName ? <span className="nx-inventory-zoom-pill">{brandName}</span> : null}
-              {categoryName ? <span className="nx-inventory-zoom-pill">{categoryName}</span> : null}
               <span className="nx-inventory-zoom-pill font-tabular">{product.sku}</span>
             </div>
           </DialogHeader>
@@ -609,7 +606,6 @@ const Inventario = () => {
           row.product.sku,
           row.product.description,
           row.brand?.name,
-          row.category?.name,
           row.product.categoria,
           productType ? etiquetaTipoProducto(t, productType) : undefined,
           ...standardSpecValues,
@@ -643,7 +639,7 @@ const Inventario = () => {
       index + 1,
       row.product.sku,
       row.product.name,
-      row.category?.name ?? "—",
+      productTypesByKey.get(row.product.categoria)?.name ?? "—",
       row.brand?.name ?? "—",
       row.stock.disponible,
       row.stock.enPedidos,
@@ -654,7 +650,7 @@ const Inventario = () => {
       "#",
       t("product.sku"),
       t("export.producto"),
-      t("export.categoria"),
+      t("export.productType"),
       t("export.marca"),
       t("product.available"),
       "En pedidos (no disponibles)",
@@ -713,10 +709,7 @@ const Inventario = () => {
         name: row.product.name,
         sku: row.product.sku,
         brand: row.brand?.name ?? "",
-        category: [
-          productType ? etiquetaTipoProducto(t, productType) : "",
-          row.category?.name ?? "",
-        ].filter(Boolean).join(" / "),
+        productType: productType ? etiquetaTipoProducto(t, productType) : "",
         description: row.product.description?.trim() ?? "",
         imageUrl: row.product.imageUrl ?? "",
         stock: row.stock.enInventario,
@@ -728,7 +721,7 @@ const Inventario = () => {
       product: t("export.producto"),
       reference: t("product.sku"),
       brand: t("export.marca"),
-      category: t("export.categoria"),
+      productType: t("export.productType"),
       description: t("product.description"),
       features: t("product.technicalDetails"),
       stock: t("product.enInventario"),
@@ -757,7 +750,7 @@ const Inventario = () => {
           labels.product,
           labels.reference,
           labels.brand,
-          labels.category,
+          labels.productType,
           labels.description,
           labels.features,
           labels.imageUrl,
@@ -767,7 +760,7 @@ const Inventario = () => {
           product.name,
           product.sku,
           product.brand ?? "",
-          product.category ?? "",
+          product.productType ?? "",
           product.description ?? "",
           (product.features ?? []).map((feature) => `${feature.label}: ${feature.value}`).join(" | "),
           product.imageUrl ?? "",
@@ -812,7 +805,6 @@ const Inventario = () => {
         <ProductThumbnail
           product={row.product}
           brandName={row.brand?.name}
-          categoryName={row.category?.name}
           technicalEnabled={supportsTechnicalSpecs(row.product)}
           size="md"
         />
@@ -830,9 +822,6 @@ const Inventario = () => {
               {!row.product.isActive ? <ActiveBadge isActive={false} /> : null}
             </div>
           </div>
-          {row.category ? (
-            <p className="text-xs text-muted-foreground">{row.category.name}</p>
-          ) : null}
         </div>
       </div>
       <div className="flex flex-wrap items-center justify-between gap-1 border-t border-border/60 pt-3 text-sm">
@@ -961,7 +950,7 @@ const Inventario = () => {
           <OptionSelect
             value={tipo}
             onChange={(value) => setTipo(value as "" | ProductCategory)}
-            emptyLabel={t("product.allCategories")}
+            emptyLabel={t("product.allProductTypes")}
             options={[
               { value: "celular", label: t("productCat.celular") },
               { value: "tablet", label: t("productCat.tablet") },
@@ -1076,7 +1065,6 @@ const Inventario = () => {
                 <ProductThumbnail
                   product={row.product}
                   brandName={row.brand?.name}
-                  categoryName={row.category?.name}
                   technicalEnabled={supportsTechnicalSpecs(row.product)}
                 />
                 <div className="min-w-0 space-y-1">
@@ -1098,18 +1086,9 @@ const Inventario = () => {
           },
           {
             key: "catalog",
-            header: t("product.categoryBrand"),
+            header: t("product.typeBrand"),
             cell: (row) =>
-              row.category || row.brand ? (
-                <div className="space-y-0.5 text-sm">
-                  {row.category ? <p>{row.category.name}</p> : null}
-                  {row.brand ? (
-                    <p className="text-xs text-muted-foreground">{row.brand.name}</p>
-                  ) : null}
-                </div>
-              ) : (
-                <span className="text-muted-foreground">—</span>
-              ),
+              row.brand ? <span className="text-sm">{row.brand.name}</span> : <span className="text-muted-foreground">—</span>,
           },
           {
             key: "condition",
@@ -1267,12 +1246,12 @@ const Inventario = () => {
 
         <div className="space-y-2">
           <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            {t("catalog.category")}
+            {t("catalog.productType")}
           </Label>
           <OptionSelect
             value={catalogCat}
             onChange={setCatalogCat}
-            emptyLabel={t("catalog.allCategories")}
+            emptyLabel={t("catalog.allProductTypes")}
             options={tiposProductoOrdenados(db).map((type) => ({
               value: type.key,
               label: etiquetaTipoProducto(t, type),

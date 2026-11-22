@@ -202,13 +202,13 @@ describe("fichas técnicas de relojes", () => {
       subtitle: "2 registros",
       filename: "catalogo-relojes.pdf",
       products: [
-        { name: "Watch Serie 11 - 42", sku: "WASE11-42", brand: "Apple", category: "Relojes", features: makeFeatures() },
-        { name: "Watch Serie 11 - 46", sku: "WASE11-46", brand: "Apple", category: "Relojes", features: makeFeatures() },
+        { name: "Watch Serie 11 - 42", sku: "WASE11-42", brand: "Apple", productType: "Relojes", features: makeFeatures() },
+        { name: "Watch Serie 11 - 46", sku: "WASE11-46", brand: "Apple", productType: "Relojes", features: makeFeatures() },
       ],
       includeStock: false,
       labels: {
         image: "Imagen", openImage: "Abrir imagen", product: "Producto",
-        reference: "SKU", brand: "Marca", category: "Categoría",
+        reference: "SKU", brand: "Marca", productType: "Categoría",
         description: "Descripción", features: "Características del equipo",
 stock: "Existencias", noDescription: "Sin descripción",
         noFeatures: "Sin características", imageUnavailable: "Sin imagen",
@@ -262,13 +262,13 @@ describe("codificación de textos técnicos en PDF del inventario", () => {
 
   it("exporta relojes y celulares con Wi-Fi Unicode sin desbordar ni alterar sus datos", async () => {
     const items = [
-      { name: "Watch Serie 11 - 42", sku: "WASE11-42", brand: "Apple", category: "Relojes",
+      { name: "Watch Serie 11 - 42", sku: "WASE11-42", brand: "Apple", productType: "Relojes",
         features: [
           { label: "Almacenamiento", value: "64 GB" },
           { label: "Conectividad", value: WATCH_CONNECTIVITY },
           { label: "Sensores", value: "Frecuencia cardíaca, oxígeno en sangre y brújula" },
         ] },
-      { name: "iPhone 12 128 GB", sku: "IP12-128", brand: "Apple", category: "Celulares",
+      { name: "iPhone 12 128 GB", sku: "IP12-128", brand: "Apple", productType: "Celulares",
         features: [{ label: "Conectividad", value: PHONE_CONNECTIVITY }] },
     ];
     const doc = await exportProductCatalogPdf({
@@ -277,7 +277,7 @@ describe("codificación de textos técnicos en PDF del inventario", () => {
       products: items, includeStock: false,
       labels: {
         image: "Imagen", openImage: "Abrir imagen", product: "Producto",
-        reference: "SKU", brand: "Marca", category: "Categoría",
+        reference: "SKU", brand: "Marca", productType: "Categoría",
         description: "Descripción", features: "Características del equipo",
 stock: "Existencias", noDescription: "Sin descripción",
         noFeatures: "Sin características", imageUnavailable: "Sin imagen",
@@ -325,7 +325,7 @@ describe("catálogo PDF compacto para lotes", () => {
         name: "iPhone de prueba " + (i + 1),
         sku: "IPH-" + (i + 1),
         brand: "Apple",
-        category: "Celulares",
+        productType: "Celulares",
         features: [
           { label: "Almacenamiento", value: "128 GB" },
           { label: "RAM", value: "4 GB" },
@@ -338,7 +338,7 @@ describe("catálogo PDF compacto para lotes", () => {
       includeStock: false,
       labels: {
         image: "Imagen", openImage: "Abrir imagen", product: "Producto",
-        reference: "SKU", brand: "Marca", category: "Categoría",
+        reference: "SKU", brand: "Marca", productType: "Categoría",
         description: "Descripción", features: "Características del equipo",
 stock: "Existencias", noDescription: "Sin descripción",
         noFeatures: "Sin características", imageUnavailable: "Sin imagen",
@@ -365,7 +365,7 @@ describe("catálogo PDF con fichas como la referencia AirPods", () => {
         name: "Airpods 4 " + (i + 1),
         sku: "AI4-" + (i + 1),
         brand: "Apple",
-        category: "Audífonos",
+        productType: "Audífonos",
         features: [
           { label: "Procesador", value: "Chip H2 para audífonos" },
           { label: "Resistencia", value: "IP54: resistente al polvo, agua y sudor" },
@@ -379,7 +379,7 @@ describe("catálogo PDF con fichas como la referencia AirPods", () => {
       includeStock: false,
       labels: {
         image: "Imagen", openImage: "Abrir imagen", product: "Producto",
-        reference: "SKU", brand: "Marca", category: "Categoría",
+        reference: "SKU", brand: "Marca", productType: "Categoría",
         description: "Descripción", features: "Características del equipo",
 stock: "Existencias", noDescription: "Sin descripción",
         noFeatures: "Sin características", imageUnavailable: "Sin imagen",
@@ -407,7 +407,7 @@ stock: "Existencias", noDescription: "Sin descripción",
         name: "Equipo con especificaciones extensas",
         sku: "EXT-001",
         brand: "Apple",
-        category: "Accesorios",
+        productType: "Accesorios",
         features: [
           ...Array.from({ length: 70 }, (_, index) => ({
             label: "Detalle " + index,
@@ -419,7 +419,7 @@ stock: "Existencias", noDescription: "Sin descripción",
       includeStock: true,
       labels: {
         image: "Imagen", openImage: "Abrir imagen", product: "Producto",
-        reference: "SKU", brand: "Marca", category: "Categoría",
+        reference: "SKU", brand: "Marca", productType: "Categoría",
         description: "Descripción", features: "Características del equipo",
 stock: "Existencias", noDescription: "Sin descripción",
         noFeatures: "Sin características", imageUnavailable: "Sin imagen",
@@ -464,7 +464,7 @@ describe("catálogo PDF legible", () => {
         name: "iPad A16 128 GB " + (index + 1),
         sku: "A16-128-" + index,
         brand: "Apple",
-        category: "Tablets",
+        productType: "Tablets",
         features: [
           { label: "Almacenamiento", value: "128 GB" },
           { label: "Memoria RAM", value: "6 GB" },
@@ -476,7 +476,7 @@ describe("catálogo PDF legible", () => {
       includeStock: false,
       labels: {
         image: "Imagen", openImage: "Abrir imagen", product: "Producto",
-        reference: "SKU", brand: "Marca", category: "Categoría",
+        reference: "SKU", brand: "Marca", productType: "Categoría",
         description: "Descripción", features: "Características del equipo",
 stock: "Existencias", noDescription: "Sin descripción",
         noFeatures: "Sin características", imageUnavailable: "Sin imagen",
@@ -502,7 +502,7 @@ stock: "Existencias", noDescription: "Sin descripción",
         name: "Tablet para prueba " + (i + 1),
         sku: "SKU-PRUEBA-" + (i + 1),
         brand: "Apple",
-        category: "Tablets",
+        productType: "Tablets",
         description: "Equipo con pantalla brillante y conectividad de última generación.",
         stock: 5,
         features: Array.from({ length: 8 }, (_, j) => ({
@@ -513,7 +513,7 @@ stock: "Existencias", noDescription: "Sin descripción",
       includeStock: true,
       labels: {
         image: "Imagen", openImage: "Abrir imagen", product: "Producto",
-        reference: "SKU", brand: "Marca", category: "Categoría",
+        reference: "SKU", brand: "Marca", productType: "Categoría",
         description: "Descripción", features: "Características técnicas",
 stock: "Existencias", noDescription: "Sin descripción",
         noFeatures: "Sin características", imageUnavailable: "Sin imagen",
@@ -681,7 +681,7 @@ describe("exportExcel con miniaturas", () => {
         name: "Producto de prueba",
         sku: "SKU-001",
         brand: "Nexora",
-        category: "Accesorios",
+        productType: "Accesorios",
         imageUrl,
         description: "Descripción completa del producto",
         features: [{ label: "Color", value: "Negro" }, { label: "Memoria", value: "128 GB" }],
@@ -693,7 +693,7 @@ describe("exportExcel con miniaturas", () => {
         product: "Producto",
         reference: "Referencia",
         brand: "Marca",
-        category: "Categoría",
+        productType: "Categoría",
         description: "Descripción",
         features: "Características",
 stock: "Existencias",

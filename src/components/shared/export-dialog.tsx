@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/dialog";
 
 /**
- * Diálogo de exportación reutilizable: abre opciones (categoría, condición,
+ * Diálogo de exportación reutilizable: abre opciones (tipo de producto, condición,
  * filtros) y ejecuta onConfirm al confirmar, cerrando el diálogo.
  */
 export const ExportDialog = ({

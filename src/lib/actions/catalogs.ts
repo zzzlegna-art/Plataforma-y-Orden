@@ -4,7 +4,7 @@ import { createId, DomainError, logAudit, nowIso } from "../db";
 import { getProductTechnicalSpecsForCategory } from "../product-specs";
 import { skuBaseReferencia } from "../sku-engine";
 import { normalizarColor } from "../color-variants";
-import type { Actor, Brand, Category, Db, Product, ProductCategory, ProductColorVariant, ProductTechnicalSpecs, ProductType, TipoRepuesto } from "../types";
+import type { Actor, Brand, Db, Product, ProductCategory, ProductColorVariant, ProductTechnicalSpecs, ProductType, TipoRepuesto } from "../types";
 import { isSameText, requireNumber, requirePermission, requireText } from "./guards";
 
 /** SKU comercial, por categoría, tipo de repuesto, fabricante y modelo. Las colisiones reciben sufijo. */
@@ -147,75 +147,6 @@ export const deleteProductType = (db: Db, actor: Actor, input: { id: string }) =
   });
 };
 
-export const createCategory = (
-  db: Db,
-  actor: Actor,
-  input: { name: string; description?: string },
-): Category => {
-  requirePermission(actor, "users.manage");
-  const name = requireText(input.name, "errors.categoryNameRequired");
-  if (db.categories.some((category) => isSameText(category.name, name))) {
-    throw new DomainError("errors.categoryDuplicated");
-  }
-  const category: Category = {
-    id: createId(),
-    name,
-    description: input.description?.trim() || undefined,
-    createdAt: nowIso(),
-  };
-  db.categories.push(category);
-  logAudit(db, actor, {
-    action: "create",
-    entity: "category",
-    entityId: category.id,
-    details: category.name,
-  });
-  return category;
-};
-
-export const updateCategory = (
-  db: Db,
-  actor: Actor,
-  input: { id: string; name: string; description?: string },
-): Category => {
-  requirePermission(actor, "users.manage");
-  const category = db.categories.find((item) => item.id === input.id);
-  if (!category) throw new DomainError("errors.notFound");
-  const name = requireText(input.name, "errors.categoryNameRequired");
-  if (
-    db.categories.some(
-      (item) => item.id !== category.id && isSameText(item.name, name),
-    )
-  ) {
-    throw new DomainError("errors.categoryDuplicated");
-  }
-  category.name = name;
-  category.description = input.description?.trim() || undefined;
-  logAudit(db, actor, {
-    action: "update",
-    entity: "category",
-    entityId: category.id,
-    details: category.name,
-  });
-  return category;
-};
-
-export const deleteCategory = (db: Db, actor: Actor, input: { id: string }) => {
-  requirePermission(actor, "users.manage");
-  const category = db.categories.find((item) => item.id === input.id);
-  if (!category) throw new DomainError("errors.notFound");
-  if (db.products.some((product) => product.categoryId === category.id)) {
-    throw new DomainError("errors.categoryInUse");
-  }
-  db.categories = db.categories.filter((item) => item.id !== category.id);
-  logAudit(db, actor, {
-    action: "delete",
-    entity: "category",
-    entityId: category.id,
-    details: category.name,
-  });
-};
-
 export const createBrand = (
   db: Db,
   actor: Actor,
@@ -283,7 +214,6 @@ export interface ProductInput {
   imageUrl?: string | null;
   technicalSpecs?: ProductTechnicalSpecs | null;
   colorVariants?: ProductColorVariant[];
-  categoryId?: string;
   brandId?: string;
   categoria?: ProductCategory;
   tipoRepuesto?: TipoRepuesto;
@@ -329,7 +259,6 @@ export const createProduct = (db: Db, actor: Actor, input: ProductInput): Produc
     imageUrl: input.imageUrl || undefined,
     technicalSpecs: getProductTechnicalSpecsForCategory(input.categoria, input.technicalSpecs),
     colorVariants: validarVariantesColor(input.colorVariants),
-    categoryId: input.categoryId || undefined,
     brandId: input.brandId || undefined,
     categoria: input.categoria || undefined,
     tipoRepuesto:
@@ -371,7 +300,6 @@ export const updateProduct = (
   product.name = name;
   product.description = input.description?.trim() || undefined;
   if (input.imageUrl !== undefined) product.imageUrl = input.imageUrl || undefined;
-  product.categoryId = input.categoryId || undefined;
   product.brandId = input.brandId || undefined;
   product.categoria = input.categoria || undefined;
   if (input.technicalSpecs !== undefined || (input.categoria !== undefined && input.categoria !== categoriaAnterior)) {

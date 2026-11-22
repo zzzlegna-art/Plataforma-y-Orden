@@ -8,7 +8,7 @@ export type ProductCsvRow = {
   name: string;
   sku: string;
   brand: string;
-  category: string;
+  productType: string;
   description: string;
   imageUrl: string;
   features: string;
@@ -38,7 +38,7 @@ const HEADER_ALIASES: Record<string, string[]> = {
   name: ["producto", "product", "nombre", "name", "nombre del producto", "product name"],
   sku: ["referencia", "sku", "codigo", "code", "reference", "product code"],
   brand: ["marca", "brand", "fabricante", "manufacturer"],
-  category: ["categoria", "category", "tipo", "type", "tipo de producto", "product type"],
+  productType: ["tipo de producto", "product type", "tipo", "type", "categoria", "category"],
   description: ["descripcion", "description", "detalle", "details"],
   imageUrl: ["enlace de imagen", "url de imagen", "imagen url", "image url", "image link", "url imagen", "imageurl"],
   minStock: ["stock minimo", "existencia minima", "existencias minimas", "minimum stock", "min stock"],
@@ -230,7 +230,7 @@ export const parseProductCsv = (text: string): ProductCsvRow[] => {
       name,
       sku: get("sku").toUpperCase(),
       brand: get("brand"),
-      category: get("category"),
+      productType: get("productType"),
       description: get("description"),
       imageUrl,
       features: get("features"),

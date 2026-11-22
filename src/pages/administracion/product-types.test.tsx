@@ -61,6 +61,7 @@ afterEach(cleanup);
 describe("Administración > Catálogos > Tipos de producto", () => {
   it("los 5 tipos de siempre se ven, marcados como predeterminados, sin botón de borrar", () => {
     render(<I18nextProvider i18n={i18n}><Almacen /></I18nextProvider>);
+    expect(screen.queryByText("Categorías")).toBeNull();
     const seccion = screen.getByText("Tipos de producto").closest("section")!;
     for (const nombre of ["Celulares", "Tablets", "Relojes", "Audífonos", "Repuestos"]) {
       expect(within(seccion).getByText(nombre, { selector: "span" })).toBeTruthy();

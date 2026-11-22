@@ -1342,7 +1342,7 @@ export interface ProductCatalogItem {
   name: string;
   sku: string;
   brand?: string;
-  category?: string;
+  productType?: string;
   description?: string;
   imageUrl?: string;
   stock?: number;
@@ -1355,7 +1355,7 @@ export interface ProductCatalogLabels {
   product: string;
   reference: string;
   brand: string;
-  category: string;
+  productType: string;
   description: string;
   features: string;
   stock: string;
@@ -1592,7 +1592,7 @@ export const exportProductCatalogPdf = async ({
     const metadata = [
       labels.reference + ": " + normalizeCatalogText(product.sku || "—"),
       product.brand ? labels.brand + ": " + normalizeCatalogText(product.brand) : null,
-      product.category ? labels.category + ": " + normalizeCatalogText(product.category) : null,
+      product.productType ? labels.productType + ": " + normalizeCatalogText(product.productType) : null,
     ].filter(Boolean).join("  ·  ");
     const metadataLines = splitCatalogLines(doc, metadata, detailWidth, 3);
     const descriptionLines = product.description?.trim()
@@ -1840,7 +1840,7 @@ export const exportProductCatalogExcel = async ({
     labels.reference,
     labels.product,
     labels.brand,
-    labels.category,
+    labels.productType,
     labels.description,
     labels.features,
   ];
@@ -1857,7 +1857,7 @@ export const exportProductCatalogExcel = async ({
       normalizeCatalogText(product.sku || "—"),
       normalizeCatalogText(product.name),
       normalizeCatalogText(product.brand || "—"),
-      normalizeCatalogText(product.category || "—"),
+      normalizeCatalogText(product.productType || "—"),
       normalizeCatalogText(product.description || labels.noDescription),
       featureTexts[index],
     ];

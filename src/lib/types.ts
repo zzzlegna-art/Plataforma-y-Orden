@@ -115,20 +115,12 @@ export interface Actor {
   role: Role;
 }
 
-export interface Category {
-  id: string;
-  name: string;
-  description?: string;
-  createdAt: string;
-}
-
 export interface Brand {
   id: string;
   name: string;
   createdAt: string;
 }
 
-/** Categorías de producto (modelo del prototipo Bodega 6A). */
 /**
  * Tipo de producto (celular, tablet, repuesto...). Ya no es una lista fija: se administra
  * desde Administración (tabla bodega_product_types) y puede crecer con tipos nuevos. "repuesto"
@@ -189,7 +181,6 @@ export interface Product {
   imageUrl?: string;
   technicalSpecs?: ProductTechnicalSpecs;
   colorVariants?: ProductColorVariant[];
-  categoryId?: string;
   brandId?: string;
   categoria?: ProductCategory;
   tipoRepuesto?: TipoRepuesto;
@@ -395,7 +386,6 @@ export interface Db {
   version: number;
   settings: AppSettings;
   users: User[];
-  categories: Category[];
   brands: Brand[];
   productTypes: ProductType[];
   products: Product[];

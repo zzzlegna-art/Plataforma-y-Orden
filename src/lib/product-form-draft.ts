@@ -4,7 +4,6 @@ export interface ProductFormValues {
   sku: string;
   name: string;
   description: string;
-  categoryId: string;
   brandId: string;
   categoria: string;
   minStock: string;
@@ -28,7 +27,6 @@ export const EMPTY_PRODUCT_FORM: ProductFormValues = {
   sku: "",
   name: "",
   description: "",
-  categoryId: "",
   brandId: "",
   categoria: "",
   minStock: "0",
@@ -83,7 +81,6 @@ export const readProductFormDraft = (
         sku: asString(values.sku, EMPTY_PRODUCT_FORM.sku),
         name: asString(values.name, EMPTY_PRODUCT_FORM.name),
         description: asString(values.description, EMPTY_PRODUCT_FORM.description),
-        categoryId: asString(values.categoryId, EMPTY_PRODUCT_FORM.categoryId),
         brandId: asString(values.brandId, EMPTY_PRODUCT_FORM.brandId),
         categoria: asString(values.categoria, EMPTY_PRODUCT_FORM.categoria),
         minStock: asString(values.minStock, EMPTY_PRODUCT_FORM.minStock),

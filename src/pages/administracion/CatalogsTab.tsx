@@ -10,13 +10,10 @@ import { onEnter } from "@/lib/keys";
 import { useStore } from "@/hooks/use-store";
 import {
   createBrand,
-  createCategory,
   createProductType,
   deleteBrand,
-  deleteCategory,
   deleteProductType,
   updateBrand,
-  updateCategory,
   updateProductType,
 } from "@/lib/actions/catalogs";
 import { TIPOS_PRODUCTO_FIJOS, etiquetaTipoProducto, tiposProductoOrdenados } from "@/lib/products";
@@ -245,23 +242,14 @@ const ProductTypeRow = ({
   );
 };
 
-/** Catálogos de categorías, marcas y tipos de producto. */
+/** Catálogos de marcas y tipos de producto. */
 export const CatalogsTab = () => {
   const { t } = useTranslation();
   const { db } = useStore();
   const runAction = useRunAction();
-  const [categoryName, setCategoryName] = useState("");
   const [brandName, setBrandName] = useState("");
   const [tipoName, setTipoName] = useState("");
   const [tipoGrupo, setTipoGrupo] = useState<"celulares" | "repuestos">("celulares");
-
-  const crearCategoria = async () => {
-    const result = await runAction(
-      (db2, actor) => createCategory(db2, actor, { name: categoryName }),
-      { success: "catalog.created" },
-    );
-    if (result) setCategoryName("");
-  };
 
   const crearMarca = async () => {
     const result = await runAction(
@@ -284,42 +272,6 @@ export const CatalogsTab = () => {
 
   return (
     <div className="grid gap-4 lg:grid-cols-2">
-      <section className="rounded-lg border bg-card p-4">
-        <h3 className="text-sm font-semibold">{t("catalog.categories")}</h3>
-        <p className="mb-3 text-xs text-muted-foreground">{t("catalog.categoriesHint")}</p>
-        <div className="mb-3 flex gap-2" onKeyDown={onEnter(crearCategoria)}>
-          <Input
-            value={categoryName}
-            placeholder={t("catalog.newCategory")}
-            onChange={(event) => setCategoryName(event.target.value)}
-          />
-          <Button type="button" loading={runAction.pending} onClick={() => void crearCategoria()}>
-            <Plus />
-          </Button>
-        </div>
-        <ul className="rounded-md border">
-          {db.categories.map((category) => (
-            <CatalogRow
-              key={category.id}
-              name={category.name}
-              usageCount={db.products.filter((product) => product.categoryId === category.id).length}
-              onRename={(name) =>
-                void runAction(
-                  (db2, actor) => updateCategory(db2, actor, { id: category.id, name }),
-                  { success: "catalog.updated" },
-                )
-              }
-              onDelete={() =>
-                void runAction(
-                  (db2, actor) => deleteCategory(db2, actor, { id: category.id }),
-                  { success: "catalog.deleted" },
-                )
-              }
-            />
-          ))}
-        </ul>
-      </section>
-
       <section className="rounded-lg border bg-card p-4">
         <h3 className="text-sm font-semibold">{t("catalog.brands")}</h3>
         <p className="mb-3 text-xs text-muted-foreground">{t("catalog.brandsHint")}</p>

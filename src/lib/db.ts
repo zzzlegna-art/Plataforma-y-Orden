@@ -36,7 +36,6 @@ export const emptyDb = (): Db => ({
   version: DB_VERSION,
   settings: { companyName: "Mi Empresa" },
   users: [],
-  categories: [],
   productTypes: [],
   brands: [],
   products: [],

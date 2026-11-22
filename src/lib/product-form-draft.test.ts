@@ -30,7 +30,6 @@ const sampleDraft: ProductFormDraft = {
     sku: "IPHONE-13-128",
     name: "iPhone 13",
     description: "Equipo de prueba",
-    categoryId: "phones",
     brandId: "apple",
     categoria: "celular",
     minStock: "2",

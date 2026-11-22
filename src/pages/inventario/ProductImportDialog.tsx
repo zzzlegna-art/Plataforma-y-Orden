@@ -94,30 +94,17 @@ export const ProductImportDialog = ({ trigger }: { trigger: React.ReactNode }) =
       if (row.error) return { row, status: "invalid", reason: row.error };
 
       let categoria: string | undefined;
-      let categoryId: string | undefined;
       let brandId: string | undefined;
 
-      if (row.category) {
-        const parts = row.category.split(/\s+\/\s+/).map((part) => part.trim()).filter(Boolean);
-        const first = parts[0] ?? "";
+      if (row.productType) {
+        // Compatibilidad con archivos antiguos que escribían "Tipo / Categoría":
+        // ahora solo se conserva el tipo de producto, que es el catálogo operativo vigente.
+        const first = row.productType.split(/\s+\/\s+/)[0]?.trim() ?? "";
         const foundType = matchType(first, db.productTypes, t);
-        const foundCategory = parts.length > 1
-          ? db.categories.find((category) => sameName(category.name, parts.slice(1).join(" / ")))
-          : undefined;
-
-        if (foundType) {
-          categoria = foundType.key;
-          if (parts.length > 1 && !foundCategory) {
-            return { row, status: "invalid", reason: t("productImport.unknownCategory", { category: parts.slice(1).join(" / ") }) };
-          }
-          categoryId = foundCategory?.id;
-        } else if (parts.length === 1) {
-          const categoryOnly = db.categories.find((category) => sameName(category.name, first));
-          if (categoryOnly) categoryId = categoryOnly.id;
-          else return { row, status: "invalid", reason: t("productImport.unknownType", { category: first }) };
-        } else {
+        if (!foundType) {
           return { row, status: "invalid", reason: t("productImport.unknownType", { category: first }) };
         }
+        categoria = foundType.key;
       }
 
       const featureCategoryIssue = getProductCsvFeatureCategoryIssue(
@@ -156,7 +143,6 @@ export const ProductImportDialog = ({ trigger }: { trigger: React.ReactNode }) =
         description: row.description || undefined,
         imageUrl: row.imageUrl || undefined,
         technicalSpecs: parseFeatures(row.features, categoria, t),
-        categoryId,
         brandId,
         categoria,
         minStock: row.minStock,
@@ -256,7 +242,7 @@ export const ProductImportDialog = ({ trigger }: { trigger: React.ReactNode }) =
               type="button"
               variant="outline"
               onClick={() => descargarCsv("plantilla-productos-nexora.csv", [[
-                "Producto", "Referencia", "Marca", "Categoría", "Descripción",
+                "Producto", "Referencia", "Marca", "Tipo de producto", "Descripción",
                 "Enlace de imagen", "Stock mínimo", "Características técnicas",
               ]])}
             >

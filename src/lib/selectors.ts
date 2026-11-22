@@ -5,7 +5,6 @@
 
 import type {
   Brand,
-  Category,
   Customer,
   Db,
   Order,
@@ -261,7 +260,6 @@ function construirStock(
 export interface ProductRow {
   product: Product;
   stock: ProductStock;
-  category?: Category;
   brand?: Brand;
 }
 
@@ -269,7 +267,6 @@ export const getProductRows = (db: Db, condicion?: UnitCondition): ProductRow[] 
   const fuera = unidadesFueraPorGarantia(db);
   const descontadas = unidadesDescontadasPorPreparacion(db);
   const unidadesPorProducto = agrupar(db.units, (unit) => unit.productId);
-  const categorias = porId(db.categories);
   const marcas = porId(db.brands);
 
   return db.products.map((product) => ({
@@ -282,7 +279,6 @@ export const getProductRows = (db: Db, condicion?: UnitCondition): ProductRow[] 
       descontadas,
       esCelular(db, product),
     ),
-    category: product.categoryId ? categorias.get(product.categoryId) : undefined,
     brand: product.brandId ? marcas.get(product.brandId) : undefined,
   }));
 };

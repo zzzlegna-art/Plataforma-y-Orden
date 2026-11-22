@@ -11,15 +11,20 @@ import {
 describe("importación operativa de productos", () => {
   it("lee productos sin columnas de precio ni costo", () => {
     const rows = parseProductCsv(
-      "Producto;Referencia;Marca;Categoría;Descripción;Enlace de imagen;Stock mínimo;Características técnicas\n" +
+      "Producto;Referencia;Marca;Tipo de producto;Descripción;Enlace de imagen;Stock mínimo;Características técnicas\n" +
       "iPhone 16 Pro;IP16P-256;Apple;celular;Equipo nuevo;;2;Almacenamiento: 256 GB",
     );
     expect(rows[0]).toMatchObject({
       name: "iPhone 16 Pro", sku: "IP16P-256", brand: "Apple",
-      category: "celular", minStock: 2, error: "",
+      productType: "celular", minStock: 2, error: "",
     });
     expect(rows[0]).not.toHaveProperty("price");
     expect(rows[0]).not.toHaveProperty("cost");
+  });
+
+  it("acepta la cabecera Categoría de archivos antiguos como tipo de producto", () => {
+    const rows = parseProductCsv("Producto;Categoría\nTablet;tablet / Accesorios");
+    expect(rows[0].productType).toBe("tablet / Accesorios");
   });
 
   it("ignora columnas monetarias antiguas sin importarlas", () => {
