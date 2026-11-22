@@ -8,17 +8,28 @@ const inventory = (): Db => {
   const db = emptyDb();
   db.products.push({
     id: "modelo", sku: "SKU-1", name: "Modelo prueba", categoria: "celular",
-    price: 0, cost: 0, minStock: 0, isActive: true,
+    minStock: 0, isActive: true,
     createdAt: "2026-01-01T00:00:00.000Z", updatedAt: "2026-01-01T00:00:00.000Z",
-  db.customers.push({ id: "cliente", name: "Cliente", isActive: true, createdAt: "2026-01-01T00:00:00.000Z" });
+  });
+  db.customers.push({
+    id: "cliente", name: "Cliente", isActive: true,
+    createdAt: "2026-01-01T00:00:00.000Z",
   });
   db.orders.push({
     id: "pedido", code: "PED-STOCK", customerId: "cliente", status: "en_preparacion",
-    orderDate: "2026-01-01", total: 0, createdBy: actor.id,
+    orderDate: "2026-01-01", createdBy: actor.id,
     createdAt: "2026-01-01T00:00:00.000Z", updatedAt: "2026-01-01T00:00:00.000Z",
-  db.orderItems.push({ id: "linea", orderId: "pedido", productId: "modelo", quantity: 1, condition: "nuevo", unitPrice: 0, subtotal: 0 });
-  db.units.push({ id: "unidad", productId: "modelo", serial: "SERIAL-A", condition: "nuevo", status: "en_bodega", receivedAt: "2026-01-01T00:00:00.000Z", createdBy: actor.id });
-  db.orderItemUnits.push({ id: "asignacion", orderItemId: "linea", unitId: "unidad", createdAt: "2026-01-01T00:00:00.000Z" });
+  });
+  db.orderItems.push({
+    id: "linea", orderId: "pedido", productId: "modelo", quantity: 1, condition: "nuevo",
+  });
+  db.units.push({
+    id: "unidad", productId: "modelo", serial: "SERIAL-A", condition: "nuevo",
+    status: "en_bodega", receivedAt: "2026-01-01T00:00:00.000Z", createdBy: actor.id,
+  });
+  db.orderItemUnits.push({
+    id: "asignacion", orderItemId: "linea", unitId: "unidad",
+    createdAt: "2026-01-01T00:00:00.000Z",
   });
   return db;
 };
