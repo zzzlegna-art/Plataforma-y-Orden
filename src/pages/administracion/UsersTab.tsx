@@ -100,7 +100,7 @@ const CreateUserDialog = () => {
           {t("user.new")}
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="nx-admin-account-dialog sm:max-w-md">
         <DialogHeader>
           <DialogTitle>{t("user.createTitle")}</DialogTitle>
           <DialogDescription>{t("user.createDescription")}</DialogDescription>
@@ -198,7 +198,7 @@ const ResetPasswordDialog = ({ user }: { user: User }) => {
           {t("user.resetPassword")}
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-sm">
+      <DialogContent className="nx-admin-account-dialog sm:max-w-sm">
         <DialogHeader>
           <DialogTitle>{t("user.resetPasswordTitle")}</DialogTitle>
           <DialogDescription>{user.email}</DialogDescription>
@@ -264,7 +264,7 @@ const EditUserDialog = ({ user, onSave }: { user: User; onSave: (role: Role) => 
           {t("common.edit")}
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-sm">
+      <DialogContent className="nx-admin-account-dialog sm:max-w-sm">
         <DialogHeader>
           <DialogTitle>{t("user.editTitle")}</DialogTitle>
           <DialogDescription>{user.email}</DialogDescription>
@@ -321,8 +321,8 @@ export const UsersTab = () => {
     );
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+    <div className="nx-admin-users space-y-4">
+      <div className="nx-admin-users-top flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <p className="max-w-xl text-sm text-muted-foreground">{t("user.tabDescription")}</p>
         <div className="flex flex-wrap items-center justify-end gap-2">
           <div className="flex items-start gap-2 rounded-lg border bg-card p-3 text-xs text-muted-foreground sm:max-w-xs">
@@ -334,6 +334,7 @@ export const UsersTab = () => {
       </div>
 
       <DataTable
+        className="nx-admin-users-table"
         rows={rows}
         rowKey={(user) => user.id}
         emptyTitle={t("user.emptyTitle")}
@@ -378,9 +379,14 @@ export const UsersTab = () => {
             key: "name",
             header: t("user.fullName"),
             cell: (user) => (
-              <div className="min-w-0">
-                <p className="truncate font-medium">{user.fullName}</p>
-                <p className="truncate text-xs text-muted-foreground">{user.email}</p>
+              <div className="nx-admin-user-person">
+                <span className="nx-admin-user-avatar" aria-hidden="true">
+                  {user.fullName.trim().split(/\s+/).slice(0, 2).map((word) => word[0] ?? "").join("").toUpperCase()}
+                </span>
+                <div className="min-w-0">
+                  <p className="truncate font-medium">{user.fullName}</p>
+                  <p className="truncate text-xs text-muted-foreground">{user.email}</p>
+                </div>
               </div>
             ),
           },

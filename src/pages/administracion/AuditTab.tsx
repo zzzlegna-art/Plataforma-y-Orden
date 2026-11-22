@@ -44,10 +44,10 @@ export const AuditTab = () => {
   }, [db.auditLogs, search, entity]);
 
   return (
-    <div className="space-y-4">
+    <div className="nx-admin-audit space-y-4">
       <p className="text-sm text-muted-foreground">{t("audit.description")}</p>
 
-      <div className="space-y-2">
+      <div className="nx-admin-audit-filters space-y-2">
         <SearchField
           value={search}
           onChange={setSearch}
@@ -69,6 +69,7 @@ export const AuditTab = () => {
       </div>
 
       <DataTable
+        className="nx-admin-audit-table"
         rows={rows}
         rowKey={(log) => log.id}
         emptyTitle={t("audit.emptyTitle")}

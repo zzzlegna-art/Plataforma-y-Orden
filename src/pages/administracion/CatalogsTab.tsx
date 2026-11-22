@@ -271,8 +271,8 @@ export const CatalogsTab = () => {
   };
 
   return (
-    <div className="grid gap-4 lg:grid-cols-2">
-      <section className="rounded-lg border bg-card p-4">
+    <div className="nx-admin-catalogs grid gap-4 lg:grid-cols-2">
+      <section className="nx-admin-catalog-card rounded-lg border bg-card p-4">
         <h3 className="text-sm font-semibold">{t("catalog.brands")}</h3>
         <p className="mb-3 text-xs text-muted-foreground">{t("catalog.brandsHint")}</p>
         <div className="mb-3 flex gap-2" onKeyDown={onEnter(crearMarca)}>
@@ -307,7 +307,7 @@ export const CatalogsTab = () => {
         </ul>
       </section>
 
-      <section className="rounded-lg border bg-card p-4 lg:col-span-2">
+      <section className="nx-admin-catalog-card rounded-lg border bg-card p-4 lg:col-span-2">
         <h3 className="text-sm font-semibold">{t("catalog.productTypes")}</h3>
         <p className="mb-3 text-xs text-muted-foreground">{t("catalog.productTypesHint")}</p>
         <div className="mb-3 flex flex-wrap gap-2" onKeyDown={onEnter(crearTipo)}>

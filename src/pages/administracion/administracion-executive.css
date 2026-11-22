@@ -1,0 +1,546 @@
+/* NEXORA · Administración / Executive Control Office
+   Visual redesign only. Scoped to admin page, its embedded panels and dialogs.
+   Uses native light/dark theme tokens, with a distinctive two-pane office layout. */
+.nx-management.nx-admin.nx-admin-executive {
+  --ac-line: hsl(var(--border) / .78);
+  --ac-text: hsl(var(--foreground));
+  --ac-muted: hsl(var(--muted-foreground));
+  --ac-surface: hsl(var(--card));
+  width: 100%;
+  max-width: 1740px;
+  margin-inline: auto;
+  gap: 1.1rem;
+  padding-bottom: 2rem;
+}
+.nx-admin-executive .nx-admin-masthead {
+  isolation: isolate;
+  overflow: hidden;
+  position: relative;
+  border: 1px solid hsl(var(--primary) / .22);
+  border-radius: 19px;
+  background:
+    radial-gradient(ellipse 44% 135% at 102% -20%, hsl(var(--primary) / .11), transparent 75%),
+    linear-gradient(113deg, hsl(var(--card)), hsl(var(--secondary) / .22));
+  box-shadow: 0 19px 43px -35px hsl(218 57% 23% / .46), inset 0 1px 0 hsl(var(--background) / .69);
+}
+.nx-admin-executive .nx-admin-masthead::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  top: -86px;
+  right: 6%;
+  width: 240px;
+  height: 240px;
+  border-radius: 50%;
+  border: 1px solid hsl(var(--primary) / .11);
+  box-shadow: 0 0 0 27px hsl(var(--primary) / .025), 0 0 0 55px hsl(var(--primary) / .018);
+  pointer-events: none;
+}
+.nx-admin-masthead-rail, .nx-admin-masthead-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .8rem;
+  padding: .75rem clamp(1.1rem, 2.4vw, 2.2rem);
+  font-size: .64rem;
+  font-weight: 820;
+  letter-spacing: .12em;
+  line-height: 1.4;
+}
+.nx-admin-masthead-rail {
+  border-bottom: 1px solid var(--ac-line);
+  color: hsl(var(--primary));
+  background: hsl(var(--primary) / .025);
+}
+.nx-admin-masthead-rail span:first-child,
+.nx-admin-masthead-footer span:first-child {
+  display: inline-flex;
+  align-items: center;
+  gap: .5rem;
+}
+.nx-admin-masthead-rail span:last-child { color: var(--ac-muted); }
+.nx-admin-executive .nx-admin-page-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 145px;
+  padding: 1.55rem clamp(1.1rem, 2.4vw, 2.2rem);
+  border: 0;
+  background: none;
+  box-shadow: none;
+}
+.nx-admin-page-title::before,.nx-admin-page-title::after { display: none; }
+.nx-admin-executive .nx-admin-page-title h1 {
+  color: var(--ac-text);
+  font-size: clamp(2rem, 3vw, 2.65rem);
+  font-weight: 820;
+  line-height: 1.1;
+  letter-spacing: -.052em;
+}
+.nx-admin-executive .nx-admin-page-title p {
+  max-width: 540px;
+  margin-top: .7rem;
+  color: var(--ac-muted);
+  font-size: .88rem;
+  line-height: 1.6;
+}
+.nx-admin-masthead-emblem {
+  display: grid;
+  place-items: center;
+  width: 62px;
+  height: 62px;
+  flex: none;
+  margin-right: 2.5rem;
+  border: 1px solid hsl(var(--primary) / .2);
+  border-radius: 16px;
+  background: hsl(var(--primary) / .065);
+  color: hsl(var(--primary));
+  box-shadow: inset 0 0 0 6px hsl(var(--card) / .45);
+}
+.nx-admin-masthead-footer {
+  justify-content: flex-start;
+  gap: .65rem;
+  border-top: 1px solid var(--ac-line);
+  color: var(--ac-muted);
+  font-size: .62rem;
+  letter-spacing: .08em;
+}
+.nx-admin-masthead-footer span:last-child { margin-left: auto; }
+.nx-admin-status-light {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  background: hsl(var(--primary));
+  border-radius: 2px;
+  box-shadow: 0 0 0 3px hsl(var(--primary) / .08);
+}
+/* The administration layout is a real settings office, not top navigation pills. */
+.nx-admin-executive .nx-admin-workspace {
+  display: grid;
+  grid-template-columns: minmax(210px, 249px) minmax(0, 1fr);
+  align-items: start;
+  gap: 1.05rem;
+  margin: 0;
+  min-width: 0;
+}
+.nx-admin-executive .nx-admin-rail {
+  position: sticky;
+  top: 1rem;
+  min-width: 0;
+  padding: .82rem;
+  border: 1px solid var(--ac-line);
+  border-radius: 17px;
+  background: var(--ac-surface);
+  box-shadow: 0 15px 34px -32px hsl(218 60% 20% / .45);
+}
+.nx-admin-rail-heading {
+  display: flex;
+  align-items: center;
+  gap: .6rem;
+  padding: .65rem .7rem 1rem;
+  color: var(--ac-text);
+}
+.nx-admin-rail-heading > svg { color: hsl(var(--primary)); }
+.nx-admin-rail-heading strong {
+  display: block;
+  font-size: .83rem;
+  font-weight: 830;
+  letter-spacing: -.015em;
+}
+.nx-admin-rail-heading small {
+  display: block;
+  margin-top: .23rem;
+  color: var(--ac-muted);
+  font-size: .7rem;
+  line-height: 1.4;
+}
+.nx-management.nx-admin.nx-admin-executive .nx-admin-nav {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+  flex-wrap: nowrap;
+  width: 100%;
+  height: auto;
+  max-width: 100%;
+  gap: .24rem;
+  margin: 0;
+  padding: .35rem 0;
+  border: 0;
+  border-top: 1px solid var(--ac-line);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+.nx-management.nx-admin.nx-admin-executive .nx-admin-nav [role=tab] {
+  position: relative;
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  gap: .8rem;
+  flex: none;
+  width: 100%;
+  min-height: 45px;
+  max-width: none;
+  padding: .68rem .78rem;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--ac-muted);
+  box-shadow: none;
+  text-align: left;
+  white-space: nowrap;
+  font-size: .79rem;
+  font-weight: 760;
+}
+.nx-admin-nav [role=tab] > svg {
+  width: 18px;
+  height: 18px;
+  flex: none;
+  color: hsl(var(--muted-foreground));
+}
+.nx-management.nx-admin.nx-admin-executive .nx-admin-nav [role=tab][data-state=active] {
+  border-color: hsl(var(--primary) / .18);
+  background: hsl(var(--primary) / .095);
+  color: var(--ac-text);
+  box-shadow: inset 3px 0 hsl(var(--primary));
+}
+.nx-admin-nav [role=tab][data-state=active] > svg { color: hsl(var(--primary)); }
+.nx-management.nx-admin.nx-admin-executive .nx-admin-nav [role=tab]:not([data-state=active]):hover {
+  background: hsl(var(--secondary) / .4);
+  color: var(--ac-text);
+}
+.nx-admin-rail-footnote {
+  margin-top: .75rem;
+  padding: .9rem .7rem .4rem;
+  border-top: 1px solid var(--ac-line);
+  font-size: .68rem;
+  line-height: 1.6;
+  color: var(--ac-muted);
+}
+.nx-admin-executive .nx-admin-workarea {
+  min-width: 0;
+  min-height: 430px;
+  padding: clamp(1rem, 2.1vw, 1.6rem);
+  border: 1px solid var(--ac-line);
+  border-radius: 17px;
+  background: var(--ac-surface);
+  box-shadow: 0 19px 42px -34px hsl(218 56% 22% / .45);
+}
+.nx-admin-workarea-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  padding-bottom: 1.15rem;
+  margin-bottom: 1.25rem;
+  border-bottom: 1px solid var(--ac-line);
+}
+.nx-admin-workarea-eyebrow {
+  display: block;
+  margin-bottom: .42rem;
+  font-size: .63rem;
+  font-weight: 830;
+  letter-spacing: .13em;
+  color: hsl(var(--primary));
+}
+.nx-admin-workarea-head h2 {
+  color: var(--ac-text);
+  font-size: clamp(1.22rem, 2vw, 1.6rem);
+  font-weight: 820;
+  letter-spacing: -.035em;
+  line-height: 1.17;
+}
+.nx-admin-workarea-head p {
+  margin-top: .45rem;
+  color: var(--ac-muted);
+  font-size: .8rem;
+  line-height: 1.58;
+}
+.nx-admin-workarea-mark {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 42px;
+  height: 42px;
+  border: 1px solid hsl(var(--primary) / .22);
+  border-radius: 11px;
+  background: hsl(var(--primary) / .07);
+  color: hsl(var(--primary));
+}
+.nx-management.nx-admin.nx-admin-executive .nx-admin-workarea [role=tabpanel] {
+  width: 100%;
+  min-width: 0;
+  margin-top: 0;
+}
+/* Users: staff directory and profile identity. */
+.nx-admin-users > .nx-admin-users-top { padding: .2rem 0 1.3rem; }
+.nx-admin-users-top p { line-height: 1.6; }
+.nx-admin-users-top > div:last-child > div:first-child {
+  border: 1px solid hsl(var(--primary) / .18);
+  border-radius: 11px;
+  background: hsl(var(--primary) / .055);
+}
+.nx-admin-users-top button { min-height: 40px; border-radius: 10px; font-weight: 770; }
+.nx-admin-executive .nx-admin-users-table {
+  border: 1px solid var(--ac-line);
+  overflow: hidden;
+  border-radius: 12px;
+  background: var(--ac-surface);
+  box-shadow: none;
+}
+.nx-admin-executive .nx-admin-users-table thead tr {
+  background: hsl(var(--secondary) / .45);
+}
+.nx-admin-executive .nx-admin-users-table thead th {
+  height: 51px;
+  font-weight: 825;
+  letter-spacing: .09em;
+  text-transform: uppercase;
+  color: var(--ac-muted);
+}
+.nx-admin-executive .nx-admin-users-table tbody tr { height: 67px; border-color: hsl(var(--border) / .58); }
+.nx-admin-executive .nx-admin-users-table tbody tr:nth-child(even) { background: hsl(var(--secondary) / .1); }
+.nx-admin-user-person { display: flex; align-items: center; gap: .8rem; min-width: 0; }
+.nx-admin-user-avatar {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 38px;
+  height: 38px;
+  border: 1px solid hsl(var(--primary) / .2);
+  border-radius: 10px;
+  background: hsl(var(--primary) / .09);
+  color: hsl(var(--primary));
+  font-size: .68rem;
+  font-weight: 830;
+}
+.nx-admin-user-person p:first-child { font-weight: 785; }
+.nx-admin-user-person p:last-child { margin-top: .25rem; font-size: .71rem; }
+.nx-admin-executive .nx-admin-users-table tbody button { border-radius: 8px; }
+/* Role governance: business policy and permissions matrix. */
+.nx-admin-roles > header { margin-bottom: 1.35rem; }
+.nx-admin-roles > header h2 { font-size: 1.22rem; font-weight: 820; letter-spacing: -.03em; }
+.nx-admin-roles > header p { margin-top: .35rem; font-size: .81rem; }
+.nx-admin-role-selector { gap: .85rem; }
+.nx-admin-executive .nx-admin-role-card {
+  position: relative;
+  min-height: 174px;
+  padding: 1.15rem;
+  border: 1px solid var(--ac-line);
+  border-radius: 13px;
+  background: hsl(var(--secondary) / .12);
+  box-shadow: none;
+  transform: none;
+  transition: border-color .18s ease, background .18s ease, box-shadow .18s ease;
+}
+.nx-admin-executive .nx-admin-role-card[aria-pressed=true] {
+  border-color: hsl(var(--primary) / .52);
+  background: hsl(var(--primary) / .06);
+  box-shadow: inset 0 3px hsl(var(--primary));
+}
+.nx-admin-role-card h4 { margin-top: .88rem; font-weight: 825; }
+.nx-admin-role-card p:last-child { font-variant-numeric: tabular-nums; }
+.nx-admin-executive .nx-admin-permission-matrix {
+  overflow: hidden;
+  border: 1px solid var(--ac-line);
+  border-radius: 13px;
+  background: var(--ac-surface);
+  box-shadow: none;
+}
+.nx-admin-permission-matrix > div:first-child {
+  padding: 1rem 1.2rem;
+  background: hsl(var(--secondary) / .2);
+  border-bottom: 1px solid var(--ac-line);
+}
+.nx-admin-permission-matrix thead tr { background: hsl(var(--secondary) / .28); }
+.nx-admin-permission-matrix tbody tr:hover { background: hsl(var(--primary) / .038); }
+.nx-admin-permission-matrix tbody th { font-weight: 730; }
+.nx-admin-permission-matrix tbody td, .nx-admin-permission-matrix tbody th { border-color: hsl(var(--border) / .62); }
+/* Catalog management: neatly separated business records. */
+.nx-admin-executive .nx-admin-catalogs { grid-template-columns:repeat(2,minmax(0,1fr)); }
+.nx-admin-executive .nx-admin-catalogs > .nx-admin-catalog-card {
+  min-width: 0;
+  border: 1px solid var(--ac-line);
+  border-radius: 13px;
+  padding: 1.25rem;
+  background: hsl(var(--secondary) / .1);
+  box-shadow: none;
+}
+.nx-admin-catalog-card > h3 {
+  font-size: .97rem;
+  font-weight: 820;
+  letter-spacing: -.02em;
+}
+.nx-admin-catalog-card > p { margin-top: .36rem; line-height: 1.55; }
+.nx-admin-catalog-card > div:has(>input) { margin-top: 1rem; }
+.nx-admin-catalog-card ul { overflow: hidden; border: 1px solid var(--ac-line); border-radius: 10px; background: var(--ac-surface); }
+.nx-admin-catalog-card ul > li {
+  min-height: 47px;
+  padding: .6rem .85rem;
+  border-color: hsl(var(--border) / .55);
+}
+.nx-admin-catalog-card ul > li:nth-child(even) { background: hsl(var(--secondary) / .08); }
+.nx-admin-catalog-card ul > li:hover { background: hsl(var(--primary) / .035); }
+.nx-admin-catalog-card button { border-radius: 9px; }
+/* Audit = evidence ledger with quiet filters. */
+.nx-admin-audit > p { font-size: .81rem; line-height: 1.6; }
+.nx-admin-audit-filters {
+  padding: 1rem;
+  border: 1px solid var(--ac-line);
+  border-radius: 11px;
+  background: hsl(var(--secondary) / .13);
+}
+.nx-admin-audit-filters .flex.flex-wrap button {
+  min-height: 35px;
+  padding: .4rem .7rem;
+  border-radius: 8px;
+  font-size: .72rem;
+  font-weight: 755;
+}
+.nx-admin-executive .nx-admin-audit-table {
+  overflow: hidden;
+  border: 1px solid var(--ac-line);
+  border-radius: 12px;
+}
+.nx-admin-audit-table tbody tr:nth-child(even) { background: hsl(var(--secondary) / .08); }
+.nx-admin-audit-table tbody tr:hover { background: hsl(var(--primary) / .04); }
+/* Company data and storage: configuration sheets, no duplicated dashboard cards. */
+.nx-admin-executive .nx-admin-data {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0,1fr));
+  gap: 1rem;
+}
+.nx-admin-executive .nx-admin-data > .nx-admin-data-card {
+  min-width: 0;
+  padding: 1.3rem;
+  border: 1px solid var(--ac-line);
+  border-radius: 13px;
+  background: hsl(var(--secondary) / .105);
+  box-shadow: none;
+}
+.nx-admin-data-card h3 { font-size: .97rem; font-weight: 825; }
+.nx-admin-data-card h3 + p { margin-top: .33rem; line-height: 1.55; }
+.nx-admin-data-card label { font-size: .79rem; font-weight: 770; }
+.nx-admin-data-card input { min-height: 43px; border-radius: 9px; }
+.nx-admin-data-card button { min-height: 40px; border-radius: 9px; font-weight: 760; }
+.nx-admin-data-card li {
+  border: 1px solid var(--ac-line);
+  border-radius: 9px;
+  padding: .85rem;
+  background: hsl(var(--card));
+}
+.nx-admin-data-card li p:last-child { margin-top: .4rem; font-variant-numeric: tabular-nums; }
+.nx-admin-data-card [role=progressbar] { border-radius: 999px; }
+.nx-admin-data-card .space-y-1\.5.rounded-md.border { border-color: var(--ac-line); border-radius: 10px; background: var(--ac-surface); }
+/* Supplier directory embedded in the administrative workspace. */
+.nx-admin-executive .nx-suppliers-premium > div:first-child h2 {
+  font-size: 1.15rem;
+  font-weight: 810;
+  letter-spacing: -.025em;
+}
+.nx-admin-executive .nx-suppliers-premium > div:first-child p { font-size: .8rem; line-height: 1.55; }
+.nx-admin-executive .nx-suppliers-premium .rounded-xl.border {
+  border-color: var(--ac-line);
+  border-radius: 12px;
+}
+.nx-admin-executive .nx-suppliers-premium article {
+  border: 1px solid var(--ac-line);
+  border-radius: 12px;
+  background: hsl(var(--secondary) / .095);
+  box-shadow: none;
+}
+.nx-admin-executive .nx-suppliers-premium article:hover {
+  border-color: hsl(var(--primary) / .3);
+  background: hsl(var(--primary) / .035);
+}
+.nx-admin-executive .nx-suppliers-premium button { border-radius: 9px; }
+/* Portal dialogs for administrative accounts. */
+.nx-admin-account-dialog {
+  border: 1px solid hsl(var(--primary) / .22);
+  border-radius: 18px;
+  background:
+    radial-gradient(ellipse 75% 52% at 100% -20%, hsl(var(--primary) / .1), transparent 82%),
+    hsl(var(--card));
+  box-shadow: 0 32px 85px -33px rgb(0 0 0 / .46);
+}
+.nx-admin-account-dialog h2 {
+  font-size: 1.32rem;
+  font-weight: 820;
+  letter-spacing: -.032em;
+}
+.nx-admin-account-dialog label { font-size: .79rem; font-weight: 760; }
+.nx-admin-account-dialog input { min-height: 43px; border-radius: 10px; }
+.nx-admin-account-dialog button { min-height: 39px; border-radius: 9px; }
+/* Responsive: rail moves above content, while maintaining role restrictions. */
+@media (max-width: 1040px) {
+  .nx-admin-executive .nx-admin-workspace { grid-template-columns: 1fr; }
+  .nx-admin-executive .nx-admin-rail { position: static; }
+  .nx-management.nx-admin.nx-admin-executive .nx-admin-nav {
+    display: grid;
+    grid-template-columns: repeat(3,minmax(0,1fr));
+    gap: .4rem;
+    padding-top: .7rem;
+  }
+  .nx-management.nx-admin.nx-admin-executive .nx-admin-nav [role=tab] {
+    min-width: 0;
+    white-space: normal;
+    line-height: 1.25;
+    padding: .7rem;
+  }
+  .nx-admin-rail-footnote { margin-top: .5rem; padding-top: .7rem; }
+}
+@media (max-width: 767px) {
+  .nx-admin-executive .nx-admin-masthead { border-radius: 16px; }
+  .nx-admin-masthead-rail, .nx-admin-masthead-footer { padding: .65rem 1rem; font-size: .57rem; }
+  .nx-admin-masthead-rail > span:last-child,
+  .nx-admin-masthead-footer > span:last-child { display: none; }
+  .nx-admin-executive .nx-admin-page-title { min-height: 115px; padding: 1.3rem 1.05rem; }
+  .nx-admin-executive .nx-admin-page-title h1 { font-size: 2rem; }
+  .nx-admin-masthead-emblem { display: none; }
+  .nx-admin-executive .nx-admin-rail { padding: .65rem; border-radius: 14px; }
+  .nx-management.nx-admin.nx-admin-executive .nx-admin-nav {
+    display: grid;
+    grid-template-columns: repeat(2,minmax(0,1fr));
+    flex-wrap: nowrap;
+    overflow: visible;
+    gap: .35rem;
+  }
+  .nx-management.nx-admin.nx-admin-executive .nx-admin-nav [role=tab] {
+    flex: none;
+    min-height: 44px;
+    max-width: 100%;
+    font-size: .74rem;
+    text-align: left;
+    padding: .58rem;
+    gap: .48rem;
+  }
+  .nx-admin-executive .nx-admin-workarea { padding: 1rem; border-radius: 14px; }
+  .nx-admin-workarea-head { align-items: flex-start; }
+  .nx-admin-workarea-mark { width: 35px; height: 35px; }
+  .nx-admin-executive .nx-admin-catalogs,
+  .nx-admin-executive .nx-admin-data { grid-template-columns: 1fr; }
+  .nx-admin-executive .nx-admin-data > .nx-admin-data-card,
+  .nx-admin-executive .nx-admin-catalogs > .nx-admin-catalog-card { padding: 1rem; }
+  .nx-admin-executive .nx-admin-users-table,
+  .nx-admin-executive .nx-admin-audit-table { overflow-x: auto; }
+}
+@media (max-width: 390px) {
+  .nx-admin-rail-heading { padding-inline: .45rem; }
+  .nx-admin-workarea-head p { font-size: .73rem; }
+  .nx-management.nx-admin.nx-admin-executive .nx-admin-nav [role=tab] { font-size: .69rem; }
+}
+.dark .nx-admin-executive .nx-admin-masthead,
+.dark .nx-admin-executive .nx-admin-rail,
+.dark .nx-admin-executive .nx-admin-workarea {
+  box-shadow: 0 20px 44px -36px rgb(0 0 0 / .9), inset 0 1px 0 hsl(var(--foreground) / .04);
+}
+.dark .nx-admin-executive .nx-admin-nav [role=tab][data-state=active] {
+  background: hsl(var(--primary) / .13);
+}
+@media (prefers-reduced-motion: reduce) {
+  .nx-admin-executive button, .nx-admin-executive a {
+    transition: none !important;
+    transform: none !important;
+  }
+}

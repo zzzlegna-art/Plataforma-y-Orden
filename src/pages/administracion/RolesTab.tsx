@@ -45,7 +45,7 @@ export const RolesTab = () => {
   );
 
   return (
-    <section aria-label="Roles y permisos operativos" className="space-y-6">
+    <section aria-label="Roles y permisos operativos" className="nx-admin-roles space-y-6">
       <header>
         <h2 className="text-xl font-semibold">Roles y permisos</h2>
         <p className="mt-1 text-sm text-muted-foreground">Accesos para el flujo operativo de NEXORA.</p>
@@ -67,7 +67,7 @@ export const RolesTab = () => {
           </button>
         </div>
 
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="nx-admin-role-selector grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
           {MULTISITE_ROLES.map((role) => {
             const meta = ROLE_DETAILS[role];
             const Icon = meta.icon;
@@ -79,7 +79,7 @@ export const RolesTab = () => {
                 aria-pressed={selectedRole === role}
                 aria-label={`Ver permisos de ${meta.title}`}
                 onClick={() => setSelectedRole(role)}
-                className={`rounded-2xl border p-4 text-left transition-all hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${selectedRole === role ? "border-primary bg-primary/[0.05] shadow-sm ring-1 ring-primary/20" : "bg-card"}`}
+                className={`nx-admin-role-card rounded-2xl border p-4 text-left transition-all hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${selectedRole === role ? "border-primary bg-primary/[0.05] shadow-sm ring-1 ring-primary/20" : "bg-card"}`}
               >
                 <span className="grid h-10 w-10 place-items-center rounded-xl bg-primary/10 text-primary">
                   <Icon className="h-5 w-5" aria-hidden="true" />
@@ -95,7 +95,7 @@ export const RolesTab = () => {
         </div>
       </div>
 
-      <div className="overflow-hidden rounded-2xl border bg-card shadow-sm">
+      <div className="nx-admin-permission-matrix overflow-hidden rounded-2xl border bg-card shadow-sm">
         <div className="flex flex-wrap items-start justify-between gap-3 border-b bg-muted/15 px-5 py-4">
           <div>
             <h3 className="font-semibold">Matriz operativa</h3>

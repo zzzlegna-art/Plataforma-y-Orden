@@ -51,8 +51,8 @@ export const DataTab = () => {
   };
 
   return (
-    <div className="grid gap-4 lg:grid-cols-2">
-      <section className="space-y-4 rounded-lg border bg-card p-4" onKeyDown={onEnter(guardar)}>
+    <div className="nx-admin-data grid gap-4 lg:grid-cols-2">
+      <section className="nx-admin-data-card space-y-4 rounded-lg border bg-card p-4" onKeyDown={onEnter(guardar)}>
         <div>
           <h3 className="text-sm font-semibold">{t("settings.title")}</h3>
           <p className="text-xs text-muted-foreground">{t("settings.description")}</p>
@@ -71,7 +71,7 @@ export const DataTab = () => {
         </Button>
       </section>
 
-      <section className="space-y-4 rounded-lg border bg-card p-4">
+      <section className="nx-admin-data-card space-y-4 rounded-lg border bg-card p-4">
         <div>
           <h3 className="flex items-center gap-2 text-sm font-semibold">
             <Cloud className="h-4 w-4 text-primary" />
@@ -113,7 +113,7 @@ export const DataTab = () => {
         </div>
       </section>
 
-      <section className="space-y-4 rounded-lg border bg-card p-4 lg:col-span-2">
+      <section className="nx-admin-data-card space-y-4 rounded-lg border bg-card p-4 lg:col-span-2">
         <div>
           <h3 className="flex items-center gap-2 text-sm font-semibold">
             <Database className="h-4 w-4 text-primary" />
