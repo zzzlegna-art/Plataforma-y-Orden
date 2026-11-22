@@ -545,8 +545,8 @@ describe("devolverGarantia · devolución directa a bodega desde el flujo habitu
       expect(db.orderItemUnits.some((row) => row.unitId === "un1")).toBe(false);
       const mov = db.movements.find((m) => m.unitId === "un1" && m.type === "devolucion");
       expect(mov?.notes).toContain("PED-261004-006");
-      expect(mov?.notes).toContain("disponible para venta");
-      expect(db.warrantyEvents[db.warrantyEvents.length - 1]?.notes).toContain("disponible para venta");
+      expect(mov?.notes).toContain("disponible en Bodega 6A");
+      expect(db.warrantyEvents[db.warrantyEvents.length - 1]?.notes).toContain("disponible en Bodega 6A");
       expect(db.auditLogs.some((l) => l.entity === "order" && l.details?.includes("retirado del pedido"))).toBe(true);
       expect(db.warranties[0].status).toBe("devuelto");
     },
@@ -557,7 +557,7 @@ describe("devolverGarantia · devolución directa a bodega desde el flujo habitu
     devolverGarantia(db, admin, { warrantyId: "w1", motivo });
 
     expect(db.units[0].status).toBe("en_bodega");
-    expect(db.movements.find((m) => m.unitId === "un1" && m.type === "devolucion")?.notes).toContain("disponible para venta");
+    expect(db.movements.find((m) => m.unitId === "un1" && m.type === "devolucion")?.notes).toContain("disponible en Bodega 6A");
     expect(db.auditLogs.some((l) => l.entity === "order")).toBe(false);
   });
 
@@ -587,7 +587,7 @@ describe("devolverGarantia · garantía previa: crea la unidad disponible en bod
     return db;
   };
 
-  it("da de alta el serial previo como seminuevo y disponible para venta", () => {
+  it("da de alta el serial previo como seminuevo y disponible en Bodega 6A", () => {
     const db = dbPrevia("Apple iPhone 13 128 GB");
     devolverGarantia(db, admin, {
       warrantyId: "w1",

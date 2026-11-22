@@ -22,9 +22,10 @@ describe("secure public sign-up defaults", () => {
   });
 
   it("activates accounts created through the admin-managed flow", () => {
-    expect(userManagement).toContain(".update({ role: rol, full_name: nombre, email, is_active: !perfilpendiente })");
-    expect(userManagement).toContain("nexora_prepared_role");
-    expect(userManagement).toContain("prepared: true");
+    expect(userManagement).toContain('.update({ role: rol, full_name: nombre, email, is_active: true })');
+    expect(userManagement).toContain('if (!["admin", "bodeguero"].includes(rolsolicitado))');
+    expect(userManagement).not.toContain("nexora_prepared_role");
+    expect(userManagement).not.toContain("prepared: true");
   });
 
   it("preserves password whitespace instead of silently changing the chosen password", () => {

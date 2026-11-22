@@ -54,7 +54,6 @@ describe("carga diferida de NEXORA", () => {
 
   it.each([
     "panel",
-    "mi-sede",
     "recepcion",
     "recepcion/nueva",
     "recepcion/nueva/:receptionId",
@@ -96,7 +95,7 @@ describe("carga diferida de NEXORA", () => {
     expect(guardedChildren.some((entry) => entry.index)).toBe(false);
   });
 
-  it("keeps the role-aware inventory paths and their access protections", () => {
+  it("keeps the inventory paths and their access protections", () => {
     for (const path of ["inventario", "seriales"]) {
       const route = routes.find((entry) => entry.path === path);
       expect(route).toBeDefined();

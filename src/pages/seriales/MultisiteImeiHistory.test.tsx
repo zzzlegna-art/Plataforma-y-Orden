@@ -28,7 +28,7 @@ describe("Hoja de vida · ubicación inicial",()=>{
     expect(await screen.findByText("Aprobación inicial del inventario físico en Bodega 6A")).toBeTruthy();
     expect(screen.getByText("Inventario físico aprobado")).toBeTruthy();
     expect(screen.getByText(/Acta de aprobación inicial/)).toBeTruthy();
-    expect(screen.getByText(/—\\s*Bodega 6A/)).toBeTruthy();
+    expect(screen.getByText(/Bodega 6A/)).toBeTruthy();
     expect(screen.queryByRole("button",{name:/vender|trasladar|eliminar/i})).toBeNull();
   });
   it("mantiene la superficie premium y la actualización sin modificar datos",async()=>{

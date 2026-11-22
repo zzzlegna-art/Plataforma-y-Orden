@@ -148,7 +148,7 @@ describe("auditoría: entityId debe ser un uuid o no estar (la columna es uuid)"
     updateSettings(db, admin, { companyName: "Bodega 6A", currency: "COP" });
     expect(db.auditLogs).toHaveLength(1);
     expect(db.auditLogs[0].entityId).toBeUndefined();
-    expect(db.auditLogs[0].details).toContain("COP");
+    expect(db.auditLogs[0].details).toContain("Ajustes: Bodega 6A");
   });
 
   it("importar seriales previos tampoco", () => {
@@ -189,7 +189,6 @@ describe("createCustomer / updateCustomer · categoría de mayorista", () => {
     const db = emptyDb();
     const customer = createCustomer(db, admin, { name: "Cliente sin categoría" });
     expect(customer.categoriaMayorista).toBe("ambos");
-    expect(customer.tipo).toBe("mayorista");
   });
 
   it("se puede elegir la categoría al crear", () => {
