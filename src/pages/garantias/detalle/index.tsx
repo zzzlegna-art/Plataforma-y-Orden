@@ -1,3 +1,4 @@
+import "../warranty-service-lab.css";
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { ArrowLeft, Pencil, Printer, Send } from "lucide-react";
@@ -80,7 +81,7 @@ const GarantiaDetalle = () => {
   const finalEntregado = notaFinal.toLowerCase().includes("entregado al cliente");
 
   return (
-    <div className="space-y-5 stagger">
+    <div className="nx-service-detail space-y-5 stagger">
       <Button variant="ghost" size="sm" asChild className="-ml-2 w-fit">
         <Link
           to={`/garantias?tab=${tabDeEstado(warranty.status)}`}
@@ -98,6 +99,7 @@ const GarantiaDetalle = () => {
       </Button>
 
       <PageHeader
+        className="nx-service-detail-header flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
         title={<span className="font-tabular">{warranty.code}</span>}
         description={
           <span className="flex flex-wrap items-center gap-2">
@@ -177,7 +179,7 @@ const GarantiaDetalle = () => {
       />
 
       <div className="grid gap-4 lg:grid-cols-[1fr_22rem]">
-        <section className="rounded-lg border bg-card p-4">
+        <section className="nx-service-detail-case rounded-lg border bg-card p-4">
           <h3 className="mb-2 text-sm font-semibold">{t("warranty.caseTitle")}</h3>
           <InfoRow label={t("unit.serial")}>
             <span className="flex items-center gap-2">
@@ -278,7 +280,7 @@ const GarantiaDetalle = () => {
           ) : null}
         </section>
 
-        <section className="rounded-lg border bg-card p-4">
+        <section className="nx-service-detail-timeline rounded-lg border bg-card p-4">
           <h3 className="mb-3 text-sm font-semibold">{t("warranty.timeline")}</h3>
           <ol className="space-y-4">
             {events.map((event) => {

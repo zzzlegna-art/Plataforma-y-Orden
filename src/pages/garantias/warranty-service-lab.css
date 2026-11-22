@@ -1,0 +1,752 @@
+/* NEXORA // SERVICIO TÉCNICO — warranty lab (visual system v3)
+   Independent identity from inventory, reception and CRM. All functional flows stay unchanged. */
+.nx-warranties-service {
+  --svc-ink: hsl(var(--foreground));
+  --svc-muted: hsl(var(--muted-foreground));
+  --svc-line: hsl(var(--border) / .77);
+  --svc-card: hsl(var(--card));
+  --svc-cyan: hsl(var(--primary));
+  --svc-teal: #0a8d8c;
+  --svc-grid: hsl(var(--primary) / .045);
+  max-width: 1740px;
+  margin-inline: auto;
+  padding-bottom: 2rem;
+  gap: 1.1rem;
+}
+.dark .nx-warranties-service {
+  --svc-teal: #52d6ce;
+  --svc-grid: hsl(var(--primary) / .037);
+}
+
+/* Instrument-style masthead: a distinct lab identity, not a KPI-card hero. */
+.nx-warranties-service > .nx-service-hero {
+  isolation: isolate;
+  overflow: hidden;
+  position: relative;
+  border: 1px solid hsl(var(--primary) / .25);
+  border-radius: 20px;
+  background:
+    linear-gradient(105deg, hsl(var(--card)) 0%, hsl(var(--card)) 47%, hsl(var(--secondary) / .32) 100%);
+  box-shadow: 0 19px 45px -36px hsl(218 65% 17% / .42), inset 0 1px 0 hsl(var(--background) / .7);
+}
+.nx-service-hero::before {
+  content: "";
+  pointer-events: none;
+  position: absolute;
+  z-index: -1;
+  width: 39%;
+  min-width: 220px;
+  inset: 0 0 0 auto;
+  opacity: .9;
+  background:
+    linear-gradient(90deg, transparent, hsl(var(--primary) / .075)),
+    repeating-linear-gradient(0deg, transparent 0 23px, var(--svc-grid) 24px 25px),
+    repeating-linear-gradient(90deg, transparent 0 23px, var(--svc-grid) 24px 25px);
+  mask-image: linear-gradient(90deg, transparent, black 33%);
+}
+.nx-service-hero::after {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  right: 6%;
+  top: 28%;
+  width: 165px;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  border: 1px solid hsl(var(--primary) / .13);
+  box-shadow:
+    0 0 0 19px hsl(var(--primary) / .022),
+    0 0 0 39px hsl(var(--primary) / .022),
+    inset 0 0 0 25px hsl(var(--primary) / .018);
+  pointer-events: none;
+}
+.nx-service-hero-rail {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .75rem;
+  padding: .7rem clamp(1.25rem, 2.3vw, 2.1rem);
+  border-bottom: 1px solid var(--svc-line);
+  background: hsl(var(--primary) / .038);
+  font-size: .64rem;
+  font-weight: 850;
+  letter-spacing: .125em;
+  color: hsl(var(--primary));
+}
+.nx-service-hero-rail > span:first-child {
+  display: inline-flex;
+  align-items: center;
+  gap: .5rem;
+}
+.nx-service-hero-index { color: var(--svc-muted); }
+.nx-service-hero-content {
+  position: relative;
+  min-height: 124px;
+  padding: 1.55rem clamp(1.25rem, 2.3vw, 2.1rem) 1.65rem;
+  border: none;
+  background: transparent;
+}
+.nx-service-hero-content h1 {
+  color: var(--svc-ink);
+  font-size: clamp(2rem, 3.25vw, 2.65rem);
+  font-weight: 840;
+  line-height: 1.11;
+  letter-spacing: -.055em;
+}
+.nx-service-hero-content p {
+  margin-top: .63rem;
+  max-width: 600px;
+  color: var(--svc-muted);
+  font-size: .89rem;
+  line-height: 1.62;
+}
+.nx-service-hero-footer {
+  display: flex;
+  align-items: center;
+  gap: .52rem;
+  padding: .73rem clamp(1.25rem, 2.3vw, 2.1rem);
+  border-top: 1px solid hsl(var(--border) / .58);
+  color: hsl(var(--muted-foreground));
+  font-size: .63rem;
+  font-weight: 770;
+  letter-spacing: .085em;
+}
+.nx-service-hero-signal {
+  display: inline-block;
+  flex: none;
+  width: 7px;
+  height: 7px;
+  background: var(--svc-teal);
+  border-radius: 2px;
+  box-shadow: 0 0 0 3px hsl(var(--primary) / .09);
+}
+.nx-service-hero-meta { margin-left: auto; opacity: .8; }
+
+/* Insights panel: diagnosis dashboard with measured, technical visual rhythm. */
+.nx-warranties-premium.nx-warranties-service > .nx-service-insights {
+  position: relative;
+  padding: clamp(1.1rem, 2.2vw, 1.65rem);
+  border: 1px solid var(--svc-line);
+  border-radius: 19px;
+  background:
+    radial-gradient(ellipse 42% 82% at 100% -18%, hsl(var(--primary) / .105), transparent 76%),
+    var(--svc-card);
+  box-shadow: 0 17px 42px -34px hsl(215 65% 25% / .36);
+}
+.nx-warranties-service > .nx-service-insights::before {
+  width: 3px;
+  background: linear-gradient(180deg, var(--svc-teal), hsl(var(--primary) / .7), transparent 92%);
+}
+.nx-service-insights > div:first-child h2 {
+  color: var(--svc-ink);
+  font-weight: 850;
+  font-size: .94rem;
+  letter-spacing: -.01em;
+  flex-wrap: wrap;
+}
+.nx-service-insights .nx-service-insight-label {
+  display: inline-flex;
+  align-items: center;
+  margin-left: .5rem;
+  padding: .25rem .45rem;
+  border: 1px solid hsl(var(--primary) / .18);
+  border-radius: 6px;
+  background: hsl(var(--primary) / .07);
+  color: hsl(var(--primary));
+  font-size: .57rem;
+  font-weight: 850;
+  letter-spacing: .11em;
+}
+.nx-warranties-service > .nx-service-insights > div:first-child button {
+  min-height: 42px;
+  border-radius: 9px;
+  font-weight: 780;
+  padding-inline: 1rem;
+}
+.nx-service-insight-filters {
+  padding: 1rem;
+  border: 1px solid var(--svc-line);
+  border-radius: 12px;
+  background: hsl(var(--secondary) / .13);
+}
+.nx-service-insight-filters label {
+  color: var(--svc-muted);
+  font-size: .71rem;
+  font-weight: 760;
+}
+.nx-service-insight-filters input,
+.nx-service-insight-filters select {
+  height: 43px;
+  margin-top: .4rem;
+  border-radius: 9px;
+  background: hsl(var(--background) / .85);
+  border-color: var(--svc-line);
+  color: var(--svc-ink);
+}
+.nx-warranties-service .nx-service-insight-metrics,
+.nx-warranties-service .nx-service-insight-diagnostics { gap: .75rem; }
+.nx-warranties-service .nx-service-insight-metrics > .nx-service-metric {
+  min-width: 0;
+  min-height: 113px;
+  padding: 1rem;
+  border: 1px solid var(--svc-line);
+  border-radius: 11px;
+  background: linear-gradient(142deg, hsl(var(--secondary) / .25), hsl(var(--card)));
+  box-shadow: inset 0 1px 0 hsl(var(--background) / .62);
+}
+.nx-service-metric::before {
+  content: "";
+  display: block;
+  width: 25px;
+  height: 3px;
+  margin-bottom: .75rem;
+  border-radius: 2px;
+  background: var(--svc-teal);
+}
+.nx-service-insight-metrics .nx-service-metric p:first-child {
+  color: var(--svc-muted);
+  font-size: .72rem;
+  font-weight: 740;
+}
+.nx-service-insight-metrics .nx-service-metric p:last-child {
+  margin-top: .25rem;
+  color: var(--svc-ink);
+  font-size: clamp(1.4rem, 2.1vw, 1.83rem);
+  letter-spacing: -.05em;
+  font-variant-numeric: tabular-nums;
+}
+.nx-service-insight-metrics > .nx-service-metric:nth-child(2)::before { background: hsl(var(--warning)); }
+.nx-service-insight-metrics > .nx-service-metric:nth-child(3)::before { background: hsl(var(--success)); }
+.nx-service-insight-metrics > .nx-service-metric:nth-child(4)::before { background: hsl(var(--info)); }
+.nx-warranties-service .nx-service-insight-diagnostics > .nx-service-diagnostic {
+  padding: .9rem 1rem;
+  border: 1px dashed hsl(var(--border) / .88);
+  border-radius: 9px;
+  background: hsl(var(--secondary) / .13);
+  box-shadow: none;
+}
+.nx-service-insight-diagnostics .nx-service-diagnostic p:first-child {
+  color: var(--svc-muted);
+  font-size: .7rem;
+}
+.nx-service-insight-diagnostics .nx-service-diagnostic p:last-child {
+  margin-top: .45rem;
+  color: var(--svc-ink);
+  font-size: 1.38rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+.nx-service-ranking {
+  border: 1px solid var(--svc-line);
+  border-radius: 12px;
+  background: var(--svc-card);
+  box-shadow: 0 11px 27px -28px hsl(220 45% 15% / .45);
+}
+.nx-service-ranking > h3 {
+  color: var(--svc-ink);
+  font-size: .82rem;
+  font-weight: 830;
+  background: hsl(var(--secondary) / .22);
+  border-color: var(--svc-line);
+}
+.nx-service-ranking > div > div {
+  border-color: hsl(var(--border) / .48);
+  min-height: 41px;
+}
+.nx-service-ranking > div > div:nth-child(2n) { background: hsl(var(--secondary) / .07); }
+.nx-service-ranking > div > div span:last-child {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Workflow rail rather than reception-style pill filter set. */
+.nx-warranties-premium.nx-warranties-service > .nx-service-workflow {
+  position: sticky;
+  top: .45rem;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: .25rem;
+  padding: .5rem .65rem;
+  border: 1px solid var(--svc-line);
+  border-radius: 13px;
+  background: hsl(var(--card) / .94);
+  box-shadow: 0 13px 35px -31px hsl(215 67% 22% / .5);
+  backdrop-filter: blur(14px);
+}
+.nx-warranties-service > .nx-service-workflow .nx-service-workflow-tab {
+  display: inline-flex;
+  gap: .45rem;
+  min-height: 43px;
+  padding: .58rem .88rem;
+  border: 1px solid transparent;
+  border-bottom: 2px solid transparent;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--svc-muted);
+  font-size: .78rem;
+  font-weight: 780;
+  box-shadow: none;
+  transition: border-color .15s ease, background .15s ease, color .15s ease;
+}
+.nx-warranties-service > .nx-service-workflow .nx-service-workflow-tab[data-active="true"] {
+  border-color: hsl(var(--primary) / .15);
+  border-bottom-color: hsl(var(--primary));
+  background: hsl(var(--primary) / .105);
+  color: var(--svc-ink);
+  box-shadow: none;
+}
+.nx-service-workflow-tab > span {
+  display: inline-grid;
+  place-items: center;
+  min-width: 23px;
+  height: 22px;
+  margin-left: .1rem;
+  padding: .15rem .4rem;
+  border-radius: 6px;
+  color: var(--svc-muted);
+  background: hsl(var(--secondary) / .68);
+  font-size: .7rem;
+  font-weight: 850;
+  font-variant-numeric: tabular-nums;
+}
+.nx-service-workflow-tab[data-active="true"] > span {
+  color: hsl(var(--primary));
+  background: hsl(var(--primary) / .15);
+}
+.nx-warranties-service > .nx-service-workflow .nx-service-stalled {
+  min-height: 39px;
+  margin-left: auto;
+  border-color: hsl(var(--warning) / .36);
+  background: hsl(var(--warning) / .08);
+  color: hsl(var(--foreground));
+  border-radius: 9px;
+  font-size: .76rem;
+  font-weight: 780;
+  box-shadow: none;
+}
+.nx-service-stalled svg { width: 17px; height: 17px; color: hsl(var(--warning)); }
+.nx-service-workflow .nx-service-stalled[aria-pressed="true"] {
+  background: hsl(var(--warning) / .18);
+  border-color: hsl(var(--warning) / .57);
+}
+.nx-service-workflow .nx-service-stalled span {
+  border-radius: 5px;
+  color: hsl(var(--warning));
+  background: hsl(var(--warning) / .11);
+}
+@media (hover:hover) {
+  .nx-service-workflow .nx-service-workflow-tab:hover {
+    background: hsl(var(--primary) / .055);
+    color: var(--svc-ink);
+  }
+}
+
+/* Intake = service ticket creation, guided by a technical section marker. */
+.nx-warranties-premium.nx-warranties-service > .nx-service-intake {
+  border: 1px solid var(--svc-line);
+  border-radius: 19px;
+  padding: clamp(1.15rem, 2.2vw, 1.8rem);
+  background:
+    linear-gradient(90deg, hsl(var(--primary) / .038), transparent 15%),
+    var(--svc-card);
+  box-shadow: 0 18px 39px -35px hsl(215 63% 24% / .46);
+}
+.nx-warranties-service > .nx-service-intake > .nx-service-intake-title {
+  display: flex;
+  align-items: center;
+  gap: .85rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--svc-line);
+}
+.nx-service-intake-glyph {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 13px;
+  border: 1px solid hsl(var(--primary) / .27);
+  background: hsl(var(--primary) / .095);
+  color: hsl(var(--primary));
+}
+.nx-service-intake-kicker {
+  font-size: .62rem !important;
+  color: hsl(var(--primary)) !important;
+  font-weight: 820;
+  letter-spacing: .12em;
+}
+.nx-service-intake-title h2 {
+  margin-top: .33rem;
+  color: var(--svc-ink);
+  font-size: clamp(1.05rem, 1.7vw, 1.32rem);
+  font-weight: 820;
+  letter-spacing: -.03em;
+}
+.nx-service-intake-marker {
+  margin-left: auto;
+  font-size: .64rem;
+  font-weight: 770;
+  color: var(--svc-muted);
+  letter-spacing: .06em;
+}
+.nx-warranties-service > .nx-service-intake > .nx-service-intake-modes {
+  display: flex;
+  gap: 1.2rem;
+  padding-bottom: .3rem;
+  border-bottom: 1px solid var(--svc-line);
+}
+.nx-warranties-service > .nx-service-intake .nx-service-intake-mode {
+  min-height: 40px;
+  padding: .6rem .15rem .75rem;
+  border: none;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  color: var(--svc-muted);
+  background: transparent;
+  font-size: .81rem;
+  font-weight: 790;
+  box-shadow: none;
+}
+.nx-warranties-service > .nx-service-intake .nx-service-intake-mode[data-active="true"] {
+  border-bottom-color: var(--svc-teal);
+  background: transparent;
+  color: var(--svc-ink);
+}
+.nx-service-intake > div:not(.nx-service-intake-title):not(.nx-service-intake-modes) button {
+  min-height: 38px;
+  border-radius: 9px;
+  font-weight: 740;
+}
+.nx-warranties-service > .nx-service-intake input,
+.nx-warranties-service > .nx-service-intake textarea,
+.nx-warranties-service > .nx-service-intake select {
+  min-height: 44px;
+  background: hsl(var(--background) / .8);
+  border: 1px solid var(--svc-line);
+  border-radius: 10px;
+  color: var(--svc-ink);
+  box-shadow: inset 0 1px 2px rgb(0 0 0 / .02);
+}
+.nx-warranties-service > .nx-service-intake label {
+  color: var(--svc-ink);
+  font-weight: 740;
+  font-size: .81rem;
+}
+.nx-warranties-service > .nx-service-intake textarea { min-height: 91px; }
+.nx-warranties-service > .nx-service-intake input:focus-visible,
+.nx-warranties-service > .nx-service-intake textarea:focus-visible,
+.nx-service-insights input:focus-visible {
+  outline: 2px solid hsl(var(--primary) / .33);
+  outline-offset: 1px;
+}
+.nx-warranties-service > .nx-service-intake button.bg-primary:not(:disabled) {
+  color: hsl(var(--primary-foreground));
+  background: linear-gradient(112deg, hsl(var(--primary-glow)), hsl(var(--primary)));
+  box-shadow: 0 11px 22px -16px hsl(var(--primary) / .56);
+}
+
+/* Case lots are technical files with restrained severity indicators. */
+.nx-warranties-service .nx-service-lot {
+  overflow: hidden;
+  border: 1px solid var(--svc-line);
+  border-left: 3px solid hsl(var(--primary) / .55);
+  border-radius: 12px;
+  background: var(--svc-card);
+  box-shadow: 0 11px 30px -30px hsl(215 61% 21% / .42);
+}
+.nx-warranties-service .nx-service-lot-header {
+  min-height: 66px;
+  padding: .85rem 1.05rem;
+  background: linear-gradient(90deg, hsl(var(--secondary) / .38), hsl(var(--primary) / .035));
+  border-bottom-color: hsl(var(--border) / .67);
+}
+.nx-warranties-service .nx-service-lot-toggle {
+  gap: .8rem;
+}
+.nx-service-lot-toggle > svg {
+  display: grid;
+  flex: none;
+  width: 23px;
+  height: 23px;
+  padding: 4px;
+  border: 1px solid hsl(var(--primary) / .2);
+  border-radius: 7px;
+  background: hsl(var(--primary) / .07);
+  color: hsl(var(--primary));
+}
+.nx-warranties-service .nx-warranty-lot-title {
+  color: var(--svc-ink);
+  font-size: .85rem;
+  font-weight: 850;
+}
+.nx-warranties-service .nx-warranty-lot-subtitle {
+  margin-top: .16rem;
+  color: var(--svc-muted);
+  font-size: .74rem;
+}
+.nx-service-lot .lote-expand {
+  padding: .25rem;
+  background: hsl(var(--secondary) / .10);
+}
+.nx-warranties-service .nx-service-ticket,
+.nx-warranties-service .lote-expand > div > div.nx-service-ticket {
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  flex-direction: column;
+  min-height: 223px;
+  padding: 1.05rem 1.1rem;
+  border: 1px solid hsl(var(--border) / .88);
+  border-radius: 11px;
+  background: var(--svc-card);
+  box-shadow: 0 10px 26px -24px hsl(215 67% 17% / .48);
+  transition: border-color .15s ease, box-shadow .15s ease;
+}
+.nx-service-ticket::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 1.1rem;
+  width: 56px;
+  height: 2px;
+  border-radius: 0 0 3px 3px;
+  background: var(--svc-teal);
+  opacity: .75;
+}
+.nx-service-ticket p.font-tabular.font-semibold,
+.nx-service-ticket > div:first-child p.font-tabular {
+  color: var(--svc-ink);
+  font-size: .86rem;
+  font-weight: 850;
+  letter-spacing: -.015em;
+}
+.nx-service-ticket > div:first-child > div:last-child {
+  gap: .3rem;
+}
+.nx-service-ticket .nx-service-ticket-actions {
+  margin-top: auto;
+  padding-top: .85rem;
+  border-top: 1px solid hsl(var(--border) / .55);
+}
+.nx-service-ticket-actions a,
+.nx-service-ticket-actions button {
+  min-height: 33px;
+  padding-inline: .6rem;
+  border-radius: 8px;
+  font-weight: 750;
+  font-size: .76rem;
+}
+.nx-service-ticket-actions button.text-destructive { color: hsl(var(--destructive)); }
+.nx-service-ticket-actions button:hover { background: hsl(var(--primary) / .065); }
+.nx-service-ticket > div:nth-child(2) { margin-top: .85rem; }
+.nx-service-ticket > div:nth-child(2) p {
+  color: var(--svc-ink);
+  font-weight: 760;
+}
+.nx-service-ticket input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: hsl(var(--primary));
+}
+
+/* Archives and re-shipment search share the same documentation treatment. */
+.nx-service-history {
+  padding: 1.1rem;
+  border: 1px solid var(--svc-line);
+  border-radius: 15px;
+  background: var(--svc-card);
+}
+.nx-service-history > input,
+.nx-service-history select,
+.nx-service-search input,
+.nx-warranties-service > .animate-fade-in > .rounded-lg.border input,
+.nx-warranties-service > .animate-fade-in > .rounded-lg.border select {
+  min-height: 44px;
+  border: 1px solid var(--svc-line);
+  border-radius: 9px;
+  background: hsl(var(--background) / .82);
+}
+.nx-service-search {
+  padding: 1.35rem;
+  border: 1px solid var(--svc-line);
+  border-radius: 15px;
+  background: var(--svc-card);
+  box-shadow: 0 12px 30px -27px hsl(215 61% 24% / .4);
+}
+.nx-warranties-service > .animate-fade-in > .nx-warranty-actions {
+  padding: .75rem 0;
+  border-bottom: 1px solid var(--svc-line);
+}
+.nx-warranties-service .nx-warranty-actions button,
+.nx-warranties-service .nx-service-lot-header > button,
+.nx-service-history button { border-radius: 9px; font-weight: 730; }
+
+/* A warranty's detail is a case file and event ledger, not a dashboard. */
+.nx-service-detail {
+  max-width: 1740px;
+  margin-inline: auto;
+  padding-bottom: 2rem;
+}
+.nx-service-detail > .nx-service-detail-header {
+  padding: clamp(1.3rem, 2.5vw, 2.1rem);
+  border: 1px solid hsl(var(--primary) / .22);
+  border-left: 4px solid var(--svc-teal, hsl(var(--primary)));
+  border-radius: 15px;
+  background:
+    linear-gradient(90deg, hsl(var(--primary) / .075), transparent 47%),
+    hsl(var(--card));
+  box-shadow: 0 17px 39px -35px hsl(215 66% 21% / .4);
+}
+.nx-service-detail-header h1 {
+  font-size: clamp(1.55rem, 2.6vw, 2.15rem);
+  font-weight: 820;
+  letter-spacing: -.04em;
+}
+.nx-service-detail-header > div:first-child > p {
+  margin-top: .8rem;
+}
+.nx-service-detail-header button {
+  min-height: 39px;
+  border-radius: 9px;
+  font-weight: 750;
+}
+.nx-service-detail > .grid > .nx-service-detail-case,
+.nx-service-detail > .grid > .nx-service-detail-timeline {
+  padding: clamp(1.15rem, 2vw, 1.65rem);
+  border-radius: 13px;
+  border: 1px solid hsl(var(--border) / .85);
+  background: hsl(var(--card));
+  box-shadow: 0 15px 35px -35px hsl(215 70% 21% / .48);
+}
+.nx-service-detail-case > h3,
+.nx-service-detail-timeline > h3 {
+  padding-bottom: .85rem;
+  border-bottom: 1px solid hsl(var(--border) / .74);
+  color: hsl(var(--foreground));
+  font-size: .95rem;
+  font-weight: 850;
+  letter-spacing: -.018em;
+}
+.nx-service-detail-case > div.border-b {
+  gap: 1rem;
+  border-color: hsl(var(--border) / .6);
+  padding-block: .8rem;
+}
+.nx-service-detail-case > div.border-b > span:first-child {
+  color: hsl(var(--muted-foreground));
+  font-size: .69rem;
+  font-weight: 760;
+  letter-spacing: .07em;
+}
+.nx-service-detail-timeline ol {
+  margin-top: 1.15rem;
+}
+.nx-service-detail-timeline ol li {
+  padding-bottom: .15rem;
+  border-color: hsl(var(--primary) / .24);
+}
+.nx-service-detail-timeline ol li > span:first-child {
+  background: var(--svc-teal, hsl(var(--primary)));
+  box-shadow: 0 0 0 4px hsl(var(--primary) / .09);
+}
+.nx-service-detail > .grid > div.space-y-3 > section {
+  border-radius: 12px;
+}
+
+/* Technical dialogs remain centered with consistent field and action treatments. */
+.nx-warranty-dialog--premium {
+  border-radius: 18px !important;
+  border-color: hsl(var(--primary) / .23) !important;
+  background:
+    linear-gradient(110deg, hsl(var(--primary) / .047), transparent 60%),
+    hsl(var(--card)) !important;
+}
+.nx-warranty-dialog--premium label { font-size: .78rem; font-weight: 760; }
+.nx-warranty-dialog--premium input,
+.nx-warranty-dialog--premium textarea,
+.nx-warranty-dialog--premium select {
+  border: 1px solid hsl(var(--border) / .83);
+  border-radius: 9px;
+  background: hsl(var(--background) / .79);
+}
+.nx-warranty-dialog--premium button {
+  border-radius: 9px;
+}
+.dark .nx-service-hero,
+.dark .nx-warranties-service > .nx-service-insights,
+.dark .nx-warranties-service > .nx-service-intake,
+.dark .nx-service-detail > .nx-service-detail-header {
+  box-shadow: 0 20px 44px -36px rgb(0 0 0 / .89), inset 0 1px 0 hsl(var(--foreground) / .04);
+}
+.dark .nx-warranties-service > .nx-service-workflow {
+  background: hsl(var(--card) / .94);
+}
+.dark .nx-service-ticket {
+  box-shadow: 0 13px 27px -23px rgb(0 0 0 / .75);
+}
+@media (max-width: 900px) {
+  .nx-service-hero-meta { display: none; }
+  .nx-warranties-premium.nx-warranties-service > .nx-service-workflow {
+    position: relative;
+    top: auto;
+  }
+}
+@media (max-width: 640px) {
+  .nx-warranties-service > .nx-service-hero { border-radius: 16px; }
+  .nx-service-hero-rail, .nx-service-hero-footer { padding: .65rem 1rem; font-size: .57rem; }
+  .nx-service-hero-index { display: none; }
+  .nx-service-hero-content { padding: 1.3rem 1.05rem 1.4rem; min-height: 100px; }
+  .nx-service-hero-content h1 { font-size: 2rem; }
+  .nx-warranties-premium.nx-warranties-service > .nx-service-workflow {
+    display: flex;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    justify-content: flex-start;
+    gap: .2rem;
+    padding: .5rem;
+    scrollbar-width: thin;
+    border-radius: 12px;
+  }
+  .nx-warranties-service > .nx-service-workflow .nx-service-workflow-tab {
+    flex: none;
+    min-height: 42px;
+    white-space: nowrap;
+  }
+  .nx-service-workflow .nx-service-stalled {
+    flex: none;
+    white-space: nowrap;
+    margin-left: 0;
+  }
+  .nx-service-intake-marker { display: none; }
+  .nx-service-intake-glyph { width: 40px; height: 40px; }
+  .nx-service-intake-title h2 { font-size: 1.03rem; }
+  .nx-warranties-service > .nx-service-intake > .nx-service-intake-modes {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: thin;
+    gap: 1rem;
+  }
+  .nx-warranties-service > .nx-service-intake .nx-service-intake-mode {
+    flex: none;
+    white-space: nowrap;
+  }
+  .nx-warranties-service .nx-service-ticket {
+    padding: .95rem;
+    min-height: 0;
+  }
+  .nx-warranties-service .nx-service-lot-header {
+    padding: .84rem;
+  }
+  .nx-service-history { padding: .85rem; }
+  .nx-service-insight-filters { padding: .8rem; }
+  .nx-warranties-premium.nx-warranties-service > .nx-service-insights {
+    padding: 1rem;
+  }
+  .nx-service-insights .nx-service-insight-label { margin-left: 0; }
+  .nx-service-detail > .nx-service-detail-header { padding: 1.15rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .nx-service-workflow-tab,
+  .nx-service-ticket { transition: none !important; transform: none !important; }
+}

@@ -1,4 +1,5 @@
 import "./warranty-premium.css";
+import "./warranty-service-lab.css";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
@@ -203,8 +204,8 @@ const LoteGarantias = ({
   t: (key: string, params?: Record<string, unknown>) => string;
   mostrarOrigen?: boolean;
 }) => (
-  <section className="nx-warranty-lot overflow-hidden rounded-lg border">
-    <div className="nx-warranty-lot-header flex flex-wrap items-center gap-2 border-b bg-muted/40 px-3 py-2">
+  <section className="nx-warranty-lot nx-service-lot overflow-hidden rounded-lg border">
+    <div className="nx-warranty-lot-header nx-service-lot-header flex flex-wrap items-center gap-2 border-b bg-muted/40 px-3 py-2">
       <button
         type="button"
         aria-expanded={!cerrado}
@@ -1451,7 +1452,7 @@ const Garantias = () => {
     const finalRetirado = notaFinalNormalizada.includes("retirado del inventario");
     const estancadaDias = isOpen ? (diasPorCaso.get(view.warranty.id) ?? 0) : 0;
     return (
-      <div id={`garantia-operativa-${view.warranty.id}`} key={view.warranty.id} className={cn("surface-hover scroll-mt-24 rounded-lg border bg-card p-4 shadow-sm", focusId === view.warranty.id && "border-primary ring-2 ring-primary/35 shadow-lg shadow-primary/10")}>
+      <div id={`garantia-operativa-${view.warranty.id}`} key={view.warranty.id} className={cn("nx-service-ticket surface-hover scroll-mt-24 rounded-lg border bg-card p-4 shadow-sm", focusId === view.warranty.id && "border-primary ring-2 ring-primary/35 shadow-lg shadow-primary/10")}>
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
             <p className="font-tabular truncate text-sm font-semibold">
@@ -1509,7 +1510,7 @@ const Garantias = () => {
         {view.warranty.diagnostico ? (
           <p className="mt-2 text-xs text-muted-foreground">{view.warranty.diagnostico}</p>
         ) : null}
-        <div className="mt-3 flex flex-wrap items-center gap-2">
+        <div className="nx-service-ticket-actions mt-3 flex flex-wrap items-center gap-2">
           {isOpen ? (
             <>
               {view.warranty.status === "recibido" ? (
@@ -1584,13 +1585,28 @@ const Garantias = () => {
   };
 
   return (
-    <div className="nx-management nx-warranties nx-warranties-premium space-y-5 stagger">
-      <PageHeader title={t("warranty.title")} description={t("warranty.subtitle")} />
+    <div className="nx-management nx-warranties nx-warranties-premium nx-warranties-service space-y-5 stagger">
+      <header className="nx-service-hero">
+        <div className="nx-service-hero-rail">
+          <span><ShieldCheck size={14} aria-hidden="true" /> CENTRO DE SERVICIO · NEXORA</span>
+          <span className="nx-service-hero-index">POSTVENTA / TRAZABILIDAD</span>
+        </div>
+        <PageHeader
+          className="nx-service-hero-content flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
+          title={t("warranty.title")}
+          description={t("warranty.subtitle")}
+        />
+        <div className="nx-service-hero-footer">
+          <span className="nx-service-hero-signal" aria-hidden="true" />
+          <span>GESTIÓN DE CASOS POR SERIAL</span>
+          <span className="nx-service-hero-meta">RECEPCIÓN · DIAGNÓSTICO · RESOLUCIÓN</span>
+        </div>
+      </header>
 
-      <section className="nx-warranty-stats space-y-3 rounded-xl border bg-card p-4 shadow-sm">
+      <section className="nx-warranty-stats nx-service-insights space-y-3 rounded-xl border bg-card p-4 shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h2 className="flex items-center gap-2 text-sm font-semibold"><BarChart3 className="h-4 w-4 text-primary" /> Estadísticas de garantías</h2>
+            <h2 className="flex items-center gap-2 text-sm font-semibold"><BarChart3 className="h-4 w-4 text-primary" /> Estadísticas de garantías <span className="nx-service-insight-label">ANÁLISIS TÉCNICO</span></h2>
             <p className="mt-1 text-xs text-muted-foreground">Análisis de incidencias y diagnósticos registrados, sin modificar información.</p>
           </div>
           <Button type="button" variant={mostrarEstadisticas ? "default" : "outline"} size="sm" onClick={() => setMostrarEstadisticas((actual) => !actual)}>
@@ -1599,7 +1615,7 @@ const Garantias = () => {
         </div>
         {mostrarEstadisticas ? (
           <div className="space-y-4">
-            <div className="grid gap-3 sm:grid-cols-3">
+            <div className="nx-service-insight-filters grid gap-3 sm:grid-cols-3">
               <label className="space-y-1 text-xs font-medium">Desde
                 <Input type="date" value={estadisticaDesde} onChange={(event) => setEstadisticaDesde(event.target.value)} />
               </label>
@@ -1620,21 +1636,21 @@ const Garantias = () => {
                 <Button type="button" size="sm" onClick={exportarEstadisticas} disabled={estadisticas.total === 0}><FileSpreadsheet className="mr-2 h-4 w-4" /> Exportar CSV</Button>
               </div>
             </div>
-            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="nx-service-insight-metrics grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
               {[
                 ["Registradas", estadisticas.total],
                 ["Abiertas", estadisticas.abiertas],
                 ["Cerradas", estadisticas.cerradas],
                 ["Promedio hasta resolución", estadisticas.promedioDias === null ? "Sin datos" : `${estadisticas.promedioDias.toFixed(1)} días`],
-              ].map(([titulo, valor]) => <div key={titulo} className="rounded-lg border bg-muted/20 p-3"><p className="text-xs text-muted-foreground">{titulo}</p><p className="mt-1 text-xl font-bold tabular-nums">{valor}</p></div>)}
+              ].map(([titulo, valor]) => <div key={titulo} className="nx-service-metric rounded-lg border bg-muted/20 p-3"><p className="text-xs text-muted-foreground">{titulo}</p><p className="mt-1 text-xl font-bold tabular-nums">{valor}</p></div>)}
             </div>
-            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="nx-service-insight-diagnostics grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
               {[
                 ["Reparado", estadisticas.reparadas],
                 ["Cambio", estadisticas.cambios],
                 ["Defectuoso", estadisticas.defectuosas],
                 ["Sin falla", estadisticas.sinFalla],
-              ].map(([titulo, valor]) => <div key={titulo} className="rounded-lg border p-3"><p className="text-xs text-muted-foreground">Diagnóstico: {titulo}</p><p className="mt-1 text-xl font-semibold tabular-nums">{valor}</p></div>)}
+              ].map(([titulo, valor]) => <div key={titulo} className="nx-service-diagnostic rounded-lg border p-3"><p className="text-xs text-muted-foreground">Diagnóstico: {titulo}</p><p className="mt-1 text-xl font-semibold tabular-nums">{valor}</p></div>)}
             </div>
             <p className="text-xs text-muted-foreground">Los diagnósticos no equivalen al destino de entrega: un reembolso no se clasifica automáticamente como defectuoso. El reembolso no tiene un campo estadístico independiente en los registros actuales.</p>
             <div className="grid gap-4 lg:grid-cols-2">
@@ -1642,7 +1658,7 @@ const Garantias = () => {
                 { titulo: "Referencias con más garantías", filas: estadisticas.referencias },
                 { titulo: "Motivos de ingreso más frecuentes", filas: estadisticas.motivos },
               ].map(({ titulo, filas }) => (
-                <div key={titulo} className="overflow-hidden rounded-lg border">
+                <div key={titulo} className="nx-service-ranking overflow-hidden rounded-lg border">
                   <h3 className="border-b bg-muted/30 px-4 py-3 text-sm font-semibold">{titulo}</h3>
                   {filas.length === 0 ? <p className="px-4 py-6 text-sm text-muted-foreground">Sin resultados para estos filtros.</p> : (
                     <div className="max-h-72 overflow-y-auto divide-y">
@@ -1661,11 +1677,13 @@ const Garantias = () => {
         ) : null}
       </section>
 
-      <div className="nx-warranty-tabs flex flex-wrap gap-2 rounded-lg border bg-card p-3 shadow-sm">
+      <nav className="nx-warranty-tabs nx-service-workflow flex flex-wrap gap-2 rounded-lg border bg-card p-3 shadow-sm" aria-label="Etapas de la gestión de garantías">
         {TABS.map((option) => (
           <Button
             key={option}
             data-active={tab === option}
+            aria-pressed={tab === option}
+            className="nx-service-workflow-tab"
             variant={tab === option ? "default" : "outline"}
             size="sm"
             onClick={() => {
@@ -1690,7 +1708,7 @@ const Garantias = () => {
             size="sm"
             aria-pressed={soloEstancadas}
             onClick={() => setSoloEstancadas((activo) => !activo)}
-            className="ml-auto"
+            className="nx-service-stalled ml-auto"
           >
             <TriangleAlert />
             {t("warranty.onlyStalled")}
@@ -1699,16 +1717,26 @@ const Garantias = () => {
             </span>
           </Button>
         ) : null}
-      </div>
+      </nav>
 
       {/* ============ RECIBIR ============ */}
       {tab === "recibir" ? (
-        <section className="nx-warranty-intake animate-fade-in space-y-4 rounded-lg border bg-card p-4 shadow-sm">
-          <div className="flex flex-wrap gap-2">
+        <section className="nx-warranty-intake nx-service-intake animate-fade-in space-y-4 rounded-lg border bg-card p-4 shadow-sm">
+          <div className="nx-service-intake-title">
+            <span className="nx-service-intake-glyph" aria-hidden="true"><ShieldCheck size={22} /></span>
+            <div>
+              <p className="nx-service-intake-kicker">ADMISIÓN / EQUIPOS</p>
+              <h2>Registrar ingreso de garantía</h2>
+            </div>
+            <span className="nx-service-intake-marker">FORMULARIO TÉCNICO</span>
+          </div>
+          <div className="nx-service-intake-modes flex flex-wrap gap-2">
             {(["imei", "previa", "falla"] as const).map((option) => (
               <Button
                 key={option}
                 data-active={modo === option}
+                aria-pressed={modo === option}
+                className="nx-service-intake-mode"
                 variant={modo === option ? "secondary" : "ghost"}
                 size="sm"
                 onClick={() => {
@@ -2358,7 +2386,7 @@ const Garantias = () => {
 
       {/* ============ HISTORIAL ============ */}
       {tab === "historial" ? (
-        <div className="animate-fade-in space-y-3">
+        <div className="nx-service-history animate-fade-in space-y-3">
           <Input
             {...SEARCH_INPUT_PROPS}
             value={filtroHistorial}
@@ -2426,7 +2454,7 @@ const Garantias = () => {
 
       {/* ============ BUSCAR IMEI ============ */}
       {tab === "buscar" ? (
-        <section className="animate-fade-in space-y-3 rounded-lg border bg-card p-4 shadow-sm">
+        <section className="nx-service-search animate-fade-in space-y-3 rounded-lg border bg-card p-4 shadow-sm">
           <SerialScanInput
             stacked
             submitLabel={t("common.search")}
