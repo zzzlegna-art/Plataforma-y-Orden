@@ -10,6 +10,7 @@ const permisosOperativos: Permission[] = [
   "orders.manage",
   "customers.manage",
   "warranties.manage",
+  "workspace.view",
 ];
 
 describe("permisos por rol", () => {
@@ -24,6 +25,7 @@ describe("permisos por rol", () => {
     permisosOperativos.forEach((permission) => {
       expect(can("bodeguero", permission)).toBe(true);
     });
+    expect(can("bodeguero", "workspace.view")).toBe(true);
     expect(can("bodeguero", "users.manage")).toBe(false);
     expect(can("bodeguero", "audit.view")).toBe(false);
     expect(canManageCatalogs("bodeguero")).toBe(false);

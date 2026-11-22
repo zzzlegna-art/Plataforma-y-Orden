@@ -59,6 +59,12 @@ export const MULTISITE_CAPABILITIES = [
     category: "Garantías",
   },
   {
+    key: "workspace.view",
+    label: "Consultar el espacio operativo asignado",
+    description: "Ver la bodega asignada al perfil y su contexto operativo.",
+    category: "Bodega",
+  },
+  {
     key: "users.manage",
     label: "Administrar usuarios y perfiles",
     description: "Gestionar las cuentas y los accesos del personal.",
