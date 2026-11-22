@@ -85,6 +85,7 @@ import { cn } from "@/lib/utils";
 import { ProductFormDialog } from "./ProductFormDialog";
 import { ProductImportDialog } from "./ProductImportDialog";
 import "./inventory-product-zoom.css";
+import "./inventory-premium.css";
 
 type StatTone = "primary" | "info" | "warning";
 
@@ -913,7 +914,7 @@ const Inventario = () => {
         }
       />
 
-      <div className="grid gap-3 sm:grid-cols-3">
+      <div className="nx-inventory-stats grid gap-3 sm:grid-cols-3">
         <InventoryStatCard
           label={t("product.statProducts")}
           value={rows.length}
@@ -938,7 +939,7 @@ const Inventario = () => {
       </div>
 
 
-      <div className="space-y-4 rounded-2xl border border-border/70 bg-card p-4 shadow-sm">
+      <div className="nx-inventory-filters space-y-4 rounded-2xl border border-border/70 bg-card p-4 shadow-sm">
         <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)]">
           <div className="space-y-1.5">
             <SearchField
@@ -1051,7 +1052,7 @@ const Inventario = () => {
           ) : undefined
         }
         renderCard={renderCard}
-        className="rounded-2xl border-border/70 shadow-sm"
+        className="nx-inventory-table rounded-2xl border-border/70 shadow-sm"
         rowClassName={(row) =>
           cn(
             "border-b border-border [&>td]:border-b [&>td]:border-border/80",
