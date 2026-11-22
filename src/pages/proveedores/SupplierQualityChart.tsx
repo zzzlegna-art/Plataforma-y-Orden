@@ -1,8 +1,5 @@
 import { useMemo, useState } from "react";
 import { AlertTriangle, BarChart3, ShieldCheck, TrendingUp } from "lucide-react";
-import {
-  Bar, BarChart, CartesianGrid, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis,
-} from "recharts";
 import { Button } from "@/components/ui/button";
 import { useStore } from "@/hooks/use-store";
 import { calculateSupplierQuality, type SupplierQualityRow } from "@/lib/supplier-quality";
@@ -31,10 +28,12 @@ export const SupplierQualityChart = ({ suppliers }: { suppliers: Supplier[] }) =
   }));
   const chosen = report.rows.find((row) => row.supplierId === selectedId) ?? candidates[0];
   const overallRate = report.received ? report.affected / report.received * 100 : 0;
+  const maxVisible = Math.max(1, ...displayed.map((row) => metric === "rate" ? row.rate : row.cases));
 
   return (
-    <section className="space-y-4 rounded-2xl border bg-card p-4 shadow-sm md:p-5"
+    <section className="nx-supplier-quality-v2 space-y-4 rounded-2xl border bg-card p-4 shadow-sm md:p-5"
       aria-labelledby="supplier-quality-heading">
+      <div className="nx-supplier-quality-head">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <p className="mb-1 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-primary">
@@ -48,7 +47,7 @@ export const SupplierQualityChart = ({ suppliers }: { suppliers: Supplier[] }) =
             Se cuenta cada serial afectado una sola vez por ingreso, aunque tenga varias garantías.
           </p>
         </div>
-        <div className="flex rounded-lg border bg-muted/40 p-1" role="group" aria-label="Ordenar proveedores por">
+        <div className="nx-supplier-quality-mode flex rounded-lg border bg-muted/40 p-1" role="group" aria-label="Ordenar proveedores por">
           <Button size="sm" type="button" variant={metric === "rate" ? "secondary" : "ghost"}
             aria-pressed={metric === "rate"} onClick={() => setMetric("rate")}>
             Porcentaje
@@ -59,21 +58,21 @@ export const SupplierQualityChart = ({ suppliers }: { suppliers: Supplier[] }) =
           </Button>
         </div>
       </div>
-
-      <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
-        <div className="rounded-xl border bg-muted/20 p-3">
+      <div className="nx-supplier-quality-body">
+      <div className="nx-supplier-quality-metrics grid grid-cols-2 gap-2 lg:grid-cols-4">
+        <div className="nx-supplier-quality-metric rounded-xl border bg-muted/20 p-3">
           <span className="text-xs text-muted-foreground">Equipos recibidos</span>
           <p className="mt-1 text-xl font-semibold tabular-nums">{number.format(report.received)}</p>
         </div>
-        <div className="rounded-xl border bg-muted/20 p-3">
+        <div className="nx-supplier-quality-metric rounded-xl border bg-muted/20 p-3">
           <span className="text-xs text-muted-foreground">Equipos con novedad</span>
           <p className="mt-1 text-xl font-semibold tabular-nums">{number.format(report.affected)}</p>
         </div>
-        <div className="rounded-xl border bg-muted/20 p-3">
+        <div className="nx-supplier-quality-metric rounded-xl border bg-muted/20 p-3">
           <span className="text-xs text-muted-foreground">Tasa global de novedades</span>
           <p className="mt-1 text-xl font-semibold tabular-nums">{percentage(overallRate)}</p>
         </div>
-        <div className="rounded-xl border bg-muted/20 p-3">
+        <div className="nx-supplier-quality-metric rounded-xl border bg-muted/20 p-3">
           <span className="text-xs text-muted-foreground">Casos de garantía</span>
           <p className="mt-1 text-xl font-semibold tabular-nums">{number.format(report.cases)}</p>
         </div>
@@ -85,74 +84,63 @@ export const SupplierQualityChart = ({ suppliers }: { suppliers: Supplier[] }) =
           <p className="text-sm font-medium">Todavía no hay recepciones confirmadas vinculadas a proveedores.</p>
           <p className="mx-auto mt-2 max-w-xl text-xs leading-relaxed text-muted-foreground">
             Registra el proveedor al recibir equipos, o asígnalo a una recepción anterior con el botón
-            «Proveedor». La gráfica aparecerá automáticamente sin modificar los seriales.
+            «Proveedor». La comparación aparecerá automáticamente sin modificar los seriales.
           </p>
         </div>
       ) : (
-        <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_220px]">
-          <div className="min-w-0 rounded-xl border bg-muted/10 p-2 sm:p-3">
-            <p className="mb-2 px-2 text-xs font-medium text-muted-foreground">
-              {metric === "rate" ? "Porcentaje de equipos con novedad" : "Cantidad de garantías registradas"} ·
-              Top {displayed.length}
-            </p>
-            <div role="img" aria-label={metric === "rate"
-              ? "Gráfica del porcentaje de equipos con novedad por proveedor"
-              : "Gráfica de cantidad de garantías por proveedor"}
-              className="w-full" style={{ height: Math.max(240, displayed.length * 47 + 32) }}>
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={displayed} layout="vertical"
-                  margin={{ top: 8, right: 28, bottom: 8, left: 10 }}>
-                  <CartesianGrid horizontal={false} strokeDasharray="3 3" opacity={0.18} />
-                  <XAxis type="number" domain={metric === "rate" ? [0, 100] : [0, "dataMax"]}
-                    allowDecimals={metric === "rate"}
-                    tickFormatter={(value: number) => metric === "rate" ? value + "%" : String(value)}
-                    tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
-                  <YAxis dataKey="shortName" type="category" width={120}
-                    tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
-                  <Tooltip
-                    cursor={{ fill: "hsl(var(--muted) / 0.45)" }}
-                    content={({ active, payload }) => {
-                      if (!active || !payload?.length) return null;
-                      const row = payload[0].payload as DisplayRow;
-                      return (
-                        <div className="max-w-[270px] rounded-xl border bg-popover p-3 text-xs text-popover-foreground shadow-lg">
-                          <p className="mb-1 font-semibold">{row.name}</p>
-                          <p>Tasa: {percentage(row.rate)}</p>
-                          <p>Equipos: {number.format(row.received)}</p>
-                          <p>Con novedad: {number.format(row.affected)}</p>
-                          <p>Garantías: {number.format(row.cases)}</p>
-                        </div>
-                      );
-                    }}
-                  />
-                  <Bar dataKey={metric} maxBarSize={22} radius={[0, 5, 5, 0]}
-                    onClick={(bar) => {
-                      const row = (bar as { payload?: DisplayRow }).payload;
-                      if (row?.supplierId) setSelectedId(row.supplierId);
-                    }}>
-                    {displayed.map((row) => (
-                      <Cell key={row.supplierId}
-                        fill={row.supplierId === chosen?.supplierId
-                          ? "hsl(var(--primary))" : "hsl(var(--primary) / 0.55)"} />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
+        <div className="nx-supplier-analysis">
+          <div className="nx-supplier-ranking">
+            <div className="nx-supplier-ranking-heading">
+              <span>{metric === "rate" ? "Tasa de novedades por proveedor" : "Casos de garantía por proveedor"}</span>
+              <span>Top {displayed.length}</span>
             </div>
+            <div className="nx-supplier-ranked-list">
+              {displayed.map((row, index) => {
+                const value = metric === "rate" ? row.rate : row.cases;
+                return (
+                  <button
+                    key={row.supplierId}
+                    type="button"
+                    className="nx-supplier-rank-row"
+                    aria-pressed={row.supplierId === chosen?.supplierId}
+                    aria-label={row.name + ": " + (metric === "rate" ? percentage(row.rate) : number.format(row.cases) + " garantías")}
+                    onClick={() => setSelectedId(row.supplierId)}
+                  >
+                    <span className="nx-supplier-rank-name">
+                      <span className="nx-supplier-rank-number">{String(index + 1).padStart(2, "0")}</span>
+                      <span title={row.name}>{row.name}</span>
+                    </span>
+                    <span className="nx-supplier-rank-track" aria-hidden="true">
+                      <span style={{ width: String(Math.max(0, value / maxVisible * 100)) + "%" }} />
+                    </span>
+                    <span className="nx-supplier-rank-value">
+                      {metric === "rate" ? percentage(row.rate) : number.format(row.cases)}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+            <p className="nx-supplier-ranking-footnote">
+              Las barras se comparan con el valor más alto de la lista. Las cifras muestran la tasa o cantidad real.
+            </p>
           </div>
 
           {chosen ? (
-            <div className="flex flex-col gap-3 rounded-xl border border-primary/20 bg-primary/[0.035] p-4">
+            <div className="nx-supplier-selected">
               <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-primary">
                 <TrendingUp className="h-4 w-4" /> Proveedor seleccionado
               </div>
-              <p className="break-words font-semibold">{chosen.name}</p>
-              <p className="text-3xl font-bold tabular-nums">{percentage(chosen.rate)}</p>
-              <p className="text-xs text-muted-foreground">de los equipos recibidos con alguna novedad</p>
+              <p>{chosen.name}</p>
+              <p className="nx-supplier-selected-score">
+                {metric === "rate" ? percentage(chosen.rate) : number.format(chosen.cases)}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                {metric === "rate" ? "de los equipos recibidos con alguna novedad" : "casos de garantía vinculados"}
+              </p>
               <div className="mt-1 space-y-1.5 border-t pt-3 text-sm">
-                <div className="flex justify-between"><span>Recibidos</span><strong>{number.format(chosen.received)}</strong></div>
-                <div className="flex justify-between"><span>Con novedad</span><strong>{number.format(chosen.affected)}</strong></div>
-                <div className="flex justify-between"><span>Casos</span><strong>{number.format(chosen.cases)}</strong></div>
+                <div className="flex justify-between gap-2"><span>Recibidos</span><strong>{number.format(chosen.received)}</strong></div>
+                <div className="flex justify-between gap-2"><span>Con novedad</span><strong>{number.format(chosen.affected)}</strong></div>
+                <div className="flex justify-between gap-2"><span>Casos</span><strong>{number.format(chosen.cases)}</strong></div>
               </div>
               {chosen.received < 10 ? (
                 <p className="flex gap-1.5 text-xs text-amber-700 dark:text-amber-300">
@@ -166,7 +154,7 @@ export const SupplierQualityChart = ({ suppliers }: { suppliers: Supplier[] }) =
       )}
 
       {report.rows.length > 0 && report.received > 0 ? (
-        <div className="overflow-x-auto rounded-xl border">
+        <div className="nx-supplier-quality-table overflow-x-auto rounded-xl border">
           <table className="w-full min-w-[590px] text-left text-sm">
             <thead className="bg-muted/45 text-xs text-muted-foreground">
               <tr>
@@ -213,6 +201,7 @@ export const SupplierQualityChart = ({ suppliers }: { suppliers: Supplier[] }) =
         cantidad de facturas ni número de garantías. Un mismo serial puede ingresar de nuevo
         y se evalúa en el lote que precede a cada novedad.
       </p>
+      </div>
     </section>
   );
 };

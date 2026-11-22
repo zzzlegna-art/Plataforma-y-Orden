@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Check, Pencil, Plus, Trash2, X } from "lucide-react";
+import { Check, Layers, Pencil, Plus, Tag, Trash2, X } from "lucide-react";
 
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { Input } from "@/components/ui/input";
@@ -272,10 +272,17 @@ export const CatalogsTab = () => {
 
   return (
     <div className="nx-admin-catalogs grid gap-4 lg:grid-cols-2">
-      <section className="nx-admin-catalog-card rounded-lg border bg-card p-4">
-        <h3 className="text-sm font-semibold">{t("catalog.brands")}</h3>
-        <p className="mb-3 text-xs text-muted-foreground">{t("catalog.brandsHint")}</p>
-        <div className="mb-3 flex gap-2" onKeyDown={onEnter(crearMarca)}>
+      <section className="nx-admin-catalog-card nx-admin-catalog-brands rounded-lg border bg-card p-4">
+        <header className="nx-admin-catalog-head">
+          <span className="nx-admin-catalog-icon" aria-hidden="true"><Tag size={20} /></span>
+          <div className="nx-admin-catalog-heading">
+            <h3 className="text-sm font-semibold">{t("catalog.brands")}</h3>
+            <p className="mb-3 text-xs text-muted-foreground">{t("catalog.brandsHint")}</p>
+          </div>
+          <span className="nx-admin-catalog-count" aria-label={String(db.brands.length) + " marcas"}>{db.brands.length}</span>
+        </header>
+        <div className="nx-admin-catalog-body">
+        <div className="nx-admin-catalog-add mb-3 flex gap-2" onKeyDown={onEnter(crearMarca)}>
           <Input
             value={brandName}
             placeholder={t("catalog.newBrand")}
@@ -305,19 +312,27 @@ export const CatalogsTab = () => {
             />
           ))}
         </ul>
+        </div>
       </section>
 
-      <section className="nx-admin-catalog-card rounded-lg border bg-card p-4 lg:col-span-2">
-        <h3 className="text-sm font-semibold">{t("catalog.productTypes")}</h3>
-        <p className="mb-3 text-xs text-muted-foreground">{t("catalog.productTypesHint")}</p>
-        <div className="mb-3 flex flex-wrap gap-2" onKeyDown={onEnter(crearTipo)}>
+      <section className="nx-admin-catalog-card nx-admin-catalog-types rounded-lg border bg-card p-4">
+        <header className="nx-admin-catalog-head">
+          <span className="nx-admin-catalog-icon" aria-hidden="true"><Layers size={20} /></span>
+          <div className="nx-admin-catalog-heading">
+            <h3 className="text-sm font-semibold">{t("catalog.productTypes")}</h3>
+            <p className="mb-3 text-xs text-muted-foreground">{t("catalog.productTypesHint")}</p>
+          </div>
+          <span className="nx-admin-catalog-count" aria-label={String(tiposProductoOrdenados(db).length) + " tipos"}>{tiposProductoOrdenados(db).length}</span>
+        </header>
+        <div className="nx-admin-catalog-body">
+        <div className="nx-admin-catalog-add mb-3 flex flex-wrap gap-2" onKeyDown={onEnter(crearTipo)}>
           <Input
             value={tipoName}
             placeholder={t("catalog.newProductType")}
             onChange={(event) => setTipoName(event.target.value)}
             className="max-w-xs"
           />
-          <div className="flex gap-1 rounded-md border bg-muted/40 p-0.5">
+          <div className="nx-admin-catalog-group flex gap-1 rounded-md border bg-muted/40 p-0.5">
             {(["celulares", "repuestos"] as const).map((grupo) => (
               <button
                 key={grupo}
@@ -364,6 +379,7 @@ export const CatalogsTab = () => {
             />
           ))}
         </ul>
+        </div>
       </section>
     </div>
   );

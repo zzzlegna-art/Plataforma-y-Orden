@@ -54,7 +54,7 @@ export const SupplierFormDialog = ({
   return (
     <Dialog open={open} onOpenChange={(value) => { if (!savingRef.current) setOpen(value); }}>
       <DialogTrigger asChild>{trigger}</DialogTrigger>
-      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-xl">
+      <DialogContent className="nx-supplier-form-v2 max-h-[90vh] overflow-y-auto sm:max-w-xl">
         <DialogHeader>
           <DialogTitle>{supplier ? "Editar proveedor" : "Nuevo proveedor"}</DialogTitle>
           <DialogDescription>

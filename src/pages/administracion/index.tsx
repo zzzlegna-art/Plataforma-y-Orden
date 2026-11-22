@@ -1,6 +1,7 @@
 import { useTranslation } from "react-i18next";
 import "./administracion-premium.css";
 import "./administracion-executive.css";
+import "./administracion-catalog-suppliers-v2.css";
 import { BookOpenCheck, Building2, Database, FileClock, KeyRound, LayoutGrid, Settings2, ShieldCheck, UsersRound } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
 

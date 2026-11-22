@@ -67,9 +67,9 @@ const Proveedores = ({ embedded = false }: { embedded?: boolean }) => {
   };
 
   return (
-    <div className="nx-suppliers-premium space-y-5">
+    <div className="nx-suppliers-premium nx-supplier-network space-y-5">
       {embedded ? (
-        <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="nx-supplier-directory-head flex flex-wrap items-center justify-between gap-3">
           <div className="space-y-1">
             <h2 className="text-lg font-semibold">Directorio de proveedores</h2>
             <p className="text-sm text-muted-foreground">
@@ -96,7 +96,7 @@ const Proveedores = ({ embedded = false }: { embedded?: boolean }) => {
 
       {!loading ? <SupplierQualityChart suppliers={suppliers} /> : null}
 
-      <div className="flex flex-wrap items-center gap-3 rounded-xl border bg-card p-4">
+      <div className="nx-supplier-search-bar flex flex-wrap items-center gap-3 rounded-xl border bg-card p-4">
         <div className="relative min-w-[190px] flex-1">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input aria-label="Buscar proveedor" className="pl-9" value={search}
@@ -124,9 +124,9 @@ const Proveedores = ({ embedded = false }: { embedded?: boolean }) => {
           </p>
         </div>
       ) : (
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+        <div className="nx-supplier-cards grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {visible.map((supplier) => (
-            <article key={supplier.id} className="rounded-xl border bg-card p-4 shadow-sm">
+            <article key={supplier.id} className="nx-supplier-card rounded-xl border bg-card p-4 shadow-sm">
               <div className="flex items-start justify-between gap-2">
                 <div className="flex min-w-0 items-start gap-3">
                   <div className="rounded-lg bg-primary/10 p-2 text-primary">

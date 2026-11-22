@@ -1,0 +1,516 @@
+/* NEXORA ADMIN · Catalogs & Supplier Network editorial refinement
+   Presentation-only; remains compatible with light/dark theme variables. */
+.nx-admin-executive .nx-admin-catalogs {
+  display: grid;
+  grid-template-columns: minmax(265px, .88fr) minmax(0, 1.12fr);
+  align-items: start;
+  gap: 1rem;
+}
+.nx-admin-executive .nx-admin-catalogs > .nx-admin-catalog-card {
+  position: relative;
+  isolation: isolate;
+  grid-column: auto;
+  overflow: hidden;
+  padding: 0;
+  background: hsl(var(--card));
+  border: 1px solid hsl(var(--border) / .85);
+  border-radius: 15px;
+  box-shadow: 0 16px 38px -34px hsl(217 58% 20% / .4);
+}
+.nx-admin-executive .nx-admin-catalog-card::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  top: -40px;
+  right: -36px;
+  width: 160px;
+  height: 160px;
+  border-radius: 50%;
+  background: hsl(var(--primary) / .065);
+  pointer-events: none;
+}
+.nx-admin-executive .nx-admin-catalog-card > .nx-admin-catalog-head {
+  display: flex;
+  align-items: center;
+  gap: .85rem;
+  min-height: 87px;
+  padding: 1.05rem 1.2rem;
+  border-bottom: 1px solid hsl(var(--border) / .72);
+  background: linear-gradient(105deg, hsl(var(--secondary) / .31), transparent 80%);
+}
+.nx-admin-catalog-head > .nx-admin-catalog-icon {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  color: hsl(var(--primary));
+  background: hsl(var(--primary) / .1);
+  border: 1px solid hsl(var(--primary) / .22);
+  border-radius: 11px;
+}
+.nx-admin-catalog-head .nx-admin-catalog-heading {
+  min-width: 0;
+  flex: 1;
+}
+.nx-admin-executive .nx-admin-catalog-head h3 {
+  margin: 0;
+  font-size: .93rem;
+  font-weight: 825;
+  letter-spacing: -.025em;
+}
+.nx-admin-executive .nx-admin-catalog-head p {
+  margin-top: .28rem;
+  color: hsl(var(--muted-foreground));
+  font-size: .73rem;
+  line-height: 1.5;
+}
+.nx-admin-catalog-count {
+  display: inline-flex;
+  flex: none;
+  justify-content: center;
+  align-items: center;
+  min-width: 37px;
+  height: 30px;
+  padding: .2rem .5rem;
+  border: 1px solid hsl(var(--primary) / .21);
+  border-radius: 8px;
+  background: hsl(var(--primary) / .075);
+  color: hsl(var(--primary));
+  font-size: .75rem;
+  font-weight: 850;
+  font-variant-numeric: tabular-nums;
+}
+.nx-admin-executive .nx-admin-catalog-card > .nx-admin-catalog-body {
+  padding: 1.15rem 1.2rem 1.25rem;
+}
+.nx-admin-executive .nx-admin-catalog-body > .nx-admin-catalog-add {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .5rem;
+  padding-bottom: 1rem;
+  margin-bottom: .9rem;
+  border-bottom: 1px solid hsl(var(--border) / .7);
+}
+.nx-admin-executive .nx-admin-catalog-add input {
+  min-width: 0;
+  min-height: 42px;
+  flex: 1 1 160px;
+  background: hsl(var(--background) / .7);
+  border-color: hsl(var(--border));
+  border-radius: 9px;
+}
+.nx-admin-executive .nx-admin-catalog-add button {
+  min-height: 40px;
+  border-radius: 9px;
+  font-weight: 780;
+}
+.nx-admin-executive .nx-admin-catalog-add .nx-admin-catalog-group {
+  display: flex;
+  align-items: center;
+  gap: .2rem;
+  flex: 0 0 auto;
+  max-width: 100%;
+  padding: .25rem;
+  border: 1px solid hsl(var(--border));
+  border-radius: 9px;
+  background: hsl(var(--secondary) / .27);
+}
+.nx-admin-executive .nx-admin-catalog-group button {
+  min-height: 31px;
+  padding: .35rem .65rem;
+  border-radius: 7px;
+  font-size: .72rem;
+  font-weight: 755;
+}
+.nx-admin-executive .nx-admin-catalog-body ul {
+  overflow: hidden;
+  margin: 0;
+  background: hsl(var(--background) / .28);
+  border: 1px solid hsl(var(--border) / .75);
+  border-radius: 10px;
+}
+.nx-admin-executive .nx-admin-catalog-body ul > li {
+  min-height: 49px;
+  padding: .6rem .82rem;
+  gap: .5rem;
+  border-color: hsl(var(--border) / .58);
+}
+.nx-admin-executive .nx-admin-catalog-body ul > li:nth-child(even) {
+  background: hsl(var(--secondary) / .13);
+}
+.nx-admin-executive .nx-admin-catalog-body ul > li:hover {
+  background: hsl(var(--primary) / .047);
+}
+.nx-admin-executive .nx-admin-catalog-body ul > li > span:first-child {
+  font-size: .79rem;
+  font-weight: 755;
+}
+.nx-admin-executive .nx-admin-catalog-body ul > li > span.text-xs {
+  font-size: .67rem;
+  font-variant-numeric: tabular-nums;
+}
+.nx-admin-executive .nx-admin-catalog-body ul > li button[size="icon"] {
+  width: 31px;
+  height: 31px;
+  border-radius: 7px;
+}
+.nx-admin-executive .nx-admin-catalog-body ul > li .rounded-md.border.bg-muted\/40 {
+  border-radius: 7px;
+}
+/* Suppliers: compact quality comparison, visibly precise even at sub-1% rates. */
+.nx-admin-executive .nx-suppliers-premium {
+  min-width: 0;
+  gap: 1.05rem;
+}
+.nx-admin-executive .nx-suppliers-premium > .nx-supplier-directory-head {
+  display: flex;
+  gap: 1rem;
+  padding-bottom: 1.05rem;
+  border-bottom: 1px solid hsl(var(--border) / .72);
+}
+.nx-admin-executive .nx-supplier-directory-head h2 {
+  font-size: 1.04rem;
+  font-weight: 830;
+  letter-spacing: -.03em;
+}
+.nx-admin-executive .nx-supplier-directory-head p { margin-top: .34rem; }
+.nx-admin-executive .nx-supplier-directory-head button {
+  min-height: 42px;
+  border-radius: 10px;
+  font-weight: 775;
+}
+.nx-supplier-quality-v2 {
+  overflow: hidden;
+  min-width: 0;
+  padding: 0;
+  border: 1px solid hsl(var(--border) / .85);
+  border-radius: 15px;
+  background: hsl(var(--card));
+  box-shadow: 0 16px 40px -35px hsl(217 65% 21% / .44);
+}
+.nx-supplier-quality-v2 > .nx-supplier-quality-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: .85rem;
+  padding: 1.15rem 1.3rem;
+  border-bottom: 1px solid hsl(var(--border) / .74);
+  background: linear-gradient(110deg, hsl(var(--primary) / .073), hsl(var(--card)) 68%);
+}
+.nx-supplier-quality-head h3 {
+  font-size: 1.05rem;
+  letter-spacing: -.03em;
+  font-weight: 820;
+}
+.nx-supplier-quality-head p:last-child {
+  max-width: 660px;
+  margin-top: .42rem;
+  font-size: .74rem;
+  line-height: 1.5;
+}
+.nx-supplier-quality-v2 .nx-supplier-quality-mode {
+  gap: .2rem;
+  padding: .25rem;
+  border-radius: 9px;
+  border: 1px solid hsl(var(--border));
+  background: hsl(var(--secondary) / .28);
+}
+.nx-supplier-quality-mode button {
+  min-height: 34px;
+  border-radius: 7px;
+  padding: .43rem .7rem;
+  font-size: .74rem;
+  font-weight: 755;
+}
+.nx-supplier-quality-body {
+  display: grid;
+  gap: 1rem;
+  padding: 1.1rem 1.3rem 1.2rem;
+}
+.nx-supplier-quality-v2 .nx-supplier-quality-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0,1fr));
+  gap: .65rem;
+}
+.nx-supplier-quality-metric {
+  position: relative;
+  overflow: hidden;
+  min-width: 0;
+  padding: .85rem .95rem;
+  border: 1px solid hsl(var(--border) / .8);
+  border-radius: 10px;
+  background: linear-gradient(125deg, hsl(var(--secondary) / .3), hsl(var(--card)));
+}
+.nx-supplier-quality-metric::before {
+  content: "";
+  display: block;
+  width: 24px;
+  height: 3px;
+  margin-bottom: .6rem;
+  border-radius: 2px;
+  background: hsl(var(--primary));
+}
+.nx-supplier-quality-metric:nth-child(2)::before { background: hsl(var(--warning)); }
+.nx-supplier-quality-metric:nth-child(3)::before { background: hsl(var(--success)); }
+.nx-supplier-quality-metric:nth-child(4)::before { background: hsl(var(--info)); }
+.nx-supplier-quality-metric span {
+  display: block;
+  color: hsl(var(--muted-foreground));
+  font-size: .7rem;
+  line-height: 1.4;
+  font-weight: 740;
+}
+.nx-supplier-quality-metric p {
+  margin-top: .35rem;
+  font-size: clamp(1.28rem,1.9vw,1.7rem);
+  line-height: 1.1;
+  font-weight: 835;
+  letter-spacing: -.045em;
+  font-variant-numeric: tabular-nums;
+}
+.nx-supplier-quality-v2 .nx-supplier-analysis {
+  display: grid;
+  grid-template-columns: minmax(0,1.45fr) minmax(215px,.7fr);
+  align-items: stretch;
+  gap: .7rem;
+}
+.nx-supplier-ranking {
+  min-width: 0;
+  padding: 1rem;
+  border: 1px solid hsl(var(--border) / .83);
+  border-radius: 12px;
+  background: hsl(var(--secondary) / .11);
+}
+.nx-supplier-ranking-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: .6rem;
+  margin-bottom: .85rem;
+  color: hsl(var(--muted-foreground));
+  font-size: .71rem;
+  font-weight: 745;
+}
+.nx-supplier-ranking-heading span:last-child {
+  color: hsl(var(--primary));
+  white-space: nowrap;
+}
+.nx-supplier-ranked-list {
+  display: flex;
+  flex-direction: column;
+  gap: .3rem;
+}
+.nx-supplier-rank-row {
+  display: grid;
+  grid-template-columns: minmax(105px, 37%) minmax(0,1fr) auto;
+  gap: .8rem;
+  align-items: center;
+  width: 100%;
+  min-height: 49px;
+  padding: .55rem .65rem;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  text-align: left;
+  background: transparent;
+  color: hsl(var(--foreground));
+  transition: border-color .15s ease, background .15s ease;
+}
+.nx-supplier-rank-row:hover,
+.nx-supplier-rank-row[aria-pressed=true] {
+  border-color: hsl(var(--primary) / .21);
+  background: hsl(var(--primary) / .07);
+}
+.nx-supplier-rank-row:focus-visible {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: 2px;
+}
+.nx-supplier-rank-name {
+  display: flex;
+  gap: .6rem;
+  align-items: center;
+  min-width: 0;
+  font-size: .77rem;
+  font-weight: 760;
+}
+.nx-supplier-rank-number {
+  color: hsl(var(--muted-foreground));
+  font-size: .65rem;
+  font-weight: 840;
+  font-variant-numeric: tabular-nums;
+}
+.nx-supplier-rank-name span:last-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.nx-supplier-rank-track {
+  height: 8px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: hsl(var(--border) / .7);
+}
+.nx-supplier-rank-track > span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg,hsl(var(--primary) / .78),hsl(var(--primary)));
+  transition: width .18s ease;
+}
+.nx-supplier-rank-row[aria-pressed=true] .nx-supplier-rank-track > span {
+  background: linear-gradient(90deg,hsl(var(--primary)),hsl(var(--info)));
+}
+.nx-supplier-rank-value {
+  min-width: 43px;
+  text-align: right;
+  font-size: .78rem;
+  font-weight: 825;
+  font-variant-numeric: tabular-nums;
+}
+.nx-supplier-ranking-footnote {
+  margin: .8rem .45rem 0;
+  color: hsl(var(--muted-foreground));
+  font-size: .68rem;
+  line-height: 1.5;
+}
+.nx-supplier-selected {
+  display: flex;
+  flex-direction: column;
+  gap: .48rem;
+  padding: 1rem;
+  border: 1px solid hsl(var(--primary) / .23);
+  border-radius: 12px;
+  background: linear-gradient(130deg, hsl(var(--primary) / .085), hsl(var(--card)));
+}
+.nx-supplier-selected > p:nth-of-type(1) {
+  margin-top: .1rem;
+  font-size: .85rem;
+  font-weight: 825;
+  overflow-wrap: anywhere;
+}
+.nx-supplier-selected > .nx-supplier-selected-score {
+  margin-top: .45rem;
+  font-size: 1.9rem;
+  font-weight: 850;
+  letter-spacing: -.05em;
+  font-variant-numeric: tabular-nums;
+}
+.nx-supplier-selected > div.border-t {
+  margin-top: auto;
+  padding-top: .8rem;
+  border-color: hsl(var(--border) / .7);
+}
+.nx-supplier-quality-v2 .nx-supplier-quality-table {
+  overflow: auto;
+  border: 1px solid hsl(var(--border) / .8);
+  border-radius: 11px;
+  background: hsl(var(--card));
+}
+.nx-supplier-quality-table thead tr { background: hsl(var(--secondary) / .34); }
+.nx-supplier-quality-table th {
+  font-size: .67rem;
+  letter-spacing: .075em;
+  text-transform: uppercase;
+  color: hsl(var(--muted-foreground));
+}
+.nx-supplier-quality-table td { font-size: .76rem; }
+.nx-supplier-quality-table tbody tr:nth-child(2n) { background: hsl(var(--secondary) / .09); }
+.nx-supplier-quality-v2 .nx-supplier-quality-notes {
+  display: grid;
+  gap: .32rem;
+  padding: .8rem 1rem;
+  border: 1px solid hsl(var(--border) / .65);
+  border-radius: 9px;
+  background: hsl(var(--secondary) / .105);
+  color: hsl(var(--muted-foreground));
+  font-size: .69rem;
+  line-height: 1.55;
+}
+.nx-admin-executive .nx-suppliers-premium > .nx-supplier-search-bar {
+  padding: .85rem 1rem;
+  border: 1px solid hsl(var(--border) / .84);
+  border-radius: 11px;
+  background: hsl(var(--secondary) / .13);
+}
+.nx-supplier-search-bar input {
+  min-height: 42px;
+  border-radius: 9px;
+  background: hsl(var(--background) / .75);
+}
+.nx-supplier-search-bar button { min-height: 39px; border-radius: 9px; }
+.nx-admin-executive .nx-suppliers-premium > .nx-supplier-cards {
+  display: grid;
+  gap: .75rem;
+}
+.nx-admin-executive .nx-suppliers-premium .nx-supplier-card {
+  position: relative;
+  min-width: 0;
+  padding: 1rem;
+  border: 1px solid hsl(var(--border) / .83);
+  border-radius: 12px;
+  background: hsl(var(--card));
+  box-shadow: 0 12px 26px -27px hsl(215 60% 19% / .5);
+}
+.nx-admin-executive .nx-suppliers-premium .nx-supplier-card::before {
+  position: absolute;
+  content: "";
+  top: 0;
+  left: 1rem;
+  width: 40px;
+  height: 2px;
+  background: hsl(var(--primary) / .75);
+  border-radius: 0 0 3px 3px;
+}
+.nx-admin-executive .nx-supplier-card:hover {
+  border-color: hsl(var(--primary) / .38);
+  background: hsl(var(--primary) / .025);
+}
+.nx-supplier-card h2 { font-size: .85rem; font-weight: 830; letter-spacing: -.015em; }
+.nx-supplier-card > div:last-child { border-color: hsl(var(--border) / .7); }
+.nx-supplier-card button { border-radius: 8px; }
+.nx-supplier-form-v2 {
+  border: 1px solid hsl(var(--primary) / .23);
+  border-radius: 18px;
+  background: linear-gradient(115deg,hsl(var(--primary) / .052),transparent 56%),hsl(var(--card));
+  box-shadow: 0 28px 80px -35px rgb(0 0 0 / .5);
+}
+.nx-supplier-form-v2 h2 { font-size: 1.34rem; font-weight: 835; letter-spacing: -.035em; }
+.nx-supplier-form-v2 label { font-size: .79rem; font-weight: 765; }
+.nx-supplier-form-v2 input,.nx-supplier-form-v2 textarea { border-radius: 9px; min-height: 42px; background: hsl(var(--background) / .8); }
+.nx-supplier-form-v2 button { border-radius: 9px; font-weight: 765; }
+.dark .nx-admin-executive .nx-admin-catalog-card,
+.dark .nx-supplier-quality-v2,
+.dark .nx-admin-executive .nx-supplier-card {
+  box-shadow: 0 18px 38px -33px rgb(0 0 0 / .8);
+}
+@media (max-width: 900px) {
+  .nx-admin-executive .nx-admin-catalogs {
+    grid-template-columns: minmax(0,1fr);
+  }
+  .nx-admin-executive .nx-admin-catalogs > .nx-admin-catalog-card { grid-column: auto; }
+}
+@media (max-width: 900px) {
+  .nx-supplier-quality-v2 .nx-supplier-analysis { grid-template-columns: minmax(0,1fr); }
+  .nx-supplier-quality-v2 .nx-supplier-quality-metrics { grid-template-columns: repeat(2,minmax(0,1fr)); }
+}
+@media (max-width: 767px) {
+  .nx-admin-executive .nx-admin-catalog-card > .nx-admin-catalog-head { padding: .9rem; }
+  .nx-admin-executive .nx-admin-catalog-card > .nx-admin-catalog-body { padding: .85rem; }
+  .nx-admin-catalog-count { min-width: 32px; }
+  .nx-supplier-quality-v2 > .nx-supplier-quality-head { padding: .95rem; }
+  .nx-supplier-quality-body { padding: .85rem; }
+  .nx-supplier-rank-row { grid-template-columns: minmax(96px,45%) minmax(0,1fr) auto; gap: .45rem; padding: .5rem .4rem; }
+  .nx-supplier-rank-name { font-size: .7rem; gap: .32rem; }
+  .nx-supplier-selected { padding: .9rem; }
+}
+@media (max-width: 430px) {
+  .nx-supplier-quality-v2 .nx-supplier-quality-metrics { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .nx-supplier-ranking { padding: .7rem; }
+  .nx-supplier-rank-row { grid-template-columns: minmax(70px,42%) minmax(0,1fr) auto; }
+  .nx-admin-executive .nx-admin-catalog-add input { flex-basis:100%; }
+  .nx-admin-executive .nx-admin-catalog-group { flex-basis: 100%; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .nx-supplier-rank-row, .nx-supplier-rank-track > span { transition: none; }
+}
