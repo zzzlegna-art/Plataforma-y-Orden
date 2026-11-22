@@ -1,0 +1,496 @@
+/* NEXORA · Clientes premium — visual-only workspace
+   Scoped to the directory and its portal dialog. Dark/light theme variables. */
+.nx-customers-premium {
+  --clients-surface: hsl(var(--card));
+  --clients-line: hsl(var(--border) / .84);
+  --clients-ink: hsl(var(--foreground));
+  --clients-muted: hsl(var(--muted-foreground));
+  width: 100%;
+  max-width: 1740px;
+  margin-inline: auto;
+  padding-bottom: 2rem;
+  color: var(--clients-ink);
+}
+.nx-customers-premium > .nx-clients-hero {
+  position: relative;
+  isolation: isolate;
+  min-height: 166px;
+  overflow: hidden;
+  gap: 1.25rem;
+  padding: clamp(1.35rem, 2.6vw, 2.2rem);
+  border: 1px solid hsl(var(--primary) / .29);
+  border-radius: 25px;
+  background:
+    radial-gradient(ellipse 55% 145% at 98% -30%, hsl(var(--primary) / .20), transparent 72%),
+    radial-gradient(ellipse 45% 95% at 5% 125%, hsl(var(--info) / .10), transparent 73%),
+    linear-gradient(112deg, hsl(var(--card)), hsl(var(--secondary) / .49));
+  box-shadow: 0 24px 54px -39px hsl(215 63% 27% / .46), inset 0 1px 0 hsl(var(--background) / .76);
+}
+.nx-customers-premium > .nx-clients-hero::before {
+  content: "";
+  position: absolute;
+  inset: auto 1.65rem 0;
+  height: 2px;
+  z-index: -1;
+  background: linear-gradient(90deg, transparent, hsl(var(--info) / .85) 28%, hsl(var(--primary) / .85) 72%, transparent);
+}
+.nx-customers-premium > .nx-clients-hero::after {
+  content: "";
+  position: absolute;
+  right: -95px;
+  top: -175px;
+  z-index: -1;
+  width: 330px;
+  height: 330px;
+  border-radius: 50%;
+  border: 1px solid hsl(var(--primary) / .18);
+  box-shadow: 0 0 0 25px hsl(var(--primary) / .035), 0 0 0 52px hsl(var(--primary) / .025);
+  pointer-events: none;
+}
+.nx-clients-hero h1 {
+  font-size: clamp(1.95rem, 3.1vw, 2.45rem);
+  font-weight: 850;
+  letter-spacing: -.055em;
+  line-height: 1.1;
+}
+.nx-clients-hero p {
+  margin-top: .7rem;
+  font-size: .89rem;
+  color: hsl(var(--muted-foreground));
+}
+.nx-clients-hero .nx-clients-create {
+  min-height: 47px;
+  padding: .6rem 1.15rem;
+  border-radius: 13px;
+  border: 1px solid hsl(var(--primary) / .42);
+  background: linear-gradient(110deg, hsl(var(--primary-glow)), hsl(var(--primary)));
+  color: hsl(var(--primary-foreground));
+  font-size: .82rem;
+  font-weight: 800;
+  box-shadow: 0 14px 24px -16px hsl(var(--primary) / .72), inset 0 1px 0 rgb(255 255 255 / .22);
+}
+.nx-clients-overview {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: .85rem;
+}
+.nx-clients-overview .nx-clients-stat {
+  --stat-tone: #048cb9;
+  --stat-wash: rgb(6 182 212 / .12);
+  --stat-icon: rgb(6 182 212 / .13);
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  min-width: 0;
+  min-height: 129px;
+  padding: 1.05rem 1.15rem;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--stat-tone) 24%, var(--clients-line));
+  border-radius: 19px;
+  background:
+    radial-gradient(ellipse at 105% 115%, var(--stat-wash), transparent 65%),
+    var(--clients-surface);
+  box-shadow: 0 18px 38px -30px color-mix(in srgb, var(--stat-tone) 22%, transparent), inset 0 1px 0 hsl(var(--background) / .8);
+}
+.nx-clients-stat--active { --stat-tone: #089777 !important; --stat-wash: rgb(18 194 153 / .13) !important; --stat-icon: rgb(15 169 139 / .14) !important; }
+.nx-clients-stat--inactive { --stat-tone: #c57b0c !important; --stat-wash: rgb(245 166 40 / .13) !important; --stat-icon: rgb(245 166 40 / .15) !important; }
+.nx-clients-stat--orders { --stat-tone: #326fce !important; --stat-wash: rgb(79 121 243 / .13) !important; --stat-icon: rgb(79 121 243 / .13) !important; }
+.nx-clients-stat::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: 3px;
+  background: linear-gradient(90deg, var(--stat-tone), color-mix(in srgb, var(--stat-tone) 10%, transparent));
+}
+.nx-clients-stat::after {
+  content: "";
+  position: absolute;
+  top: -70px;
+  right: -65px;
+  z-index: -1;
+  width: 125px;
+  height: 125px;
+  border: 1px solid color-mix(in srgb, var(--stat-tone) 24%, transparent);
+  border-radius: 50%;
+  box-shadow: 0 0 0 14px color-mix(in srgb, var(--stat-tone) 5%, transparent), 0 0 0 29px color-mix(in srgb, var(--stat-tone) 3%, transparent);
+  pointer-events: none;
+}
+.nx-clients-stat-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .8rem;
+}
+.nx-clients-stat-label {
+  min-width: 0;
+  font-size: .74rem;
+  font-weight: 730;
+  letter-spacing: .025em;
+  line-height: 1.3;
+  color: var(--clients-muted);
+}
+.nx-clients-stat-icon {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 39px;
+  height: 39px;
+  border: 1px solid color-mix(in srgb, var(--stat-tone) 23%, transparent);
+  border-radius: 12px;
+  background: var(--stat-icon);
+  color: var(--stat-tone);
+  box-shadow: 0 8px 18px -13px var(--stat-tone), inset 0 1px 0 rgb(255 255 255 / .17);
+}
+.nx-clients-stat-value {
+  display: block;
+  margin-top: .14rem;
+  font-size: clamp(1.7rem, 2.4vw, 2.2rem);
+  font-weight: 850;
+  line-height: 1.12;
+  letter-spacing: -.045em;
+  font-variant-numeric: tabular-nums;
+}
+.nx-clients-stat-hint {
+  margin-top: .42rem;
+  font-size: .72rem;
+  font-weight: 650;
+  line-height: 1.35;
+  color: var(--stat-tone);
+}
+.nx-customers-premium > .nx-clients-filters {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid hsl(var(--primary) / .22);
+  border-radius: 21px;
+  padding: 1.25rem;
+  background:
+    radial-gradient(ellipse 48% 150% at 100% 0%, hsl(var(--primary) / .09), transparent 75%),
+    linear-gradient(145deg, var(--clients-surface), hsl(var(--secondary) / .25));
+  box-shadow: 0 18px 44px -36px hsl(216 66% 27% / .45), inset 0 1px 0 hsl(var(--background) / .78);
+}
+.nx-clients-search {
+  flex: 1 1 260px;
+  max-width: 440px;
+}
+.nx-clients-search input {
+  min-height: 46px;
+  border-radius: 12px;
+  border: 1px solid hsl(var(--border));
+  background: hsl(var(--background) / .81);
+  font-size: .84rem;
+}
+.nx-customers-premium .nx-clients-inactive-toggle {
+  min-height: 42px;
+  border-radius: 999px;
+  padding-inline: 1rem;
+  font-weight: 750;
+}
+.nx-customers-premium .nx-clients-inactive-toggle[aria-pressed="true"] {
+  background: hsl(var(--primary) / .12);
+  border-color: hsl(var(--primary) / .46);
+  color: hsl(var(--primary));
+}
+.nx-clients-category-tabs {
+  align-items: center;
+  gap: .55rem;
+  padding-top: .3rem;
+}
+.nx-customers-premium .nx-clients-category-tabs .nx-clients-filter {
+  display: inline-flex;
+  gap: .55rem;
+  min-height: 41px;
+  border-radius: 999px;
+  padding: .45rem .95rem;
+  font-weight: 750;
+  font-size: .79rem;
+  border: 1px solid hsl(var(--border) / .84);
+  background: hsl(var(--secondary) / .32);
+  color: hsl(var(--foreground));
+  box-shadow: none;
+  transition: transform .16s ease, border-color .16s ease, background .16s ease;
+}
+.nx-customers-premium .nx-clients-category-tabs .nx-clients-filter[aria-pressed="true"] {
+  border-color: #168fc8;
+  background: linear-gradient(112deg, #237ed0, #087dbb 58%, #08a8bd);
+  color: #fff;
+  box-shadow: 0 10px 22px -13px rgb(3 125 190 / .7), inset 0 1px 0 rgb(255 255 255 / .2);
+}
+.nx-clients-filter-count {
+  display: inline-grid;
+  min-width: 22px;
+  height: 20px;
+  padding-inline: 6px;
+  place-items: center;
+  border-radius: 999px;
+  background: hsl(var(--muted));
+  color: hsl(var(--muted-foreground));
+  font-weight: 850;
+  font-size: .7rem;
+  font-variant-numeric: tabular-nums;
+}
+.nx-clients-filter[aria-pressed="true"] .nx-clients-filter-count {
+  background: rgb(255 255 255 / .18);
+  color: #fff;
+}
+.nx-customers-premium .nx-clients-table {
+  overflow: hidden;
+  border: 1px solid hsl(var(--primary) / .18);
+  border-radius: 21px;
+  background: linear-gradient(155deg, var(--clients-surface), hsl(var(--secondary) / .11));
+  box-shadow: 0 25px 52px -39px hsl(216 67% 27% / .46);
+}
+.nx-customers-premium .nx-clients-table thead tr {
+  background: linear-gradient(95deg, hsl(var(--secondary) / .90), hsl(var(--muted) / .76));
+}
+.nx-customers-premium .nx-clients-table thead th {
+  height: 56px;
+  padding: 1rem 1.05rem;
+  background: transparent;
+  color: hsl(var(--foreground) / .7);
+  font-size: .7rem;
+  font-weight: 830;
+  letter-spacing: .085em;
+  text-transform: uppercase;
+}
+.nx-customers-premium .nx-clients-table tbody tr {
+  height: 72px;
+  border-bottom: 1px solid hsl(var(--border) / .54);
+  transition: background .18s ease;
+}
+.nx-customers-premium .nx-clients-table tbody tr:nth-child(2n) {
+  background: hsl(var(--secondary) / .12);
+}
+.nx-customers-premium .nx-clients-table tbody tr:hover {
+  background: hsl(var(--primary) / .075);
+}
+.nx-customers-premium .nx-clients-table tbody tr:hover td:first-child {
+  box-shadow: inset 3px 0 hsl(var(--primary) / .9);
+}
+.nx-customers-premium .nx-clients-table tbody td {
+  padding: .95rem 1.05rem;
+  border-color: hsl(var(--border) / .5);
+  font-size: .82rem;
+}
+.nx-clients-name-cell {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  gap: .78rem;
+}
+.nx-clients-avatar {
+  display: grid;
+  place-items: center;
+  width: 39px;
+  height: 39px;
+  flex: none;
+  border: 1px solid hsl(var(--primary) / .25);
+  border-radius: 12px;
+  background: linear-gradient(135deg, hsl(var(--primary) / .16), hsl(var(--info) / .09));
+  color: hsl(var(--primary));
+  font-weight: 850;
+  font-size: .7rem;
+}
+.nx-clients-name-cell p:first-child { font-size: .83rem; font-weight: 800; }
+.nx-clients-name-cell p:last-child { margin-top: .25rem; font-size: .71rem; }
+.nx-clients-order-count {
+  display: inline-flex;
+  justify-content: center;
+  min-width: 36px;
+  padding: .38rem .65rem;
+  border: 1px solid hsl(var(--primary) / .17);
+  border-radius: 11px;
+  background: hsl(var(--primary) / .08);
+  color: hsl(var(--foreground));
+  font-weight: 800;
+}
+.nx-customers-premium .nx-clients-table .nx-clients-edit-btn {
+  min-height: 35px;
+  border-radius: 10px;
+  color: hsl(var(--primary));
+}
+.nx-customers-premium .nx-clients-table .nx-clients-edit-btn:hover {
+  background: hsl(var(--primary) / .10);
+}
+.nx-customers-premium .nx-clients-table .nx-clients-state-btn {
+  min-height: 35px;
+  border-radius: 10px;
+  font-weight: 750;
+  font-size: .77rem;
+}
+.nx-clients-mobile-card p:first-child { font-weight: 800; }
+
+/* Customer form is rendered in a portal. Styles remain scoped to this dialog. */
+.nx-clients-dialog {
+  max-height: min(90dvh, 850px);
+  border: 1px solid hsl(var(--primary) / .27);
+  border-radius: 24px;
+  background:
+    radial-gradient(ellipse 75% 45% at 100% -15%, hsl(var(--primary) / .14), transparent 80%),
+    linear-gradient(145deg, hsl(var(--card)), hsl(var(--secondary) / .19));
+  box-shadow: 0 33px 82px -31px hsl(216 65% 12% / .54), inset 0 1px 0 hsl(var(--background) / .78);
+  scrollbar-width: thin;
+}
+.nx-clients-dialog .nx-clients-dialog-header {
+  position: relative;
+  gap: .25rem;
+  padding-bottom: 1.3rem;
+  margin-bottom: .15rem;
+  border-bottom: 1px solid hsl(var(--border) / .7);
+}
+.nx-clients-dialog-eyebrow {
+  color: hsl(var(--primary));
+  font-size: .63rem;
+  font-weight: 850;
+  letter-spacing: .12em;
+}
+.nx-clients-dialog .nx-clients-dialog-header [role="heading"] {
+  font-size: 1.5rem;
+  letter-spacing: -.045em;
+  font-weight: 850;
+}
+.nx-clients-dialog .nx-clients-dialog-header p {
+  font-size: .83rem;
+  line-height: 1.5;
+}
+.nx-clients-dialog .nx-clients-dialog-fields {
+  gap: 1.15rem 1rem;
+}
+.nx-clients-dialog-fields label {
+  color: hsl(var(--foreground) / .9);
+  font-size: .79rem;
+  font-weight: 800;
+}
+.nx-clients-dialog-fields input,
+.nx-clients-dialog-fields textarea {
+  min-height: 44px;
+  border-radius: 12px;
+  border-color: hsl(var(--border));
+  background: hsl(var(--background) / .77);
+  font-size: .84rem;
+  transition: border-color .18s ease, box-shadow .18s ease;
+}
+.nx-clients-dialog-fields input:focus-visible,
+.nx-clients-dialog-fields textarea:focus-visible {
+  border-color: hsl(var(--primary) / .65);
+  box-shadow: 0 0 0 3px hsl(var(--primary) / .09);
+}
+.nx-clients-dialog-category {
+  margin-block: .25rem;
+  padding: 1rem;
+  border: 1px solid hsl(var(--primary) / .2);
+  border-radius: 16px;
+  background: linear-gradient(140deg, hsl(var(--primary) / .055), hsl(var(--background) / .47));
+}
+.nx-clients-dialog-category > p { line-height: 1.5; }
+.nx-clients-dialog .nx-clients-dialog-choice {
+  min-height: 36px;
+  border-radius: 999px;
+  font-size: .76rem;
+  font-weight: 750;
+}
+.nx-clients-dialog .nx-clients-dialog-choice[aria-pressed="true"] {
+  border-color: #168fc8;
+  background: linear-gradient(112deg, #237ed0, #087dbb 58%, #08a8bd);
+  color: #fff;
+  box-shadow: 0 8px 17px -13px hsl(var(--primary) / .8);
+}
+.nx-clients-dialog .nx-clients-dialog-choice[aria-pressed="false"] {
+  border-color: hsl(var(--border));
+  background: hsl(var(--background) / .8);
+  color: hsl(var(--foreground));
+}
+.nx-clients-dialog-active {
+  min-height: 51px;
+  padding: .65rem .95rem;
+  border-radius: 13px;
+  border-color: hsl(var(--primary) / .26);
+  background: hsl(var(--primary) / .055);
+}
+.nx-clients-dialog-footer {
+  padding-top: 1rem;
+  border-top: 1px solid hsl(var(--border) / .65);
+}
+.nx-clients-dialog .nx-clients-cancel,
+.nx-clients-dialog .nx-clients-save {
+  min-height: 43px;
+  border-radius: 12px;
+  padding-inline: 1.15rem;
+  font-size: .83rem;
+  font-weight: 800;
+}
+.nx-clients-dialog .nx-clients-save {
+  background: linear-gradient(112deg, hsl(var(--primary-glow)), hsl(var(--primary)));
+  color: hsl(var(--primary-foreground));
+  box-shadow: 0 11px 24px -16px hsl(var(--primary) / .67);
+}
+.dark .nx-customers-premium > .nx-clients-hero {
+  background:
+    radial-gradient(ellipse 50% 135% at 98% -25%, hsl(var(--primary) / .2), transparent 72%),
+    radial-gradient(ellipse 40% 95% at 5% 125%, hsl(var(--info) / .12), transparent 73%),
+    linear-gradient(112deg, hsl(var(--card)), hsl(var(--secondary) / .24));
+  box-shadow: 0 24px 54px -38px rgb(0 0 0 / .84), inset 0 1px 0 hsl(var(--foreground) / .045);
+}
+.dark .nx-clients-stat--total { --stat-tone: #50d7ed !important; }
+.dark .nx-clients-stat--active { --stat-tone: #64dfbd !important; }
+.dark .nx-clients-stat--inactive { --stat-tone: #ffc46b !important; }
+.dark .nx-clients-stat--orders { --stat-tone: #a5c9ff !important; }
+.dark .nx-customers-premium > .nx-clients-filters {
+  box-shadow: 0 20px 44px -34px rgb(0 0 0 / .82), inset 0 1px 0 hsl(var(--foreground) / .045);
+}
+.dark .nx-customers-premium .nx-clients-category-tabs .nx-clients-filter[aria-pressed="false"] {
+  border-color: rgb(135 170 207 / .19);
+  background: linear-gradient(180deg, #1a2b40, #142235);
+  color: #d5e4f5;
+}
+.dark .nx-clients-dialog {
+  box-shadow: 0 33px 82px -31px rgb(0 0 0 / .94), inset 0 1px 0 hsl(var(--foreground) / .045);
+}
+@media (min-width: 640px) {
+  .nx-clients-dialog { max-width: 640px; }
+}
+@media (hover: hover) {
+  .nx-customers-premium .nx-clients-category-tabs .nx-clients-filter[aria-pressed="false"]:hover {
+    border-color: hsl(var(--primary) / .48);
+    background: hsl(var(--primary) / .09);
+    transform: translateY(-1px);
+  }
+  .nx-clients-dialog .nx-clients-dialog-choice[aria-pressed="false"]:hover {
+    border-color: hsl(var(--primary) / .35);
+    background: hsl(var(--primary) / .06);
+  }
+}
+@media (max-width: 1100px) {
+  .nx-clients-overview { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 767px) {
+  .nx-customers-premium > .nx-clients-hero {
+    min-height: 0;
+    padding: 1.35rem;
+    border-radius: 19px;
+  }
+  .nx-customers-premium > .nx-clients-hero h1 { font-size: 1.85rem; }
+  .nx-clients-overview { gap: .65rem; }
+  .nx-clients-overview .nx-clients-stat { min-height: 112px; padding: .9rem; border-radius: 16px; }
+  .nx-clients-stat-icon { width: 34px; height: 34px; }
+  .nx-clients-stat-label { font-size: .67rem; }
+  .nx-clients-stat-value { font-size: 1.75rem; }
+  .nx-customers-premium > .nx-clients-filters { padding: 1rem; border-radius: 18px; }
+  .nx-clients-search { width: 100%; max-width: none; }
+  .nx-clients-category-tabs { flex-wrap: nowrap; overflow-x: auto; padding: .25rem .1rem .65rem; scrollbar-width: thin; }
+  .nx-customers-premium .nx-clients-category-tabs .nx-clients-filter { flex: none; white-space: nowrap; }
+  .nx-customers-premium .nx-clients-table { border-radius: 17px; }
+  .nx-clients-dialog { width: 100%; border-radius: 20px 20px 0 0; }
+}
+@media (max-width: 380px) {
+  .nx-clients-overview .nx-clients-stat { padding: .75rem; }
+  .nx-clients-stat-icon { width: 31px; height: 31px; }
+  .nx-clients-stat-hint { font-size: .65rem; }
+  .nx-clients-dialog-category { padding: .75rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .nx-customers-premium .nx-clients-category-tabs .nx-clients-filter,
+  .nx-customers-premium .nx-clients-table tbody tr,
+  .nx-clients-dialog .nx-clients-dialog-choice { transition: none; transform: none !important; }
+}
