@@ -4,7 +4,6 @@ import { Navigate } from "react-router-dom";
 import { RequireAuth, RequirePermission } from "./components/auth/require-auth";
 import { RequireSupplierReception } from "./components/auth/require-supplier-reception";
 import { AppLayout } from "./components/layout/app-layout";
-import { useApp } from "./hooks/use-app";
 import Login from "./pages/login";
 import PublicLanding from "./pages/public";
 import NotFound from "./pages/NotFound";
@@ -16,14 +15,8 @@ const Clientes = lazy(() => import("./pages/clientes"));
 const Garantias = lazy(() => import("./pages/garantias"));
 const GarantiaDetalle = lazy(() => import("./pages/garantias/detalle"));
 const Inventario = lazy(() => import("./pages/inventario"));
-const WorkerGlobalInventory = lazy(() =>
-  import("./pages/inventario/WorkerGlobalInventory").then(({ WorkerGlobalInventory }) => ({
-    default: WorkerGlobalInventory,
-  })),
-);
 const ProductoDetalle = lazy(() => import("./pages/inventario/detalle"));
 const Panel = lazy(() => import("./pages/panel"));
-const MiSede = lazy(() => import("./pages/mi-sede"));
 const Pedidos = lazy(() => import("./pages/pedidos"));
 const NuevoPedido = lazy(() => import("./pages/pedidos/nuevo"));
 const PedidoDetalle = lazy(() => import("./pages/pedidos/detalle"));
@@ -31,12 +24,6 @@ const PedidoHistoricoDetalle = lazy(() => import("./pages/pedidos/historial/deta
 const Recepciones = lazy(() => import("./pages/recepcion"));
 const NuevaRecepcion = lazy(() => import("./pages/recepcion/nueva"));
 const TrazabilidadSeriales = lazy(() => import("./pages/trazabilidad"));
-
-const InventoryByRole=({ serials=false }:{serials?:boolean})=>{
-  const {role}=useApp();
-  return role==="encargado" ? <WorkerGlobalInventory serials={serials}/>
-    : serials?<TrazabilidadSeriales/>:<Inventario/>;
-};
 
 export const routers = [
   {
@@ -63,11 +50,6 @@ export const routers = [
             element: <RequirePermission permission="dashboard.view"><Panel /></RequirePermission>,
           },
           {
-            path: "mi-sede",
-            name: "mi-sede",
-            element: <RequirePermission permission="workspace.view"><MiSede /></RequirePermission>,
-          },
-          {
             path: "recepcion",
             name: "recepciones",
             element: <RequirePermission permission="receptions.manage"><RequireSupplierReception><Recepciones /></RequireSupplierReception></RequirePermission>,
@@ -85,7 +67,7 @@ export const routers = [
           {
             path: "inventario",
             name: "inventario",
-            element: <RequirePermission permission="inventory.view"><InventoryByRole /></RequirePermission>,
+            element: <RequirePermission permission="inventory.view"><Inventario /></RequirePermission>,
           },
           {
             path: "inventario/:productId",
@@ -100,7 +82,7 @@ export const routers = [
           {
             path: "seriales",
             name: "trazabilidad-seriales",
-            element: <RequirePermission permission="inventory.view"><InventoryByRole serials /></RequirePermission>,
+            element: <RequirePermission permission="inventory.view"><TrazabilidadSeriales /></RequirePermission>,
           },
           {
             path: "liberar",

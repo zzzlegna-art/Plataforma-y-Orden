@@ -26,7 +26,6 @@ const BODEGUERO_PERMISSIONS: Permission[] = [
 const PERMISSIONS_BY_ROLE: Record<Role, Permission[]> = {
   admin: [...BODEGUERO_PERMISSIONS, "users.manage", "audit.view"],
   bodeguero: BODEGUERO_PERMISSIONS,
-  encargado: ["workspace.view", "inventory.view"],
 };
 
 /** Los catálogos se editan solo por administradores. */

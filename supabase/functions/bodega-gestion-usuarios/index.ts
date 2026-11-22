@@ -69,11 +69,11 @@ Deno.serve(async (req) => {
     const password = typeof body.password === "string" ? body.password : "";
     const nombre = texto(body.nombre) ?? email ?? "Usuario";
     const rolSolicitado = texto(body.rol) ?? "bodeguero";
-    if (!["admin", "bodeguero", "encargado", "vendedor"].includes(rolSolicitado)) {
+    if (!["admin", "bodeguero"].includes(rolSolicitado)) {
       return responder({ ok: false, error: "rol_invalido" }, 400);
     }
     const rol = rolSolicitado === "admin" ? "admin" : "bodeguero";
-    const perfilPendiente = rolSolicitado === "encargado" || rolSolicitado === "vendedor";
+    const perfilPendiente = false;
 
     if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       return responder({ ok: false, error: "email_invalido" });

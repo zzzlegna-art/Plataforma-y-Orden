@@ -24,9 +24,7 @@ export const RequirePermission = ({
   permission: Permission;
   children: ReactNode;
 }) => {
-  const { can, role } = usePermissions();
-  if (!can(permission)) {
-    return <Navigate to={role === "encargado" || role === "vendedor" ? "/mi-sede" : "/panel"} replace />;
-  }
+  const { can } = usePermissions();
+  if (!can(permission)) return <Navigate to="/panel" replace />;
   return <>{children}</>;
 };

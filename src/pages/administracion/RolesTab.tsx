@@ -1,10 +1,9 @@
 import { useMemo, useState, type ReactNode } from "react";
 import {
   Check, ClipboardList, Database, LayoutDashboard, LockKeyhole,
-  ShieldCheck, Store, Users, Warehouse,
+  ShieldCheck, Users, Warehouse,
 } from "lucide-react";
 
-import { RolePlanningPanel } from "./RolePlanningPanel";
 import {
   MULTISITE_CAPABILITIES, MULTISITE_ROLES, canMultisite,
   type MultisiteRole,
@@ -24,11 +23,6 @@ const ROLE_DETAILS: Record<MultisiteRole, {
     title: "Bodeguero",
     description: "Recepciones, inventario, pedidos y garantías.",
     icon: Warehouse,
-  },
-  encargado: {
-    title: "Encargado",
-    description: "Acceso a su espacio de trabajo y consulta de inventario.",
-    icon: Store,
   },
 };
 
@@ -106,7 +100,7 @@ export const RolesTab = () => {
           <div>
             <h3 className="font-semibold">Matriz operativa</h3>
             <p className="mt-1 text-xs text-muted-foreground">
-              {selectedRole === "todos" ? "Comparación de los tres perfiles" : `Permisos del perfil ${ROLE_DETAILS[selectedRole].title}`}
+              {selectedRole === "todos" ? "Comparación de los dos perfiles" : `Permisos del perfil ${ROLE_DETAILS[selectedRole].title}`}
             </p>
           </div>
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
@@ -161,7 +155,6 @@ export const RolesTab = () => {
         </div>
       </div>
 
-      <RolePlanningPanel />
     </section>
   );
 };
