@@ -93,111 +93,101 @@ export const CustomerFormDialog = ({
   return (
     <Dialog open={open} onOpenChange={(next) => { if (!savingRef.current) setOpen(next); }}>
       <DialogTrigger asChild>{trigger}</DialogTrigger>
-      <DialogContent className="nx-clients-dialog max-h-[90vh] overflow-y-auto pr-0 sm:max-w-xl">
-        <DialogHeader className="nx-clients-dialog-header pr-6">
-          <span className="nx-clients-dialog-eyebrow">NEXORA / DIRECTORIO COMERCIAL</span>
+      <DialogContent className="nx-crm-dialog max-h-[90vh] overflow-y-auto pr-0 sm:max-w-2xl">
+        <DialogHeader className="nx-crm-modal-header pr-6">
+          <span className="nx-crm-modal-kicker">NEXORA / FICHA COMERCIAL</span>
           <DialogTitle>{customer ? t("customer.editTitle") : t("customer.createTitle")}</DialogTitle>
           <DialogDescription>{t("customer.formDescription")}</DialogDescription>
         </DialogHeader>
 
-        <div className="nx-clients-dialog-fields grid gap-4 py-2 pr-6 sm:grid-cols-2">
-          <div className="space-y-2 sm:col-span-2">
-            <Label htmlFor="customerName">{t("customer.name")}</Label>
-            <Input
-              id="customerName"
-              value={form.name}
-              onChange={(event) => setForm({ ...form, name: event.target.value })}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="taxId">{t("customer.taxId")}</Label>
-            <Input
-              id="taxId"
-              value={form.taxId}
-              onChange={(event) => setForm({ ...form, taxId: event.target.value })}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="contactName">{t("customer.contactName")}</Label>
-            <Input
-              id="contactName"
-              value={form.contactName}
-              onChange={(event) => setForm({ ...form, contactName: event.target.value })}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="customerEmail">{t("customer.email")}</Label>
-            <Input
-              id="customerEmail"
-              type="email"
-              value={form.email}
-              onChange={(event) => setForm({ ...form, email: event.target.value })}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="customerPhone">{t("customer.phone")}</Label>
-            <Input
-              id="customerPhone"
-              value={form.phone}
-              onChange={(event) => setForm({ ...form, phone: event.target.value })}
-            />
-          </div>
-          <div className="nx-clients-dialog-category space-y-2 sm:col-span-2">
-            <Label>{t("customer.categoria")}</Label>
-            <p className="text-xs text-muted-foreground">{t("customer.categoriaHint")}</p>
-            <div className="flex flex-wrap gap-2">
-              {CATEGORIAS.map((opcion) => (
-                <button
-                  key={opcion}
-                  type="button"
-                  onClick={() => setForm({ ...form, categoriaMayorista: opcion })}
-                  aria-pressed={form.categoriaMayorista === opcion}
-                  className={cn(
-                    "nx-clients-dialog-choice rounded-xl border px-3 py-1.5 text-sm font-medium transition-colors",
-                    form.categoriaMayorista === opcion
-                      ? "border-primary bg-primary text-primary-foreground"
-                      : "border-input bg-background hover:bg-accent",
-                  )}
-                >
-                  {t(`customerCat.${opcion}`)}
-                </button>
-              ))}
+        <div className="nx-crm-form-sections pr-6">
+          <section className="nx-crm-form-section" aria-labelledby="crm-identity">
+            <div className="nx-crm-form-section-heading">
+              <span className="nx-crm-section-no">01</span>
+              <div><h3 id="crm-identity">Identidad comercial</h3><p>Información de identificación del cliente.</p></div>
             </div>
-          </div>
-          <div className="space-y-2 sm:col-span-2">
-            <Label htmlFor="customerAddress">{t("customer.address")}</Label>
-            <Input
-              id="customerAddress"
-              value={form.address}
-              onChange={(event) => setForm({ ...form, address: event.target.value })}
-            />
-          </div>
-          <div className="space-y-2 sm:col-span-2">
-            <Label htmlFor="customerNotes">{t("common.notes")}</Label>
-            <Textarea
-              id="customerNotes"
-              rows={2}
-              value={form.notes}
-              onChange={(event) => setForm({ ...form, notes: event.target.value })}
-            />
-          </div>
-          <div className="nx-clients-dialog-active flex items-center justify-between rounded-md border px-3 py-2 sm:col-span-2">
-            <Label htmlFor="customerActive" className="text-sm">
-              {t("common.active")}
-            </Label>
-            <Switch
-              id="customerActive"
-              checked={form.isActive}
-              onCheckedChange={(checked) => setForm({ ...form, isActive: checked })}
-            />
-          </div>
+            <div className="nx-crm-form-grid grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2 sm:col-span-2">
+                <Label htmlFor="customerName">{t("customer.name")}</Label>
+                <Input id="customerName" value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} />
+              </div>
+              <div className="space-y-2 sm:col-span-2">
+                <Label htmlFor="taxId">{t("customer.taxId")}</Label>
+                <Input id="taxId" value={form.taxId} onChange={(event) => setForm({ ...form, taxId: event.target.value })} />
+              </div>
+            </div>
+          </section>
+
+          <section className="nx-crm-form-section" aria-labelledby="crm-contact">
+            <div className="nx-crm-form-section-heading">
+              <span className="nx-crm-section-no">02</span>
+              <div><h3 id="crm-contact">Datos de contacto</h3><p>Canales y dirección de comunicación.</p></div>
+            </div>
+            <div className="nx-crm-form-grid grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2 sm:col-span-2">
+                <Label htmlFor="contactName">{t("customer.contactName")}</Label>
+                <Input id="contactName" value={form.contactName} onChange={(event) => setForm({ ...form, contactName: event.target.value })} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="customerEmail">{t("customer.email")}</Label>
+                <Input id="customerEmail" type="email" value={form.email} onChange={(event) => setForm({ ...form, email: event.target.value })} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="customerPhone">{t("customer.phone")}</Label>
+                <Input id="customerPhone" value={form.phone} onChange={(event) => setForm({ ...form, phone: event.target.value })} />
+              </div>
+              <div className="space-y-2 sm:col-span-2">
+                <Label htmlFor="customerAddress">{t("customer.address")}</Label>
+                <Input id="customerAddress" value={form.address} onChange={(event) => setForm({ ...form, address: event.target.value })} />
+              </div>
+            </div>
+          </section>
+
+          <section className="nx-crm-form-section" aria-labelledby="crm-profile">
+            <div className="nx-crm-form-section-heading">
+              <span className="nx-crm-section-no">03</span>
+              <div><h3 id="crm-profile">Perfil comercial</h3><p>Tipo de relación y observaciones.</p></div>
+            </div>
+            <div className="nx-crm-form-grid grid gap-4 sm:grid-cols-2">
+              <div className="nx-crm-category space-y-2 sm:col-span-2">
+                <Label>{t("customer.categoria")}</Label>
+                <p className="text-xs text-muted-foreground">{t("customer.categoriaHint")}</p>
+                <div className="nx-crm-category-options flex flex-wrap gap-2">
+                  {CATEGORIAS.map((opcion) => (
+                    <button
+                      key={opcion}
+                      type="button"
+                      aria-pressed={form.categoriaMayorista === opcion}
+                      onClick={() => setForm({ ...form, categoriaMayorista: opcion })}
+                      className={cn(
+                        "nx-crm-category-choice rounded-xl border px-3 py-1.5 text-sm font-medium transition-colors",
+                        form.categoriaMayorista === opcion
+                          ? "border-primary bg-primary text-primary-foreground"
+                          : "border-input bg-background hover:bg-accent",
+                      )}
+                    >
+                      {t(`customerCat.${opcion}`)}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="space-y-2 sm:col-span-2">
+                <Label htmlFor="customerNotes">{t("common.notes")}</Label>
+                <Textarea id="customerNotes" rows={2} value={form.notes} onChange={(event) => setForm({ ...form, notes: event.target.value })} />
+              </div>
+              <div className="nx-crm-active-row flex items-center justify-between rounded-xl border px-3 py-2 sm:col-span-2">
+                <Label htmlFor="customerActive" className="text-sm">{t("common.active")}</Label>
+                <Switch id="customerActive" checked={form.isActive} onCheckedChange={(checked) => setForm({ ...form, isActive: checked })} />
+              </div>
+            </div>
+          </section>
         </div>
 
-        <DialogFooter className="nx-clients-dialog-footer pr-6">
-          <Button className="nx-clients-cancel" variant="outline" type="button" disabled={saving} onClick={() => setOpen(false)}>
+        <DialogFooter className="nx-crm-modal-footer pr-6">
+          <Button className="nx-crm-cancel" variant="outline" type="button" disabled={saving} onClick={() => setOpen(false)}>
             {t("common.cancel")}
           </Button>
-          <Button className="nx-clients-save" type="button" loading={saving} onClick={() => void save()}>
+          <Button className="nx-crm-save" type="button" loading={saving} onClick={() => void save()}>
             {t("common.save")}
           </Button>
         </DialogFooter>

@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import type { CustomerCategoriaMayorista } from "@/lib/types";
 import { useTranslation } from "react-i18next";
-import { Building2, ClipboardList, PencilLine, Plus, UserRoundCheck, UserRoundX, Users } from "lucide-react";
+import { PencilLine, Plus, Users } from "lucide-react";
 import "./clientes-premium.css";
 
 import { DataTable } from "@/components/shared/data-table";
@@ -87,42 +87,55 @@ const Clientes = () => {
     db.orders.filter((order) => order.customerId === customerId).length;
 
   return (
-    <div className="nx-customers-premium space-y-5 stagger">
-      <PageHeader
-        className="nx-clients-hero flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
-        title={t("customer.title")}
-        description={t("customer.subtitle")}
-        actions={
-          <CustomerFormDialog
-            trigger={
-              <Button className="nx-clients-create">
-                <Plus />
-                {t("customer.new")}
-              </Button>
-            }
-          />
-        }
-      />
-
-      <section className="nx-clients-overview" aria-label="Resumen comercial de clientes">
-        {[
-          { key: "total", label: "Clientes registrados", value: overview.total, hint: "Directorio de mayoristas", icon: Building2 },
-          { key: "active", label: "Clientes activos", value: overview.active, hint: "Cuentas habilitadas", icon: UserRoundCheck },
-          { key: "inactive", label: "Clientes inactivos", value: overview.inactive, hint: "Cuentas desactivadas", icon: UserRoundX },
-          { key: "orders", label: "Pedidos registrados", value: overview.orders, hint: "Operaciones de clientes", icon: ClipboardList },
-        ].map(({ key, label, value, hint, icon: Icon }) => (
-          <article className={`nx-clients-stat nx-clients-stat--${key}`} key={key}>
-            <div className="nx-clients-stat-head">
-              <span className="nx-clients-stat-label">{label}</span>
-              <span className="nx-clients-stat-icon" aria-hidden="true"><Icon size={19} /></span>
+    <div className="nx-customers-premium nx-customers-crm space-y-5">
+      <section className="nx-crm-masthead" aria-label="Cartera comercial">
+        <div className="nx-crm-kicker">
+          <span className="nx-crm-kicker-dot" aria-hidden="true" />
+          <span>NEXORA · RELACIONES COMERCIALES</span>
+          <span className="nx-crm-kicker-right">DIRECTORIO B2B</span>
+        </div>
+        <PageHeader
+          className="nx-crm-page-heading flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
+          title={t("customer.title")}
+          description={t("customer.subtitle")}
+          actions={
+            <CustomerFormDialog
+              trigger={
+                <Button className="nx-crm-create">
+                  <Plus />
+                  {t("customer.new")}
+                </Button>
+              }
+            />
+          }
+        />
+        <div className="nx-crm-ledger" aria-label="Resumen de clientes">
+          {[
+            { label: "En cartera", value: overview.total },
+            { label: "Activos", value: overview.active },
+            { label: "Inactivos", value: overview.inactive },
+            { label: "Pedidos registrados", value: overview.orders },
+          ].map(({ label, value }) => (
+            <div className="nx-crm-ledger-item" key={label}>
+              <span className="nx-crm-ledger-label">{label}</span>
+              <strong className="nx-crm-ledger-number">{value.toLocaleString("es-CO")}</strong>
             </div>
-            <strong className="nx-clients-stat-value">{value.toLocaleString("es-CO")}</strong>
-            <span className="nx-clients-stat-hint">{hint}</span>
-          </article>
-        ))}
+          ))}
+        </div>
       </section>
 
-      <div className="nx-clients-filters space-y-3 rounded-lg border bg-card p-3 shadow-sm">
+      <section className="nx-crm-directory" aria-label="Directorio de clientes">
+        <div className="nx-crm-directory-heading">
+          <div className="nx-crm-directory-heading-copy">
+            <span className="nx-crm-section-eyebrow">AGENDA COMERCIAL</span>
+            <h2>Directorio de clientes</h2>
+            <p>Consulta y administra las fichas de tus clientes mayoristas.</p>
+          </div>
+          <span className="nx-crm-visible-count">
+            {rows.length.toLocaleString("es-CO")} {rows.length === 1 ? "cliente visible" : "clientes visibles"}
+          </span>
+        </div>
+      <div className="nx-clients-filters space-y-3">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
           <SearchField
             value={search}
@@ -320,6 +333,7 @@ const Clientes = () => {
           },
         ]}
       />
+      </section>
     </div>
   );
 };
