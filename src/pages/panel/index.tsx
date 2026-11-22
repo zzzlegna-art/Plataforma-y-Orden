@@ -401,7 +401,7 @@ const Panel = () => {
           <div className="nx-movement-chart-surface">
             <div className="nx-movement-chart" role="img" aria-label="Gráfica de entradas, asignaciones a pedidos y salidas físicas de inventario">
               <ResponsiveContainer width="100%" height="100%" debounce={150}>
-                <AreaChart data={movementChartData} margin={{ top: 12, right: 15, left: -11, bottom: 5 }}>
+                <AreaChart data={movementChartData} margin={{ top: 12, right: 18, left: 2, bottom: 5 }}>
                   <defs>
                     <linearGradient id="movementEntriesPremiumFill" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="0%" stopColor="var(--nx-movement-cyan)" stopOpacity={0.34} />
@@ -420,7 +420,7 @@ const Panel = () => {
                   <XAxis dataKey="label" interval={Math.max(0, Math.ceil(movementChartData.length / 8) - 1)}
                     tickLine={false} axisLine={false} tickMargin={13}
                     tick={{ fontSize: 11, fontWeight: 500, fill: "var(--nx-movement-muted)" }} />
-                  <YAxis allowDecimals={false} width={46} tickLine={false} axisLine={false}
+                  <YAxis allowDecimals={false} width={56} tickLine={false} axisLine={false}
                     tickMargin={8} padding={{ top: 6, bottom: 9 }}
                     tick={{ fontSize: 11, fontWeight: 500, fill: "var(--nx-movement-muted)" }} />
                   <Tooltip content={<MovementChartTooltip />}
@@ -534,7 +534,7 @@ const Panel = () => {
           </div>
         </div>
       </div>
-      <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Tipo de ranking comercial">
+      <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Alcance del análisis de pedidos">
         <Button type="button" size="sm" variant={mostrarRankingGlobal ? "default" : "outline"}
           aria-pressed={mostrarRankingGlobal} onClick={() => setRankingMode("pedidos")}>
           Pedidos globales
@@ -553,7 +553,7 @@ const Panel = () => {
                 <TrendingUp className="h-4 w-4" />
               </span>
               <div className="min-w-0">
-                <h3 className="text-sm font-semibold tracking-tight">{t("dashboard.topProductsTitle")}</h3>
+                <h3 className="text-sm font-semibold tracking-tight">Referencias más solicitadas</h3>
                 <p className="mt-1 text-xs leading-4 text-muted-foreground">
                   {mostrarRankingGlobal
                     ? "Unidades solicitadas por referencia, incluidos celulares y repuestos."
@@ -580,7 +580,7 @@ const Panel = () => {
               </p>
             ) : productsChart.length === 0 ? (
               <p className="rounded-xl border border-dashed px-4 py-8 text-center text-sm text-muted-foreground">
-                {t("dashboard.noSalesRanking")}
+                No hay referencias para mostrar en este análisis.
               </p>
             ) : (
               <RankChart
@@ -601,7 +601,7 @@ const Panel = () => {
                 <Users className="h-4 w-4" />
               </span>
               <div className="min-w-0">
-                <h3 className="text-sm font-semibold tracking-tight">{t("dashboard.topCustomersTitle")}</h3>
+                <h3 className="text-sm font-semibold tracking-tight">Clientes con más unidades solicitadas</h3>
                 <p className="mt-1 text-xs leading-4 text-muted-foreground">
                   {mostrarRankingGlobal
                     ? "Ordenado por unidades solicitadas; el detalle muestra cuántos pedidos realizó cada cliente."
