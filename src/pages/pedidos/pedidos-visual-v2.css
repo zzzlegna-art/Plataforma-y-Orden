@@ -1,0 +1,442 @@
+/* NEXORA · Pedidos | Executive workspace 2026
+   Visual-only layer: existing filters, exports, routes and data remain unchanged.
+   All colors derive from theme tokens to support both light and dark modes. */
+.nx-operations-pedidos {
+  --ped-v2-line: hsl(var(--border) / .86);
+  --ped-v2-ink: hsl(var(--foreground));
+  --ped-v2-muted: hsl(var(--muted-foreground));
+  --ped-v2-panel: hsl(var(--card));
+  --ped-v2-accent: hsl(var(--primary));
+  max-width: 1740px;
+  width: 100%;
+  margin-inline: auto;
+  gap: 1.15rem;
+}
+.nx-operations-pedidos .nx-page-header {
+  min-height: 172px;
+  padding: clamp(1.45rem, 2.7vw, 2.45rem);
+  border: 1px solid hsl(var(--primary) / .31);
+  border-radius: 26px;
+  background:
+    radial-gradient(ellipse 58% 165% at 100% -50%, hsl(var(--primary) / .22), transparent 68%),
+    radial-gradient(ellipse 55% 130% at 12% 150%, hsl(var(--info) / .14), transparent 73%),
+    linear-gradient(112deg, hsl(var(--card)), hsl(var(--secondary) / .8));
+  box-shadow: 0 25px 52px -40px hsl(215 68% 27% / .4), inset 0 1px 0 hsl(var(--background) / .86);
+}
+.nx-operations-pedidos .nx-page-header::after {
+  inset: auto 14% -85% auto;
+  width: 430px;
+  height: 240px;
+  opacity: .45;
+  border-radius: 50%;
+  border: 1px solid hsl(var(--primary) / .25);
+  background: radial-gradient(ellipse, hsl(var(--primary) / .09), transparent 70%);
+  transform: rotate(-19deg);
+}
+.nx-operations-pedidos .nx-page-header::before {
+  inset: auto 1.9rem 0;
+  height: 2px;
+  opacity: .88;
+  background: linear-gradient(90deg, hsl(var(--primary) / 0), hsl(var(--primary) / .85), hsl(var(--info) / .25), transparent);
+}
+.nx-operations-pedidos .nx-page-header h1 {
+  font-size: clamp(1.95rem, 3vw, 2.55rem);
+  font-weight: 850;
+  letter-spacing: -.055em;
+}
+.nx-operations-pedidos .nx-page-header p {
+  margin-top: .55rem;
+  font-size: .91rem;
+  line-height: 1.6;
+}
+.nx-operations-pedidos .nx-page-header [data-slot="button"] {
+  min-height: 46px;
+  padding-inline: 1.15rem;
+  border-radius: 13px;
+  font-size: .84rem;
+}
+.nx-operations-pedidos .nx-page-header [data-slot="button"]:last-child {
+  background: linear-gradient(115deg, hsl(var(--primary-glow)), hsl(var(--primary)));
+  color: hsl(var(--primary-foreground));
+  box-shadow: 0 14px 28px -15px hsl(var(--primary) / .7), inset 0 1px 0 hsl(var(--background) / .25);
+}
+
+/* Four operational KPI cards, computed from the user's real order data. */
+.nx-pedidos-overview {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: .9rem;
+}
+.nx-pedidos-metric {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: .75rem;
+  min-width: 0;
+  min-height: 130px;
+  padding: 1.15rem 1.2rem;
+  overflow: hidden;
+  border: 1px solid var(--ped-v2-line);
+  border-radius: 20px;
+  background: linear-gradient(145deg, hsl(var(--card)), hsl(var(--secondary) / .34));
+  box-shadow: 0 14px 38px -33px hsl(218 62% 24% / .56), inset 0 1px 0 hsl(var(--background) / .7);
+}
+.nx-pedidos-metric::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 1.15rem;
+  right: 1.15rem;
+  height: 2px;
+  border-radius: 999px;
+  opacity: .65;
+  background: linear-gradient(90deg, var(--metric-color), transparent 78%);
+}
+.nx-pedidos-metric[data-tone="cyan"] { --metric-color: hsl(var(--primary)); }
+.nx-pedidos-metric[data-tone="blue"] { --metric-color: hsl(var(--info)); }
+.nx-pedidos-metric[data-tone="amber"] { --metric-color: hsl(var(--warning)); }
+.nx-pedidos-metric[data-tone="green"] { --metric-color: hsl(var(--success)); }
+.nx-pedidos-metric-copy { min-width: 0; }
+.nx-pedidos-metric-label {
+  color: var(--ped-v2-muted);
+  font-size: .7rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: .085em;
+  line-height: 1.4;
+}
+.nx-pedidos-metric-value {
+  display: block;
+  margin-top: .5rem;
+  color: var(--ped-v2-ink);
+  font-size: clamp(1.75rem, 2.35vw, 2.35rem);
+  font-weight: 850;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.08;
+  letter-spacing: -.055em;
+}
+.nx-pedidos-metric-hint {
+  display: block;
+  margin-top: .55rem;
+  color: var(--ped-v2-muted);
+  font-size: .72rem;
+  line-height: 1.35;
+}
+.nx-pedidos-metric-icon {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 13px;
+  color: var(--metric-color);
+  border: 1px solid color-mix(in srgb, var(--metric-color), transparent 77%);
+  background: color-mix(in srgb, var(--metric-color), transparent 90%);
+}
+.nx-pedidos-metric-icon svg { width: 20px; height: 20px; }
+
+/* Search and tabs: compact, structured, high-contrast controls. */
+.nx-operations-pedidos .nx-pedidos-filters {
+  padding: 1.2rem 1.35rem 1.35rem;
+  border: 1px solid var(--ped-v2-line);
+  border-radius: 22px;
+  background: linear-gradient(155deg, hsl(var(--card)), hsl(var(--secondary) / .18));
+  box-shadow: 0 19px 42px -37px hsl(215 70% 25% / .55), inset 0 1px 0 hsl(var(--background) / .66);
+}
+.nx-pedidos-filter-titlebar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: .5rem 1rem;
+  padding-bottom: .2rem;
+}
+.nx-pedidos-filter-titlebar h2 {
+  font-size: .88rem;
+  font-weight: 800;
+  letter-spacing: -.015em;
+}
+.nx-pedidos-filter-titlebar span {
+  padding: .28rem .65rem;
+  border: 1px solid hsl(var(--primary) / .2);
+  border-radius: 999px;
+  background: hsl(var(--primary) / .075);
+  color: hsl(var(--foreground) / .85);
+  font-size: .74rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.nx-operations-pedidos .nx-pedidos-filters .relative.h-10 {
+  width: min(100%, 470px);
+  max-width: 100%;
+  height: 46px;
+}
+.nx-operations-pedidos .nx-pedidos-filters input {
+  height: 46px;
+  padding-inline-start: 2.6rem;
+  border-radius: 12px;
+  border-color: hsl(var(--border));
+  background: hsl(var(--background) / .8);
+  font-size: .85rem;
+}
+.nx-operations-pedidos .nx-pedidos-tabs {
+  gap: .6rem;
+  padding-top: .3rem;
+}
+.nx-operations-pedidos .nx-pedidos-tabs button {
+  min-height: 40px;
+  border-radius: 12px;
+  padding: .45rem .85rem;
+  font-size: .78rem;
+  font-weight: 750;
+  background: hsl(var(--secondary) / .44);
+  border: 1px solid hsl(var(--border) / .9);
+  color: var(--ped-v2-ink);
+  box-shadow: none;
+  transition: border-color .18s ease, background .18s ease, transform .18s ease, box-shadow .18s ease;
+}
+.nx-operations-pedidos .nx-pedidos-tabs button:hover:not([data-active="true"]) {
+  border-color: hsl(var(--primary) / .38);
+  background: hsl(var(--primary) / .065);
+  transform: translateY(-1px);
+}
+.nx-operations-pedidos .nx-pedidos-tabs button[data-active="true"] {
+  border-color: hsl(var(--primary) / .65);
+  background: linear-gradient(120deg, hsl(var(--primary-glow)), hsl(var(--primary)));
+  color: hsl(var(--primary-foreground));
+  box-shadow: 0 8px 19px -13px hsl(var(--primary) / .7), inset 0 1px 0 hsl(var(--background) / .28);
+}
+.nx-operations-pedidos .nx-pedidos-tabs button svg {
+  height: 15px;
+  width: 15px;
+}
+
+/* Table: even row rhythm and a distinct action affordance. */
+.nx-operations-pedidos .nx-pedidos-table {
+  border-color: var(--ped-v2-line);
+  border-radius: 22px;
+  background: var(--ped-v2-panel);
+  box-shadow: 0 26px 60px -48px hsl(218 65% 20% / .7);
+}
+.nx-operations-pedidos .nx-pedidos-table thead {
+  background: linear-gradient(100deg, hsl(var(--secondary) / .9), hsl(var(--muted) / .77));
+}
+.nx-operations-pedidos .nx-pedidos-table th {
+  height: 58px;
+  padding-inline: 1.15rem;
+  font-size: .7rem;
+  font-weight: 850;
+  letter-spacing: .095em;
+  color: hsl(var(--foreground) / .72);
+}
+.nx-operations-pedidos .nx-pedidos-table tbody tr {
+  height: 75px;
+  border-bottom: 1px solid hsl(var(--border) / .5);
+  background: transparent;
+  transition: background .18s ease;
+}
+.nx-operations-pedidos .nx-pedidos-table tbody tr:nth-child(even) {
+  background: hsl(var(--secondary) / .105);
+}
+.nx-operations-pedidos .nx-pedidos-table tbody tr:first-child {
+  background: hsl(var(--primary) / .045);
+}
+.nx-operations-pedidos .nx-pedidos-table tbody tr:hover {
+  background: hsl(var(--primary) / .085);
+}
+.nx-operations-pedidos .nx-pedidos-table tbody tr:first-child td:first-child {
+  box-shadow: inset 3px 0 hsl(var(--primary));
+}
+.nx-operations-pedidos .nx-pedidos-table td {
+  padding: 1rem 1.15rem;
+  font-size: .84rem;
+  border-color: hsl(var(--border) / .5);
+}
+.nx-pedidos-order-code {
+  color: hsl(var(--foreground));
+  font-size: .84rem;
+  font-weight: 800;
+  letter-spacing: -.015em;
+  white-space: nowrap;
+}
+.nx-operations-pedidos .nx-pedidos-avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  font-size: .75rem;
+  background: linear-gradient(145deg, hsl(var(--primary) / .16), hsl(var(--info) / .08));
+}
+.nx-pedidos-units {
+  color: var(--ped-v2-ink);
+  font-size: .85rem;
+  font-weight: 800;
+}
+.nx-operations-pedidos .nx-pedidos-table tbody button {
+  min-height: 35px;
+  border: 1px solid transparent;
+  padding: .35rem .8rem;
+  color: hsl(var(--primary));
+  font-size: .8rem;
+  font-weight: 800;
+}
+.nx-operations-pedidos .nx-pedidos-table tbody button:hover {
+  border-color: hsl(var(--primary) / .22);
+  background: hsl(var(--primary) / .09);
+}
+
+/* Export is mounted in a dialog portal, not inside the orders container:
+   define its own theme variables to work in both modes. */
+.nx-premium-export-dialog {
+  --ped-v2-line: hsl(var(--border) / .82);
+  --ped-ink: hsl(var(--foreground));
+  --ped-border: hsl(var(--border));
+  padding: clamp(1.3rem, 3vw, 2rem);
+  border: 1px solid hsl(var(--primary) / .3);
+  border-radius: 25px;
+  background:
+    radial-gradient(ellipse 72% 65% at 100% 0%, hsl(var(--primary) / .13), transparent 75%),
+    linear-gradient(145deg, hsl(var(--card)), hsl(var(--secondary) / .3));
+  color: hsl(var(--foreground));
+  box-shadow: 0 35px 95px -35px hsl(218 74% 12% / .5), inset 0 1px 0 hsl(var(--background) / .78);
+}
+.nx-premium-export-heading {
+  padding-bottom: 1.15rem;
+  border-bottom: 1px solid var(--ped-v2-line);
+}
+.nx-premium-export-heading [data-slot="dialog-title"] {
+  font-size: 1.35rem;
+  letter-spacing: -.04em;
+  font-weight: 850;
+  gap: .9rem;
+}
+.nx-premium-export-heading [data-slot="dialog-description"] {
+  margin-top: .25rem;
+  font-size: .85rem;
+}
+.nx-premium-export-icon {
+  width: 51px;
+  height: 51px;
+  border: 1px solid hsl(var(--primary) / .26);
+  border-radius: 16px;
+  background: linear-gradient(145deg, hsl(var(--primary) / .19), hsl(var(--primary) / .06));
+  color: hsl(var(--primary));
+}
+.nx-premium-export-scope {
+  gap: .85rem;
+  padding: 1.1rem;
+  border-radius: 16px;
+  border: 1px solid var(--ped-v2-line);
+  background: hsl(var(--background) / .75);
+  transition: border-color .18s ease, background .18s ease;
+}
+.nx-premium-export-scope:hover {
+  border-color: hsl(var(--primary) / .35);
+  background: hsl(var(--primary) / .045);
+}
+.nx-premium-export-scope > span { min-width: 0; }
+.nx-premium-export-scope > span > span:first-child {
+  font-size: .87rem;
+  font-weight: 800;
+}
+.nx-premium-export-scope > span > span:last-child {
+  line-height: 1.55;
+  font-size: .77rem;
+}
+.nx-premium-export-formats {
+  gap: .85rem;
+}
+.nx-premium-export-formats button {
+  min-height: 112px;
+  align-items: flex-start;
+  padding: 1rem;
+  gap: .4rem;
+  border: 1px solid hsl(var(--border));
+  border-radius: 16px;
+  background: hsl(var(--card) / .9);
+  color: hsl(var(--foreground));
+  box-shadow: 0 8px 22px -21px hsl(215 65% 28% / .5);
+}
+.nx-premium-export-formats button:hover {
+  border-color: hsl(var(--primary) / .55);
+  background: hsl(var(--primary) / .055);
+  transform: translateY(-2px);
+  box-shadow: 0 14px 26px -19px hsl(var(--primary) / .4);
+}
+.nx-premium-export-formats button svg {
+  width: 23px;
+  height: 23px;
+  margin-bottom: .3rem;
+  color: hsl(var(--primary));
+}
+.nx-premium-export-formats button .nx-export-format-name {
+  font-size: .9rem;
+  font-weight: 800;
+}
+.nx-premium-export-formats button .nx-export-format-description {
+  color: hsl(var(--muted-foreground));
+  font-size: .72rem;
+  font-weight: 500;
+}
+.dark .nx-operations-pedidos .nx-page-header {
+  border-color: hsl(var(--primary) / .27);
+  background:
+    radial-gradient(ellipse 60% 150% at 100% -30%, hsl(var(--primary) / .19), transparent 72%),
+    radial-gradient(ellipse 48% 125% at 15% 150%, hsl(var(--info) / .12), transparent 75%),
+    linear-gradient(115deg, hsl(var(--card)), hsl(var(--secondary) / .32));
+  box-shadow: 0 25px 52px -39px rgb(0 0 0 / .9), inset 0 1px 0 hsl(var(--foreground) / .04);
+}
+.dark .nx-pedidos-metric,
+.dark .nx-operations-pedidos .nx-pedidos-filters {
+  background: linear-gradient(145deg, hsl(var(--card)), hsl(var(--secondary) / .25));
+  box-shadow: 0 18px 39px -33px rgb(0 0 0 / .86), inset 0 1px 0 hsl(var(--foreground) / .04);
+}
+.dark .nx-operations-pedidos .nx-pedidos-table thead {
+  background: linear-gradient(95deg, hsl(var(--secondary)), hsl(var(--card)));
+}
+.dark .nx-operations-pedidos .nx-pedidos-table tbody tr:nth-child(even) {
+  background: hsl(var(--foreground) / .02);
+}
+.dark .nx-operations-pedidos .nx-pedidos-table tbody tr:first-child {
+  background: hsl(var(--primary) / .075);
+}
+.dark .nx-premium-export-dialog {
+  background:
+    radial-gradient(ellipse 70% 65% at 100% 0%, hsl(var(--primary) / .13), transparent 75%),
+    linear-gradient(145deg, hsl(var(--card)), hsl(var(--secondary) / .26));
+  box-shadow: 0 35px 95px -35px rgb(0 0 0 / .92), inset 0 1px 0 hsl(var(--foreground) / .04);
+}
+.dark .nx-premium-export-formats button {
+  background: hsl(var(--background) / .58);
+}
+@media (max-width: 1150px) {
+  .nx-pedidos-overview { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 767px) {
+  .nx-operations-pedidos { gap: 1rem; }
+  .nx-operations-pedidos .nx-page-header { min-height: 0; padding: 1.35rem; border-radius: 20px; }
+  .nx-operations-pedidos .nx-page-header h1 { font-size: 1.85rem; }
+  .nx-operations-pedidos .nx-pedidos-filters { padding: 1rem; border-radius: 18px; }
+  .nx-pedidos-metric { min-height: 120px; padding: .95rem; border-radius: 16px; }
+  .nx-pedidos-metric-icon { width: 36px; height: 36px; border-radius: 11px; }
+  .nx-pedidos-metric-icon svg { width: 18px; height: 18px; }
+  .nx-pedidos-metric-value { font-size: 1.75rem; }
+  .nx-pedidos-metric-label { font-size: .64rem; }
+  .nx-operations-pedidos .nx-pedidos-tabs { flex-wrap: nowrap; overflow-x: auto; }
+  .nx-operations-pedidos .nx-pedidos-table { border-radius: 18px; }
+}
+@media (max-width: 420px) {
+  .nx-pedidos-overview { gap: .55rem; }
+  .nx-pedidos-metric { padding: .85rem; gap: .35rem; }
+  .nx-pedidos-metric-icon { width: 31px; height: 31px; }
+  .nx-pedidos-metric-hint { font-size: .65rem; }
+  .nx-premium-export-dialog { padding: 1.1rem; border-radius: 20px; }
+  .nx-premium-export-formats button { min-height: 104px; padding: .8rem; }
+}
+@media (hover: none), (prefers-reduced-motion: reduce) {
+  .nx-premium-export-formats button,
+  .nx-operations-pedidos .nx-pedidos-tabs button { transform: none !important; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .nx-pedidos-metric, .nx-premium-export-formats button { transition: none; }
+}
