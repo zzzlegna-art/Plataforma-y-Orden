@@ -1,0 +1,189 @@
+/*
+ * NEXORA Motion — premium interaction layer for every operational module.
+ * Visual only: no changes to layout geometry, scroll containers, routing or data.
+ *
+ * IMPORTANT: Never animate transforms on .page-enter, .nx-app-main, dialogs,
+ * sticky footers or table wrappers: they can contain fixed/sticky controls.
+ */
+@keyframes nx-motion-page-reveal {
+  from { opacity: .48; }
+  to { opacity: 1; }
+}
+
+@keyframes nx-motion-headline-reveal {
+  from { opacity: 0; translate: 0 9px; }
+  to { opacity: 1; translate: 0 0; }
+}
+
+@keyframes nx-motion-copy-reveal {
+  from { opacity: 0; translate: 0 5px; }
+  to { opacity: 1; translate: 0 0; }
+}
+
+@keyframes nx-motion-stat-reveal {
+  from { opacity: 0; translate: 0 7px; }
+  to { opacity: 1; translate: 0 0; }
+}
+
+@keyframes nx-motion-tab-reveal {
+  from { opacity: .55; }
+  to { opacity: 1; }
+}
+
+@keyframes nx-motion-nav-select {
+  0% { scale: .90; }
+  55% { scale: 1.08; }
+  100% { scale: 1; }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  /* Keyed by the existing pathname in AppLayout. Opacity only on ancestors:
+     fixed checkout panels, sticky forms, overlays and scrolling remain anchored. */
+  .nx-app-main .page-enter {
+    animation: nx-motion-page-reveal 340ms cubic-bezier(.22, 1, .36, 1) both;
+  }
+
+  /* Headline is a leaf node: a small rise communicates that a new module opened. */
+  .nx-app-main .page-enter h1 {
+    animation: nx-motion-headline-reveal 470ms cubic-bezier(.22, 1, .36, 1) both;
+  }
+
+  .nx-app-main .page-enter :is(
+    .nx-page-header p,
+    .nx-dashboard-heading p,
+    .nx-admin-page-copy p
+  ) {
+    animation: nx-motion-copy-reveal 440ms cubic-bezier(.22, 1, .36, 1) 55ms both;
+  }
+
+  /* Premium KPI reveal; limited to cards (not table rows or full form wrappers). */
+  .nx-app-main .page-enter :is(.nx-premium-stat-card, .nx-stat-card) {
+    animation: nx-motion-stat-reveal 450ms cubic-bezier(.22, 1, .36, 1) both;
+  }
+  .nx-app-main .page-enter :is(.nx-premium-stat-card, .nx-stat-card):nth-child(2) {
+    animation-delay: 40ms;
+  }
+  .nx-app-main .page-enter :is(.nx-premium-stat-card, .nx-stat-card):nth-child(3) {
+    animation-delay: 80ms;
+  }
+  .nx-app-main .page-enter :is(.nx-premium-stat-card, .nx-stat-card):nth-child(4) {
+    animation-delay: 120ms;
+  }
+  .nx-app-main .page-enter :is(.nx-premium-stat-card, .nx-stat-card):nth-child(n+5) {
+    animation-delay: 145ms;
+  }
+
+  /* Switch tab contents without sliding a panel that might own a sticky child. */
+  .nx-app-main .page-enter [role="tabpanel"][data-state="active"] {
+    animation: nx-motion-tab-reveal 260ms ease-out both;
+  }
+
+  /* Lightweight elevation for reusable surfaces throughout every module. */
+  .nx-app-main .page-enter :is(.premium-surface, .nexora-surface, .surface-hover) {
+    transition:
+      border-color 200ms ease,
+      background-color 200ms ease,
+      box-shadow 260ms cubic-bezier(.22, 1, .36, 1);
+  }
+
+  /* Active navigation responds once per selection. Only icons move. */
+  .nx-sidebar-premium .nx-sidebar-link--active .nx-sidebar-link-icon svg,
+  .safe-bottom.fixed.inset-x-0.bottom-0 a[aria-current="page"] > span:first-child svg {
+    animation: nx-motion-nav-select 360ms cubic-bezier(.22, 1, .36, 1) both;
+  }
+
+  /* Form focus affordances: never animate width/height, selection or text. */
+  .nx-app-main .page-enter :is(
+    input:not([type="checkbox"]):not([type="radio"]),
+    textarea,
+    select,
+    [role="combobox"]
+  ) {
+    transition:
+      border-color 190ms ease,
+      box-shadow 220ms ease,
+      background-color 220ms ease;
+  }
+
+  .nx-app-main .page-enter :is([role="tab"], [role="tablist"]) {
+    transition: background-color 200ms ease, border-color 200ms ease, color 200ms ease, box-shadow 200ms ease;
+  }
+
+  /* Loading indicators stay as implemented; only the filled bar settles softly. */
+  .nx-app-main .page-enter [role="progressbar"] > div {
+    transition: transform 350ms cubic-bezier(.22, 1, .36, 1), width 350ms cubic-bezier(.22, 1, .36, 1);
+  }
+}
+
+@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+  /* No transforms on cards/forms: safe for popovers, sticky action areas and tables. */
+  .nx-app-main .page-enter :is(.premium-surface, .nexora-surface, .surface-hover):hover {
+    border-color: hsl(var(--primary) / .36);
+    box-shadow: 0 18px 42px -31px hsl(var(--primary) / .32), 0 10px 24px -22px rgb(0 0 0 / .23);
+  }
+
+  .nx-app-main .page-enter :is(
+    .nx-premium-stat-card,
+    .nx-ranking-card,
+    .nx-operation-card,
+    .nx-order-product-group
+  ):hover {
+    border-color: hsl(var(--primary) / .32);
+    box-shadow: 0 19px 40px -29px hsl(var(--primary) / .22), 0 12px 27px -23px rgb(0 0 0 / .22);
+  }
+
+  /* Button depth and tactile icons: mouse only, no touchscreen hover traps. */
+  .nx-app-main .page-enter :is(button, a).bg-gradient-primary:not(:disabled):hover,
+  .nx-app-main .page-enter :is(.nx-hero-link, .nx-action-tile):hover {
+    box-shadow: 0 12px 26px -16px hsl(var(--primary) / .45);
+  }
+
+  .nx-app-main .page-enter .nx-action-arrow {
+    transition: translate 220ms cubic-bezier(.22, 1, .36, 1);
+  }
+  .nx-app-main .page-enter .nx-action-tile:hover .nx-action-arrow {
+    translate: 3px 0;
+  }
+
+  /* Tab selection catches the eye without shifting content. */
+  .nx-app-main .page-enter [role="tab"]:hover:not([aria-disabled="true"]) {
+    box-shadow: 0 6px 18px -14px hsl(var(--primary) / .56);
+  }
+
+  /* Table rows highlight without animating their position or height. */
+  .nx-app-main .page-enter tbody tr {
+    transition: background-color 160ms ease, box-shadow 180ms ease;
+  }
+  .nx-app-main .page-enter tbody tr:hover {
+    box-shadow: inset 3px 0 0 hsl(var(--primary) / .42);
+  }
+
+  .nx-sidebar-premium .nx-sidebar-link:hover .nx-sidebar-link-icon svg {
+    filter: drop-shadow(0 1px 5px hsl(var(--sidebar-primary) / .25));
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) and (max-width: 640px) {
+  /* Responsive motion budget: less movement and faster feedback on phones. */
+  .nx-app-main .page-enter { animation-duration: 250ms; }
+  .nx-app-main .page-enter h1 { animation-duration: 330ms; }
+  .nx-app-main .page-enter :is(.nx-premium-stat-card, .nx-stat-card) {
+    animation-duration: 330ms;
+    animation-delay: 0ms;
+  }
+}
+
+/* Respect the OS preference. Readability and state indicators never depend on motion. */
+@media (prefers-reduced-motion: reduce) {
+  .nx-app-main .page-enter,
+  .nx-app-main .page-enter h1,
+  .nx-app-main .page-enter :is(.nx-page-header p, .nx-dashboard-heading p, .nx-admin-page-copy p),
+  .nx-app-main .page-enter :is(.nx-premium-stat-card, .nx-stat-card),
+  .nx-app-main .page-enter [role="tabpanel"][data-state="active"],
+  .nx-sidebar-premium .nx-sidebar-link--active .nx-sidebar-link-icon svg,
+  .safe-bottom.fixed.inset-x-0.bottom-0 a[aria-current="page"] > span:first-child svg {
+    animation: none !important;
+    translate: none !important;
+    scale: none !important;
+  }
+}
