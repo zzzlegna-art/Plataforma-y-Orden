@@ -30,6 +30,13 @@ const YO = { id: "u1", email: "b@x.com", fullName: "Bodeguero", role: "bodeguero
 
 const inicial = (): Db => {
   const db = emptyDb();
+  db.customers = [
+    { id: "c1", name: "Camilo Cartagena", categoriaMayorista: "celulares", isActive: true, createdAt: now },
+  ];
+  db.products = [
+    { id: "p1", sku: "IP13-128", name: "Apple iPhone 13 128 GB", categoria: "celular",
+      minStock: 0, isActive: true, createdAt: now, updatedAt: now },
+  ];
   db.warranties = [
     {
       id: "w1", code: "GAR-1", reason: "no enciende", status: "recibido", receivedAt: now,
@@ -94,6 +101,45 @@ describe("Garantía previa · celular apagado, sin IMEI legible", () => {
     await user.click(screen.getByRole("button", { name: "Apagado / sin IMEI" }));
     const campo = screen.getByPlaceholderText("IMEI o serial") as HTMLInputElement;
     expect(campo.value).not.toBe("000000001112223"); // el que ya existe en la garantía w1
+  });
+});
+
+describe("Garantía previa · por lote · cliente persistente", () => {
+  it("mantiene el cliente entre dos celulares y limpia solo los campos particulares", async () => {
+    const user = userEvent.setup();
+    render(<I18nextProvider i18n={i18n}><Almacen /></I18nextProvider>);
+
+    await user.click(screen.getByRole("button", { name: "Garantía previa" }));
+    await user.click(screen.getByRole("button", { name: "Por lote" }));
+
+    // El selector de cliente se elige una sola vez para todo el lote.
+    await user.click(screen.getAllByRole("combobox")[2]);
+    await user.click(await screen.findByRole("option", { name: "Camilo Cartagena" }));
+
+    await user.click(screen.getAllByRole("combobox")[0]);
+    await user.click(await screen.findByRole("option", { name: "Celulares" }));
+    await user.click(screen.getAllByRole("combobox")[1]);
+    await user.click(await screen.findByRole("option", { name: "Apple iPhone 13 128 GB" }));
+
+    await user.type(screen.getByPlaceholderText("IMEI o serial"), "358071246352941");
+    await user.type(screen.getByPlaceholderText("El cliente reporta que…"), "Pantalla apagada");
+    await user.click(screen.getByRole("button", { name: "Agregar" }));
+
+    expect(screen.getAllByRole("combobox")[2].textContent).toContain("Camilo Cartagena");
+    expect((screen.getByPlaceholderText("IMEI o serial") as HTMLInputElement).value).toBe("");
+    expect((screen.getByPlaceholderText("El cliente reporta que…") as HTMLTextAreaElement).value).toBe("");
+
+    // El modelo sí se elige de nuevo; el cliente ya está seleccionado.
+    await user.click(screen.getAllByRole("combobox")[1]);
+    await user.click(await screen.findByRole("option", { name: "Apple iPhone 13 128 GB" }));
+    await user.type(screen.getByPlaceholderText("IMEI o serial"), "358071246352959");
+    await user.type(screen.getByPlaceholderText("El cliente reporta que…"), "No carga");
+    await user.click(screen.getByRole("button", { name: "Agregar" }));
+
+    expect(screen.getAllByRole("combobox")[2].textContent).toContain("Camilo Cartagena");
+    expect(screen.getByText("358071246352941")).toBeTruthy();
+    expect(screen.getByText("358071246352959")).toBeTruthy();
+    expect(screen.getAllByText("Apple iPhone 13 128 GB · Camilo Cartagena")).toHaveLength(2);
   });
 });
 

@@ -850,7 +850,15 @@ const Garantias = () => {
         motivo: previaLoteDraft.motivo.trim(),
       },
     ]);
-    setPreviaLoteDraft({ imei: "", referencia: "", cliente: "", fecha: "", motivo: "" });
+    // Al agregar otro celular del mismo lote conservamos el cliente seleccionado.
+    // Los datos particulares de cada equipo vuelven a quedar vacíos.
+    setPreviaLoteDraft((actual) => ({
+      imei: "",
+      referencia: "",
+      cliente: actual.cliente,
+      fecha: "",
+      motivo: "",
+    }));
   };
 
   const recibirLotePrevias = async () => {
