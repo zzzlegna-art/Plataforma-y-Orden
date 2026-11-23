@@ -72,7 +72,7 @@ const GarantiaDetalle = () => {
   const { warranty, unit, product, customer, order, tecnico, events, open } = view;
   const serial = warranty.unitId ? unit?.serial : warranty.imeiManual;
   const producto = product?.name ?? warranty.referenciaManual ?? "—";
-  const cliente = customer?.name ?? warranty.clienteManual ?? "—";
+  const cliente = warranty.clienteManual?.trim() || customer?.name || "—";
   const serialReemplazo = warranty.replacementUnitId
     ? db.units.find((item) => item.id === warranty.replacementUnitId)?.serial
     : undefined;
@@ -220,6 +220,10 @@ const GarantiaDetalle = () => {
               />
             </span>
           </InfoRow>
+          {warranty.clienteManual?.trim() && customer?.name &&
+            warranty.clienteManual.trim().toLocaleLowerCase() !== customer.name.trim().toLocaleLowerCase() ? (
+              <InfoRow label="Cliente de la venta original">{customer.name}</InfoRow>
+            ) : null}
           <InfoRow label={t("nav.orders")}>
             {order ? (
               <Link

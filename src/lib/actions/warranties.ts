@@ -377,6 +377,38 @@ export const createWarrantiesPrevias = (
   });
 
 /**
+ * Reintenta por IMEI los seriales que fallaron al crearse como garantías previas
+ * porque ya existen en inventario.
+ * Reutiliza createWarrantyByImei: solo acepta unidades vendidas o entregadas
+ * previamente en garantía y conserva su pedido/cliente original.
+ * Los datos digitados se preservan como metadatos independientes del pedido.
+ */
+export const createWarrantiesPorImeiDesdePrevias = (
+  db: Db,
+  actor: Actor,
+  input: { items: WarrantyPreviaItemInput[] },
+): WarrantyItemResult[] =>
+  input.items.map((item) => {
+    try {
+      requirePermission(actor, "warranties.manage");
+      // Validar ANTES de modificar el inventario: fallos no crean casos parciales.
+      const clienteManual = requireText(item.clienteManual, "errors.clienteManualRequired");
+      const referenciaManual = requireText(item.referenciaManual, "errors.referenciaManualRequired");
+      const warranty = createWarrantyByImei(db, actor, {
+        imei: item.imeiManual,
+        observacion: item.observacion,
+      });
+      warranty.clienteManual = clienteManual;
+      warranty.referenciaManual = referenciaManual;
+      warranty.fechaVentaManual = item.fechaVentaManual?.trim() || undefined;
+      // No establecer imeiManual: es garantía normal vinculada a su unidad.
+      return { imei: item.imeiManual, ok: true, warrantyId: warranty.id };
+    } catch (error) {
+      return resultadoConError(item.imeiManual, error);
+    }
+  });
+
+/**
  * Falla en inventario: un equipo disponible en bodega o local presenta una falla
  * sin haberse vendido. Se registra por serial y sigue el mismo circuito de servicio
  * técnico, pero sin asociarlo a un cliente.

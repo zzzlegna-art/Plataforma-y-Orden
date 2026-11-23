@@ -52,6 +52,7 @@ import {
   createWarrantiesByImeis,
   createWarrantyPrevia,
   createWarrantiesPrevias,
+  createWarrantiesPorImeiDesdePrevias,
   devolverGarantiasABodega,
   enviarATecnico,
   isOpenWarranty,
@@ -161,7 +162,7 @@ interface PreviaLoteItem {
 const warrantyInfo = (view: WarrantyView) => {
   const serial = view.warranty.unitId ? view.unit?.serial : view.warranty.imeiManual;
   const producto = view.product?.name ?? view.warranty.referenciaManual ?? "—";
-  const cliente = view.customer?.name ?? view.warranty.clienteManual ?? "—";
+  const cliente = view.warranty.clienteManual?.trim() || view.customer?.name || "—";
   return { serial, producto, cliente };
 };
 
@@ -317,6 +318,7 @@ const Garantias = () => {
   const consultaHistRef = useRef(0);
   const [previaMode, setPreviaMode] = useState<"uno" | "lote">("uno");
   const [lotePrevias, setLotePrevias] = useState<PreviaLoteItem[]>([]);
+  const [previasPendientesPorImei, setPreviasPendientesPorImei] = useState<string[]>([]);
   const [previaLoteDraft, setPreviaLoteDraft] = useState({
     imei: "",
     referencia: "",
@@ -365,7 +367,7 @@ const Garantias = () => {
    */
   const infoLote = (view: WarrantyView) => {
     const origin = getWarrantyOrigin(view.warranty, view.order);
-    const cliente = view.customer?.name ?? view.warranty.clienteManual;
+    const cliente = view.warranty.clienteManual?.trim() || view.customer?.name;
     let key: string;
     let title: string;
     let subtitle: string | undefined;
@@ -396,7 +398,7 @@ const Garantias = () => {
         origin,
       };
     }
-    const cliente = (view.customer?.name ?? view.warranty.clienteManual ?? t("warranty.history.unknownCustomer")).trim();
+    const cliente = (view.warranty.clienteManual?.trim() || view.customer?.name || t("warranty.history.unknownCustomer")).trim();
     const claveCliente = cliente.toLocaleLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
     return {
       key: `historial:cliente:${claveCliente}`,
@@ -881,22 +883,66 @@ const Garantias = () => {
     }
     const idsRecibidos = resultados.filter((r) => r.ok && r.warrantyId).map((r) => r.warrantyId!);
     await subirSiHayArchivo(archivoLotePrevias, idsRecibidos, t);
-    if (idsRecibidos.length > 0) setArchivoLotePrevias(null);
+    // Conserva el documento para filas que siguen pendientes tras una recepción parcial.
+    if (idsRecibidos.length > 0 && !fallidos.length) setArchivoLotePrevias(null);
     const fallidosSet = new Set(fallidos.map((fallo) => fallo.imei));
     setLotePrevias((previous) => previous.filter((item) => fallidosSet.has(item.imei)));
-    setAviso(
-      fallidos.length > 0
-        ? {
-            tone: "error",
-            text: [
-              t("warranty.lotFailedTitle", { count: fallidos.length }),
-              ...fallidos.map((fallo) =>
-                t("warranty.lotFailed", { serial: fallo.imei, reason: textoDeFallo(fallo) }),
-              ),
-            ].join("\n"),
-          }
-        : null,
+    const existentes = fallidos.filter((fallo) => fallo.motivo_error === "errors.previaSerialInSystem");
+    setPreviasPendientesPorImei(existentes.map((fallo) => fallo.imei.toLocaleLowerCase()));
+    setAviso(fallidos.length ? {
+      tone: existentes.length === fallidos.length ? "warning" : "error",
+      text: [
+        t("warranty.lotFailedTitle", { count: fallidos.length }),
+        ...(existentes.length ? [
+          String(existentes.length) + " IMEI ya están registrados en inventario. Usa «Recibir por IMEI» para procesarlos con sus datos guardados.",
+        ] : []),
+        ...fallidos.filter((fallo) => fallo.motivo_error !== "errors.previaSerialInSystem").map((fallo) =>
+          t("warranty.lotFailed", { serial: fallo.imei, reason: textoDeFallo(fallo) }),
+        ),
+      ].join("\n"),
+    } : null);
+  };
+
+  /** Recupera las filas existentes en inventario usando la recepción estándar por IMEI. */
+  const recibirPreviasPendientesPorImei = async () => {
+    const candidatos = new Set(previasPendientesPorImei);
+    const filas = lotePrevias.filter((item) => candidatos.has(item.imei.toLocaleLowerCase()));
+    if (!filas.length) return;
+    const resultados = await runAction(
+      (db2, actor) => createWarrantiesPorImeiDesdePrevias(db2, actor, {
+        items: filas.map((item) => ({
+          imeiManual: item.imei,
+          referenciaManual: item.referencia,
+          clienteManual: item.cliente,
+          fechaVentaManual: item.fecha || undefined,
+          observacion: item.motivo,
+        })),
+      }),
+      { key: "garantias-previas-por-imei" },
     );
+    if (!resultados) return;
+
+    const fallidos = resultados.filter((resultado) => !resultado.ok);
+    const recibidos = resultados.length - fallidos.length;
+    if (recibidos) toast.success("Recibidos por IMEI: " + recibidos + (recibidos === 1 ? " equipo" : " equipos"));
+    const ids = resultados.filter((resultado) => resultado.ok && resultado.warrantyId).map((resultado) => resultado.warrantyId!);
+    await subirSiHayArchivo(archivoLotePrevias, ids, t);
+    const completados = new Set(resultados.filter((resultado) => resultado.ok)
+      .map((resultado) => resultado.imei.toLocaleLowerCase()));
+    const restantes = lotePrevias.filter((item) => !completados.has(item.imei.toLocaleLowerCase()));
+    setLotePrevias(restantes);
+    setPreviasPendientesPorImei(fallidos.map((fallo) => fallo.imei.toLocaleLowerCase()));
+    if (ids.length && !restantes.length) setArchivoLotePrevias(null);
+    setAviso(fallidos.length ? {
+      tone: "error",
+      text: [
+        String(fallidos.length) + (fallidos.length === 1 ? " equipo sigue pendiente:" : " equipos siguen pendientes:"),
+        ...fallidos.map((fallo) =>
+          t("warranty.lotFailed", { serial: fallo.imei, reason: textoDeFallo(fallo) }),
+        ),
+        "Solo se reciben por IMEI equipos vendidos o entregados previamente en garantía.",
+      ].join("\n"),
+    } : null);
   };
 
   const recibirPrevia = async () => {
@@ -1079,7 +1125,7 @@ const Garantias = () => {
       const clave = view.order
         ? `pedido:${view.order.id}`
         : `sin-pedido:${view.warranty.customerId ?? view.warranty.clienteManual ?? "sin-datos"}`;
-      const cliente = view.customer?.name ?? view.warranty.clienteManual;
+      const cliente = view.warranty.clienteManual?.trim() || view.customer?.name;
       const base = view.order
         ? `${t("export.pedido")} ${view.order.code}`
         : t("export.withoutOrder");
@@ -2171,6 +2217,30 @@ const Garantias = () => {
                     </Button>
                   </div>
 
+                  {lotePrevias.some((item) =>
+                    previasPendientesPorImei.includes(item.imei.toLocaleLowerCase())
+                  ) ? (
+                    <div role="status" className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-primary/25 bg-primary/5 px-4 py-3">
+                      <div className="min-w-0 space-y-1">
+                        <p className="text-sm font-semibold">Seriales existentes en inventario</p>
+                        <p className="text-xs leading-relaxed text-muted-foreground">
+                          Recíbelos por IMEI conservando el cliente, la referencia y las observaciones del lote.
+                          Los que no estén vendidos o entregados por garantía seguirán pendientes.
+                        </p>
+                      </div>
+                      <Button
+                        type="button"
+                        loading={runAction.pending}
+                        disabled={runAction.pending}
+                        onClick={() => void recibirSinDuplicar(recibirPreviasPendientesPorImei)}
+                      >
+                        <PackageCheck className="h-4 w-4" />
+                        Recibir {lotePrevias.filter((item) =>
+                          previasPendientesPorImei.includes(item.imei.toLocaleLowerCase())
+                        ).length} por IMEI
+                      </Button>
+                    </div>
+                  ) : null}
                   {renderAviso()}
 
                   {lotePrevias.length > 0 ? (
@@ -2431,7 +2501,8 @@ const Garantias = () => {
                 v.warranty.code.toLowerCase().includes(q) ||
                 (v.unit?.serial ?? "").toLowerCase().includes(q) ||
                 (v.warranty.imeiManual ?? "").toLowerCase().includes(q) ||
-                (v.customer?.name ?? v.warranty.clienteManual ?? "").toLowerCase().includes(q) ||
+                (v.warranty.clienteManual ?? v.customer?.name ?? "").toLowerCase().includes(q) ||
+                (v.customer?.name ?? "").toLowerCase().includes(q) ||
                 (v.product?.name ?? v.warranty.referenciaManual ?? "").toLowerCase().includes(q)),
             );
             return (
