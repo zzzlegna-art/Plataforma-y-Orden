@@ -14,6 +14,14 @@ export interface EtiquetaSerial {
 const ANCHO_MM = 56;
 const ALTO_MM = 40;
 
+/**
+ * Corrección del origen horizontal de impresión de la etiquetadora de bodega:
+ * el contenido de la pegatina física salía ~2 mm a la izquierda.
+ * Solo mueve el marco y todo su interior, sin modificar el tamaño de página,
+ * los márgenes exteriores ni la representación del código CODE128.
+ */
+const AJUSTE_HORIZONTAL_MM = 2;
+
 /** SVG del código de barras (CODE128) de un serial. Cadena vacía si el valor no es válido. */
 export const generarSvgCodigoBarras = (valor: string): string => {
   const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
@@ -72,6 +80,8 @@ const htmlDeDocumento = (etiquetas: EtiquetaSerial[]): string => {
       .etiqueta:last-child { page-break-after: auto; break-after: auto; }
       .marco {
         width: 100%; height: 100%; position: relative;
+        /* Compensa el desplazamiento físico hacia la izquierda del rollo. */
+        left: ${AJUSTE_HORIZONTAL_MM}mm;
         border: 0.4mm solid #000; border-radius: 2mm;
         display: flex; flex-direction: column; align-items: center; justify-content: center;
         /* padding-bottom reserva el espacio de la marca 6A: así el bloque de texto se centra
