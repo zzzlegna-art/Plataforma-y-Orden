@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import {
   ArrowRight,
   Boxes,
+  CircleDot,
   CheckCircle2,
   Lock,
   Mail,
@@ -73,49 +74,50 @@ const Login = () => {
   };
 
   return (
-    <div className="nx-login-premium relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-background px-4 pb-6 pt-16 sm:px-6 sm:py-10 lg:px-8">
+    <div className="nx-login-premium nx-login-scroll relative flex min-h-screen flex-col items-center bg-background">
       <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden">
         <div className="absolute -left-40 -top-40 h-[28rem] w-[28rem] rounded-full bg-primary/10 blur-3xl" />
         <div className="absolute -bottom-48 -right-32 h-[30rem] w-[30rem] rounded-full bg-cyan-400/10 blur-3xl" />
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,hsl(var(--background)/0)_0%,hsl(var(--background)/.55)_100%)]" />
       </div>
 
-      <div className="absolute right-4 top-4 z-20 sm:right-6 sm:top-6">
+      <div className="nx-login-toolbar relative z-20 flex w-full max-w-6xl items-center justify-between">
+        <span className="nx-login-toolbar-id"><ShieldCheck aria-hidden="true" className="h-4 w-4" /><strong>NEXORA</strong><span className="nx-login-toolbar-divider" aria-hidden="true" /><span>Acceso privado</span></span>
         <ThemeToggle />
       </div>
 
-      <main className="relative z-10 grid w-full max-w-5xl overflow-hidden rounded-[28px] border border-border/80 bg-card shadow-[0_28px_100px_-40px_rgba(0,0,0,0.65)] lg:min-h-[590px] lg:grid-cols-[0.9fr_1.1fr]">
-        <section className="relative hidden flex-col justify-between overflow-hidden bg-gradient-to-br from-slate-50 via-white to-cyan-50 p-8 text-slate-900 sm:p-10 dark:bg-[#0b1420] dark:bg-none dark:text-white lg:flex">
+      <main className="nx-login-stage relative z-10 grid w-full max-w-6xl overflow-hidden border bg-card lg:grid-cols-[1.05fr_.95fr]">
+        <section className="nx-login-story relative hidden min-w-0 flex-col justify-between overflow-hidden p-8 text-slate-900 sm:p-10 dark:text-white lg:flex">
           <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden">
             <div className="absolute -right-24 -top-24 h-72 w-72 rounded-full bg-cyan-400/20 blur-3xl dark:bg-cyan-400/15" />
             <div className="absolute -bottom-32 -left-20 h-72 w-72 rounded-full bg-sky-500/15 blur-3xl dark:bg-sky-500/10" />
             <div className="absolute inset-0 bg-[linear-gradient(145deg,rgba(255,255,255,.08),rgba(236,254,255,.18))] dark:bg-[linear-gradient(145deg,rgba(11,20,32,.1),rgba(11,20,32,.92))]" />
           </div>
 
-          <div className="relative flex flex-col items-start gap-1">
+          <div className="nx-login-story-brand relative flex flex-col items-start gap-1">
             <BrandLogo variant="horizontal" className="h-[62px] w-[235px] max-w-full" />
             <p className="pl-[62px] text-xs text-slate-600 dark:text-slate-300">{t("auth.brandTagline")}</p>
           </div>
 
-          <div className="relative mt-10 max-w-md space-y-5">
-            <span className="inline-flex items-center gap-2 rounded-full border border-cyan-700/15 bg-cyan-900/[0.04] px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-cyan-800 dark:border-cyan-200/15 dark:bg-white/[0.06] dark:text-cyan-100">
+          <div className="nx-login-story-content relative mt-10 max-w-md space-y-5"><div className="nx-login-workspace-label" aria-hidden="true"><span className="nx-login-workspace-line" /> PLATAFORMA DE OPERACIONES <span className="nx-login-workspace-code">01 / NEXORA</span></div>
+            <span className="nx-login-operational-badge inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.18em]">
               <Sparkles className="h-3.5 w-3.5 text-cyan-300" />
               Control operativo
             </span>
             <div className="space-y-3">
-              <h1 className="max-w-sm text-3xl font-semibold leading-tight tracking-[-0.04em] xl:text-[2.15rem]">
+              <h1 className="nx-login-headline max-w-md font-semibold leading-tight">
                 {t("auth.heroTitle")}
               </h1>
-              <p className="max-w-sm text-sm leading-6 text-slate-600 dark:text-slate-300">
+              <p className="nx-login-story-description max-w-sm text-sm leading-6 text-slate-600 dark:text-slate-300">
                 {t("auth.heroSubtitle")}
               </p>
             </div>
 
-            <ul className="grid gap-2.5 pt-2">
+            <ul className="nx-login-feature-list grid gap-2.5 pt-2">
               {FEATURES.map((feature) => (
                 <li
                   key={feature.key}
-                  className="flex items-center gap-3 rounded-xl border border-slate-200/90 bg-white/75 px-3 py-3 text-sm text-slate-800 shadow-sm dark:border-white/[0.08] dark:bg-white/[0.045] dark:text-slate-100"
+                  className="nx-login-feature flex items-center gap-3 rounded-xl border px-3 py-3 text-sm text-slate-800 dark:text-slate-100"
                 >
                   <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-cyan-100 text-cyan-700 dark:bg-cyan-300/10 dark:text-cyan-300">
                     <feature.icon className="h-[18px] w-[18px]" />
@@ -127,7 +129,7 @@ const Login = () => {
             </ul>
           </div>
 
-          <div className="relative mt-10 flex items-center justify-between gap-4 border-t border-slate-200 pt-5 dark:border-white/10">
+          <div className="nx-login-trust relative mt-10 flex items-center justify-between gap-4 border-t pt-5">
             <div className="flex min-w-0 items-center gap-2.5">
               <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-300/15 dark:bg-emerald-300/10 dark:text-emerald-300">
                 <ShieldCheck className="h-[18px] w-[18px]" />
@@ -143,19 +145,19 @@ const Login = () => {
           </div>
         </section>
 
-        <section className="flex min-w-0 flex-col justify-center bg-background/95 px-5 py-8 sm:px-10 sm:py-10 lg:px-12">
-          <div className="mx-auto w-full max-w-[390px] animate-fade-in">
+        <section className="nx-login-access flex min-w-0 flex-col justify-center px-5 py-8 sm:px-10 sm:py-10 lg:px-12">
+          <div className="nx-login-access-inner mx-auto w-full max-w-[410px] animate-fade-in"><div className="nx-login-access-index hidden items-center justify-between lg:flex"><span className="inline-flex items-center gap-2"><CircleDot className="h-3.5 w-3.5" /> IDENTIFICACIÓN</span><span>01 — 02</span></div>
             <div className="mb-8 flex flex-col items-start gap-1 lg:hidden">
               <BrandLogo variant="horizontal" className="h-12 w-[190px] max-w-full" />
               <p className="pl-12 text-xs text-muted-foreground">{t("auth.brandTagline")}</p>
             </div>
 
-            <div className="mb-7">
-              <span className="mb-3 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.15em] text-primary">
+            <div className="nx-login-access-intro mb-7">
+              <span className="nx-login-access-eyebrow mb-3 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.15em] text-primary">
                 <span className="h-1.5 w-1.5 rounded-full bg-primary shadow-[0_0_0_3px_hsl(var(--primary)/.12)]" />
                 Acceso a Nexora
               </span>
-              <h2 className="text-2xl font-semibold tracking-[-0.035em] sm:text-[1.7rem]">
+              <h2 className="nx-login-access-title text-2xl font-semibold tracking-[-0.035em]">
                 {t("auth.title")}
               </h2>
               <p className="mt-2 text-sm leading-5 text-muted-foreground">
@@ -163,7 +165,7 @@ const Login = () => {
               </p>
             </div>
 
-            <form onSubmit={onSubmit} className="space-y-4">
+            <form onSubmit={onSubmit} className="nx-login-form space-y-4">
               <div
                 key={shakeKey}
                 className={cn("space-y-4", errorKey && "animate-shake")}
@@ -182,7 +184,7 @@ const Login = () => {
                       placeholder="tu@empresa.com"
                       disabled={loading}
                       className={cn(
-                        "h-11 rounded-xl pl-9",
+                        "nx-login-field h-11 rounded-xl pl-9",
                         errorKey && "border-destructive focus-visible:ring-destructive",
                       )}
                     />
@@ -203,7 +205,7 @@ const Login = () => {
                       placeholder="••••••••"
                       disabled={loading}
                       className={cn(
-                        "h-11 rounded-xl pl-9",
+                        "nx-login-field h-11 rounded-xl pl-9",
                         errorKey && "border-destructive focus-visible:ring-destructive",
                       )}
                     />
@@ -220,7 +222,7 @@ const Login = () => {
               <Button
                 ref={submitRef}
                 type="submit"
-                className="group relative h-11 w-full overflow-hidden rounded-xl shadow-[0_8px_24px_-12px_hsl(var(--primary)/.8)] before:absolute before:inset-0 before:-translate-x-full before:bg-gradient-to-r before:from-transparent before:via-white/25 before:to-transparent before:transition-transform before:duration-700 hover:before:translate-x-full active:before:translate-x-full motion-reduce:before:hidden"
+                className="nx-login-submit group relative h-11 w-full overflow-hidden rounded-xl before:absolute before:inset-0 before:-translate-x-full before:bg-gradient-to-r before:from-transparent before:via-white/25 before:to-transparent before:transition-transform before:duration-700 hover:before:translate-x-full active:before:translate-x-full motion-reduce:before:hidden"
                 loading={loading}
               >
                 <span className="relative z-10 flex items-center gap-2">
@@ -232,7 +234,7 @@ const Login = () => {
               </Button>
             </form>
 
-            <div className="mt-6 border-t border-border/70 pt-4">
+            <div className="nx-login-help mt-6 border-t border-border/70 pt-4">
               <p className="mb-2.5 text-center text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
                 {t("guide.firstTime")}
               </p>
@@ -245,7 +247,7 @@ const Login = () => {
         </section>
       </main>
 
-      <p className="relative z-10 mt-4 max-w-5xl px-2 text-center text-[11px] leading-5 text-muted-foreground">
+      <p className="nx-login-footnote relative z-10 mt-4 max-w-6xl px-2 text-center text-[11px] leading-5 text-muted-foreground">
         {t("common.localModeNote")}
       </p>
     </div>

@@ -1,109 +1,346 @@
-/* NEXORA Enterprise — acceso premium. Solo presentación; autenticación intacta. */
+/* NEXORA — Access Studio
+   La autenticación y sus permisos no se tocan; solo estructura y presentación.
+   #root/body conservan overflow:hidden por el shell, así que el login
+   es SU PROPIO scroll container para pantallas bajas, zoom y teclado móvil. */
+
 .nx-login-premium {
-  min-height: 100svh;
-  min-height: 100dvh;
+  width: 100%;
+  height: 100vh;
+  height: 100dvh;
+  min-height: 0;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  overscroll-behavior-y: contain;
+  -webkit-overflow-scrolling: touch;
   isolation: isolate;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: center;
+  padding: clamp(1rem, 2.4vw, 2rem);
+  padding-top: max(clamp(1rem, 2.4vw, 2rem), env(safe-area-inset-top, 0px));
+  padding-bottom: max(1.4rem, env(safe-area-inset-bottom, 0px));
   background:
-    radial-gradient(ellipse 58% 48% at 12% 10%, hsl(var(--primary) / .10), transparent 72%),
-    radial-gradient(ellipse 48% 42% at 92% 88%, hsl(190 82% 58% / .09), transparent 74%),
+    radial-gradient(ellipse 52% 46% at -8% -10%, hsl(var(--primary) / .15), transparent 78%),
+    radial-gradient(ellipse 53% 49% at 108% 96%, hsl(208 100% 65% / .10), transparent 74%),
     hsl(var(--background));
 }
-.nx-login-premium > main {
-  border-color: hsl(var(--border) / .72);
-  border-radius: 30px;
-  background: hsl(var(--card) / .96);
-  box-shadow: 0 34px 100px -48px hsl(220 55% 12% / .42), 0 8px 26px -22px hsl(var(--primary) / .28), inset 0 1px 0 hsl(var(--foreground) / .035);
+.nx-login-toolbar {
+  flex: 0 0 auto;
+  gap: 1rem;
+  min-height: 40px;
+  margin: 0 0 clamp(.9rem, 2vw, 1.4rem);
 }
-.dark .nx-login-premium > main {
-  border-color: hsl(var(--border) / .9);
-  background: hsl(var(--card) / .98);
-  box-shadow: 0 38px 110px -48px rgb(0 0 0 / .82), 0 0 0 1px hsl(var(--primary) / .045), inset 0 1px 0 hsl(var(--foreground) / .045);
-}
-.nx-login-premium > main > section:first-child {
-  background:
-    radial-gradient(ellipse 62% 48% at 100% 0%, hsl(190 90% 58% / .18), transparent 74%),
-    radial-gradient(ellipse 60% 46% at 0% 100%, hsl(215 85% 58% / .12), transparent 76%),
-    linear-gradient(145deg, hsl(210 40% 98%), hsl(190 45% 96%) 58%, hsl(215 45% 97%));
-}
-.dark .nx-login-premium > main > section:first-child {
-  background:
-    radial-gradient(ellipse 62% 48% at 100% 0%, hsl(190 90% 58% / .16), transparent 74%),
-    radial-gradient(ellipse 60% 46% at 0% 100%, hsl(215 85% 58% / .12), transparent 76%),
-    linear-gradient(145deg, hsl(218 44% 13%), hsl(218 46% 10%) 65%, hsl(222 48% 8%));
-}
-.nx-login-premium > main > section:last-child {
-  background:
-    radial-gradient(ellipse 80% 45% at 50% 0%, hsl(var(--primary) / .035), transparent 72%),
-    hsl(var(--background) / .96);
-}
-.nx-login-premium form label {
-  color: hsl(var(--foreground) / .84);
-  font-size: .78rem;
+.nx-login-toolbar-id {
+  display: inline-flex;
+  align-items: center;
+  gap: .65rem;
+  min-width: 0;
+  font-size: .67rem;
   font-weight: 700;
-  letter-spacing: .01em;
+  letter-spacing: .105em;
+  text-transform: uppercase;
+  color: hsl(var(--muted-foreground));
 }
-.nx-login-premium form input {
-  min-height: 46px;
-  border-color: hsl(var(--border));
-  background: hsl(var(--card) / .82);
-  box-shadow: inset 0 1px 2px hsl(var(--foreground) / .025);
-  transition: border-color 160ms ease, box-shadow 160ms ease, background-color 160ms ease;
-}
-.nx-login-premium form input:focus-visible {
-  border-color: hsl(var(--primary) / .62);
+.nx-login-toolbar-id svg { color: hsl(var(--primary)); }
+.nx-login-toolbar-id strong { font-weight: 850; letter-spacing: .15em; color: hsl(var(--foreground)); }
+.nx-login-toolbar-divider { height: 15px; border-left: 1px solid hsl(var(--border)); }
+
+.nx-login-stage {
+  flex: 0 0 auto;
+  margin-top: auto;
+  isolation: isolate;
+  border-color: hsl(var(--primary) / .18);
+  border-radius: clamp(22px, 3vw, 32px);
+  min-height: 625px;
   background: hsl(var(--card));
-  box-shadow: 0 0 0 4px hsl(var(--primary) / .10);
+  box-shadow:
+    0 38px 88px -50px hsl(217 58% 12% / .4),
+    0 12px 33px -25px hsl(var(--primary) / .24),
+    inset 0 1px 0 hsl(var(--foreground) / .06);
 }
-.nx-login-premium form button[type="submit"] {
-  min-height: 48px;
-  border: 1px solid hsl(var(--primary) / .22);
-  background-image: linear-gradient(110deg, hsl(var(--primary)), hsl(193 86% 48%));
-  box-shadow: 0 12px 28px -16px hsl(var(--primary) / .82), inset 0 1px 0 rgb(255 255 255 / .2);
-  font-weight: 750;
-  letter-spacing: .005em;
+.dark .nx-login-stage {
+  border-color: hsl(var(--primary) / .23);
+  box-shadow:
+    0 36px 85px -37px rgb(0 0 0 / .73),
+    0 0 0 1px hsl(var(--primary) / .035),
+    inset 0 1px 0 hsl(0 0% 100% / .07);
 }
-@media (hover: hover) and (pointer: fine) {
-  .nx-login-premium form button[type="submit"]:not(:disabled):hover {
-    filter: saturate(1.08) brightness(1.04);
-    box-shadow: 0 16px 32px -17px hsl(var(--primary) / .88), inset 0 1px 0 rgb(255 255 255 / .24);
-  }
+
+/* Portada: identidad editorial, retícula sutil y un gran halo geométrico. */
+.nx-login-story {
+  isolation: isolate;
+  gap: 1rem;
+  min-height: 0;
+  border-right: 1px solid hsl(193 55% 57% / .2);
+  background:
+    radial-gradient(circle at 109% 0%, hsl(187 95% 59% / .2), transparent 42%),
+    linear-gradient(133deg, hsl(204 71% 99%), hsl(189 71% 95%) 54%, hsl(204 69% 96%));
 }
-.nx-login-premium > main > section:first-child li {
-  border-color: hsl(215 30% 82% / .72);
-  background: hsl(0 0% 100% / .68);
-  box-shadow: 0 8px 22px -20px hsl(220 50% 15% / .4), inset 0 1px 0 rgb(255 255 255 / .7);
-  transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
+.nx-login-story::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  pointer-events: none;
+  opacity: .62;
+  background-image:
+    linear-gradient(to right, hsl(190 65% 44% / .075) 1px, transparent 1px),
+    linear-gradient(to bottom, hsl(190 65% 44% / .075) 1px, transparent 1px);
+  background-size: 40px 40px;
+  mask-image: linear-gradient(to bottom, transparent, black 17%, transparent 90%);
 }
-.dark .nx-login-premium > main > section:first-child li {
-  border-color: hsl(215 35% 70% / .14);
-  background: rgb(255 255 255 / .045);
+.nx-login-story::after {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  top: -98px;
+  right: -141px;
+  width: 330px;
+  height: 330px;
+  border: 1px solid hsl(192 98% 38% / .23);
+  border-radius: 50%;
+  box-shadow:
+    0 0 0 36px hsl(191 95% 45% / .055),
+    0 0 0 72px hsl(191 95% 45% / .045),
+    0 0 0 111px hsl(191 95% 45% / .032);
+  pointer-events: none;
+}
+.dark .nx-login-story {
+  color: hsl(0 0% 98%);
+  border-right-color: hsl(191 88% 65% / .12);
+  background:
+    radial-gradient(circle at 105% 0%, hsl(189 96% 50% / .14), transparent 50%),
+    radial-gradient(circle at 0% 100%, hsl(218 90% 56% / .1), transparent 55%),
+    linear-gradient(145deg, #10243a, #0b1a2c 52%, #0a1423);
+}
+.dark .nx-login-story::before {
+  opacity: .6;
+  background-image:
+    linear-gradient(to right, hsl(191 84% 75% / .06) 1px, transparent 1px),
+    linear-gradient(to bottom, hsl(191 84% 75% / .06) 1px, transparent 1px);
+}
+.dark .nx-login-story::after {
+  border-color: hsl(188 93% 63% / .18);
+  box-shadow: 0 0 0 36px hsl(191 90% 52% / .03),
+    0 0 0 72px hsl(191 90% 52% / .028),
+    0 0 0 111px hsl(191 90% 52% / .023);
+}
+.nx-login-story-brand {
+  min-height: 76px;
+}
+.nx-login-story-content { max-width: 455px; }
+.nx-login-workspace-label {
+  display: flex;
+  align-items: center;
+  gap: .65rem;
+  flex-wrap: wrap;
+  margin-bottom: 1.55rem;
+  color: hsl(196 70% 32%);
+  font-size: .61rem;
+  font-weight: 850;
+  letter-spacing: .145em;
+}
+.nx-login-workspace-line {
+  width: 25px;
+  height: 2px;
+  border-radius: 3px;
+  background: hsl(187 100% 39%);
+}
+.nx-login-workspace-code {
+  margin-left: auto;
+  color: hsl(202 29% 45%);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: .10em;
+}
+.dark .nx-login-workspace-label { color: hsl(186 90% 73%); }
+.dark .nx-login-workspace-code { color: hsl(213 29% 65%); }
+.nx-login-operational-badge {
+  background: hsl(185 85% 43% / .09);
+  border-color: hsl(186 85% 42% / .25);
+  color: hsl(196 72% 29%);
+}
+.dark .nx-login-operational-badge {
+  background: hsl(185 85% 48% / .09);
+  border-color: hsl(185 75% 64% / .25);
+  color: hsl(187 95% 76%);
+}
+.nx-login-headline {
+  font-size: clamp(2.5rem, 4vw, 3.8rem);
+  line-height: 1.04;
+  font-weight: 800;
+  letter-spacing: -.075em;
+  text-wrap: balance;
+}
+.nx-login-story-description {
+  max-width: 345px;
+  font-size: .88rem;
+  line-height: 1.75;
+}
+.nx-login-feature-list { gap: .62rem; padding-top: .75rem; }
+.nx-login-feature {
+  position: relative;
+  min-height: 56px;
+  padding: .72rem .85rem;
+  border-radius: 13px;
+  border-color: hsl(198 45% 79% / .68);
+  background: hsl(0 0% 100% / .65);
+  box-shadow: 0 12px 24px -23px hsl(215 75% 19% / .35), inset 0 1px 0 rgb(255 255 255 / .8);
+  transition: border-color .2s ease, transform .2s ease, background-color .2s ease;
+}
+.nx-login-feature > span:first-child {
+  border: 1px solid hsl(187 90% 37% / .12);
+  background: hsl(187 100% 40% / .11);
+  color: hsl(190 92% 28%);
+}
+.nx-login-feature > svg:last-child { color: hsl(187 92% 34%); }
+.dark .nx-login-feature {
+  border-color: hsl(196 46% 61% / .15);
+  background: hsl(206 44% 24% / .26);
   box-shadow: inset 0 1px 0 hsl(0 0% 100% / .035);
 }
-@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
-  .nx-login-premium > main > section:first-child li:hover {
-    transform: translateX(3px);
-    border-color: hsl(190 80% 48% / .34);
-    box-shadow: 0 12px 26px -21px hsl(190 80% 42% / .4);
+.dark .nx-login-feature > span:first-child {
+  border-color: hsl(182 100% 65% / .12);
+  background: hsl(184 99% 48% / .13);
+  color: hsl(182 100% 76%);
+}
+.dark .nx-login-feature > svg:last-child { color: hsl(184 94% 67%); }
+.nx-login-trust { border-color: hsl(203 55% 79% / .56); }
+.dark .nx-login-trust { border-color: hsl(0 0% 100% / .11); }
+
+/* Formulario: área calmada, máxima legibilidad y objetivos claros. */
+.nx-login-access {
+  position: relative;
+  min-height: 0;
+  background:
+    radial-gradient(ellipse 75% 46% at 97% 2%, hsl(var(--primary) / .055), transparent 82%),
+    hsl(var(--card));
+}
+.nx-login-access::before {
+  content: "";
+  position: absolute;
+  right: 1.75rem;
+  top: 1.6rem;
+  width: 42px;
+  height: 42px;
+  border: 1px solid hsl(var(--primary) / .14);
+  border-radius: 12px;
+  transform: rotate(16deg);
+  pointer-events: none;
+}
+.dark .nx-login-access {
+  background:
+    radial-gradient(ellipse 80% 43% at 96% -3%, hsl(var(--primary) / .075), transparent 75%),
+    hsl(var(--card));
+}
+.nx-login-access-inner { position: relative; padding-block: .5rem; }
+.nx-login-access-index {
+  margin-bottom: clamp(2rem, 6.5vh, 4.5rem);
+  color: hsl(var(--muted-foreground));
+  font-size: .63rem;
+  font-weight: 850;
+  letter-spacing: .14em;
+  font-variant-numeric: tabular-nums;
+}
+.nx-login-access-index svg { color: hsl(var(--primary)); }
+.nx-login-access-intro { margin-bottom: 1.6rem; }
+.nx-login-access-eyebrow { border-color: hsl(var(--primary) / .22); background: hsl(var(--primary) / .075); }
+.nx-login-access-title {
+  font-size: clamp(1.8rem, 2.3vw, 2.25rem);
+  line-height: 1.12;
+  font-weight: 800;
+  letter-spacing: -.055em;
+}
+.nx-login-access-intro > p { max-width: 350px; line-height: 1.7; }
+.nx-login-form label {
+  font-size: .76rem;
+  font-weight: 750;
+  color: hsl(var(--foreground) / .89);
+  letter-spacing: .012em;
+}
+.nx-login-form .nx-login-field {
+  height: 50px;
+  border-radius: 12px;
+  border: 1px solid hsl(var(--border));
+  background: hsl(var(--background) / .65);
+  box-shadow: inset 0 1px 2px hsl(var(--foreground) / .025);
+  transition: border-color .15s ease, box-shadow .15s ease, background-color .15s ease;
+}
+.nx-login-form .nx-login-field:focus-visible {
+  border-color: hsl(var(--primary) / .63);
+  background: hsl(var(--card));
+  box-shadow: 0 0 0 4px hsl(var(--primary) / .11);
+}
+.nx-login-form .nx-login-submit {
+  min-height: 51px;
+  margin-top: 1.5rem;
+  border: 1px solid hsl(var(--primary) / .18);
+  border-radius: 12px;
+  background: linear-gradient(110deg, hsl(187 100% 40%), hsl(198 95% 51%));
+  box-shadow: 0 16px 28px -17px hsl(var(--primary) / .71), inset 0 1px 0 rgb(255 255 255 / .27);
+  color: hsl(var(--primary-foreground));
+  font-size: .9rem;
+  font-weight: 850;
+  letter-spacing: .01em;
+}
+.nx-login-help { margin-top: 1.8rem; padding-top: 1.35rem; }
+.nx-login-help button {
+  min-height: 42px;
+  border-radius: 10px;
+  font-size: .8rem;
+  font-weight: 740;
+}
+.nx-login-help > div { display: grid; gap: .55rem; }
+.nx-login-footnote {
+  flex: 0 0 auto;
+  margin-top: 1rem;
+  margin-bottom: auto;
+  color: hsl(var(--muted-foreground));
+}
+@media (hover:hover) and (pointer:fine) and (prefers-reduced-motion:no-preference) {
+  .nx-login-feature:hover {
+    transform: translateX(4px);
+    border-color: hsl(189 75% 45% / .38);
+    background: hsl(0 0% 100% / .83);
+  }
+  .dark .nx-login-feature:hover { background: hsl(203 51% 28% / .35); }
+  .nx-login-form .nx-login-submit:hover {
+    box-shadow: 0 20px 36px -17px hsl(var(--primary) / .81), inset 0 1px 0 rgb(255 255 255 / .28);
+    filter: saturate(1.07);
   }
 }
 @media (max-width: 1023px) {
-  .nx-login-premium { justify-content: flex-start; padding-top: max(4.5rem, env(safe-area-inset-top)); }
-  .nx-login-premium > main {
-    max-width: 480px;
-    border-radius: 25px;
-    box-shadow: 0 26px 72px -42px hsl(220 55% 12% / .36), 0 4px 18px -16px hsl(var(--primary) / .22);
-  }
-  .dark .nx-login-premium > main {
-    box-shadow: 0 30px 80px -42px rgb(0 0 0 / .82), 0 0 0 1px hsl(var(--primary) / .05);
-  }
-  .nx-login-premium > main > section:last-child { padding-top: 1.8rem; padding-bottom: 1.8rem; }
+  .nx-login-toolbar { max-width: 600px; }
+  .nx-login-stage { max-width: 600px; min-height: 0; }
+  .nx-login-access { padding: clamp(1.6rem, 5vw, 2.8rem); }
+  .nx-login-access::before { right: 1.2rem; top: 1.2rem; }
+  .nx-login-access-inner { padding-block: .25rem; }
 }
-@media (max-width: 420px) {
-  .nx-login-premium { padding-inline: .75rem; padding-bottom: max(1rem, env(safe-area-inset-bottom)); }
-  .nx-login-premium > main { border-radius: 21px; }
-  .nx-login-premium > main > section:last-child { padding-inline: 1.1rem; }
+@media (max-width: 640px) {
+  .nx-login-premium {
+    padding-inline: .85rem;
+    padding-top: max(.8rem, env(safe-area-inset-top, 0px));
+    padding-bottom: max(1.25rem, env(safe-area-inset-bottom, 0px));
+  }
+  .nx-login-toolbar { margin-bottom: .7rem; }
+  .nx-login-toolbar-id { gap: .45rem; font-size: .58rem; letter-spacing: .06em; }
+  .nx-login-toolbar-divider { height: 12px; }
+  .nx-login-stage { border-radius: 23px; }
+  .nx-login-access { padding: 1.4rem 1.2rem 1.7rem; }
+  .nx-login-access::before { width: 28px; height: 28px; }
+  .nx-login-access-title { font-size: 1.85rem; }
+  .nx-login-access-intro { margin-bottom: 1.45rem; }
+  .nx-login-footnote { padding-inline: 1rem; margin-top: 1rem; }
 }
-@media (prefers-reduced-motion: reduce) {
-  .nx-login-premium form input,
-  .nx-login-premium > main > section:first-child li { transition: none !important; }
+@media (max-height: 680px) {
+  /* En pantallas bajas no comprimir ni recortar el formulario: el panel se desplaza. */
+  .nx-login-stage { margin-top: 0; }
+  .nx-login-footnote { margin-bottom: 0; }
+}
+@media (prefers-reduced-motion:reduce) {
+  .nx-login-feature, .nx-login-form .nx-login-field, .nx-login-form .nx-login-submit {
+    animation: none !important;
+    transition: none !important;
+    transform: none !important;
+  }
 }

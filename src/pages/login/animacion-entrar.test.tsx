@@ -51,6 +51,26 @@ beforeAll(async () => {
 });
 afterEach(cleanup);
 
+describe("Login · identidad premium y desplazamiento vertical", () => {
+  it("conserva el formulario funcional y permite scroll sin cortar la pantalla de acceso", () => {
+    dibujar(vi.fn().mockResolvedValue({ ok: false }));
+    const scroll = document.querySelector(".nx-login-scroll");
+    expect(scroll).toBeTruthy();
+    expect(scroll?.classList.contains("overflow-hidden")).toBe(false);
+    expect(document.querySelector(".nx-login-stage")).toBeTruthy();
+    expect(document.querySelector(".nx-login-story")).toBeTruthy();
+    expect(screen.getByLabelText(/correo/i)).toBeTruthy();
+    expect(screen.getByLabelText(/contraseña/i)).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Entrar" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Cambiar tema" })).toBeTruthy();
+    const styles = readFileSync("src/pages/login/login-premium.css", "utf8");
+    expect(styles).toMatch(/height:\s*100dvh/);
+    expect(styles).toMatch(/overflow-y:\s*auto\s*!important/);
+    expect(styles).toMatch(/@media\s*\(max-height:\s*680px\)/);
+    expect(styles).toContain(".dark .nx-login-story");
+  });
+});
+
 describe("Login · al entrar bien, pasa a la app (con la animación cuando el navegador la soporta)", () => {
   it("con credenciales correctas, termina mostrando el panel", async () => {
     const user = userEvent.setup();
