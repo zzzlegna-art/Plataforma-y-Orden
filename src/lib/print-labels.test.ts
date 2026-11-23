@@ -90,12 +90,15 @@ describe("imprimirEtiquetas", () => {
     expect(html).toContain("@page { size: 56mm 40mm; margin: 0; }");
   });
 
-  it("centra la impresión en la pegatina física con un desplazamiento horizontal de 2 mm", () => {
+  it("mantiene márgenes horizontales iguales y no desplaza el marco fuera de la etiqueta", () => {
     imprimirEtiquetas([{ producto: "iPhone 15 Pro Max 256 GB", serial: "358071246352941" }]);
-    const html = iframeImpreso().contentDocument!.documentElement.innerHTML;
-    expect(html).toContain("left: 2mm");
+    const doc = iframeImpreso().contentDocument!;
+    const html = doc.documentElement.innerHTML;
+    expect(html).toContain("padding: 1.5mm 3mm");
     expect(html).toContain("@page { size: 56mm 40mm; margin: 0; }");
-    expect(html).toContain('class="marco"');
+    expect(html).not.toContain("left: 2mm");
+    expect(doc.querySelector(".etiqueta > .marco")).toBeTruthy();
+    expect(html).toContain("max-width: 44mm");
     expect(html).toContain("358071246352941");
   });
 

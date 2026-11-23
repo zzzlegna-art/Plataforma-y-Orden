@@ -14,14 +14,6 @@ export interface EtiquetaSerial {
 const ANCHO_MM = 56;
 const ALTO_MM = 40;
 
-/**
- * Corrección del origen horizontal de impresión de la etiquetadora de bodega:
- * el contenido de la pegatina física salía ~2 mm a la izquierda.
- * Solo mueve el marco y todo su interior, sin modificar el tamaño de página,
- * los márgenes exteriores ni la representación del código CODE128.
- */
-const AJUSTE_HORIZONTAL_MM = 2;
-
 /** SVG del código de barras (CODE128) de un serial. Cadena vacía si el valor no es válido. */
 export const generarSvgCodigoBarras = (valor: string): string => {
   const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
@@ -76,14 +68,14 @@ const htmlDeDocumento = (etiquetas: EtiquetaSerial[]): string => {
       body { margin: 0; }
       .etiqueta {
         width: ${ANCHO_MM}mm; height: ${ALTO_MM}mm;
-        padding: 1.5mm;
+        /* Márgenes idénticos a ambos lados: nunca desplazar el marco fuera del rollo. */
+        padding: 1.5mm 3mm;
         page-break-after: always; break-after: page;
       }
       .etiqueta:last-child { page-break-after: auto; break-after: auto; }
       .marco {
         width: 100%; height: 100%; position: relative;
-        /* Compensación del origen de la impresora, independiente del centrado interno. */
-        left: ${AJUSTE_HORIZONTAL_MM}mm;
+        /* El marco empieza exactamente en el margen simétrico de la página. */
         border: 0.4mm solid #000; border-radius: 2mm;
         overflow: hidden;
       }
@@ -110,7 +102,7 @@ const htmlDeDocumento = (etiquetas: EtiquetaSerial[]): string => {
          contenedor. Forzamos un ancho real disponible y lo centramos. */
       .codigo {
         display: flex; align-items: center; justify-content: center;
-        width: 100%; max-width: 100%; min-width: 0;
+        width: 100%; max-width: 44mm; min-width: 0;
         margin-left: auto; margin-right: auto;
         overflow: hidden;
       }
