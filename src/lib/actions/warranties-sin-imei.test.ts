@@ -139,6 +139,10 @@ describe("Garantías apagado / sin serial en recepción por IMEI", () => {
     const db = fixture();
     const warranty = intake(db);
     expect(() => registrarImeiRealGarantia(db, actor, { warrantyId: warranty.id, imei: TEMP2 })).toThrow(DomainError);
+    // Los quince ceros pasan Luhn, pero son un código interno, no un IMEI real.
+    expect(() => registrarImeiRealGarantia(db, actor, {
+      warrantyId: warranty.id, imei: "000000000000000",
+    })).toThrow(DomainError);
     expect(() => registrarImeiRealGarantia(db, actor, { warrantyId: warranty.id, imei: "123456789012345" })).toThrow(DomainError);
     expect(garantiaSinImeiPendiente(warranty)).toBe(true);
   });

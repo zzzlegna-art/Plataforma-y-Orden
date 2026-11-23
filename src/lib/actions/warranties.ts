@@ -365,6 +365,10 @@ export const registrarImeiRealGarantia = (
     throw new DomainError("Esta garantía no tiene un IMEI pendiente por registrar.");
   }
   const real = normalizarImei(requireText(input.imei, "errors.serialRequired"));
+  // Un código temporal podría pasar Luhn por casualidad: jamás aceptarlo como IMEI real.
+  if (esCodigoInterno(real)) {
+    throw new DomainError("No puedes usar otro código interno; registra el IMEI real del celular.");
+  }
   const validation = errorDeImei(real);
   if (validation) throw new DomainError(validation);
   const abiertaManual = db.warranties.find((other) =>
