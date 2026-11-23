@@ -180,9 +180,8 @@
 .nx-quick-serial-list > li > button { width: 33px; height: 33px; flex: none; border-radius: 7px; color: hsl(var(--muted-foreground)); }
 .nx-quick-serial-list > li > button:hover { background: hsl(var(--destructive) / .1); color: hsl(var(--destructive)); }
 .nx-quick-confirm-bar {
-  position: sticky;
-  z-index: 15;
-  bottom: .65rem;
+  /* Forma parte del contenido: nunca sigue el scroll ni flota sobre las tarjetas. */
+  position: static;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -192,7 +191,6 @@
   border-radius: 14px;
   background: hsl(var(--card) / .96);
   box-shadow: 0 19px 48px -28px hsl(215 60% 15% / .37);
-  backdrop-filter: blur(14px);
 }
 .nx-quick-confirm-copy { display: flex; flex-direction: column; gap: .35rem; min-width: 0; }
 .nx-quick-confirm-copy strong { font-size: .91rem; font-weight: 825; font-variant-numeric: tabular-nums; }
@@ -214,7 +212,7 @@
   .nx-quick-customer { grid-template-columns: 1fr; padding: 1rem; gap: .8rem; }
   .nx-quick-customer-hint { grid-column: auto; }
   .nx-quick-scan-panel, .nx-quick-review-panel { padding: 1rem; }
-  .nx-quick-confirm-bar { bottom: 0; flex-direction: column; align-items: stretch; padding: .9rem; border-radius: 12px; }
+  .nx-quick-confirm-bar { flex-direction: column; align-items: stretch; padding: .9rem; border-radius: 12px; }
   .nx-quick-confirm-bar > button { width: 100%; }
   .nx-quick-group-head { flex-wrap: wrap; }
   .nx-quick-quantity { margin-left: auto; }
