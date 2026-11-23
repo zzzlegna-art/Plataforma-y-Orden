@@ -1,7 +1,7 @@
 import { useMemo, useRef, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { toast } from "sonner";
-import { ArrowLeft, Check, ClipboardCheck, FileText, Package, ScanLine, ShoppingBag, Trash2, Zap } from "lucide-react";
+import { ArrowLeft, Check, ClipboardCopy, FileText, Package, ScanLine, ShoppingBag, Trash2, Zap } from "lucide-react";
 
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { OptionSelect } from "@/components/shared/option-select";
@@ -100,6 +100,15 @@ const PedidoRapido = () => {
     setSerials(next);
   };
 
+  const copySerial = async (serial: string) => {
+    try {
+      await navigator.clipboard.writeText(serial);
+      toast.success("IMEI copiado", { duration: 1000 });
+    } catch {
+      toast.error("No se pudo copiar el IMEI.");
+    }
+  };
+
   const changeColor = (serial: string, color: string) => {
     changeEntries(serialsRef.current.map((entry) => entry.serial === serial ? { ...entry, color } : entry));
   };
@@ -160,7 +169,7 @@ const PedidoRapido = () => {
   };
 
   return (
-    <main className="nx-quick-order space-y-5">
+    <main className="nx-quick-order space-y-3">
       <Button asChild variant="ghost" size="sm" className="nx-quick-back">
         <Link to="/pedidos"><ArrowLeft className="h-4 w-4" /> Volver a pedidos</Link>
       </Button>
@@ -170,19 +179,15 @@ const PedidoRapido = () => {
         <PageHeader
           className="nx-quick-hero-heading"
           title="Pedido rápido por seriales"
-          description="Selecciona el cliente y escanea los equipos. Las referencias se forman automáticamente."
+          description="Escanea, revisa los IMEI agrupados y confirma en un solo paso."
           actions={<Button variant="outline" asChild><Link to="/pedidos/nuevo"><ShoppingBag /> Pedido normal</Link></Button>}
         />
-        <div className="nx-quick-hero-track">
-          <span><Check size={14} /> Cliente</span><span><ScanLine size={14} /> Escaneo</span>
-          <span><ClipboardCheck size={14} /> Confirmación</span>
-        </div>
       </header>
 
       <section className="nx-quick-customer">
         <div className="nx-quick-section-title">
           <span className="nx-quick-section-number">01</span>
-          <div><h2>Cliente del pedido</h2><p>Elige el comprador mayorista antes de escanear.</p></div>
+          <div><h2>Cliente del pedido</h2><p>Selecciona el comprador.</p></div>
         </div>
         <OptionSelect
           value={customerId}
@@ -200,7 +205,7 @@ const PedidoRapido = () => {
         <section className="nx-quick-scan-panel">
           <div className="nx-quick-section-title">
             <span className="nx-quick-section-number">02</span>
-            <div><h2>Escanear IMEI / serial</h2><p>Lector USB, Bluetooth, cámara o escritura manual.</p></div>
+            <div><h2>Escanear serial</h2><p>Lector, cámara o teclado.</p></div>
           </div>
           <div className="nx-quick-scanner">
             <SerialScanInput
@@ -208,26 +213,30 @@ const PedidoRapido = () => {
               validate={validateSerial}
               autoFocus={Boolean(customer)}
               disabled={!customer || confirming}
-              placeholder="Escanea o escribe el serial y presiona Enter"
-              hint="Cada lectura identifica automáticamente el modelo y la condición."
+              placeholder="Escanea IMEI y presiona Enter"
+              hint="Enter o cámara para añadir una unidad."
               stacked
               submitLabel="Agregar serial"
             />
           </div>
-          <div className="nx-quick-stats">
-            <div><span>Unidades escaneadas</span><strong>{serials.length}</strong></div>
-            <div><span>Referencias encontradas</span><strong>{groups.length}</strong></div>
-          </div>
-          <div className="nx-quick-info"><ScanLine size={17}/><p>El escaneo no descuenta inventario. Los equipos quedarán reservados únicamente cuando confirmes el pedido.</p></div>
+          <p className="nx-quick-scan-footnote"><ScanLine size={14} />Los equipos se reservan solo al confirmar.</p>
         </section>
 
         <section className="nx-quick-review-panel">
           <div className="nx-quick-review-top">
             <div className="nx-quick-section-title">
               <span className="nx-quick-section-number">03</span>
-              <div><h2>Referencias detectadas</h2><p>Revisa las unidades antes de confirmar.</p></div>
+              <div><h2>Seriales del pedido</h2><p>Agrupados por referencia, condición y color.</p></div>
             </div>
-            {serials.length > 0 && !confirming ? <Button type="button" size="sm" variant="ghost" onClick={() => changeEntries([])}>Limpiar lista</Button> : null}
+            <div className="nx-quick-review-actions">
+              <div className="nx-quick-summary" role="status" aria-live="polite">
+                <span><strong>{serials.length}</strong> IMEI</span>
+                <span><strong>{groups.length}</strong> {groups.length === 1 ? "referencia" : "referencias"}</span>
+              </div>
+              {serials.length > 0 && !confirming ? (
+                <Button type="button" size="sm" variant="ghost" className="nx-quick-clear" onClick={() => changeEntries([])}>Limpiar lista</Button>
+              ) : null}
+            </div>
           </div>
 
           {groups.length === 0 ? (
@@ -237,7 +246,7 @@ const PedidoRapido = () => {
               <p>Las referencias y cantidades aparecerán aquí automáticamente, agrupadas por modelo, condición y color.</p>
             </div>
           ) : (
-            <div className="nx-quick-groups">
+            <div className="nx-quick-groups" role="region" aria-label="Seriales agrupados por referencia" tabIndex={0}>
               {groups.map((group) => (
                 <article className="nx-quick-group" key={group.key}>
                   <div className="nx-quick-group-head">
@@ -271,7 +280,11 @@ const PedidoRapido = () => {
                               />
                             </div>
                           ) : null}
-                          <Button type="button" size="icon" variant="ghost" aria-label={"Quitar serial " + entry.serial}
+                          <Button type="button" size="icon" variant="ghost" className="nx-quick-copy" aria-label={"Copiar serial " + entry.serial}
+                            title="Copiar IMEI" onClick={() => void copySerial(entry.serial)}>
+                            <ClipboardCopy size={15} />
+                          </Button>
+                          <Button type="button" size="icon" variant="ghost" className="nx-quick-remove" aria-label={"Quitar serial " + entry.serial}
                             title="Quitar IMEI" disabled={confirming} onClick={() => changeEntries(serialsRef.current.filter((item) => item.serial !== entry.serial))}>
                             <Trash2 size={15} />
                           </Button>
