@@ -13,7 +13,7 @@ export type WarrantyOrigin = "normal" | "previa" | "falla_inventario";
 export const getWarrantyOrigin = (warranty: Warranty, order?: Order): WarrantyOrigin => {
   // imeiManual identifica el origen previo incluso después de dar de alta el serial en inventario.
   if (warranty.imeiManual) return "previa";
-  if (warranty.unitId && !order && !warranty.orderId && !warranty.customerId) {
+  if (warranty.unitId && !order && !warranty.orderId && !warranty.customerId && !warranty.clienteManual?.trim()) {
     return "falla_inventario";
   }
   return "normal";

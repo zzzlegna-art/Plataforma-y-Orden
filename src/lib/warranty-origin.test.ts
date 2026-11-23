@@ -35,6 +35,16 @@ describe("historial de serial · garantías previas", () => {
     expect(getWarrantyOrigin(warranty({ unitId: "unit-1", productId: "p1" }))).toBe("previa");
   });
 
+  it("una unidad recibida por IMEI con cliente manual conserva origen normal aunque falte pedido histórico", () => {
+    expect(getWarrantyOrigin(warranty({
+      imeiManual: undefined,
+      unitId: "unit-1",
+      customerId: undefined,
+      orderId: undefined,
+      clienteManual: "Lucho Ibagué",
+    }))).toBe("normal");
+  });
+
   it("vincula por serial las garantías previas antiguas aunque no tengan unitId", () => {
     const db = emptyDb();
     const equipo = unit();
