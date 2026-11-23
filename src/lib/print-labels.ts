@@ -54,12 +54,14 @@ export const tamanoNombre = (producto: string): number => {
 const htmlDeEtiqueta = ({ producto, serial, nota }: EtiquetaSerial) => `
   <div class="etiqueta">
     <div class="marco">
-      <div class="producto" style="font-size:${tamanoNombre(producto)}px">${escaparHtml(producto)}</div>
-      <div class="linea"></div>
-      <div class="codigo">${generarSvgCodigoBarras(serial)}</div>
-      <div class="serial">${escaparHtml(serial)}</div>
-      ${esCodigoInterno(serial) ? '<div class="aviso">Serial generado, pendiente IMEI</div>' : ""}
-      ${nota?.trim() ? `<div class="nota">${escaparHtml(nota.trim())}</div>` : ""}
+      <div class="contenido">
+        <div class="producto" style="font-size:${tamanoNombre(producto)}px">${escaparHtml(producto)}</div>
+        <div class="linea"></div>
+        <div class="codigo">${generarSvgCodigoBarras(serial)}</div>
+        <div class="serial">${escaparHtml(serial)}</div>
+        ${esCodigoInterno(serial) ? '<div class="aviso">Serial generado, pendiente IMEI</div>' : ""}
+        ${nota?.trim() ? `<div class="nota">${escaparHtml(nota.trim())}</div>` : ""}
+      </div>
       <div class="marca" aria-hidden="true">6A</div>
     </div>
   </div>`;
@@ -80,21 +82,48 @@ const htmlDeDocumento = (etiquetas: EtiquetaSerial[]): string => {
       .etiqueta:last-child { page-break-after: auto; break-after: auto; }
       .marco {
         width: 100%; height: 100%; position: relative;
-        /* Compensa el desplazamiento físico hacia la izquierda del rollo. */
+        /* Compensación del origen de la impresora, independiente del centrado interno. */
         left: ${AJUSTE_HORIZONTAL_MM}mm;
         border: 0.4mm solid #000; border-radius: 2mm;
-        display: flex; flex-direction: column; align-items: center; justify-content: center;
-        /* padding-bottom reserva el espacio de la marca 6A: así el bloque de texto se centra
-           en el resto del alto y nunca queda a la misma altura que el círculo, sin importar
-           cuántos dígitos tenga el serial (un IMEI de 15 dígitos es bien ancho). */
-        gap: 1mm; padding: 1.5mm 1.5mm 8mm; text-align: center;
+        overflow: hidden;
+      }
+      /* Una sola zona central para todos los datos. El sello 6A queda aparte
+         y nunca empuja el código de barras ni el IMEI hacia un costado. */
+      .contenido {
+        width: 100%; height: 100%; min-width: 0;
+        display: flex; flex-direction: column;
+        align-items: center; justify-content: center;
+        gap: 1mm;
+        padding: 1.5mm 2mm 8mm;
+        text-align: center;
+      }
+      .producto, .serial, .aviso, .nota {
+        display: block;
+        width: 100%; max-width: 100%;
+        margin-left: auto; margin-right: auto;
+        text-align: center;
+        overflow-wrap: anywhere;
       }
       .producto { font-family: Helvetica, Arial, sans-serif; font-weight: bold; line-height: 1.15; }
-      .linea { width: 85%; height: 0; border-top: 0.3mm solid #000; }
-      .codigo svg { max-width: 92%; height: auto; }
-      .serial { font-family: ui-monospace, Menlo, monospace; font-weight: bold; font-size: 13px; letter-spacing: 0.12em; }
+      .linea { flex: none; width: 85%; height: 0; border-top: 0.3mm solid #000; }
+      /* JsBarcode escribe un ancho SVG intrínseco que podía desbordar el
+         contenedor. Forzamos un ancho real disponible y lo centramos. */
+      .codigo {
+        display: flex; align-items: center; justify-content: center;
+        width: 100%; max-width: 100%; min-width: 0;
+        margin-left: auto; margin-right: auto;
+        overflow: hidden;
+      }
+      .codigo svg {
+        display: block;
+        width: auto; max-width: 100%;
+        height: auto; max-height: 14mm;
+        margin-left: auto; margin-right: auto;
+        flex-shrink: 1;
+      }
+      .serial { font-family: ui-monospace, Menlo, monospace; font-weight: bold; font-size: 13px; letter-spacing: 0.08em; }
       .aviso { font-family: Helvetica, Arial, sans-serif; font-size: 8.5px; font-weight: 700; color: #000; }
-      .nota { font-family: Helvetica, Arial, sans-serif; font-size: 9px; font-style: italic; color: #000; max-width: 92%; }
+      .nota { font-family: Helvetica, Arial, sans-serif; font-size: 9px; font-style: italic; color: #000; }
       .marca {
         position: absolute; left: 1.5mm; bottom: 1.5mm;
         width: 6mm; height: 6mm; border-radius: 50%; border: 0.3mm solid #000;

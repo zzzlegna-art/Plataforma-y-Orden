@@ -111,7 +111,29 @@ describe("imprimirEtiquetas", () => {
   it("deja espacio reservado abajo para la marca, para que un serial largo (IMEI de 15 dígitos) no la monte encima", () => {
     imprimirEtiquetas([{ producto: "X", serial: "1" }]);
     const html = iframeImpreso().contentDocument!.documentElement.innerHTML;
-    expect(html).toContain("padding: 1.5mm 1.5mm 8mm");
+    expect(html).toContain("padding: 1.5mm 2mm 8mm");
+  });
+
+  it("centra todos los elementos dentro de una sola zona de contenido, separada del sello 6A", () => {
+    imprimirEtiquetas([{
+      producto: "iPhone 14 Pro Max 256GB",
+      serial: "357917873018646",
+      nota: "GAR-261123-023",
+    }]);
+    const doc = iframeImpreso().contentDocument!;
+    const marco = doc.querySelector(".marco")!;
+    const contenido = marco.querySelector(".contenido")!;
+    expect(contenido.querySelector(".producto")?.textContent).toBe("iPhone 14 Pro Max 256GB");
+    expect(contenido.querySelector(".codigo svg")).toBeTruthy();
+    expect(contenido.querySelector(".serial")?.textContent).toBe("357917873018646");
+    expect(contenido.querySelector(".nota")?.textContent).toBe("GAR-261123-023");
+    expect(contenido.querySelector(".marca")).toBeNull();
+    expect(marco.querySelector(":scope > .marca")?.textContent).toBe("6A");
+    const html = doc.documentElement.innerHTML;
+    expect(html).toContain("align-items: center; justify-content: center");
+    expect(html).toContain("width: 100%; max-width: 100%");
+    expect(html).toContain(".codigo svg");
+    expect(html).toContain("margin-left: auto; margin-right: auto");
   });
 
   it("el nombre del producto lleva el tamaño de letra calculado para su largo", () => {
