@@ -32,12 +32,75 @@ import {
   entregarGarantia,
   garantiaTieneCliente,
   registrarDiagnostico,
+  registrarImeiRealGarantia,
   updateTecnico,
 } from "@/lib/actions/warranties";
 import type { Warranty, WarrantyResolution } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { errorDeImei } from "@/lib/imei";
 
 import { ReplacementSerialField } from "./replacement-serial-field";
+
+/** Identifica al regreso de servicio un teléfono que ingresó apagado, conservando el mismo expediente. */
+export const RegistrarImeiDialog = ({
+  warranty, trigger,
+}: {
+  warranty: Warranty;
+  trigger: React.ReactNode;
+}) => {
+  const runAction = useRunAction();
+  const [open, setOpen] = useState(false);
+  const [imei, setImei] = useState("");
+  const validacion = imei.trim() ? errorDeImei(imei) : null;
+  const save = async () => {
+    const result = await runAction(
+      (db, actor) => registrarImeiRealGarantia(db, actor, { warrantyId: warranty.id, imei }),
+      { success: "IMEI real registrado correctamente", key: "garantia-registrar-imei:" + warranty.id },
+    );
+    if (result) {
+      setOpen(false);
+      setImei("");
+    }
+  };
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>{trigger}</DialogTrigger>
+      <DialogContent className="nx-warranty-dialog--centered sm:max-w-md nx-warranty-dialog--premium">
+        <DialogHeader>
+          <DialogTitle>Registrar IMEI al regresar del servicio</DialogTitle>
+          <DialogDescription>
+            Garantía {warranty.code}. El código de custodia temporal se reemplazará por el IMEI real,
+            sin perder el cliente, las observaciones, los documentos ni el historial.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-2 py-2">
+          <Label htmlFor={"warranty-imei-" + warranty.id}>IMEI real del celular (15 dígitos)</Label>
+          <Input
+            id={"warranty-imei-" + warranty.id}
+            value={imei}
+            onChange={(event) => setImei(event.target.value)}
+            placeholder="Escanea o escribe el IMEI real"
+            inputMode="numeric"
+            autoComplete="off"
+            className="font-mono"
+          />
+          {validacion ? (
+            <p role="alert" className="text-xs text-destructive">El IMEI debe tener 15 dígitos y un dígito de control válido.</p>
+          ) : null}
+          <p className="text-xs text-muted-foreground">
+            Si el IMEI pertenece a una unidad vendida registrada, NEXORA recuperará su pedido original.
+            Si es una venta anterior al sistema, conservará el serial como dato manual.
+          </p>
+        </div>
+        <DialogFooter>
+          <Button type="button" variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
+          <Button type="button" loading={runAction.pending} disabled={!imei.trim() || Boolean(validacion)}
+            onClick={() => void save()}>Guardar IMEI real</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+};
 
 /** Registra el diagnóstico del taller y su resolución operativa. */
 export const DiagnosticoDialog = ({

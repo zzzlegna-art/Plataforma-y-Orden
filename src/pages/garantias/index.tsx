@@ -44,12 +44,14 @@ import {
   type WarrantyCard,
 } from "@/lib/export";
 import { esCodigoInterno, generarCodigoInterno } from "@/lib/imei";
+import { garantiaSinImeiPendiente } from "@/lib/warranty-pending-imei";
 import { imprimirEtiquetas } from "@/lib/print-labels";
 import {
   contarGarantiasPorEstado,
   createWarrantyByImei,
+  createWarrantySinImei,
   createWarrantyFallaInventario,
-  createWarrantiesByImeis,
+  createWarrantiesByImeisYSinSerial,
   createWarrantyPrevia,
   createWarrantiesPrevias,
   createWarrantiesPorImeiDesdePrevias,
@@ -105,8 +107,10 @@ import {
   DevolucionDirectaDialog,
   DiagnosticoDialog,
   EntregarDialog,
+  RegistrarImeiDialog,
   TecnicosDialog,
 } from "./modals";
+import { CamposSinSerial, type FormularioSinSerial } from "./sin-serial-fields";
 import { SelectorDocumentoGarantia } from "./warranty-documents";
 import { subirSiHayArchivo } from "./subir-documento-garantia";
 
@@ -148,6 +152,7 @@ interface LoteItem {
   folio: string;
   cliente: string;
   obs: string;
+  sinImei?: boolean;
 }
 
 /** Una fila del lote de garantías previas: igual que el formulario de "una por una", pero en lista. */
@@ -264,6 +269,7 @@ const Garantias = () => {
     .filter((c) => c.isActive && (c.categoriaMayorista ?? "ambos") !== "repuestos")
     .map((c) => c.name)
     .sort((a, b) => a.localeCompare(b));
+  const referenciasSinSerial = referenciasGarantiaPrevia(db.products, "celular");
 
   // La pestaña activa vive en la dirección (?tab=recibidos): así, al ver una garantía y volver
   // (botón "Volver" o "atrás" del navegador), se regresa a la misma pestaña.
@@ -286,6 +292,8 @@ const Garantias = () => {
   const [unidadEncontrada, setUnidadEncontrada] = useState<Unit | null>(null);
   const [unidadInfo, setUnidadInfo] = useState<{ folio?: string; cliente?: string }>({});
   const [motivoUno, setMotivoUno] = useState("");
+  const [sinSerialUno, setSinSerialUno] = useState<(FormularioSinSerial & { codigoTemporal: string }) | null>(null);
+  const [sinSerialLote, setSinSerialLote] = useState<FormularioSinSerial | null>(null);
   const [lote, setLote] = useState<LoteItem[]>([]);
   // Hoja de "relación" del proveedor (PDF o foto), si la eligieron antes de registrar.
   const [archivoUno, setArchivoUno] = useState<File | null>(null);
@@ -658,6 +666,7 @@ const Garantias = () => {
   const modoDeSerial = modo === "falla" ? "falla" : "imei";
 
   const buscarUnidadParaGarantia = (serial: string) => {
+    setSinSerialUno(null);
     setUnidadEncontrada(null);
     setUnidadInfo({});
     setMotivoUno("");
@@ -696,6 +705,26 @@ const Garantias = () => {
         obs: "",
       },
     ]);
+  };
+
+  const nuevoCodigoSinSerial = () => generarCodigoInterno((serial) =>
+    db.units.some((unit) => unit.serial === serial) ||
+    db.warranties.some((warranty) => warranty.imeiManual === serial) ||
+    lote.some((item) => item.imei === serial),
+  );
+
+  const agregarSinSerialLote = () => {
+    if (!sinSerialLote?.cliente.trim() || !sinSerialLote.referencia.trim() || !sinSerialLote.motivo.trim()) {
+      toast.error("Selecciona cliente, modelo y observaciones del equipo apagado.");
+      return;
+    }
+    const codigo = nuevoCodigoSinSerial();
+    setLote((previous) => [...previous, {
+      imei: codigo, producto: sinSerialLote.referencia.trim(), folio: "IMEI pendiente",
+      cliente: sinSerialLote.cliente.trim(), obs: sinSerialLote.motivo.trim(), sinImei: true,
+    }]);
+    setSinSerialLote({ cliente: sinSerialLote.cliente, referencia: "", motivo: "" });
+    setAviso(null);
   };
 
   /** Completa automáticamente la garantía con el pedido original de Techrez, si existe. */
@@ -758,6 +787,20 @@ const Garantias = () => {
   };
 
   const recibirUno = async () => {
+    if (modo === "imei" && sinSerialUno) {
+      const { codigoTemporal, cliente, referencia, motivo } = sinSerialUno;
+      const result = await runAction((db2, actor) => createWarrantySinImei(db2, actor, {
+        codigoTemporal, clienteManual: cliente, referenciaManual: referencia, observacion: motivo,
+      }), { success: "warranty.created" });
+      if (result) {
+        await subirSiHayArchivo(archivoUno, [result.id], t);
+        setSinSerialUno(null);
+        setArchivoUno(null);
+        setAviso({ tone: "info", text: "Equipo recibido con código temporal " + codigoTemporal +
+          ". Registra el IMEI real cuando regrese del servicio técnico antes de cerrar la garantía." });
+      }
+      return;
+    }
     if (!unidadEncontrada) return;
     const imei = unidadEncontrada.serial;
     if (modo === "falla") {
@@ -797,11 +840,15 @@ const Garantias = () => {
   };
 
   const recibirLote = async () => {
-    const items = lote.map((item) => ({ imei: item.imei, observacion: loteObs[item.imei] ?? item.obs }));
+    const items = lote.map((item) => ({
+      imei: item.imei, observacion: loteObs[item.imei] ?? item.obs,
+      sinImei: item.sinImei, clienteManual: item.sinImei ? item.cliente : undefined,
+      referenciaManual: item.sinImei ? item.producto : undefined,
+    }));
     const resultados = await runAction((db2, actor) =>
       modo === "falla"
         ? createWarrantyFallaInventario(db2, actor, { items })
-        : createWarrantiesByImeis(db2, actor, { items }),
+        : createWarrantiesByImeisYSinSerial(db2, actor, { items }),
     );
     if (!resultados) return;
 
@@ -1565,6 +1612,10 @@ const Garantias = () => {
           <p className="mt-2 text-xs text-muted-foreground">{view.warranty.diagnostico}</p>
         ) : null}
         <div className="nx-service-ticket-actions mt-3 flex flex-wrap items-center gap-2">
+          {isOpen && garantiaSinImeiPendiente(view.warranty) ? (
+            <RegistrarImeiDialog warranty={view.warranty}
+              trigger={<Button size="sm" className="bg-amber-600 text-white hover:bg-amber-700">Registrar IMEI obligatorio</Button>} />
+          ) : null}
           {isOpen ? (
             <>
               {view.warranty.status === "recibido" ? (
@@ -1796,6 +1847,8 @@ const Garantias = () => {
                 onClick={() => {
                   setModo(option);
                   setUnidadEncontrada(null);
+                  setSinSerialUno(null);
+                  setSinSerialLote(null);
                   setLote([]);
                   setAviso(null);
                   setArchivoUno(null);
@@ -1841,6 +1894,36 @@ const Garantias = () => {
                     onScan={buscarUnidadParaGarantia}
                     hint={t(`warranty.scanHint.${modo}`)}
                   />
+                  {modo === "imei" ? (
+                    <Button type="button" variant="outline" size="sm" aria-pressed={Boolean(sinSerialUno)}
+                      onClick={() => {
+                        setUnidadEncontrada(null);
+                        setAviso(null);
+                        setSinSerialUno(sinSerialUno ? null : {
+                          codigoTemporal: nuevoCodigoSinSerial(), cliente: "", referencia: "", motivo: "",
+                        });
+                      }}>
+                      <Plus className="h-4 w-4" /> Apagado / sin serial
+                    </Button>
+                  ) : null}
+                  {sinSerialUno && modo === "imei" ? (
+                    <div className="space-y-3 rounded-xl border border-amber-500/35 bg-amber-500/5 p-4">
+                      <p className="text-sm font-semibold">Recepción sin IMEI legible</p>
+                      <p className="text-xs text-muted-foreground">
+                        Código temporal: <strong className="font-mono">{sinSerialUno.codigoTemporal}</strong>.
+                        Deberás registrar el IMEI real al regresar el celular del técnico.
+                      </p>
+                      <CamposSinSerial value={sinSerialUno}
+                        onChange={(next) => setSinSerialUno({ ...next, codigoTemporal: sinSerialUno.codigoTemporal })}
+                        clientes={clientesTecnologia} referencias={referenciasSinSerial} sufijo="uno" />
+                      <SelectorDocumentoGarantia archivo={archivoUno} onChange={setArchivoUno} />
+                      <Button type="button" loading={runAction.pending}
+                        disabled={!sinSerialUno.cliente.trim() || !sinSerialUno.referencia.trim() || !sinSerialUno.motivo.trim()}
+                        onClick={() => void recibirSinDuplicar(recibirUno)}>
+                        Recibir equipo apagado
+                      </Button>
+                    </div>
+                  ) : null}
                   {renderAviso()}
                   {unidadEncontrada ? (
                     <div
@@ -1893,6 +1976,25 @@ const Garantias = () => {
                     onScan={agregarLote}
                     hint={t("warranty.scanContinuous")}
                   />
+                  {modo === "imei" ? (
+                    <Button type="button" variant="outline" size="sm" aria-pressed={Boolean(sinSerialLote)}
+                      onClick={() => setSinSerialLote(sinSerialLote ? null : { cliente: "", referencia: "", motivo: "" })}>
+                      <Plus className="h-4 w-4" /> Apagado / sin serial
+                    </Button>
+                  ) : null}
+                  {sinSerialLote && modo === "imei" ? (
+                    <div className="space-y-3 rounded-xl border border-amber-500/35 bg-amber-500/5 p-4">
+                      <p className="text-sm font-semibold">Agregar un celular apagado al lote</p>
+                      <p className="text-xs text-muted-foreground">
+                        Cada celular recibe un código temporal distinto. El IMEI será obligatorio al regresar del taller.
+                      </p>
+                      <CamposSinSerial value={sinSerialLote} onChange={setSinSerialLote}
+                        clientes={clientesTecnologia} referencias={referenciasSinSerial} sufijo="lote" />
+                      <Button type="button"
+                        disabled={!sinSerialLote.cliente.trim() || !sinSerialLote.referencia.trim() || !sinSerialLote.motivo.trim()}
+                        onClick={agregarSinSerialLote}><Plus className="h-4 w-4" /> Agregar apagado al lote</Button>
+                    </div>
+                  ) : null}
                   {renderAviso()}
                   {lote.length > 0 ? (
                     <>
@@ -1908,7 +2010,10 @@ const Garantias = () => {
                           <li key={item.imei} className="p-3">
                             <div className="flex items-start justify-between gap-2">
                               <div className="min-w-0">
-                                <p className="font-tabular truncate text-sm">{item.imei}</p>
+                                <p className="font-tabular truncate text-sm">
+                                  {item.sinImei ? "Código temporal: " : ""}{item.imei}
+                                  {item.sinImei ? <span className="ml-2 text-amber-700 dark:text-amber-300">· IMEI pendiente</span> : null}
+                                </p>
                                 <p className="truncate text-xs text-muted-foreground">
                                   {item.producto} · {item.folio} · {item.cliente}
                                 </p>

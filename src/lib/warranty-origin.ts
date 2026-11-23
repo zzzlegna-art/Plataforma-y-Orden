@@ -1,4 +1,5 @@
 import type { Order, Warranty } from "./types";
+import { garantiaSinImeiPendiente } from "./warranty-pending-imei";
 
 /**
  * Por dónde entró la garantía:
@@ -11,6 +12,8 @@ import type { Order, Warranty } from "./types";
 export type WarrantyOrigin = "normal" | "previa" | "falla_inventario";
 
 export const getWarrantyOrigin = (warranty: Warranty, order?: Order): WarrantyOrigin => {
+  // La recepción con código temporal nació en «Por IMEI», no como venta previa.
+  if (garantiaSinImeiPendiente(warranty)) return "normal";
   // imeiManual identifica el origen previo incluso después de dar de alta el serial en inventario.
   if (warranty.imeiManual) return "previa";
   if (warranty.unitId && !order && !warranty.orderId && !warranty.customerId && !warranty.clienteManual?.trim()) {

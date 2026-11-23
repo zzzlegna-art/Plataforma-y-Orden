@@ -17,6 +17,8 @@ import type {
 } from "../types";
 import { isSameText, requirePermission, requireText } from "./guards";
 import { unitEstaEnPedidoActivo } from "../unit-availability";
+import { errorDeImei, esCodigoInterno, normalizarImei } from "../imei";
+import { garantiaSinImeiPendiente, MARCA_IMEI_PENDIENTE } from "../warranty-pending-imei";
 
 /** Estados del caso que siguen en trámite. */
 export const isOpenWarranty = (status: WarrantyStatus) =>
@@ -293,6 +295,122 @@ export const createWarrantiesByImeis = (
   });
 
 /**
+ * Recibe un celular apagado sin su IMEI físico legible desde «Por IMEI».
+ * Usa un código de custodia temporal único: NO finge que exista una venta o unidad.
+ * El código queda identificado para exigir el IMEI real cuando regrese del técnico.
+ */
+export const createWarrantySinImei = (
+  db: Db,
+  actor: Actor,
+  input: { codigoTemporal: string; referenciaManual: string; clienteManual: string; observacion: string },
+): Warranty => {
+  requirePermission(actor, "warranties.manage");
+  if (!esCodigoInterno(input.codigoTemporal)) {
+    throw new DomainError("Genera primero un código temporal para este equipo apagado.");
+  }
+  // Valida modelo, cliente, observación, colisiones y permisos como la recepción manual.
+  const warranty = createWarrantyPrevia(db, actor, {
+    imeiManual: input.codigoTemporal,
+    referenciaManual: input.referenciaManual,
+    clienteManual: input.clienteManual,
+    observacion: input.observacion,
+  });
+  warranty.notes = MARCA_IMEI_PENDIENTE;
+  addEvent(db, actor, warranty.id, "recibido",
+    "Equipo apagado / sin serial. Código de custodia " + input.codigoTemporal +
+    ". IMEI real obligatorio al regresar del servicio técnico.");
+  return warranty;
+};
+
+export type WarrantyItemConPendiente = WarrantyItemInput & {
+  sinImei?: boolean;
+  clienteManual?: string;
+  referenciaManual?: string;
+};
+
+/** Recepción mixta: IMEI ya conocido y códigos temporales, por cada fila con fallo independiente. */
+export const createWarrantiesByImeisYSinSerial = (
+  db: Db,
+  actor: Actor,
+  input: { items: WarrantyItemConPendiente[] },
+): WarrantyItemResult[] => input.items.map((item) => {
+  try {
+    const warranty = item.sinImei
+      ? createWarrantySinImei(db, actor, {
+          codigoTemporal: item.imei,
+          referenciaManual: item.referenciaManual ?? "",
+          clienteManual: item.clienteManual ?? "",
+          observacion: item.observacion,
+        })
+      : createWarrantyByImei(db, actor, { imei: item.imei, observacion: item.observacion });
+    return { imei: item.imei, ok: true, warrantyId: warranty.id };
+  } catch (error) {
+    return resultadoConError(item.imei, error);
+  }
+});
+
+/**
+ * Registrar el IMEI real al volver del servicio. Si ya existía una unidad vendida,
+ * la enlaza al mismo expediente y conserva la venta. Si es un equipo anterior al
+ * sistema, guarda su IMEI como dato manual, sin inventar movimientos de inventario.
+ */
+export const registrarImeiRealGarantia = (
+  db: Db,
+  actor: Actor,
+  input: { warrantyId: string; imei: string },
+): Warranty => {
+  requirePermission(actor, "warranties.manage");
+  const warranty = findWarranty(db, input.warrantyId);
+  if (!garantiaSinImeiPendiente(warranty) || !isOpenWarranty(warranty.status)) {
+    throw new DomainError("Esta garantía no tiene un IMEI pendiente por registrar.");
+  }
+  const real = normalizarImei(requireText(input.imei, "errors.serialRequired"));
+  const validation = errorDeImei(real);
+  if (validation) throw new DomainError(validation);
+  const abiertaManual = db.warranties.find((other) =>
+    other.id !== warranty.id && isOpenWarranty(other.status) &&
+    isSameText(other.imeiManual ?? "", real));
+  if (abiertaManual) throw new DomainError("errors.warrantyOpen", { code: abiertaManual.code });
+  const unit = findUnitBySerial(db, real);
+  if (unit) {
+    if (unit.status !== "vendido" && unit.status !== "entregado_garantia") {
+      throw new DomainError("errors.unitNotReturnable", { serial: real });
+    }
+    if (warranty.productId && unit.productId !== warranty.productId) {
+      throw new DomainError("errors.unitProductMismatch");
+    }
+    assertNoOpenWarranty(db, unit);
+    const order = findSaleForUnit(db, unit.id);
+    warranty.unitId = unit.id;
+    warranty.productId = unit.productId;
+    warranty.orderId = order?.id;
+    warranty.customerId = order?.customerId;
+    warranty.imeiManual = undefined;
+    unit.status = "en_reparacion";
+    logMovement(db, actor, {
+      productId: unit.productId,
+      unitId: unit.id,
+      type: "garantia",
+      referenceType: "garantia",
+      referenceId: warranty.id,
+      notes: "IMEI real identificado para garantía " + warranty.code,
+    });
+  } else {
+    // IMEI real válido pero sin unidad en inventario: permanece vinculado al expediente
+    // como dato manual, sin crear ventas ni incorporar inventario ficticio.
+    warranty.imeiManual = real;
+  }
+  warranty.notes = undefined;
+  addEvent(db, actor, warranty.id, warranty.status,
+    "IMEI real registrado: " + real + ". Reemplaza código temporal de recepción.");
+  logAudit(db, actor, {
+    action: "update", entity: "warranty", entityId: warranty.id,
+    details: warranty.code + " · IMEI real registrado " + real,
+  });
+  return warranty;
+};
+
+/**
  * "Garantía previa": reclamo de un equipo vendido antes de la plataforma.
  * No existe unidad en el sistema; el caso se guarda con datos manuales.
  */
@@ -491,6 +609,9 @@ export const registrarDiagnostico = (
     // Se conserva el valor para leer casos antiguos, pero ya no se registra en diagnósticos nuevos.
     throw new DomainError("errors.invalidTransition");
   }
+  if (garantiaSinImeiPendiente(warranty)) {
+    throw new DomainError("Registra el IMEI real del equipo antes de finalizar su diagnóstico.");
+  }
   const diagnostico = requireText(input.diagnostico, "errors.diagnosticoRequired");
   const replacement =
     input.resolucion === "cambio"
@@ -582,6 +703,9 @@ export const entregarGarantia = (
   const warranty = findWarranty(db, input.warrantyId);
   if (warranty.status !== "reenvio_pendiente") {
     throw new DomainError("errors.invalidTransition");
+  }
+  if (garantiaSinImeiPendiente(warranty)) {
+    throw new DomainError("Registra el IMEI real antes de entregar o cerrar esta garantía.");
   }
 
   const unit = warranty.unitId
@@ -839,6 +963,9 @@ export const devolverGarantiasABodega = (
   const preparados = ids.map((id) => {
     const warranty = findWarranty(db, id);
     if (warranty.status !== "recibido") throw new DomainError("errors.invalidTransition");
+    if (garantiaSinImeiPendiente(warranty)) {
+      throw new DomainError("Registra el IMEI real antes de devolver el equipo a bodega.");
+    }
     const unit = warranty.unitId ? db.units.find((item) => item.id === warranty.unitId) : undefined;
     if (warranty.unitId && !unit) throw new DomainError("errors.notFound");
     if (unit && !["en_reparacion", "en_bodega", "liberado"].includes(unit.status)) {
@@ -936,6 +1063,9 @@ export const devolverGarantia = (
   const warranty = findWarranty(db, input.warrantyId);
   if (!isOpenWarranty(warranty.status)) {
     throw new DomainError("errors.invalidTransition");
+  }
+  if (garantiaSinImeiPendiente(warranty)) {
+    throw new DomainError("Registra el IMEI real antes de devolver o cerrar esta garantía.");
   }
 
   const motivo = input.motivo?.trim() || "Devolución de equipo por garantía";

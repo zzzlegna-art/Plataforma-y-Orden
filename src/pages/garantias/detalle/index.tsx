@@ -19,6 +19,7 @@ import { esCodigoInterno } from "@/lib/imei";
 import { imprimirEtiquetas } from "@/lib/print-labels";
 import { getWarrantyView } from "@/lib/selectors";
 import { getWarrantyOrigin } from "@/lib/warranty-origin";
+import { garantiaSinImeiPendiente } from "@/lib/warranty-pending-imei";
 import { tabDeEstado } from "@/lib/warranty-tabs";
 import {
   DevolverDialog,
@@ -28,6 +29,7 @@ import {
   EditarClienteDialog,
   EditarMotivoGarantiaDialog,
   EntregarDialog,
+  RegistrarImeiDialog,
   TecnicosDialog,
 } from "../modals";
 import { DeshacerEstadoButton } from "../deshacer-estado";
@@ -141,7 +143,13 @@ const GarantiaDetalle = () => {
                 }
               />
             ) : null}
-            {warranty.status === "en_servicio_tecnico" ? (
+            {garantiaSinImeiPendiente(warranty) ? (
+              <RegistrarImeiDialog
+                warranty={warranty}
+                trigger={<Button className="bg-amber-600 text-white hover:bg-amber-700">Registrar IMEI obligatorio</Button>}
+              />
+            ) : null}
+                        {warranty.status === "en_servicio_tecnico" ? (
               <>
                 <DiagnosticoDialog
                   warranty={warranty}
