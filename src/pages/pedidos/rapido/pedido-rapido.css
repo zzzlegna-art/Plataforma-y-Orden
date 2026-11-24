@@ -33,19 +33,8 @@
   box-shadow: 0 0 0 25px hsl(var(--primary) / .025), 0 0 0 52px hsl(var(--primary) / .024);
   pointer-events: none;
 }
-.nx-quick-hero-caption {
-  display: flex;
-  align-items: center;
-  gap: .6rem;
-  padding: .55rem 1.15rem;
-  border-bottom: 1px solid var(--qo-line);
-  color: hsl(var(--primary));
-  font-size: .66rem;
-  font-weight: 840;
-  letter-spacing: .13em;
-}
 .nx-quick-order .nx-quick-hero-heading {
-  padding: .88rem 1.15rem 1rem;
+  padding: .8rem 1.05rem;
   border: none;
   border-radius: 0;
   background: transparent;
@@ -53,13 +42,15 @@
   min-height: 0;
 }
 .nx-quick-hero-heading h1 {
-  font-size: clamp(1.45rem, 2.4vw, 1.95rem);
-  font-weight: 850;
-  line-height: 1.13;
-  letter-spacing: -.05em;
+  font-size: clamp(1.2rem, 2vw, 1.58rem);
+  font-weight: 840;
+  line-height: 1.15;
+  letter-spacing: -.045em;
 }
-.nx-quick-hero-heading p { max-width: 610px; margin-top: .3rem; color: var(--qo-muted); font-size: .78rem; line-height: 1.45; }
-.nx-quick-hero-heading button, .nx-quick-hero-heading a { min-height: 41px; border-radius: 9px; font-weight: 770; }
+.nx-quick-heading-title { display: inline-flex; align-items: center; gap: .55rem; }
+.nx-quick-heading-title svg { flex: none; color: hsl(var(--primary)); }
+.nx-quick-hero-heading p { max-width: 570px; margin-top: .2rem; color: var(--qo-muted); font-size: .72rem; line-height: 1.4; }
+.nx-quick-hero-heading button, .nx-quick-hero-heading a { min-height: 34px; border-radius: 9px; font-weight: 760; font-size: .74rem; }
 .nx-quick-customer, .nx-quick-scan-panel, .nx-quick-review-panel {
   min-width: 0;
   padding: clamp(.85rem, 1.4vw, 1.12rem);
@@ -72,7 +63,8 @@
   display: grid;
   grid-template-columns: minmax(180px, 235px) minmax(220px, 1fr) auto;
   align-items: center;
-  gap: .65rem 1.1rem;
+  gap: .55rem .9rem;
+  padding: .65rem .9rem;
 }
 .nx-quick-section-title { display: flex; align-items: center; gap: .62rem; min-width: 0; }
 .nx-quick-section-number {
@@ -177,25 +169,89 @@
 .nx-quick-product-info p { margin-top: .12rem; color: var(--qo-muted); font-size: .67rem; }
 .nx-quick-quantity { flex: none; padding: .3rem .52rem; border: 1px solid hsl(var(--primary) / .2); border-radius: 7px; background: hsl(var(--primary) / .08); color: hsl(var(--primary)); font-size: .68rem; font-weight: 800; white-space: nowrap; }
 .nx-quick-serial-list {
+  /* Igual que Recepción: muchas etiquetas pequeñas por fila, sin filas gigantes. */
   display: grid;
-  /* Varios IMEI visibles por fila, sin ocultar los dígitos al estrechar la ventana. */
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr));
-  gap: .32rem;
-  padding: .55rem .65rem .65rem;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 10.5rem), 1fr));
+  gap: .42rem;
+  padding: .55rem .65rem .7rem;
 }
-.nx-quick-serial-list > li {
-  min-width: 0; display: flex; align-items: center;
-  gap: .28rem; padding: .25rem .32rem .25rem .55rem;
-  min-height: 35px; border: 1px solid hsl(var(--border) / .55);
-  border-radius: 7px; background: hsl(var(--secondary) / .09);
+.nx-quick-serial-chip {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 24px;
+  align-items: center;
+  gap: .18rem;
+  min-width: 0;
+  min-height: 36px;
+  padding: .24rem .22rem .24rem .58rem;
+  border: 1px solid hsl(var(--border) / .7);
+  border-radius: 9px;
+  background: hsl(var(--background) / .48);
+  box-shadow: 0 6px 13px -12px hsl(218 60% 12% / .5);
+  transition: border-color .16s ease, background-color .16s ease;
 }
-.nx-quick-imei { min-width: 0; flex: 1; overflow-wrap: anywhere; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: .72rem; font-variant-numeric: tabular-nums; font-weight: 750; color: hsl(var(--foreground)); }
-.nx-quick-color-picker { width: 105px; max-width: 37%; flex: none; }
-.nx-quick-color-picker button { height: 29px; min-height: 29px; font-size: .67rem; border-radius: 7px; }
+.nx-quick-serial-chip:focus-within {
+  border-color: hsl(var(--primary) / .55);
+  box-shadow: 0 0 0 2px hsl(var(--primary) / .09);
+}
+.nx-quick-chip-copy {
+  display: flex;
+  min-width: 0;
+  min-height: 25px;
+  align-items: center;
+  border-radius: 5px;
+  padding: 0 .12rem;
+  text-align: left;
+  color: hsl(var(--foreground));
+  cursor: copy;
+}
+.nx-quick-chip-copy:hover { color: hsl(var(--primary)); }
+.nx-quick-chip-copy:focus-visible,
+.nx-quick-chip-remove:focus-visible { outline: 2px solid hsl(var(--primary)); outline-offset: 1px; }
+.nx-quick-imei {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: .735rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 740;
+  letter-spacing: -.018em;
+}
+.nx-quick-chip-remove {
+  display: grid;
+  width: 24px;
+  height: 24px;
+  place-items: center;
+  border-radius: 6px;
+  color: hsl(var(--muted-foreground));
+}
+.nx-quick-chip-remove:hover {
+  color: hsl(var(--destructive));
+  background: hsl(var(--destructive) / .1);
+}
+.nx-quick-chip-remove:disabled { opacity: .38; cursor: not-allowed; }
+.nx-quick-color-picker {
+  grid-column: 1 / -1;
+  width: 100%;
+  min-width: 0;
+}
+.nx-quick-color-picker button {
+  height: 29px;
+  min-height: 29px;
+  width: 100%;
+  border-radius: 6px;
+  font-size: .67rem;
+}
 .nx-quick-color-picker .nx-quick-color-missing { border-color: hsl(var(--warning) / .55); }
-.nx-quick-serial-list > li > button { width: 27px; height: 27px; flex: none; border-radius: 6px; color: hsl(var(--muted-foreground)); }
-.nx-quick-serial-list > li > .nx-quick-copy:hover { background: hsl(var(--primary) / .1); color: hsl(var(--primary)); }
-.nx-quick-serial-list > li > .nx-quick-remove:hover { background: hsl(var(--destructive) / .1); color: hsl(var(--destructive)); }
+@media (hover:hover) and (prefers-reduced-motion:no-preference) {
+  .nx-quick-serial-chip:hover {
+    border-color: hsl(var(--primary) / .32);
+    background: hsl(var(--primary) / .036);
+  }
+}
 .nx-quick-confirm-bar {
   /* Forma parte del contenido: nunca sigue el scroll ni flota sobre las tarjetas. */
   position: static;
@@ -203,7 +259,7 @@
   justify-content: space-between;
   align-items: center;
   gap: 1rem;
-  padding: 1rem 1.3rem;
+  padding: .72rem 1rem;
   border: 1px solid hsl(var(--primary) / .27);
   border-radius: 14px;
   background: hsl(var(--card) / .96);
@@ -213,7 +269,7 @@
 .nx-quick-confirm-copy strong { font-size: .91rem; font-weight: 825; font-variant-numeric: tabular-nums; }
 .nx-quick-confirm-copy span { color: var(--qo-muted); font-size: .73rem; line-height: 1.5; }
 .nx-quick-confirm-bar > button { min-height: 44px; flex: none; border-radius: 9px; font-weight: 800; }
-.nx-quick-footer-note { display: flex; gap: .5rem; align-items: flex-start; color: var(--qo-muted); font-size: .71rem; line-height: 1.55; }
+.nx-quick-footer-note { display: flex; gap: .45rem; align-items: flex-start; color: var(--qo-muted); font-size: .67rem; line-height: 1.4; }
 .nx-quick-footer-note svg { flex: none; color: hsl(var(--primary)); }
 .nx-pedidos-quick-action { border: 1px solid hsl(var(--primary) / .45) !important; color: hsl(var(--primary)) !important; background: hsl(var(--primary) / .07) !important; }
 .nx-pedidos-quick-action:hover { background: hsl(var(--primary) / .13) !important; }
@@ -229,20 +285,19 @@
   .nx-quick-customer-hint { grid-column: auto; justify-self: start; }
 }
 @media(max-width:700px) {
-  .nx-quick-hero-caption { padding-inline: 1rem; }
-  .nx-quick-order .nx-quick-hero-heading { padding: .85rem 1rem 1rem; min-height: 0; }
-  .nx-quick-hero-heading h1 { font-size: 1.6rem; }
+  .nx-quick-order .nx-quick-hero-heading { padding: .75rem .95rem; min-height: 0; }
+  .nx-quick-hero-heading h1 { font-size: 1.32rem; }
   .nx-quick-customer { padding: .85rem; gap: .6rem; }
   .nx-quick-scan-panel, .nx-quick-review-panel { padding: .85rem; }
   .nx-quick-review-actions { width: 100%; justify-content: space-between; }
   .nx-quick-confirm-bar { flex-direction: column; align-items: stretch; padding: .9rem; border-radius: 12px; }
   .nx-quick-confirm-bar > button { width: 100%; }
   .nx-quick-quantity { margin-left: auto; }
-  .nx-quick-serial-list { grid-template-columns: minmax(0,1fr); }
+  .nx-quick-serial-list { grid-template-columns: repeat(auto-fill, minmax(min(100%, 10.5rem), 1fr)); }
 }
 @media(max-width:400px) {
   .nx-quick-review-top { flex-wrap: wrap; }
-  .nx-quick-color-picker { width: 95px; }
+  .nx-quick-color-picker { width: 100%; }
   .nx-quick-summary span { padding: .32rem .4rem; }
 }
 @media(prefers-reduced-motion:reduce) {

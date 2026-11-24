@@ -1,7 +1,7 @@
 import { useMemo, useRef, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { toast } from "sonner";
-import { ArrowLeft, Check, ClipboardCopy, FileText, Package, ScanLine, ShoppingBag, Trash2, Zap } from "lucide-react";
+import { ArrowLeft, Check, FileText, Package, ScanLine, ShoppingBag, X, Zap } from "lucide-react";
 
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { OptionSelect } from "@/components/shared/option-select";
@@ -175,12 +175,11 @@ const PedidoRapido = () => {
       </Button>
 
       <header className="nx-quick-hero">
-        <div className="nx-quick-hero-caption"><Zap className="h-4 w-4" /> NEXORA / FLUJO DE ALTA VELOCIDAD</div>
         <PageHeader
-          className="nx-quick-hero-heading"
-          title="Pedido rápido por seriales"
-          description="Escanea, revisa los IMEI agrupados y confirma en un solo paso."
-          actions={<Button variant="outline" asChild><Link to="/pedidos/nuevo"><ShoppingBag /> Pedido normal</Link></Button>}
+          className="nx-quick-hero-heading flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between"
+          title={<span className="nx-quick-heading-title"><Zap className="h-5 w-5" aria-hidden="true" /> Pedido rápido por seriales</span>}
+          description="Selecciona el cliente, escanea los equipos y confirma."
+          actions={<Button variant="outline" size="sm" asChild><Link to="/pedidos/nuevo"><ShoppingBag className="h-4 w-4" /> Pedido normal</Link></Button>}
         />
       </header>
 
@@ -259,35 +258,43 @@ const PedidoRapido = () => {
                     </div>
                     <span className="nx-quick-quantity">{group.serials.length} {group.serials.length === 1 ? "unidad" : "unidades"}</span>
                   </div>
-                  <ul className="nx-quick-serial-list">
+                  <ul className="nx-quick-serial-list" aria-label={"IMEI de " + group.name}>
                     {group.serials.map((entry) => {
                       const preview = previewQuickOrderUnit(db, entry.serial);
                       const needsColor = Boolean(preview?.colors.length && !entry.color);
                       return (
-                        <li key={entry.serial}>
-                          <span className="nx-quick-imei" title={entry.serial}>{entry.serial}</span>
-                          {preview?.colors.length ? (
+                        <li className="nx-quick-serial-chip" key={entry.serial}>
+                          <button
+                            type="button"
+                            className="nx-quick-chip-copy"
+                            aria-label={"Copiar serial " + entry.serial}
+                            title={"Copiar IMEI " + entry.serial}
+                            onClick={() => void copySerial(entry.serial)}
+                          >
+                            <span className="nx-quick-imei">{entry.serial}</span>
+                          </button>
+                          <button
+                            type="button"
+                            className="nx-quick-chip-remove"
+                            aria-label={"Quitar serial " + entry.serial}
+                            title="Quitar IMEI"
+                            disabled={confirming}
+                            onClick={() => changeEntries(serialsRef.current.filter((item) => item.serial !== entry.serial))}
+                          >
+                            <X size={15} aria-hidden="true" />
+                          </button>
+                          {preview?.colors.length && !preview.unit.color ? (
                             <div className="nx-quick-color-picker">
                               <OptionSelect
                                 value={entry.color}
                                 onChange={(color) => changeColor(entry.serial, color)}
-                                options={preview.colors
-                                  .filter((color) => !preview.unit.color || normalizarColor(preview.unit.color).toLowerCase() === normalizarColor(color).toLowerCase())
-                                  .map((color) => ({ value: color, label: color }))}
-                                placeholder="Elige color"
-                                disabled={Boolean(preview.unit.color) || confirming}
+                                options={preview.colors.map((color) => ({ value: color, label: color }))}
+                                placeholder="Seleccionar color"
+                                disabled={confirming}
                                 triggerClassName={needsColor ? "nx-quick-color-missing" : ""}
                               />
                             </div>
                           ) : null}
-                          <Button type="button" size="icon" variant="ghost" className="nx-quick-copy" aria-label={"Copiar serial " + entry.serial}
-                            title="Copiar IMEI" onClick={() => void copySerial(entry.serial)}>
-                            <ClipboardCopy size={15} />
-                          </Button>
-                          <Button type="button" size="icon" variant="ghost" className="nx-quick-remove" aria-label={"Quitar serial " + entry.serial}
-                            title="Quitar IMEI" disabled={confirming} onClick={() => changeEntries(serialsRef.current.filter((item) => item.serial !== entry.serial))}>
-                            <Trash2 size={15} />
-                          </Button>
                         </li>
                       );
                     })}
@@ -316,7 +323,7 @@ const PedidoRapido = () => {
           onConfirm={confirm}
         />
       </section>
-      <p className="nx-quick-footer-note"><FileText size={15} /> Después de confirmar, encontrarás la relación de seriales en PDF, edición de referencias y despacho en el detalle habitual del pedido.</p>
+      <p className="nx-quick-footer-note"><FileText size={14} /> La relación de seriales en PDF y el despacho están disponibles en el detalle del pedido.</p>
     </main>
   );
 };
