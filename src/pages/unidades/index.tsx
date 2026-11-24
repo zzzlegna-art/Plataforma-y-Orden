@@ -82,9 +82,23 @@ const Unidades = ({ embedded = false }: { embedded?: boolean }) => {
       );
   }, [db, search, status, condition, productId, controlFiltro, control]);
 
+  const clearFiltersForExactSerial = () => {
+    setStatus("");
+    setCondition("");
+    setProductId("");
+    setControlFiltro("todos");
+  };
+
+  const handleSearch = (value: string) => {
+    setSearch(value);
+    if (value.trim() && findUnitBySerial(db, value.trim())) clearFiltersForExactSerial();
+  };
+
   const handleScan = (serial: string) => {
-    const unit = findUnitBySerial(db, serial);
-    setSearch(serial);
+    const cleaned = serial.trim();
+    const unit = findUnitBySerial(db, cleaned);
+    setSearch(cleaned);
+    clearFiltersForExactSerial();
     if (unit) setSelectedId(unit.id);
   };
 
@@ -165,7 +179,7 @@ const Unidades = ({ embedded = false }: { embedded?: boolean }) => {
         <div className="nx-trace-query-panel space-y-3 rounded-lg border bg-card p-4 shadow-sm">
           <SearchField
             value={search}
-            onChange={setSearch}
+            onChange={handleSearch}
             placeholder={t("unit.searchPlaceholder")}
           />
           <div className="nx-trace-status-tabs flex flex-wrap gap-2">
