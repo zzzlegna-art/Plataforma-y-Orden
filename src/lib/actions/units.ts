@@ -107,6 +107,56 @@ const requireAdmin = (actor: Actor) => {
   if (actor.role !== "admin") throw new DomainError("errors.forbidden");
 };
 
+/**
+ * Identifica únicamente salidas de preparación que fueron retiradas sin
+ * restaurar stock. No recupera ventas reales, garantías ni unidades asignadas.
+ */
+export const pedidoDeSerialDesvinculado = (db: Db, unit: Unit) => {
+  if (unit.status !== "vendido") return undefined;
+  if (db.orderItemUnits.some((row) => row.unitId === unit.id)) return undefined;
+  if (db.warranties.some((w) => w.unitId === unit.id || w.replacementUnitId === unit.id ||
+    (w.imeiManual && isSameText(w.imeiManual, unit.serial)))) return undefined;
+
+  const movements = db.movements.filter((m) => m.unitId === unit.id)
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  const [retirada, salida] = movements;
+  if (!retirada || !salida || retirada.type !== "ajuste" ||
+    retirada.referenceType !== "pedido" || !retirada.referenceId ||
+    salida.type !== "salida" || salida.referenceType !== "pedido" ||
+    salida.referenceId !== retirada.referenceId ||
+    retirada.createdAt <= salida.createdAt) return undefined;
+
+  const order = db.orders.find((o) => o.id === retirada.referenceId);
+  if (!order || !["en_preparacion", "preparado", "cancelado"].includes(order.status)) return undefined;
+  if (retirada.notes !== `Serial ${unit.serial} retirado de la serialización del pedido ${order.code}`) return undefined;
+  if (!salida.notes?.startsWith(`Salida física por serialización confirmada del pedido ${order.code}`)) return undefined;
+  return order;
+};
+
+/** Recuperación explícita por un administrador tras comprobar el equipo físico. */
+export const recuperarSerialDesvinculado = (
+  db: Db,
+  actor: Actor,
+  input: { id: string; confirmacionFisica: boolean },
+): Unit => {
+  requireAdmin(actor);
+  const unit = findUnit(db, input.id);
+  if (!input.confirmacionFisica) throw new DomainError("Confirma que el equipo está físicamente en bodega.");
+  const order = pedidoDeSerialDesvinculado(db, unit);
+  if (!order) throw new DomainError("No se puede recuperar este IMEI: revisa sus pedidos, garantías y movimientos.");
+  unit.status = "en_bodega";
+  logMovement(db, actor, {
+    productId: unit.productId, unitId: unit.id, type: "devolucion",
+    referenceType: "pedido", referenceId: order.id,
+    notes: `Reingreso correctivo de ${unit.serial} tras retiro del pedido ${order.code}; existencia física confirmada por administrador.`,
+  });
+  logAudit(db, actor, {
+    action: "status", entity: "unit", entityId: unit.id,
+    details: `${unit.serial} · vendido → en_bodega · recuperación de serial desvinculado de ${order.code}`,
+  });
+  return unit;
+};
+
 /** Estados desde los que se puede liberar una unidad. */
 const LIBERABLES: UnitStatus[] = ["en_bodega", "defectuoso"];
 
