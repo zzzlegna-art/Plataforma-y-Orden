@@ -36,6 +36,8 @@ import {
   asignarColorUnit,
   liberarUnit,
   reingresarUnit,
+  pedidoDeSerialDesvinculado,
+  recuperarSerialDesvinculado,
   reportarNovedad,
 } from "@/lib/actions/units";
 import { formatCurrency, formatDateTime } from "@/lib/format";
@@ -203,6 +205,7 @@ const HistorialSerial = ({ embedded = false }: { embedded?: boolean }) => {
   };
 
   const liberable = unit && !enPedidoActivo && ["en_bodega", "defectuoso"].includes(unit.status);
+  const pedidoRecuperable = isAdmin && unit ? pedidoDeSerialDesvinculado(db, unit) : undefined;
 
   return (
     <div className="nx-serial-center nx-trace-history space-y-5 stagger">
@@ -549,8 +552,25 @@ const HistorialSerial = ({ embedded = false }: { embedded?: boolean }) => {
               <div role="status" className="mt-3 rounded-lg border border-amber-400/40 bg-amber-500/10 p-3 text-sm">
                 <p className="font-semibold">Vendido · sin pedido vinculado</p>
                 <p className="mt-1 text-xs text-muted-foreground">
-                  El IMEI existe, pero no está disponible para serialización. Si el equipo está físicamente en bodega, solicita una revisión de su estado y movimientos antes de asignarlo a otro pedido.
+                  {pedidoRecuperable
+                    ? `El IMEI fue retirado del pedido ${pedidoRecuperable.code} antes de su despacho. Si confirmas que está físicamente en bodega, puedes recuperar su disponibilidad sin borrar el historial.`
+                    : "El IMEI existe, pero no está disponible para serialización. Si el equipo está físicamente en bodega, solicita una revisión de su estado y movimientos antes de asignarlo a otro pedido."}
                 </p>
+                {pedidoRecuperable ? (
+                  <div className="mt-3">
+                    <ConfirmDialog
+                      trigger={<Button type="button" size="sm" variant="outline" disabled={runAction.pending}><Undo2 /> Recuperar serial desvinculado</Button>}
+                      title="Confirmar reingreso físico"
+                      description={`Verifica que tienes físicamente el equipo ${unit.serial} en bodega. Se registrará la devolución del pedido ${pedidoRecuperable.code} y volverá a estar disponible para serializar. No se borrará su historial.`}
+                      confirmLabel="Confirmo que está en bodega"
+                      destructive
+                      onConfirm={() => void runAction(
+                        (db2, actor) => recuperarSerialDesvinculado(db2, actor, { id: unit.id, confirmacionFisica: true }),
+                        { success: "unit.reingresada", key: `recuperar-desvinculado:${unit.id}`, deferOptimistic: true },
+                      )}
+                    />
+                  </div>
+                ) : null}
               </div>
             ) : null}
 
