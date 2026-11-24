@@ -101,6 +101,7 @@ const HistorialSerial = ({ embedded = false }: { embedded?: boolean }) => {
   // Los IMEI del archivo original se consultan sin cargarlos al store operativo.
   const historicalSerial = search.trim().toLowerCase();
   const canReadHistorical = role === "admin" || role === "bodeguero";
+  const [historicalRetry, setHistoricalRetry] = useState(0);
   const [historicalLookup, setHistoricalLookup] = useState<{
     serial: string;
     trace: ArchivedImeiTrace | null;
@@ -112,7 +113,20 @@ const HistorialSerial = ({ embedded = false }: { embedded?: boolean }) => {
     if (!historicalSerial || !canReadHistorical) return;
     let active = true;
     setHistoricalLookup({ serial: historicalSerial, trace: null, loading: true, error: null });
-    void getArchivedImeiTrace(historicalSerial).then((trace) => {
+    const consultHistory = async () => {
+      for (let attempt = 0; ; attempt += 1) {
+        try {
+          return await getArchivedImeiTrace(historicalSerial);
+        } catch (error: unknown) {
+          const message = error instanceof Error ? error.message : String(error);
+          const transient = /failed to fetch|networkerror|network request failed|load failed|fetch failed|timeout|timed out/i.test(message);
+          if (!active || !transient || attempt >= 2) throw error;
+          await new Promise<void>((resolve) => setTimeout(resolve, 500 * 2 ** attempt));
+          if (!active) throw error;
+        }
+      }
+    };
+    void consultHistory().then((trace) => {
       if (active) setHistoricalLookup({
         serial: historicalSerial, trace, loading: false, error: null,
       });
@@ -123,7 +137,7 @@ const HistorialSerial = ({ embedded = false }: { embedded?: boolean }) => {
       });
     });
     return () => { active = false; };
-  }, [historicalSerial, canReadHistorical]);
+  }, [historicalSerial, canReadHistorical, historicalRetry]);
 
   const currentHistoricalLookup = canReadHistorical && historicalLookup.serial === historicalSerial;
   const historicalTrace = currentHistoricalLookup ? historicalLookup.trace : null;
@@ -184,6 +198,7 @@ const HistorialSerial = ({ embedded = false }: { embedded?: boolean }) => {
 
   const handleScan = (serial: string) => {
     setSearch(serial);
+    setHistoricalRetry((previous) => previous + 1);
     setParams({ serial }, { replace: true });
   };
 
@@ -211,9 +226,19 @@ const HistorialSerial = ({ embedded = false }: { embedded?: boolean }) => {
         <p role="status" className="text-sm text-muted-foreground">Consultando pedidos históricos del serial…</p>
       ) : null}
       {historicalError ? (
-        <p role="alert" className="rounded-lg border bg-card p-3 text-sm text-muted-foreground">
-          No se pudo comprobar la relación con pedidos históricos. {historicalError}
-        </p>
+        <div role="alert" className="flex flex-wrap items-center justify-between gap-3 rounded-lg border bg-card p-3 text-sm">
+          <div className="min-w-0 flex-1">
+            <p className="font-medium">No se pudo consultar el archivo histórico de Techrez.</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              {unit
+                ? "El registro operativo de NEXORA se muestra abajo con su estado actual. Este aviso no modifica su disponibilidad."
+                : "La consulta quedó incompleta. Reintenta antes de concluir que el serial no existe."}
+            </p>
+          </div>
+          <Button type="button" size="sm" variant="outline" onClick={() => setHistoricalRetry((previous) => previous + 1)}>
+            Reintentar historial
+          </Button>
+        </div>
       ) : null}
       {historicalTrace ? <ArchivedImeiHistoryPanel trace={historicalTrace} /> : null}
 
@@ -516,6 +541,15 @@ const HistorialSerial = ({ embedded = false }: { embedded?: boolean }) => {
                 </div>
                 <p className="mt-2 text-xs text-muted-foreground">
                   Este dato se actualiza automáticamente cuando corriges el proveedor de la recepción.
+                </p>
+              </div>
+            ) : null}
+
+            {unit.status === "vendido" && !order ? (
+              <div role="status" className="mt-3 rounded-lg border border-amber-400/40 bg-amber-500/10 p-3 text-sm">
+                <p className="font-semibold">Vendido · sin pedido vinculado</p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  El IMEI existe, pero no está disponible para serialización. Si el equipo está físicamente en bodega, solicita una revisión de su estado y movimientos antes de asignarlo a otro pedido.
                 </p>
               </div>
             ) : null}
