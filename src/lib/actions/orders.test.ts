@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { DomainError, emptyDb } from "../db";
+import { pedidoDeSerialDesvinculado, recuperarSerialDesvinculado } from "./units";
 import type { Actor, Order, OrderItem, Product, Unit } from "../types";
 import { confirmarPreparacionPedido, confirmarDespachoPedido, editarCantidadReferencia, regresarPedidoASerializacion, serializarImeiPedido } from "./orders";
 
@@ -125,5 +126,50 @@ describe("regreso seguro de preparado a serialización", () => {
       expect(db.units[0].status).toBe("en_bodega");
       expect(db.movements).toHaveLength(0);
     }
+  });
+});
+
+describe("recuperación administrativa de un IMEI desvinculado", () => {
+  const caso = () => {
+    const db = emptyDb();
+    db.products.push({ ...producto });
+    db.orders.push({ ...pedido, status: "preparado" });
+    db.units.push({ ...unidad, status: "vendido" });
+    const base = { productId: producto.id, unitId: unidad.id, quantity: 1, referenceType: "pedido" as const,
+      referenceId: pedido.id, createdBy: actor.id };
+    db.movements.push(
+      { ...base, id: "mov-retirada", type: "ajuste", createdAt: "2026-01-02T11:00:00.000Z",
+        notes: `Serial ${unidad.serial} retirado de la serialización del pedido ${pedido.code}` },
+      { ...base, id: "mov-salida", type: "salida", createdAt: "2026-01-02T10:00:00.000Z",
+        notes: `Salida física por serialización confirmada del pedido ${pedido.code}` },
+    );
+    return db;
+  };
+
+  it("restaura stock, conserva las salidas y permite serializar en otro pedido", () => {
+    const db = caso();
+    expect(pedidoDeSerialDesvinculado(db, db.units[0])?.id).toBe(pedido.id);
+    recuperarSerialDesvinculado(db, actor, { id: unidad.id, confirmacionFisica: true });
+    expect(db.units[0].status).toBe("en_bodega");
+    expect(db.movements.map((m) => m.type)).toEqual(["devolucion", "ajuste", "salida"]);
+    expect(db.auditLogs).toHaveLength(1);
+    expect(() => recuperarSerialDesvinculado(db, actor, { id: unidad.id, confirmacionFisica: true })).toThrow(DomainError);
+    db.orders.push({ ...pedido, id: "otro-pedido", code: "PED-OTRO" });
+    db.orderItems.push({ ...linea, orderId: "otro-pedido" });
+    expect(() => serializarImeiPedido(db, actor, { orderId: "otro-pedido", imei: unidad.serial })).not.toThrow();
+    expect(db.orderItemUnits[0].unitId).toBe(unidad.id);
+  });
+
+  it("rechaza recuperación sin confirmación, sin permisos, con pedido vinculado o despachado", () => {
+    const db = caso();
+    expect(() => recuperarSerialDesvinculado(db, actor, { id: unidad.id, confirmacionFisica: false })).toThrow(DomainError);
+    expect(() => recuperarSerialDesvinculado(db, { ...actor, role: "bodeguero" }, { id: unidad.id, confirmacionFisica: true })).toThrow(DomainError);
+    db.orderItemUnits.push({ id: "vinculo", orderItemId: linea.id, unitId: unidad.id, createdAt: pedido.createdAt });
+    expect(() => recuperarSerialDesvinculado(db, actor, { id: unidad.id, confirmacionFisica: true })).toThrow(DomainError);
+    db.orderItemUnits = [];
+    db.orders[0].status = "despachado";
+    expect(() => recuperarSerialDesvinculado(db, actor, { id: unidad.id, confirmacionFisica: true })).toThrow(DomainError);
+    expect(db.units[0].status).toBe("vendido");
+    expect(db.movements).toHaveLength(2);
   });
 });
