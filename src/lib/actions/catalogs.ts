@@ -295,7 +295,11 @@ export const updateProduct = (
   if (!product) throw new DomainError("errors.notFound");
   const categoriaAnterior = product.categoria;
   const name = requireText(input.name, "errors.productNameRequired");
-  const sku = (input.sku?.trim().toUpperCase() || generarSkuAlEditar(db, name, input.categoria ?? product.categoria, product, input.brandId)).slice(0, 40);
+  const nextCategory = input.categoria ?? product.categoria;
+  const keepScreenSku = product.categoria === "repuesto" && nextCategory === "repuesto" && /^PAN-/i.test(product.sku.trim());
+  const sku = (input.sku?.trim().toUpperCase() || (keepScreenSku
+    ? generarSkuAlEditar(db, name, nextCategory, product, input.brandId)
+    : generarSkuProducto(db, name, product.id, undefined, nextCategory, db.brands.find((brand) => brand.id === input.brandId)?.name))).slice(0, 40);
   if (
     db.products.some(
       (item) => item.id !== product.id && item.sku.trim().toUpperCase() === sku,
