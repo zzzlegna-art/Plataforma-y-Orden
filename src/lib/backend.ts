@@ -813,7 +813,34 @@ export const calcularPasos = (previo: Db, siguiente: Db): Paso[] => {
  * el paquete es demasiado grande o la respuesta no confirma `ok: true`, el guardado se
  * rechaza: nunca se vuelve a guardar tabla por tabla, porque eso podría dejar datos a medias.
  */
-const LIMITE_ATOMICO = 3_000_000; // caracteres; por encima se rechaza (no se parte)
+const LIMITE_ATOMICO = 3_000_000; // operaciones normales
+const LIMITE_RECEPCION_ATOMICA = 16_000_000; // recepciones grandes, nunca se parte
+
+/** Amplía el límite exclusivamente para una confirmación completa de recepción.
+ * El servidor sigue validando versiones, seriales, permisos y aplicando una transacción.
+ */
+const esConfirmacionRecepcion = (pasos: Paso[]): boolean => {
+  const permitidas = new Set(["bodega_receptions", "bodega_reception_items",
+    "bodega_units", "bodega_movements", "bodega_audit_logs"]);
+  if (pasos.some((p) => !permitidas.has(p.tabla))) return false;
+  const cabecera = pasos.find((p) => p.tabla === "bodega_receptions");
+  const items = pasos.find((p) => p.tabla === "bodega_reception_items");
+  const unidades = pasos.find((p) => p.tabla === "bodega_units");
+  const movimientos = pasos.find((p) => p.tabla === "bodega_movements");
+  if (cabecera?.op !== "upsert" || cabecera.filas.length !== 1 ||
+      cabecera.esperados?.length !== 1 || cabecera.esperados[0].status !== "captura" ||
+      cabecera.filas[0].status !== "confirmada" ||
+      cabecera.esperados[0].id !== cabecera.filas[0].id ||
+      items?.op !== "borrar" || !items.ids.length ||
+      items.esperados?.length !== items.ids.length ||
+      unidades?.op !== "upsert" || unidades.filas.length !== items.ids.length ||
+      movimientos?.op !== "upsert" || movimientos.filas.length !== items.ids.length) return false;
+  const id = cabecera.filas[0].id;
+  return items.esperados.every((fila) => fila.reception_id === id) &&
+    unidades.filas.every((fila) => fila.reception_id === id && fila.status === "en_bodega") &&
+    movimientos.filas.every((fila) => fila.reference_id === id &&
+      fila.reference_type === "recepcion" && fila.type === "entrada");
+};
 
 /** Solo para pruebas (se conserva por compatibilidad: ya no hay modos que reiniciar). */
 export const reiniciarModoDeGuardado = () => undefined;
@@ -864,7 +891,10 @@ export const pushDb = async (previo: Db, siguiente: Db): Promise<void> => {
   if (pasos.length === 0) return;
 
   const cambios = { version: 1, pasos };
-  if (JSON.stringify(cambios).length > LIMITE_ATOMICO) {
+  const longitud = JSON.stringify(cambios).length;
+  const limite = longitud > LIMITE_ATOMICO && esConfirmacionRecepcion(pasos)
+    ? LIMITE_RECEPCION_ATOMICA : LIMITE_ATOMICO;
+  if (longitud > limite) {
     console.error("El guardado es demasiado grande para hacerlo en una sola transacción");
     throw new DomainError("errors.saveFailed", {
       detalle: detalleTecnico("paquete demasiado grande"),
