@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
+import { toast } from "sonner";
 
 import {
   NEXT_CHANNEL, NEXT_SESSION_KEY, NEXT_SLOTS,
@@ -111,10 +112,28 @@ export const useNextWorkspace = (): WorkspaceState => {
   const retry = useCallback(() => setRetryCount(count => count + 1), []);
   const openNext = useCallback(() => {
     if (!freeSlot) return;
-    // Nombre de ventana estable: puede enfocarla/reutilizarla si el navegador lo permite.
-    const url = withNextSuffix(window.location.origin + "/panel", freeSlot);
-    const tab = window.open(url, "nexora-next-" + freeSlot);
-    tab?.focus();
+    const url = new URL(withNextSuffix(window.location.origin + "/panel", freeSlot), window.location.origin).href;
+    const installed = window.matchMedia("(display-mode: standalone)").matches ||
+      window.matchMedia("(display-mode: window-controls-overlay)").matches ||
+      window.matchMedia("(display-mode: minimal-ui)").matches;
+    const warn = () => toast.error(`No se pudo abrir Next ${freeSlot}.`, {
+      description: "Permite las ventanas emergentes de Nexora o usa el menú de la aplicación para abrir una ventana nueva.",
+    });
+
+    // Una PWA de escritorio no tiene barra de pestañas. Solicitar una ventana
+    // independiente, con un nombre nuevo, evita reutilizar un contexto antiguo.
+    // Mantener la apertura síncrona conserva la activación del clic del usuario.
+    let tab: Window | null;
+    try {
+      tab = installed
+        ? window.open(url, "_blank", "popup=yes,width=1200,height=850,resizable=yes")
+        : window.open(url, "nexora-next-" + freeSlot);
+    } catch {
+      warn();
+      return;
+    }
+    if (!tab) { warn(); return; }
+    try { tab.focus(); } catch { /* El navegador decide si concede el foco. */ }
   }, [freeSlot]);
 
   return { slot, status, freeSlot, retry, openNext };
