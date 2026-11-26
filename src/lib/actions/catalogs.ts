@@ -36,6 +36,13 @@ export const generarSkuAlEditar = (
   original?: Pick<Product, "id" | "name" | "sku" | "categoria" | "brandId">,
   brandId?: string,
 ): string => {
+  // Una pantalla existente conserva su SKU incluso al ampliar los modelos
+  // compatibles en el nombre. Solo la edición explícita del SKU lo cambia.
+  if (original && original.categoria === "repuesto" && categoria === "repuesto" &&
+      /^PAN-/i.test(original.sku.trim()) &&
+      /^PAN-/i.test(skuBaseReferencia({ name, categoria, marca: db.brands.find((brand) => brand.id === brandId)?.name }))) {
+    return original.sku;
+  }
   if (original && original.name.trim() === name.trim() &&
       (original.categoria ?? "") === (categoria ?? "") &&
       (original.brandId ?? "") === (brandId ?? original.brandId ?? "")) {
@@ -288,7 +295,7 @@ export const updateProduct = (
   if (!product) throw new DomainError("errors.notFound");
   const categoriaAnterior = product.categoria;
   const name = requireText(input.name, "errors.productNameRequired");
-  const sku = (input.sku?.trim().toUpperCase() || generarSkuProducto(db, name, product.id, undefined, input.categoria ?? product.categoria, db.brands.find((brand) => brand.id === input.brandId)?.name)).slice(0, 40);
+  const sku = (input.sku?.trim().toUpperCase() || generarSkuAlEditar(db, name, input.categoria ?? product.categoria, product, input.brandId)).slice(0, 40);
   if (
     db.products.some(
       (item) => item.id !== product.id && item.sku.trim().toUpperCase() === sku,
