@@ -371,3 +371,26 @@ describe("validación de stock mínimo", () => {
     expect(db.products).toHaveLength(0);
   });
 });
+
+describe("SKU estable de pantallas compatibles", () => {
+  it("mantiene la referencia original al agregar modelos compatibles", () => {
+    const db = emptyDb();
+    const original = createProduct(db, admin, {
+      name: "Pantalla Samsung A02S", sku: "PAN-A02S", categoria: "repuesto", minStock: 0,
+    });
+    const name = "Pantalla Samsung A02S / A03S / A04E";
+    expect(generarSkuAlEditar(db, name, "repuesto", original)).toBe("PAN-A02S");
+    const updated = updateProduct(db, admin, { id: original.id, name, categoria: "repuesto", minStock: 0 });
+    expect(updated.id).toBe(original.id);
+    expect(updated.sku).toBe("PAN-A02S");
+    expect(db.products).toHaveLength(1);
+  });
+  it("mantiene los controles de colisión y distingue pantallas de diferente tecnología", () => {
+    const db = emptyDb();
+    const lcd = createProduct(db, admin, { name: "Pantalla Samsung A51 LCD", categoria: "repuesto", minStock: 0 });
+    const oled = createProduct(db, admin, { name: "Pantalla Samsung A51 OLED", categoria: "repuesto", minStock: 0 });
+    expect(lcd.sku).toBe("PAN-SAM-A51-LCD");
+    expect(oled.sku).toBe("PAN-SAM-A51-OLED");
+    expect(() => createProduct(db, admin, { name: "Otra pantalla", sku: lcd.sku, categoria: "repuesto", minStock: 0 })).toThrow(DomainError);
+  });
+});
