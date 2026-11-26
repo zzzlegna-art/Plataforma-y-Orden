@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { LogOut, Menu, Plus, Search, UserRound } from "lucide-react";
+import { Copy, LogOut, Menu, Plus, Search, UserRound } from "lucide-react";
+import { toast } from "sonner";
 import { Link, useLocation, useMatch } from "react-router-dom";
 
 import { useStore } from "@/hooks/use-store";
@@ -19,7 +20,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/hooks/use-auth";
 import { NAV_ITEMS } from "./nav-items";
-import type { NextSlot } from "@/lib/next-workspaces";
+import { withNextSuffix, type NextSlot } from "@/lib/next-workspaces";
 import { ThemeToggle } from "./theme-toggle";
 
 /** Barra superior: menú móvil, título de la sección y usuario. */
@@ -32,6 +33,19 @@ export const Topbar = ({ onOpenMenu, nextSlot, nextFreeSlot, onOpenNext }: {
   const { t } = useTranslation();
   const { user, logout } = useAuth();
   const [closing, setClosing] = useState(false);
+  const installed = window.matchMedia("(display-mode: standalone)").matches ||
+    window.matchMedia("(display-mode: window-controls-overlay)").matches ||
+    window.matchMedia("(display-mode: minimal-ui)").matches;
+  const nextUrl = nextFreeSlot === null ? null : withNextSuffix("/panel", nextFreeSlot);
+  const copyNext = async () => {
+    if (!nextUrl) return;
+    try {
+      await navigator.clipboard.writeText(new URL(nextUrl, window.location.origin).href);
+      toast.success("Enlace de Next copiado", { description: "Pégalo en una pestaña nueva del mismo navegador." });
+    } catch {
+      toast.error("No se pudo copiar el enlace.", { description: "Usa el menú contextual del botón Next para copiar su dirección." });
+    }
+  };
   const { db } = useStore();
   const [searchOpen, setSearchOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -102,6 +116,23 @@ export const Topbar = ({ onOpenMenu, nextSlot, nextFreeSlot, onOpenNext }: {
 
       <div className="hidden shrink-0 items-center gap-1.5 sm:flex" aria-label={`Espacio de trabajo Next ${nextSlot}`}>
         <span className="rounded-lg border border-primary/30 bg-primary/10 px-2.5 py-1.5 text-xs font-extrabold text-primary">Next {nextSlot}</span>
+        {installed && nextUrl ? (
+          <>
+            <Button asChild variant="outline" size="sm" className="gap-1.5">
+              <a href={nextUrl} target="_blank" rel="noopener noreferrer"
+                title={`Abrir Next ${nextFreeSlot} en otra ventana o pestaña`}
+                aria-label={`Abrir Next ${nextFreeSlot} en otra ventana o pestaña`}>
+                <Plus className="h-4 w-4" />
+                <span className="hidden xl:inline">Next {nextFreeSlot}</span>
+              </a>
+            </Button>
+            <Button type="button" variant="ghost" size="icon" className="h-9 w-9"
+              title="Copiar enlace de Next para abrirlo manualmente" aria-label="Copiar enlace de Next"
+              onClick={() => void copyNext()}>
+              <Copy className="h-4 w-4" />
+            </Button>
+          </>
+        ) : (
         <Button type="button" variant="outline" size="sm" disabled={nextFreeSlot === null}
           className="gap-1.5" onClick={onOpenNext}
           title={nextFreeSlot ? `Abrir Next ${nextFreeSlot} en otra pestaña` : "Límite de 3 pestañas Next alcanzado"}
@@ -109,6 +140,7 @@ export const Topbar = ({ onOpenMenu, nextSlot, nextFreeSlot, onOpenNext }: {
           <Plus className="h-4 w-4" />
           <span className="hidden xl:inline">{nextFreeSlot ? `Next ${nextFreeSlot}` : "3/3"}</span>
         </Button>
+        )}
       </div>
       <Button type="button" variant="outline" size="sm" className={location.pathname === "/panel" ? "nx-dashboard-search-pill gap-2" : "gap-2"} onClick={() => setSearchOpen(true)} aria-label="Buscar en Nexora"><Search className="h-4 w-4" /><span className="hidden sm:inline">Buscar</span></Button>
       <ThemeToggle />
