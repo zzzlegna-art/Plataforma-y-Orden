@@ -159,13 +159,13 @@ describe("consultarPerfilSesion", () => {
 });
 
 describe("recepción de 1.350 seriales sin guardados parciales", () => {
-  const fixture = () => {
+  const fixture = (cantidad = 1350) => {
     const previo = emptyDb();
     previo.receptions.push({
       id: "r-1350", code: "REC-00001", status: "captura",
       receivedAt: ahora, createdBy: "u1", createdAt: ahora,
     });
-    for (let i = 0; i < 1350; i++) {
+    for (let i = 0; i < cantidad; i++) {
       previo.receptionItems.push({
         id: "ri-" + i, receptionId: "r-1350", productId: "p1",
         serial: "REP-" + String(i + 1).padStart(4, "0"), condition: "nuevo",
@@ -176,7 +176,7 @@ describe("recepción de 1.350 seriales sin guardados parciales", () => {
     siguiente.receptions[0].status = "confirmada";
     siguiente.receptions[0].confirmedAt = ahora;
     siguiente.receptionItems = [];
-    for (let i = 0; i < 1350; i++) {
+    for (let i = 0; i < cantidad; i++) {
       siguiente.units.push({
         id: "u-" + i, productId: "p1",
         serial: "REP-" + String(i + 1).padStart(4, "0"),
@@ -209,6 +209,26 @@ describe("recepción de 1.350 seriales sin guardados parciales", () => {
     expect(pasos.find((p) => p.tabla === "bodega_reception_items")?.ids).toHaveLength(1350);
     expect(pasos.find((p) => p.tabla === "bodega_reception_items")?.esperados).toHaveLength(1350);
     expect(pasos.find((p) => p.tabla === "bodega_receptions")?.filas).toHaveLength(1);
+  });
+
+  it("envía 8.573 unidades en una única transacción aun superando el límite normal", async () => {
+    const { previo, siguiente } = fixture(8573);
+    const cambios = { version: 1, pasos: calcularPasos(previo, siguiente) };
+    expect(JSON.stringify(cambios).length).toBeGreaterThan(3_000_000);
+    expect(JSON.stringify(cambios).length).toBeLessThan(16_000_000);
+    mocks.rpc.mockResolvedValue({ data: { ok: true }, error: null });
+    await pushDb(previo, siguiente);
+    expect(mocks.rpc).toHaveBeenCalledTimes(1);
+    expect(mocks.registro).toEqual([]);
+    expect(mocks.rpc.mock.calls[0][1].p_cambios.pasos.find(
+      (p: { tabla: string }) => p.tabla === "bodega_units").filas).toHaveLength(8573);
+  });
+
+  it("no amplía el límite para una recepción con cambios ajenos", async () => {
+    const { previo, siguiente } = fixture(8573);
+    siguiente.settings.companyName = "Otra empresa";
+    await expect(pushDb(previo, siguiente)).rejects.toBeInstanceOf(DomainError);
+    expect(mocks.rpc).not.toHaveBeenCalled();
   });
 
   it("si el servidor rechaza el lote no realiza guardados por tabla", async () => {
