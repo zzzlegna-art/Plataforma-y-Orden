@@ -76,7 +76,7 @@ const model = (normal: string): string => {
 
 const partCode = (normal: string): string =>
   /\b(BATERIA|BATERIAS|PILA)\b/.test(normal) ? "BAT" :
-  /\b(PANTALLA|DISPLAY|DISPAY|MODULO|TACTIL)\b/.test(normal) ? "PAN" :
+  /\b(PANTALLA|PANTALLAS|DISPLAY|DISPAY|MODULO|TACTIL|LCD)\b/.test(normal) ? "PAN" :
   /\b(CAMARA|CAMARAS)\b/.test(normal) ? "CAM" :
   /\b(TAPA|CARCASA)\b/.test(normal) ? "TAP" :
   /\b(CONECTOR|PUERTO)\b/.test(normal) ? "CON" :
@@ -133,6 +133,57 @@ const genericTokens = (normal: string, categoria: string, modelo = "", skipNumbe
   return tokens.join("").slice(0, 18);
 };
 
+/**
+ * Pantallas multimodelo: el primer modelo identifica la referencia física.
+ * Los demás modelos permanecen en el nombre buscable; no generan otra SKU.
+ * No se aplica al motor de baterías ni a equipos completos.
+ */
+const screenReference = (name: string, marca = ""): string | undefined => {
+  const n = normalize(name);
+  const primary = normalize(name.split(/\/|,|;|\s+y\s+|\s+e\s+/i)[0]);
+  const brandHint = normalize(marca);
+  const family = /\b(?:SAMSUNG|GALAXY)\b/.test(n) || brandHint === "SAMSUNG" ? "SAM" :
+    /\b(?:MOTOROLA|MOTO)\b/.test(n) || brandHint === "MOTOROLA" ? "MOT" :
+    /\b(?:XIAOMI|REDMI|POCO)\b/.test(n) || brandHint === "XIAOMI" ? "XIA" :
+    /\bTECNO\b/.test(n) || brandHint === "TECNO" ? "TEC" :
+    /\bVIVO\b/.test(n) || brandHint === "VIVO" ? "VIV" :
+    /\bHUAWEI\b/.test(n) || brandHint === "HUAWEI" ? "HUA" : "";
+  let code = "";
+  if (family === "SAM") code = primary.match(/\b([ASMZ]\s*\d{1,3}[A-Z]{0,2})\b/)?.[1]?.replace(/\s/g, "") ?? "";
+  if (family === "MOT") code = primary.match(/\b([GEZ]\s*\d{1,3}[A-Z]{0,2})\b/)?.[1]?.replace(/\s/g, "") ?? "";
+  if (family === "XIA") {
+    const note = primary.match(/\bNOTE\s*(\d{1,3}[A-Z]?)(?:\s+(PRO\s+PLUS|PRO|PLUS))?\b/);
+    const redmi = primary.match(/\b(?:REDMI\s*)?([A-Z]?\d{1,3}[A-Z]{0,2})(?:\s+(PRO\s+PLUS|PRO|PLUS))?\b/);
+    if (note) code = "N" + note[1] + (note[2] ? "-" + note[2].replace(/\s/g, "") : "");
+    else if (redmi) code = (redmi[1].startsWith("A") ? "" : "R") + redmi[1] + (redmi[2] ? "-" + redmi[2].replace(/\s/g, "") : "");
+  }
+  if (family === "TEC") {
+    const spark = primary.match(/\bSPARK\s+GO\s*(\d{4})\b/);
+    if (spark) code = "SG" + spark[1];
+  }
+  if (family === "VIV") code = primary.match(/\b([YVXT]\s*\d{1,3}[A-Z]{0,2})\b/)?.[1]?.replace(/\s/g, "") ?? "";
+  if (family === "HUA") {
+    const prime = primary.match(/\bY\s*(\d{1,3})\s+PRIME(?:\s+(\d{4}))?\b/);
+    code = prime ? "Y" + prime[1] + "P" + (prime[2] ?? "") : primary.match(/\b([YPM]\s*\d{1,3}[A-Z]{0,2})\b/)?.[1]?.replace(/\s/g, "") ?? "";
+  }
+  // GX se conserva como designación del proveedor, no se deduce su tecnología.
+  const apple = primary.match(/\bIPHONE\s*(XR|XS|X|\d{1,2})(?:\s+(PRO\s+MAX|PRO|PLUS|MINI|MAX))?\b/);
+  const gx = /\bGX\b/.test(n) || brandHint === "GX";
+  const technology = /\bAMOLED\b/.test(n) ? "AMOLED" : /\bOLED\b/.test(n) ? "OLED" :
+    /\bINCELL\b/.test(n) ? "INC" : /\bLCD\b/.test(n) ? "LCD" : "";
+  const network = primary.match(/\b[45]G\b/)?.[0] ??
+    (family === "XIA" && /\bNOTE\b/.test(primary) ? n.match(/\b[45]G\b/)?.[0] : "");
+  const frame = /\bSIN\s+MARCO\b/.test(n) ? "SINMARCO" : /\bCON\s+MARCO\b/.test(n) ? "CONMARCO" : "";
+  const sm = /\bSM\b/.test(n) ? "SM" : "";
+  if (apple && gx) return compact(["PAN", "APP", apple[1] + (apple[2] ? "-" + apple[2].replace(/\s/g, "") : ""), "GX", technology, frame]).slice(0, 35);
+  if (!family || !code) return undefined;
+  const supplier = partBrand(n, marca);
+  const knownDevice = new Set(["SAMSUNG","XIAOMI","MOTOROLA","MOTO","TECNO","VIVO","HUAWEI","APPLE","REDMI","GALAXY","POCO"]);
+  const supplierCode = /^(SUN|JK|OEM|ORI|GEN|FOX|BOE)$/.test(supplier) ? supplier :
+    brandHint && !knownDevice.has(brandHint) && !["GX","SM"].includes(brandHint) ? supplier : "";
+  return compact(["PAN", family, code, network ?? "", gx ? "GX" : "", sm, technology, frame, supplierCode]).slice(0, 35);
+};
+
 /** SKU base sin sufijo de colisión, máximo 35 caracteres. */
 export const skuBaseReferencia = ({ name, categoria, marca }: SkuDescriptor): string => {
   const n = normalize(name);
@@ -143,6 +194,10 @@ export const skuBaseReferencia = ({ name, categoria, marca }: SkuDescriptor): st
 
   if (tipo === "REPUESTO" || tipo === "REPUESTOS") {
     const part = partCode(n);
+    if (part === "PAN" || (part === "REP" && /\b(?:LCD|OLED|AMOLED|INCELL)\b/.test(n))) {
+      const screen = screenReference(name, marca);
+      if (screen) return screen;
+    }
     const brand = partBrand(n, marca);
     const shared = n.match(/\bIPHONE\s*(\d{1,2})\s+(?:Y\s+)?\1\s+PRO(?:\s+MAX)?\b/);
     const compat = shared
