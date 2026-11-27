@@ -24,6 +24,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
+import { candidatoCamara } from "@/lib/imei";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 
 const HINTS = new Map<DecodeHintType, unknown>();
@@ -233,6 +234,7 @@ export const SerialScanInput = ({
   stacked = false,
   submitLabel,
   autoConfirm = false,
+  cameraImeiOnly = false,
 }: {
   onScan: (serial: string) => void | Promise<void>;
   /** Si devuelve un texto, la lectura se rechaza y se muestra ese mensaje (p. ej. "Debe tener 15 dígitos"). */
@@ -253,6 +255,8 @@ export const SerialScanInput = ({
    * Espera un instante tras dejar de escribir para no cortar un serial que aún se está tecleando.
    */
   autoConfirm?: boolean;
+  /** En recepción de celulares, ignora códigos de otros formatos antes de validar. */
+  cameraImeiOnly?: boolean;
 }) => {
   const { t } = useTranslation();
   const inputRef = useRef<HTMLInputElement>(null);
@@ -268,6 +272,7 @@ export const SerialScanInput = ({
   // (parpadeo) cada vez que la pantalla se vuelve a dibujar tras un escaneo.
   const onScanRef = useRef(onScan);
   const validateRef = useRef(validate);
+  const cameraImeiOnlyRef = useRef(cameraImeiOnly);
   const feedbackTimerRef = useRef<number | null>(null);
   const cameraStateRef = useRef({
     candidate: "",
@@ -340,6 +345,7 @@ export const SerialScanInput = ({
   useEffect(() => {
     onScanRef.current = onScan;
     validateRef.current = validate;
+    cameraImeiOnlyRef.current = cameraImeiOnly;
   });
 
   useEffect(() => {
@@ -389,7 +395,7 @@ export const SerialScanInput = ({
    */
   const handleCameraRead = useCallback(
     (raw: string) => {
-      const serial = raw.trim();
+      const serial = candidatoCamara(raw, cameraImeiOnlyRef.current);
       if (!serial) return;
       const now = Date.now();
       const state = cameraStateRef.current;
@@ -599,11 +605,22 @@ export const SerialScanInput = ({
           void read
             .then(async (text) => {
               if (!active) return;
-              if (text) {
-                text.split("\n").forEach((value) => handleCameraRead(value));
+              const candidates = [...new Set((text ?? "").split("\n")
+                .map((value) => candidatoCamara(value, cameraImeiOnlyRef.current))
+                .filter((value): value is string => value !== null))];
+              // Una sola observación por fotograma: el mismo código no puede
+              // satisfacer por sí solo la doble lectura de seguridad.
+              const valid = candidates.filter((value) => !validateRef.current?.(value));
+              const preferred = valid.find((value) => value === cameraStateRef.current.candidate)
+                ?? valid[0];
+              if (preferred) {
+                handleCameraRead(preferred);
                 return;
               }
-              // OCR solo se ejecuta cuando el detector no encuentra un código de barras.
+              // Fragmentos irrelevantes no bloquean el OCR ni generan avisos rojos.
+              // Un código completo pero inválido conserva el aviso de validación.
+              if (candidates.length) handleCameraRead(candidates[0]);
+              // OCR también se ejecuta si ningún código de barras es utilizable.
               // Analiza un fotograma del video local; no sube ni guarda imágenes.
               if (!ocrWorker || Date.now() - lastOcrAt < 600) return;
               lastOcrAt = Date.now();
