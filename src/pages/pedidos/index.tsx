@@ -264,7 +264,7 @@ const Pedidos = () => {
         {[
           { label: "Total de pedidos", value: summary.total, hint: "Registros históricos y actuales", tone: "cyan", icon: Layers3 },
           { label: "En preparación", value: summary.inProgress, hint: "Pendientes de completar", tone: "green", icon: CircleDot },
-          { label: "Listos para venta", value: summary.prepared, hint: "Preparados y pendientes", tone: "amber", icon: Clock3 },
+          { label: "Pendientes de despacho", value: summary.prepared, hint: "Serializados y reservados", tone: "amber", icon: Clock3 },
           { label: "Despachados", value: summary.dispatched, hint: "Pedidos finalizados", tone: "blue", icon: PackageCheck },
         ].map(({ label, value, hint, tone, icon: Icon }) => (
           <article className="nx-pedidos-metric" data-tone={tone} key={label}>
