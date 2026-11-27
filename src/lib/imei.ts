@@ -64,3 +64,22 @@ export const generarCodigoInterno = (enUso: (serial: string) => boolean): string
   // Prácticamente imposible de llegar aquí (10 millones de combinaciones), pero por si acaso.
   throw new Error("No se pudo generar un código interno único");
 };
+
+/**
+ * Filtro exclusivo de cámara: los lectores pueden inventar códigos muy cortos
+ * a partir de reflejos, letras de la etiqueta o barras incompletas.
+ * No cambia las reglas de captura manual ni del lector USB/Bluetooth.
+ */
+export const candidatoCamara = (raw: string, soloImei = false): string | null => {
+  const value = raw.trim();
+  if (!value) return null;
+  if (soloImei) {
+    const digits = normalizarImei(value);
+    // Los códigos internos también tienen un formato propio permitido.
+    if (/^\d{15}$/.test(digits) || esCodigoInterno(digits)) return digits;
+    return null;
+  }
+  // Un fragmento de 1–3 caracteres no es una lectura fiable de una etiqueta
+  // de inventario. Si se necesita un serial tan corto, se puede escribir.
+  return value.length >= 4 ? value : null;
+};
