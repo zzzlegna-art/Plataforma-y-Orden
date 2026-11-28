@@ -28,6 +28,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { usePermissions } from "@/hooks/use-permissions";
 import { useRunAction } from "@/hooks/use-run-action";
 import { useStore } from "@/hooks/use-store";
+import { useApp } from "@/hooks/use-app";
 import {
   agregarReferenciaPedido,
   cambiarColorReferenciaPedido,
@@ -56,6 +57,7 @@ import { OrderLineCard } from "./OrderLineCard";
 const PedidoDetalle = () => {
   const { t } = useTranslation();
   const { db } = useStore();
+  const { refrescarSerial } = useApp();
   const runAction = useRunAction();
   const { isAdmin, can } = usePermissions();
   const navigate = useNavigate();
@@ -138,10 +140,14 @@ const PedidoDetalle = () => {
    */
   const serializar = async (serial: string, desdeLineaId?: string) => {
     const unit = findUnitBySerial(db, serial);
-    if (!unit) {
-      toast.error(t("errors.unitNotFound", { serial }));
-      return;
-    }
+    const reservado = unit && db.orderItemUnits.some(a => {
+      if (a.unitId !== unit.id) return false;
+      const line = db.orderItems.find(i => i.id === a.orderItemId);
+      const associated = line && db.orders.find(o => o.id === line.orderId);
+      return associated?.status === "en_preparacion" || associated?.status === "preparado";
+    });
+    // No rechazar por una copia local anterior a una recepción o devolución.
+    if (!unit || unit.status !== "en_bodega" || reservado) await refrescarSerial?.(serial);
     const result = await runAction((db2, actor) =>
       serializarImeiPedido(db2, actor, { orderId: order.id, imei: serial, orderItemId: desdeLineaId }),
     );
