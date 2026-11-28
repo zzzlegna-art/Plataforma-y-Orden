@@ -226,6 +226,7 @@ const requestContinuousFocus = (track: MediaStreamTrack | undefined) => {
 export const SerialScanInput = ({
   onScan,
   validate,
+  recoverValidation,
   placeholder,
   disabled = false,
   autoFocus = true,
@@ -239,6 +240,8 @@ export const SerialScanInput = ({
   onScan: (serial: string) => void | Promise<void>;
   /** Si devuelve un texto, la lectura se rechaza y se muestra ese mensaje (p. ej. "Debe tener 15 dígitos"). */
   validate?: (serial: string) => string | null;
+  /** Verifica una lectura rechazada contra el servidor antes de mostrar error. */
+  recoverValidation?: (serial: string, problem: string) => Promise<string | null>;
   placeholder?: string;
   disabled?: boolean;
   autoFocus?: boolean;
@@ -272,6 +275,9 @@ export const SerialScanInput = ({
   // (parpadeo) cada vez que la pantalla se vuelve a dibujar tras un escaneo.
   const onScanRef = useRef(onScan);
   const validateRef = useRef(validate);
+  const recoverValidationRef = useRef(recoverValidation);
+  const recoveringRef = useRef(new Set<string>());
+  const mountedRef = useRef(true);
   const cameraImeiOnlyRef = useRef(cameraImeiOnly);
   const feedbackTimerRef = useRef<number | null>(null);
   const cameraStateRef = useRef({
@@ -318,26 +324,37 @@ export const SerialScanInput = ({
   }, []);
 
   const submit = useCallback(
-    (raw: string): boolean => {
+    (raw: string): boolean | Promise<boolean> => {
       const serial = raw.trim();
       if (!serial) return false;
+      const key = serial.toLowerCase();
+      if (recoveringRef.current.has(key)) return false;
+      const aceptar = (recuperado = false) => {
+        if (!mountedRef.current) return false;
+        const now = Date.now();
+        if (lastScanRef.current.value === serial && now - lastScanRef.current.at < 1200) return false;
+        lastScanRef.current = { value: serial, at: now };
+        void onScanRef.current(serial);
+        if (recuperado) setValue(actual => actual.trim() === serial ? "" : actual);
+        else setValue("");
+        if (!touchDeviceRef.current && !cameraOnRef.current) inputRef.current?.focus();
+        return true;
+      };
       const problem = validateRef.current?.(serial) ?? null;
-      if (problem) {
-        rejectScan(serial, problem);
+      if (!problem) return aceptar();
+      const recover = recoverValidationRef.current;
+      if (!recover) { rejectScan(serial, problem); return false; }
+      recoveringRef.current.add(key);
+      return recover(serial, problem).then(resultado => {
+        if (!mountedRef.current) return false;
+        if (resultado) { rejectScan(serial, resultado); return false; }
+        const nuevo = validateRef.current?.(serial) ?? null;
+        if (nuevo) { rejectScan(serial, nuevo); return false; }
+        return aceptar(true);
+      }).catch(() => {
+        if (mountedRef.current) rejectScan(serial, problem);
         return false;
-      }
-      const now = Date.now();
-      // Los escáneres pueden disparar dos veces la misma lectura seguida.
-      if (lastScanRef.current.value === serial && now - lastScanRef.current.at < 1200) {
-        return false;
-      }
-      lastScanRef.current = { value: serial, at: now };
-      void onScanRef.current(serial);
-      setValue("");
-      // Con lector USB/Bluetooth en escritorio se mantiene el foco; con cámara o en móvil no,
-      // porque el teclado taparía el visor.
-      if (!touchDeviceRef.current && !cameraOnRef.current) inputRef.current?.focus();
-      return true;
+      }).finally(() => recoveringRef.current.delete(key));
     },
     [rejectScan],
   );
@@ -345,6 +362,7 @@ export const SerialScanInput = ({
   useEffect(() => {
     onScanRef.current = onScan;
     validateRef.current = validate;
+    recoverValidationRef.current = recoverValidation;
     cameraImeiOnlyRef.current = cameraImeiOnly;
   });
 
@@ -355,6 +373,8 @@ export const SerialScanInput = ({
     const timer = window.setTimeout(() => submit(serial), 450);
     return () => window.clearTimeout(timer);
   }, [autoConfirm, value, submit]);
+
+  useEffect(() => { mountedRef.current = true; return () => { mountedRef.current = false; }; }, []);
 
   useEffect(
     () => () => {
@@ -418,7 +438,9 @@ export const SerialScanInput = ({
       state.acceptedAt = now;
       state.candidate = "";
       state.candidateCount = 0;
-      if (submit(serial)) confirmScan(serial);
+      const accepted = submit(serial);
+      if (typeof accepted === "boolean") { if (accepted) confirmScan(serial); }
+      else void accepted.then(ok => { if (ok && mountedRef.current) confirmScan(serial); });
     },
     [submit, confirmScan],
   );
