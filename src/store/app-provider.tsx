@@ -29,6 +29,7 @@ import {
   consultarPerfilSesion,
   leerPerfil,
   pullDb,
+  pullSerialSnapshot,
   pushDb,
   suscribirCambios,
   type CambioRemoto,
@@ -143,6 +144,45 @@ const aplicarCambioRemoto = (db: Db, cambio: CambioRemoto): boolean => {
   return true;
 };
 
+/** Solo avisa de cambios confirmados que afectan la disponibilidad. No transmite
+ * fichas completas ni cambia inventario desde otra pestaña. */
+const serialesModificados = (antes: Db, despues: Db): string[] => {
+  const anteriores = new Map(antes.units.map(u => [u.id, u]));
+  const actuales = new Map(despues.units.map(u => [u.id, u]));
+  const seriales = new Set<string>();
+  const marcar = (id: string) => {
+    const old = anteriores.get(id), next = actuales.get(id);
+    if (old) seriales.add(old.serial);
+    if (next) seriales.add(next.serial);
+  };
+  for (const u of despues.units) {
+    const previo = anteriores.get(u.id);
+    if (!previo || previo.serial !== u.serial || previo.status !== u.status ||
+      previo.productId !== u.productId || previo.condition !== u.condition || previo.color !== u.color) marcar(u.id);
+  }
+  for (const u of antes.units) if (!actuales.has(u.id)) marcar(u.id);
+  const linksAntes = new Map(antes.orderItemUnits.map(a => [a.id, a]));
+  const linksAhora = new Map(despues.orderItemUnits.map(a => [a.id, a]));
+  for (const a of despues.orderItemUnits) {
+    const previa = linksAntes.get(a.id);
+    if (!previa || previa.unitId !== a.unitId || previa.orderItemId !== a.orderItemId) {
+      marcar(a.unitId); if (previa) marcar(previa.unitId);
+    }
+  }
+  for (const a of antes.orderItemUnits) if (!linksAhora.has(a.id)) marcar(a.unitId);
+  const estados = new Map(antes.orders.map(o => [o.id, o.status]));
+  const cambiados = new Set(despues.orders.filter(o => estados.get(o.id) !== o.status).map(o => o.id));
+  const vigentes = new Set(despues.orders.map(o => o.id));
+  for (const o of antes.orders) if (!vigentes.has(o.id)) cambiados.add(o.id);
+  if (cambiados.size) {
+    for (const fuente of [antes, despues]) {
+      const lineas = new Set(fuente.orderItems.filter(i => cambiados.has(i.orderId)).map(i => i.id));
+      for (const a of fuente.orderItemUnits) if (lineas.has(a.orderItemId)) marcar(a.unitId);
+    }
+  }
+  return [...seriales];
+};
+
 export const AppProvider = ({ children }: { children: React.ReactNode }) => {
   const [db, setDb] = useState<Db | null>(null);
   const [user, setUser] = useState<Actor | null>(null);
@@ -171,6 +211,7 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
   // Turno para "leer inventario → ejecutar acción → aplicar en pantalla" y cola de guardados.
   const turnoAccionRef = useRef<Promise<void>>(Promise.resolve());
   const colaGuardadoRef = useRef<Promise<void>>(Promise.resolve());
+  const canalLocalRef = useRef<BroadcastChannel | null>(null);
 
   const aplicarDb = useCallback((next: Db | null) => {
     dbRef.current = next;
@@ -354,10 +395,12 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
         }
         refrescoPendienteRef.current = false;
         const versionInicial = versionRef.current;
+        const sesionInicial = intentoSesionRef.current;
         bloqueosRef.current += 1;
         let aplicada = false;
         try {
           const servidor = await pullDb();
+          if (intentoSesionRef.current !== sesionInicial || !userRef.current) return;
           if (versionRef.current === versionInicial && guardadosRef.current === 0) {
             aplicarDb(servidor);
             aplicada = true;
@@ -378,6 +421,102 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
       refrescandoRef.current = false;
     }
   }, [aplicarDb, liberarBloqueo]);
+
+  /** Consulta de emergencia para un IMEI que la copia local aún considera
+   * ocupado o inexistente. La lectura es puntual y nunca escribe en Supabase. */
+  const refrescarSerial = useCallback(async (serial: string): Promise<Db | null> => {
+    const actor = userRef.current;
+    const sesion = intentoSesionRef.current;
+    if (!actor || !serial.trim()) return null;
+    const vigente = () => intentoSesionRef.current === sesion && userRef.current?.id === actor.id;
+    for (let intento = 0; intento < 3; intento += 1) {
+      await turnoAccionRef.current;
+      await colaGuardadoRef.current;
+      if (!vigente() || !dbRef.current) return null;
+      if (guardadosRef.current > 0) continue;
+      const version = versionRef.current;
+      const base = dbRef.current;
+      const canonico = base.units.find(u => u.serial.toLowerCase() === serial.trim().toLowerCase())?.serial ?? serial.trim();
+      let foto: Awaited<ReturnType<typeof pullSerialSnapshot>>;
+      try { foto = await pullSerialSnapshot(canonico); }
+      catch (error) { console.warn("No se pudo verificar el IMEI en el servidor", error); return null; }
+      if (!foto || !vigente()) return null;
+      let soltar: () => void = () => undefined;
+      const previo = turnoAccionRef.current;
+      turnoAccionRef.current = new Promise<void>(resolve => { soltar = resolve; });
+      await previo;
+      try {
+        if (!vigente() || !dbRef.current) return null;
+        if (guardadosRef.current > 0 || versionRef.current !== version) continue;
+        // Si llegó información nueva mientras se consultaba, volver a leer.
+        if (dbRef.current !== base) continue;
+        const upsert = <T extends { id: string },>(rows: T[], incoming: T[]): T[] => {
+          if (!incoming.length) return rows;
+          const map = new Map(incoming.map(row => [row.id, row]));
+          const next = rows.map(row => { const replacement = map.get(row.id); map.delete(row.id); return replacement ?? row; });
+          return [...next, ...map.values()];
+        };
+        const siguiente: Db = {
+          ...base,
+          units: upsert(base.units, [foto.unit]),
+          products: upsert(base.products, [foto.product]),
+          orders: upsert(base.orders, foto.orders),
+          orderItems: upsert(base.orderItems, foto.lines),
+          orderItemUnits: [...base.orderItemUnits.filter(a => a.unitId !== foto.unit.id), ...foto.assignments],
+        };
+        // Invalida una descarga completa anterior a esta consulta, sin perder otras filas.
+        versionRef.current += 1;
+        aplicarDb(siguiente);
+        return siguiente;
+      } finally { soltar(); }
+    }
+    return null;
+  }, [aplicarDb]);
+
+  /** Las pestañas Next del mismo navegador se avisan apenas el servidor confirma.
+   * Se consulta la base; no se confía en estados optimistas de otra pestaña. */
+  useEffect(() => {
+    if (!user?.id || typeof window.BroadcastChannel !== "function") return;
+    let canal: BroadcastChannel;
+    try { canal = new window.BroadcastChannel("nexora:inventario-confirmado:v1"); }
+    catch { return; }
+    canalLocalRef.current = canal;
+    let cancelado = false;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const pendientes = new Set<string>();
+    let completa = false, procesando = false;
+    const procesar = async () => {
+      timer = undefined;
+      if (cancelado || procesando) return;
+      procesando = true;
+      try {
+        const seriales = [...pendientes]; pendientes.clear();
+        const todo = completa || seriales.length > 12; completa = false;
+        if (todo) await refrescar();
+        else for (const serial of seriales) {
+          if (cancelado) break;
+          if (!await refrescarSerial(serial)) { await refrescar(); break; }
+        }
+      } finally {
+        procesando = false;
+        if (!cancelado && (completa || pendientes.size) && !timer) timer = setTimeout(() => void procesar(), 120);
+      }
+    };
+    canal.onmessage = ({ data }) => {
+      if (!data || data.userId !== user.id || data.type !== "inventario-confirmado") return;
+      if (data.full === true) completa = true;
+      else if (Array.isArray(data.serials)) {
+        for (const serial of data.serials.slice(0, 13)) if (typeof serial === "string" && serial.length <= 128) pendientes.add(serial);
+      }
+      if (!procesando && !timer) timer = setTimeout(() => void procesar(), 120);
+    };
+    return () => {
+      cancelado = true;
+      if (timer) clearTimeout(timer);
+      canal.close();
+      if (canalLocalRef.current === canal) canalLocalRef.current = null;
+    };
+  }, [user?.id, refrescar, refrescarSerial]);
 
   const run: AppValue["run"] = useCallback(
     async (action, options) => {
@@ -429,6 +568,14 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
           const tarea = colaGuardadoRef.current.then(() => pushDb(actual, borrador));
           colaGuardadoRef.current = tarea.catch(() => undefined);
           await tarea;
+          // La notificación solo sale después del COMMIT, jamás al editar un borrador.
+          if (canalLocalRef.current && userRef.current?.id === actor.id) {
+            try {
+              const serials = serialesModificados(actual, borrador);
+              if (serials.length) canalLocalRef.current.postMessage({ type: "inventario-confirmado", userId: actor.id,
+                ...(serials.length > 12 ? { full: true } : { serials }) });
+            } catch { /* Realtime y la consulta puntual siguen disponibles. */ }
+          }
         } catch (error) {
           console.error("No se pudo guardar en el servidor", error);
           fallo =
@@ -492,9 +639,11 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
     const alRecuperarConexion = () => void reintentarSesionOInventario();
     document.addEventListener("visibilitychange", alVolver);
     window.addEventListener("online", alRecuperarConexion);
+    window.addEventListener("focus", alVolver);
     return () => {
       document.removeEventListener("visibilitychange", alVolver);
       window.removeEventListener("online", alRecuperarConexion);
+      window.removeEventListener("focus", alVolver);
     };
   }, [reintentarSesionOInventario]);
 
@@ -585,6 +734,10 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
 
     let cancelado = false;
     let desuscribir: (() => void) | undefined;
+    let conectado = false;
+    const respaldo = window.setInterval(() => {
+      if (!cancelado && !conectado && document.visibilityState === "visible") void refrescar();
+    }, 30_000);
 
     // La sesión puede haberse aplicado a React antes de que Realtime termine
     // de recibir el JWT. Esperar explícitamente setAuth evita registrar filtros
@@ -607,6 +760,12 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
         incluirAuditoria: user.role === "admin",
         perfilUsuarioId: user.id,
         alCambiarPerfil: () => void validarPerfilSesion(),
+        alEstado: (estado) => {
+          if (cancelado) return;
+          conectado = estado === "SUBSCRIBED";
+          // Realtime no reproduce eventos perdidos antes de reconectar.
+          if (conectado) void refrescar();
+        },
       });
     })().catch((error: unknown) => {
       if (!cancelado) console.warn("No se pudo iniciar tiempo real autenticado.", error);
@@ -614,9 +773,10 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
 
     return () => {
       cancelado = true;
+      window.clearInterval(respaldo);
       desuscribir?.();
     };
-  }, [user, recibirCambio, validarPerfilSesion]);
+  }, [user, recibirCambio, validarPerfilSesion, refrescar]);
 
   /** Respaldo si el evento de perfil no llega: revalida cada minuto y al volver al frente. */
   useEffect(() => {
@@ -644,10 +804,11 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
       run,
       aplicarCambios,
       refrescar,
+      refrescarSerial,
       login,
       logout,
     }),
-    [db, ready, user, run, aplicarCambios, refrescar, login, logout],
+    [db, ready, user, run, aplicarCambios, refrescar, refrescarSerial, login, logout],
   );
 
   if (user && !db) {
