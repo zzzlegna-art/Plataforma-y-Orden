@@ -567,3 +567,212 @@
   .nx-order-detail-v3 a,
   .nx-order-detail-v3 button { transition: none !important; transform: none !important; }
 }
+
+
+/* Mobile preparation workspace — layout only. Desktop rules above stay intact.
+   Applies to narrow iOS/Android browsers and installed PWAs alike. */
+@media (max-width: 767px) {
+  .nx-order-detail-premium.nx-order-detail-v3 {
+    min-width: 0;
+    padding-bottom: 1rem;
+  }
+  .nx-order-detail-v3 > * { min-width: 0; }
+  .nx-order-detail-v3 .nx-order-hero {
+    flex-direction: column;
+    align-items: stretch;
+    gap: .8rem;
+    padding: .95rem;
+  }
+  .nx-order-detail-v3 .nx-order-hero h1 {
+    font-size: clamp(1.25rem, 6vw, 1.65rem);
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+  .nx-order-detail-v3 .nx-order-hero p { margin-top: .4rem; gap: .35rem; }
+  .nx-order-detail-v3 .nx-order-hero > div:last-child:not(:first-child) {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: .45rem;
+  }
+  .nx-order-detail-v3 .nx-order-hero > div:last-child:not(:first-child) > [data-slot="button"] {
+    width: 100%;
+    min-width: 0;
+    min-height: 44px;
+    height: auto;
+    padding: .55rem .45rem;
+    white-space: normal;
+    line-height: 1.25;
+    text-align: center;
+    font-size: .75rem;
+  }
+  .nx-order-detail-v3 .nx-order-hero > div:last-child:not(:first-child) > [data-slot="button"]:first-child:nth-last-child(3) {
+    grid-column: 1 / -1;
+  }
+
+  /* Match the specificity of the desktop document grid. */
+  .nx-order-detail-v3 .nx-order-documents > .nx-order-documents-content {
+    grid-template-columns: minmax(0, 1fr);
+    gap: .65rem;
+    padding: .8rem .9rem;
+  }
+  .nx-order-detail-v3 .nx-order-documents-header { padding: .7rem .9rem; gap: .6rem; }
+  .nx-order-detail-v3 .nx-order-documents-icon { width: 34px; height: 34px; }
+  .nx-order-detail-v3 .nx-order-documents-description {
+    padding: 0 0 .6rem;
+    border-right: 0;
+    border-bottom: 1px solid var(--od-line);
+  }
+  .nx-order-detail-v3 .nx-order-documents-description p { max-width: none; margin: .3rem 0; }
+  .nx-order-detail-v3 .nx-order-documents-note { margin-top: .3rem; }
+  .nx-order-detail-v3 .nx-order-documents-tools { padding: 0; min-width: 0; }
+  .nx-order-detail-v3 .nx-order-documents-tools > .nx-order-documents-selector {
+    gap: .45rem;
+    padding: .6rem .7rem;
+    margin-bottom: .5rem;
+  }
+  .nx-order-detail-v3 .nx-order-documents-selector > div:first-child { flex: 1 1 100%; }
+  .nx-order-detail-v3 .nx-order-documents-selector > div:last-child {
+    flex: 1 1 100%;
+    min-width: 0;
+    justify-content: space-between;
+    gap: .3rem;
+  }
+  .nx-order-detail-v3 .nx-order-documents-selector label { min-height: 44px; }
+  .nx-order-detail-v3 .nx-order-documents-tools > button[data-slot="button"] {
+    width: 100%;
+    min-height: 44px;
+    white-space: normal;
+  }
+
+  /* Two operational counters plus a low-profile delivery date. */
+  .nx-order-detail-v3 .nx-order-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: .5rem;
+  }
+  .nx-order-detail-v3 .nx-order-summary > div:not(.nx-order-overall-progress) {
+    min-height: 0;
+    padding: .65rem .75rem;
+  }
+  .nx-order-detail-v3 .nx-order-summary > div:not(.nx-order-overall-progress)::after { margin-top: .45rem; }
+  .nx-order-detail-v3 .nx-order-summary > div:nth-child(1) { grid-area: 1 / 1; }
+  .nx-order-detail-v3 .nx-order-summary > div:nth-child(3) { grid-area: 1 / 2; }
+  .nx-order-detail-v3 .nx-order-summary > div:nth-child(2) {
+    grid-area: 2 / 1 / 3 / -1;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: .6rem;
+  }
+  .nx-order-detail-v3 .nx-order-summary > div:nth-child(2)::after { display: none; }
+  .nx-order-detail-v3 .nx-order-summary > div:nth-child(2) .font-tabular {
+    font-size: .88rem;
+    margin: 0;
+    text-align: right;
+    letter-spacing: 0;
+  }
+  .nx-order-detail-v3 .nx-order-summary .font-tabular { font-size: 1.45rem; }
+  .nx-order-detail-v3 .nx-order-summary p:first-child { font-size: .65rem; letter-spacing: .035em; }
+  .nx-order-detail-premium.nx-order-detail-v3 .nx-order-summary > .nx-order-overall-progress {
+    grid-area: 3 / 1 / 4 / -1;
+    min-height: 0;
+    padding: .7rem .8rem;
+  }
+  .nx-order-detail-premium.nx-order-detail-v3 .nx-order-summary > .nx-order-overall-progress::before {
+    display: none;
+  }
+  .nx-order-detail-v3 .nx-order-overall-progress-heading { margin-bottom: .45rem; }
+  .nx-order-detail-v3 .nx-order-overall-help { margin-top: .35rem; }
+
+  /* Product identification gets the whole row; quantity and scanner below.
+     Existing DOM, handlers, color choices, and PDF checkboxes remain unchanged. */
+  .nx-order-detail-v3 .nx-order-line-card > div:first-child {
+    grid-template-columns: minmax(0, 1fr);
+    gap: .55rem;
+    padding: .75rem .85rem;
+  }
+  .nx-order-detail-v3 .nx-order-line-card > div:first-child > div:first-child {
+    grid-column: 1 / -1;
+    gap: .55rem;
+    align-items: flex-start;
+    min-width: 0;
+  }
+  .nx-order-detail-v3 .nx-order-line-card > div:first-child > div:first-child > .h-16.w-16 {
+    width: 52px;
+    height: 52px;
+  }
+  .nx-order-detail-v3 .nx-order-line-card > div:first-child p.truncate {
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+    overflow-wrap: anywhere;
+  }
+  .nx-order-detail-v3 .nx-order-line-card > div:first-child p.truncate.font-medium {
+    font-size: .94rem;
+    line-height: 1.3;
+  }
+  .nx-order-detail-v3 .nx-order-line-card > div:first-child > div:first-child [role="combobox"] {
+    width: 100%;
+    min-width: 0;
+    min-height: 44px;
+  }
+  .nx-order-detail-v3 .nx-order-line-card > div:first-child > div:nth-child(2) {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    justify-content: flex-end;
+    gap: .4rem;
+    padding: .3rem 0 0;
+    border-top: 1px solid var(--od-line);
+  }
+  .nx-order-detail-v3 .nx-order-line-card > div:first-child > div:nth-child(2) > button {
+    flex: 0 0 44px;
+    width: 44px;
+    height: 44px;
+  }
+  .nx-order-detail-v3 .nx-order-line-card > div:first-child > div:nth-child(2) > span {
+    width: auto;
+    min-width: 3.5rem;
+    text-align: center;
+    font-weight: 750;
+  }
+  .nx-order-detail-v3 .nx-order-line-card > div:first-child > .col-span-2 {
+    grid-column: 1 / -1;
+    grid-row: auto;
+    min-width: 0;
+  }
+  .nx-order-detail-v3 .nx-order-line-card > div:first-child > .row-start-2 { grid-row: 3; }
+  .nx-order-detail-v3 .nx-order-line-card > div:first-child input {
+    min-width: 0;
+    min-height: 44px;
+    font-size: 16px; /* prevents iOS auto-zoom when focusing an IMEI field */
+  }
+  .nx-order-detail-v3 .nx-order-line-card > div:first-child > .row-start-2 button {
+    min-width: 44px;
+    min-height: 44px;
+  }
+  .nx-order-detail-v3 .nx-order-line-card > .mt-3.h-2 { margin: .65rem .85rem .35rem; }
+  .nx-order-detail-v3 .nx-order-line-card > p.mt-1 { margin: .25rem .85rem .45rem; }
+  .nx-order-detail-v3 .nx-order-line-card > .mt-3.rounded-md.border {
+    margin: .45rem .85rem .7rem;
+    padding: .45rem .6rem;
+  }
+  .nx-order-detail-v3 .nx-order-line-card > .nx-order-serials-heading { margin: .55rem .85rem .3rem; }
+  .nx-order-detail-v3 .nx-order-line-card > .nx-order-serial-grid {
+    grid-template-columns: minmax(0, 1fr);
+    margin: .3rem .85rem .75rem;
+    gap: .35rem;
+  }
+  .nx-order-detail-v3 .nx-order-line-card li.nx-order-imei { min-height: 44px; }
+  .nx-order-detail-v3 .nx-order-line-card li.nx-order-imei span.font-mono {
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+  .nx-order-detail-v3 .nx-order-line-card li.nx-order-imei button {
+    min-width: 44px;
+    min-height: 44px;
+  }
+  .nx-order-detail-v3 .nx-order-lines-header {
+    align-items: flex-start;
+    gap: .45rem;
+  }
+  .nx-order-detail-v3 .nx-order-product-group { margin-block: .6rem; }
+}
