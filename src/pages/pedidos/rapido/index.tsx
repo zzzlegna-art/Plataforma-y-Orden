@@ -8,13 +8,14 @@ import { OptionSelect } from "@/components/shared/option-select";
 import { PageHeader } from "@/components/shared/page-header";
 import { SerialScanInput } from "@/components/shared/serial-scan-input";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { useRunAction } from "@/hooks/use-run-action";
 import { useStore } from "@/hooks/use-store";
 import { useApp } from "@/hooks/use-app";
-import { currentQuickOrderDraftKey, readQuickOrderDraft, writeQuickOrderDraft, clearConfirmedQuickOrderDraft, emptyQuickOrderDraft, type QuickOrderDraft } from "@/lib/quick-order-draft";
+import { currentQuickOrderDraftKey, readQuickOrderDraft, writeQuickOrderDraft, clearConfirmedQuickOrderDraft, emptyQuickOrderDraft, type QuickOrderDraft, type QuickOrderColorBatch } from "@/lib/quick-order-draft";
 import { crearPedidoRapidoPorSeriales, previewQuickOrderUnit, type QuickOrderSerialInput } from "@/lib/actions/orders-quick";
 import { mayoristaGroupDeProducto, esProductoRepuesto } from "@/lib/products";
-import { normalizarColor } from "@/lib/color-variants";
+import { normalizarColor, variantePorColor } from "@/lib/color-variants";
 
 import "./pedido-rapido.css";
 
@@ -49,12 +50,20 @@ const PedidoRapidoEditor = ({ draftKey }: { draftKey: string | null }) => {
   const [serials, setSerials] = useState<QuickOrderSerialInput[]>(initial.draft.serials);
   const serialsRef = useRef<QuickOrderSerialInput[]>(initial.draft.serials);
   const [draftStatus, setDraftStatus] = useState<"empty" | "restored" | "saved" | "unavailable">(initial.status);
+  const [pendingSerial, setPendingSerial] = useState(initial.draft.pendingSerial);
+  const pendingRef = useRef(initial.draft.pendingSerial);
+  const [colorBatch, setColorBatch] = useState(initial.draft.colorBatch);
+  const batchRef = useRef(initial.draft.colorBatch);
+  const [batchColor, setBatchColor] = useState("");
+  const [batchQuantity, setBatchQuantity] = useState("1");
+  const updatePending = (serial?: string) => { pendingRef.current = serial; setPendingSerial(serial); };
+  const updateBatch = (batch?: QuickOrderColorBatch) => { batchRef.current = batch; setColorBatch(batch); };
   const saveDraft = (customer: string, entries: QuickOrderSerialInput[]) => {
-    const saved = writeQuickOrderDraft(draftKey, { version: 1, customerId: customer, serials: entries });
+    const saved = writeQuickOrderDraft(draftKey, { version: 1, customerId: customer, serials: entries, pendingSerial: pendingRef.current, colorBatch: batchRef.current });
     setDraftStatus(saved ? (customer || entries.length ? "saved" : "empty") : "unavailable");
   };
   const changeCustomer = (next: string) => {
-    if (confirmingRef.current) return;
+    if (confirmingRef.current || pendingRef.current || batchRef.current) return;
     customerRef.current = next;
     setCustomerId(next);
     saveDraft(next, serialsRef.current);
@@ -86,7 +95,7 @@ const PedidoRapidoEditor = ({ draftKey }: { draftKey: string | null }) => {
     return reserved;
   }, [db]);
 
-  const validateSerial = (raw: string): string | null => {
+  const validateAvailable = (raw: string): string | null => {
     const serial = raw.trim();
     if (!customerId || !customer) return "Primero selecciona un cliente activo.";
     if (!serial) return "Escribe o escanea un IMEI.";
@@ -106,6 +115,29 @@ const PedidoRapidoEditor = ({ draftKey }: { draftKey: string | null }) => {
     return null;
   };
 
+  const validateSerial = (raw: string): string | null => {
+    if (confirmingRef.current) return "Se está confirmando el pedido.";
+    if (pendingRef.current) return "Define el color y la cantidad del lote antes de seguir.";
+    const problem = validateAvailable(raw);
+    if (problem) return problem;
+    const batch = batchRef.current;
+    if (batch) {
+      const preview = previewQuickOrderUnit(db, raw);
+      if (!preview || preview.product.id !== batch.productId || preview.unit.condition !== batch.condition)
+        return "Este IMEI no corresponde a la referencia y condición del lote activo.";
+      if (!variantePorColor(preview.product, batch.color) || (preview.unit.color &&
+          normalizarColor(preview.unit.color).toLocaleLowerCase("es") !== normalizarColor(batch.color).toLocaleLowerCase("es")))
+        return "Este IMEI tiene un color diferente al lote activo.";
+    }
+    return null;
+  };
+
+  const appendEntry = (entry: QuickOrderSerialInput) => {
+    serialsRef.current = [...serialsRef.current, entry];
+    setSerials(serialsRef.current);
+    saveDraft(customerRef.current, serialsRef.current);
+  };
+
   const addScan = (raw: string) => {
     if (confirmingRef.current) return;
     const serial = raw.trim();
@@ -113,19 +145,61 @@ const PedidoRapidoEditor = ({ draftKey }: { draftKey: string | null }) => {
     if (problem) { toast.error(problem); return; }
     const preview = previewQuickOrderUnit(db, serial);
     if (!preview) return;
-    const entry: QuickOrderSerialInput = {
-      serial: preview.unit.serial,
-      color: preview.suggestedColor,
-    };
-    // El ref bloquea duplicados del lector que lleguen antes del siguiente render.
-    serialsRef.current = [...serialsRef.current, entry];
-    setSerials(serialsRef.current);
-    saveDraft(customerRef.current, serialsRef.current);
+    const batch = batchRef.current;
+    if (batch) {
+      const captured = [...batch.serials, preview.unit.serial];
+      const complete = captured.length === batch.quantity;
+      updateBatch(complete ? undefined : { ...batch, serials: captured });
+      appendEntry({ serial: preview.unit.serial, color: batch.color });
+      toast.success(complete ? "Lote completado · " + batch.color : captured.length + "/" + batch.quantity + " · " + batch.color, { duration: 1350 });
+      return;
+    }
+    if (preview.colors.length) {
+      updatePending(preview.unit.serial);
+      setBatchColor(preview.suggestedColor ?? "");
+      setBatchQuantity("1");
+      saveDraft(customerRef.current, serialsRef.current);
+      return;
+    }
+    appendEntry({ serial: preview.unit.serial });
     toast.success(preview.product.name + " agregado", { duration: 1350 });
+  };
+
+  const pendingPreview = pendingSerial ? previewQuickOrderUnit(db, pendingSerial) : null;
+  const chosenColor = batchColor || pendingPreview?.suggestedColor || "";
+  const startBatch = () => {
+    const serial = pendingRef.current;
+    if (!serial || confirmingRef.current) return;
+    const problem = validateAvailable(serial);
+    const preview = previewQuickOrderUnit(db, serial);
+    const color = variantePorColor(preview?.product, chosenColor)?.color;
+    const quantity = Number(batchQuantity);
+    if (problem || !preview || !color || !Number.isSafeInteger(quantity) || quantity < 1 ||
+        (preview.unit.color && normalizarColor(preview.unit.color).toLocaleLowerCase("es") !== normalizarColor(color).toLocaleLowerCase("es"))) {
+      toast.error(problem || "Selecciona un color compatible y una cantidad entera mayor que cero.");
+      return;
+    }
+    updatePending(undefined);
+    updateBatch(quantity > 1 ? { productId: preview.product.id, condition: preview.unit.condition, color, quantity, serials: [preview.unit.serial] } : undefined);
+    appendEntry({ serial: preview.unit.serial, color });
+    toast.success(quantity === 1 ? "Lote completado" : "Primer IMEI incluido · faltan " + (quantity - 1));
+  };
+  const cancelPending = () => {
+    updatePending(undefined);
+    saveDraft(customerRef.current, serialsRef.current);
+  };
+  const finishBatch = () => {
+    updateBatch(undefined);
+    saveDraft(customerRef.current, serialsRef.current);
   };
 
   const changeEntries = (next: QuickOrderSerialInput[]) => {
     if (confirmingRef.current) return;
+    const batch = batchRef.current;
+    if (batch) {
+      const remaining = batch.serials.filter((serial) => next.some((entry) => entry.serial === serial && entry.color === batch.color));
+      updateBatch(remaining.length ? { ...batch, serials: remaining } : undefined);
+    }
     serialsRef.current = next;
     setSerials(next);
     saveDraft(customerRef.current, next);
@@ -133,6 +207,8 @@ const PedidoRapidoEditor = ({ draftKey }: { draftKey: string | null }) => {
 
   const discardDraft = () => {
     if (confirmingRef.current) return;
+    updatePending(undefined);
+    updateBatch(undefined);
     customerRef.current = "";
     serialsRef.current = [];
     setCustomerId("");
@@ -185,7 +261,7 @@ const PedidoRapidoEditor = ({ draftKey }: { draftKey: string | null }) => {
     const preview = previewQuickOrderUnit(db, entry.serial);
     return !preview || !preview.product.isActive || preview.unit.status !== "en_bodega" || activeReservations.has(preview.unit.id);
   });
-  const canSubmit = Boolean(customer && serials.length && !missingColors && !changedStock && !confirming && !runAction.pending);
+  const canSubmit = Boolean(customer && serials.length && !missingColors && !changedStock && !pendingSerial && !colorBatch && !confirming && !runAction.pending);
 
   const confirm = async () => {
     if (confirmingRef.current || !canSubmit) return;
@@ -253,7 +329,7 @@ const PedidoRapidoEditor = ({ draftKey }: { draftKey: string | null }) => {
         <OptionSelect
           value={customerId}
           onChange={changeCustomer}
-          disabled={confirming}
+          disabled={confirming || Boolean(pendingSerial || colorBatch)}
           options={customers.map((item) => ({ value: item.id, label: item.name }))}
           placeholder="Selecciona un cliente"
           emptyLabel="Selecciona un cliente"
@@ -268,6 +344,28 @@ const PedidoRapidoEditor = ({ draftKey }: { draftKey: string | null }) => {
             <span className="nx-quick-section-number">02</span>
             <div><h2>Escanear serial</h2><p>Lector, cámara o teclado.</p></div>
           </div>
+          {pendingSerial ? (
+            <div className="mt-3 space-y-3 rounded-xl border border-primary/30 bg-primary/5 p-3" aria-label="Configurar lote de color">
+              <div>
+                <p className="text-sm font-semibold">Configurar lote de color</p>
+                <p className="text-xs text-muted-foreground">{pendingPreview?.product.name ?? "Referencia no disponible"} · {pendingPreview?.unit.condition ?? ""}</p>
+                <p className="break-all font-mono text-xs">{pendingSerial}</p>
+              </div>
+              <div className="space-y-1 text-xs font-medium">
+                <p>Color del lote</p>
+                <OptionSelect value={chosenColor} onChange={setBatchColor}
+                  options={(pendingPreview?.colors ?? []).filter((color) => !pendingPreview?.unit.color ||
+                    normalizarColor(color).toLocaleLowerCase("es") === normalizarColor(pendingPreview.unit.color).toLocaleLowerCase("es")).map((color) => ({ value: color, label: color }))}
+                  placeholder="Seleccionar color" />
+              </div>
+              <label className="block space-y-1 text-xs font-medium">
+                <span>Cantidad total del lote (incluye el primer IMEI)</span>
+                <Input type="number" min={1} step={1} value={batchQuantity} onChange={(e) => setBatchQuantity(e.target.value)} />
+              </label>
+              <Button type="button" className="w-full" onClick={startBatch} disabled={!chosenColor || !pendingPreview || !Number.isSafeInteger(Number(batchQuantity)) || Number(batchQuantity) < 1}>Iniciar lote</Button>
+              <Button type="button" variant="outline" className="w-full" onClick={cancelPending}>Cancelar primer IMEI</Button>
+            </div>
+          ) : (
           <div className="nx-quick-scanner">
             <SerialScanInput
               onScan={addScan}
@@ -280,6 +378,19 @@ const PedidoRapidoEditor = ({ draftKey }: { draftKey: string | null }) => {
               submitLabel="Agregar serial"
             />
           </div>
+          )}
+          {colorBatch ? (
+            <div className="mt-3 space-y-2 rounded-xl border border-primary/30 bg-primary/5 p-3" aria-label="Lote de color activo">
+              <p className="text-xs font-medium text-primary">LOTE ACTIVO · {colorBatch.color}</p>
+              <p className="text-sm font-semibold">{db.products.find((p) => p.id === colorBatch.productId)?.name ?? "Referencia"} · {colorBatch.condition}</p>
+              <p className="text-xl font-bold tabular-nums" role="status">{colorBatch.serials.length} / {colorBatch.quantity}</p>
+              <div className="h-2 overflow-hidden rounded-full bg-muted"><div className="h-full rounded-full bg-primary" style={{ width: (100 * colorBatch.serials.length / colorBatch.quantity) + "%" }} /></div>
+              <p className="text-xs text-muted-foreground">Faltan {colorBatch.quantity - colorBatch.serials.length} IMEI de este color.</p>
+              <ConfirmDialog trigger={<Button type="button" variant="outline" size="sm" className="w-full">Finalizar lote antes de tiempo</Button>}
+                title="Finalizar lote" description="Se conservarán solamente los IMEI ya capturados. El siguiente escaneo iniciará un lote nuevo."
+                confirmLabel="Finalizar lote" onConfirm={finishBatch} />
+            </div>
+          ) : null}
           <p className="nx-quick-scan-footnote"><ScanLine size={14} />Los equipos se reservan solo al confirmar.</p>
         </section>
 
@@ -355,7 +466,7 @@ const PedidoRapidoEditor = ({ draftKey }: { draftKey: string | null }) => {
                           >
                             <X size={15} aria-hidden="true" />
                           </button>
-                          {preview?.colors.length && !preview.unit.color ? (
+                          {preview?.colors.length && !preview.unit.color && !entry.color ? (
                             <div className="nx-quick-color-picker">
                               <OptionSelect
                                 value={entry.color}
@@ -381,7 +492,7 @@ const PedidoRapidoEditor = ({ draftKey }: { draftKey: string | null }) => {
       <section className="nx-quick-confirm-bar">
         <div className="nx-quick-confirm-copy">
           <strong>{serials.length} IMEI · {groups.length} referencias</strong>
-          <span>{missingColors ? "Selecciona los " + missingColors + " colores pendientes." :
+          <span>{pendingSerial ? "Define el lote del primer IMEI." : colorBatch ? "Completa o finaliza el lote activo antes de confirmar." : missingColors ? "Selecciona los " + missingColors + " colores pendientes." :
             changedStock ? "Revisa seriales: alguno ya no está disponible." :
             "Al confirmar se crea el pedido y queda preparado, pendiente de despacho."}</span>
         </div>
