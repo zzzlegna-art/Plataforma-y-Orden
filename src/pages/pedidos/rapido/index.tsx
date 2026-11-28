@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { toast } from "sonner";
 import { ArrowLeft, Check, FileText, Package, ScanLine, ShoppingBag, X, Zap } from "lucide-react";
@@ -10,6 +10,8 @@ import { SerialScanInput } from "@/components/shared/serial-scan-input";
 import { Button } from "@/components/ui/button";
 import { useRunAction } from "@/hooks/use-run-action";
 import { useStore } from "@/hooks/use-store";
+import { useApp } from "@/hooks/use-app";
+import { currentQuickOrderDraftKey, readQuickOrderDraft, writeQuickOrderDraft, clearConfirmedQuickOrderDraft, emptyQuickOrderDraft, type QuickOrderDraft } from "@/lib/quick-order-draft";
 import { crearPedidoRapidoPorSeriales, previewQuickOrderUnit, type QuickOrderSerialInput } from "@/lib/actions/orders-quick";
 import { mayoristaGroupDeProducto, esProductoRepuesto } from "@/lib/products";
 import { normalizarColor } from "@/lib/color-variants";
@@ -32,14 +34,40 @@ type QuickGroup = {
  * pedidos vacíos. Al confirmar, la acción normal crea, serializa y prepara.
  */
 const PedidoRapido = () => {
+  const { user } = useApp();
+  const draftKey = currentQuickOrderDraftKey(user?.id);
+  return <PedidoRapidoEditor key={draftKey ?? user?.id ?? "no-storage"} draftKey={draftKey} />;
+};
+
+const PedidoRapidoEditor = ({ draftKey }: { draftKey: string | null }) => {
   const { db } = useStore();
   const navigate = useNavigate();
   const runAction = useRunAction();
-  const [customerId, setCustomerId] = useState("");
-  const [serials, setSerials] = useState<QuickOrderSerialInput[]>([]);
-  const serialsRef = useRef<QuickOrderSerialInput[]>([]);
+  const [initial] = useState(() => readQuickOrderDraft(draftKey));
+  const [customerId, setCustomerId] = useState(initial.draft.customerId);
+  const customerRef = useRef(initial.draft.customerId);
+  const [serials, setSerials] = useState<QuickOrderSerialInput[]>(initial.draft.serials);
+  const serialsRef = useRef<QuickOrderSerialInput[]>(initial.draft.serials);
+  const [draftStatus, setDraftStatus] = useState<"empty" | "restored" | "saved" | "unavailable">(initial.status);
+  const saveDraft = (customer: string, entries: QuickOrderSerialInput[]) => {
+    const saved = writeQuickOrderDraft(draftKey, { version: 1, customerId: customer, serials: entries });
+    setDraftStatus(saved ? (customer || entries.length ? "saved" : "empty") : "unavailable");
+  };
+  const changeCustomer = (next: string) => {
+    if (confirmingRef.current) return;
+    customerRef.current = next;
+    setCustomerId(next);
+    saveDraft(next, serialsRef.current);
+  };
   const [confirming, setConfirming] = useState(false);
   const confirmingRef = useRef(false);
+
+  useEffect(() => {
+    if (!(customerId || serials.length) || (draftStatus !== "unavailable" && !confirming)) return;
+    const warn = (event: BeforeUnloadEvent) => { event.preventDefault(); event.returnValue = ""; };
+    window.addEventListener("beforeunload", warn);
+    return () => window.removeEventListener("beforeunload", warn);
+  }, [customerId, serials.length, draftStatus, confirming]);
 
   const customers = useMemo(() => db.customers
     .filter((customer) => customer.isActive)
@@ -79,6 +107,7 @@ const PedidoRapido = () => {
   };
 
   const addScan = (raw: string) => {
+    if (confirmingRef.current) return;
     const serial = raw.trim();
     const problem = validateSerial(serial);
     if (problem) { toast.error(problem); return; }
@@ -91,6 +120,7 @@ const PedidoRapido = () => {
     // El ref bloquea duplicados del lector que lleguen antes del siguiente render.
     serialsRef.current = [...serialsRef.current, entry];
     setSerials(serialsRef.current);
+    saveDraft(customerRef.current, serialsRef.current);
     toast.success(preview.product.name + " agregado", { duration: 1350 });
   };
 
@@ -98,6 +128,16 @@ const PedidoRapido = () => {
     if (confirmingRef.current) return;
     serialsRef.current = next;
     setSerials(next);
+    saveDraft(customerRef.current, next);
+  };
+
+  const discardDraft = () => {
+    if (confirmingRef.current) return;
+    customerRef.current = "";
+    serialsRef.current = [];
+    setCustomerId("");
+    setSerials([]);
+    setDraftStatus(writeQuickOrderDraft(draftKey, emptyQuickOrderDraft()) ? "empty" : "unavailable");
   };
 
   const copySerial = async (serial: string) => {
@@ -140,9 +180,10 @@ const PedidoRapido = () => {
     const preview = previewQuickOrderUnit(db, entry.serial);
     return Boolean(preview?.colors.length && !normalizarColor(entry.color || preview.suggestedColor));
   }).length;
+  const missingEntries = serials.filter((entry) => !previewQuickOrderUnit(db, entry.serial));
   const changedStock = serials.some((entry) => {
     const preview = previewQuickOrderUnit(db, entry.serial);
-    return !preview || preview.unit.status !== "en_bodega" || activeReservations.has(preview.unit.id);
+    return !preview || !preview.product.isActive || preview.unit.status !== "en_bodega" || activeReservations.has(preview.unit.id);
   });
   const canSubmit = Boolean(customer && serials.length && !missingColors && !changedStock && !confirming && !runAction.pending);
 
@@ -150,15 +191,17 @@ const PedidoRapido = () => {
     if (confirmingRef.current || !canSubmit) return;
     confirmingRef.current = true;
     setConfirming(true);
+    const submitted: QuickOrderDraft = { version: 1, customerId: customerRef.current, serials: [...serialsRef.current] };
     try {
       const order = await runAction(
         (latestDb, actor) => crearPedidoRapidoPorSeriales(latestDb, actor, {
-          customerId,
-          serials: [...serialsRef.current],
+          customerId: submitted.customerId,
+          serials: submitted.serials,
         }),
-        { key: "crear-pedido-rapido", weighty: true },
+        { key: "crear-pedido-rapido", weighty: true, deferOptimistic: true },
       );
       if (order) {
+        clearConfirmedQuickOrderDraft(draftKey, submitted);
         toast.success("Pedido preparado. Los IMEI quedaron reservados.");
         navigate("/pedidos/" + order.id);
       }
@@ -183,6 +226,25 @@ const PedidoRapido = () => {
         />
       </header>
 
+      <section className="flex flex-wrap items-center justify-between gap-2 rounded-xl border bg-card px-3 py-2" aria-label="Borrador del pedido rápido">
+        <div role="status" className="min-w-0 text-xs">
+          <p className={draftStatus === "unavailable" ? "font-semibold text-warning" : "font-semibold text-primary"}>
+            {draftStatus === "restored" ? "Borrador recuperado" : draftStatus === "saved" ? "Borrador guardado en este dispositivo" : draftStatus === "empty" ? "Autoguardado local activo" : "No se pudo recuperar o guardar el borrador"}
+          </p>
+          <p className="text-muted-foreground">{draftStatus === "unavailable" ? "No salgas ni recargues sin confirmar; el borrador puede no estar guardado." : "Puedes volver a este mismo espacio Next sin perder la captura. No reserva equipos."}</p>
+        </div>
+        {customerId || serials.length || draftStatus === "unavailable" ? (
+          <ConfirmDialog
+            trigger={<Button type="button" variant="outline" size="sm" className="text-destructive" disabled={confirming}>Descartar borrador</Button>}
+            title="Descartar borrador"
+            description="Se eliminarán el cliente y los IMEI capturados en este espacio Next. No se modificará el inventario."
+            confirmLabel="Descartar borrador"
+            destructive
+            onConfirm={discardDraft}
+          />
+        ) : null}
+      </section>
+
       <section className="nx-quick-customer">
         <div className="nx-quick-section-title">
           <span className="nx-quick-section-number">01</span>
@@ -190,7 +252,7 @@ const PedidoRapido = () => {
         </div>
         <OptionSelect
           value={customerId}
-          onChange={setCustomerId}
+          onChange={changeCustomer}
           disabled={confirming}
           options={customers.map((item) => ({ value: item.id, label: item.name }))}
           placeholder="Selecciona un cliente"
@@ -237,6 +299,16 @@ const PedidoRapido = () => {
               ) : null}
             </div>
           </div>
+
+          {missingEntries.length > 0 ? (
+            <div className="mt-3 rounded-lg border border-warning/40 p-3 text-xs text-warning">
+              <p className="font-semibold">IMEI del borrador que ya no aparecen en inventario</p>
+              {missingEntries.map((entry) => <div key={entry.serial} className="mt-1 flex flex-wrap items-center justify-between gap-2">
+                <span className="break-all font-mono">{entry.serial}</span>
+                <Button type="button" variant="ghost" size="sm" disabled={confirming} onClick={() => changeEntries(serialsRef.current.filter((item) => item.serial !== entry.serial))}>Quitar IMEI</Button>
+              </div>)}
+            </div>
+          ) : null}
 
           {groups.length === 0 ? (
             <div className="nx-quick-empty">
