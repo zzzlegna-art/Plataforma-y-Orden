@@ -42,6 +42,13 @@ const PedidoRapido = () => {
 
 const PedidoRapidoEditor = ({ draftKey }: { draftKey: string | null }) => {
   const { db } = useStore();
+  const { refrescarSerial } = useApp();
+  const latestDbRef = useRef(db);
+  const renderedDbRef = useRef(db);
+  if (renderedDbRef.current !== db) {
+    renderedDbRef.current = db;
+    latestDbRef.current = db;
+  }
   const navigate = useNavigate();
   const runAction = useRunAction();
   const [initial] = useState(() => readQuickOrderDraft(draftKey));
@@ -84,32 +91,34 @@ const PedidoRapidoEditor = ({ draftKey }: { draftKey: string | null }) => {
   const customer = customers.find((item) => item.id === customerId);
 
   const activeReservations = useMemo(() => {
-    const reserved = new Set<string>();
-    for (const assignment of db.orderItemUnits) {
-      const item = db.orderItems.find((candidate) => candidate.id === assignment.orderItemId);
-      const order = item && db.orders.find((candidate) => candidate.id === item.orderId);
-      if (order?.status === "en_preparacion" || order?.status === "preparado") {
-        reserved.add(assignment.unitId);
-      }
-    }
-    return reserved;
-  }, [db]);
+    const orders = new Set(db.orders.filter(o => o.status === "en_preparacion" || o.status === "preparado").map(o => o.id));
+    const items = new Set(db.orderItems.filter(i => orders.has(i.orderId)).map(i => i.id));
+    return new Set(db.orderItemUnits.filter(a => items.has(a.orderItemId)).map(a => a.unitId));
+  }, [db.orders, db.orderItems, db.orderItemUnits]);
 
   const validateAvailable = (raw: string): string | null => {
     const serial = raw.trim();
-    if (!customerId || !customer) return "Primero selecciona un cliente activo.";
+    const source = latestDbRef.current;
+    const selected = source.customers.find(item => item.id === customerRef.current && item.isActive);
+    if (!selected) return "Primero selecciona un cliente activo.";
     if (!serial) return "Escribe o escanea un IMEI.";
     if (serialsRef.current.some((entry) => entry.serial.toLocaleLowerCase("es") === serial.toLocaleLowerCase("es"))) {
       return "Ese serial ya está agregado al pedido.";
     }
-    const preview = previewQuickOrderUnit(db, serial);
+    const preview = previewQuickOrderUnit(source, serial);
     if (!preview) return "El serial " + serial + " no existe en inventario.";
     if (!preview.product.isActive) return "Esta referencia no está activa.";
     if (preview.unit.status !== "en_bodega") return "El serial no está disponible en bodega.";
-    if (activeReservations.has(preview.unit.id)) return "Este serial ya está reservado en otro pedido.";
-    if (esProductoRepuesto(db, preview.product)) return "Los repuestos se agregan por cantidad en Pedido normal.";
-    if (customer.categoriaMayorista && customer.categoriaMayorista !== "ambos" &&
-      mayoristaGroupDeProducto(db, preview.product) !== customer.categoriaMayorista) {
+    const reserved = source === db ? activeReservations.has(preview.unit.id) : source.orderItemUnits.some(a => {
+      if (a.unitId !== preview.unit.id) return false;
+      const line = source.orderItems.find(i => i.id === a.orderItemId);
+      const order = line && source.orders.find(o => o.id === line.orderId);
+      return order?.status === "en_preparacion" || order?.status === "preparado";
+    });
+    if (reserved) return "Este serial ya está reservado en otro pedido.";
+    if (esProductoRepuesto(source, preview.product)) return "Los repuestos se agregan por cantidad en Pedido normal.";
+    if (selected.categoriaMayorista && selected.categoriaMayorista !== "ambos" &&
+      mayoristaGroupDeProducto(source, preview.product) !== selected.categoriaMayorista) {
       return "El cliente no tiene habilitada esa categoría de productos.";
     }
     return null;
@@ -122,7 +131,7 @@ const PedidoRapidoEditor = ({ draftKey }: { draftKey: string | null }) => {
     if (problem) return problem;
     const batch = batchRef.current;
     if (batch) {
-      const preview = previewQuickOrderUnit(db, raw);
+      const preview = previewQuickOrderUnit(latestDbRef.current, raw);
       if (!preview || preview.product.id !== batch.productId || preview.unit.condition !== batch.condition)
         return "Este IMEI no corresponde a la referencia y condición del lote activo.";
       if (!variantePorColor(preview.product, batch.color) || (preview.unit.color &&
@@ -130,6 +139,14 @@ const PedidoRapidoEditor = ({ draftKey }: { draftKey: string | null }) => {
         return "Este IMEI tiene un color diferente al lote activo.";
     }
     return null;
+  };
+
+  const recoverValidation = async (serial: string, problem: string): Promise<string | null> => {
+    if (!refrescarSerial || !(/no existe en inventario|no está disponible en bodega|reservado en otro pedido/.test(problem))) return problem;
+    const actual = await refrescarSerial(serial);
+    if (!actual) return problem;
+    latestDbRef.current = actual;
+    return validateSerial(serial);
   };
 
   const appendEntry = (entry: QuickOrderSerialInput) => {
@@ -143,7 +160,7 @@ const PedidoRapidoEditor = ({ draftKey }: { draftKey: string | null }) => {
     const serial = raw.trim();
     const problem = validateSerial(serial);
     if (problem) { toast.error(problem); return; }
-    const preview = previewQuickOrderUnit(db, serial);
+    const preview = previewQuickOrderUnit(latestDbRef.current, serial);
     if (!preview) return;
     const batch = batchRef.current;
     if (batch) {
@@ -171,7 +188,7 @@ const PedidoRapidoEditor = ({ draftKey }: { draftKey: string | null }) => {
     const serial = pendingRef.current;
     if (!serial || confirmingRef.current) return;
     const problem = validateAvailable(serial);
-    const preview = previewQuickOrderUnit(db, serial);
+    const preview = previewQuickOrderUnit(latestDbRef.current, serial);
     const color = variantePorColor(preview?.product, chosenColor)?.color;
     const quantity = Number(batchQuantity);
     if (problem || !preview || !color || !Number.isSafeInteger(quantity) || quantity < 1 ||
@@ -370,6 +387,7 @@ const PedidoRapidoEditor = ({ draftKey }: { draftKey: string | null }) => {
             <SerialScanInput
               onScan={addScan}
               validate={validateSerial}
+              recoverValidation={recoverValidation}
               autoFocus={Boolean(customer)}
               disabled={!customer || confirming}
               placeholder="Escanea IMEI y presiona Enter"
