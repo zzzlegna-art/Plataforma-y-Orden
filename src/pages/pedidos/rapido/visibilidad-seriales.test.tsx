@@ -44,7 +44,7 @@ const Almacen = ({ withColors = false }: { withColors?: boolean }) => {
     db, ready: true, role: "admin", user: {
       id: "admin", email: "admin@example.com", fullName: "Admin", role: "admin",
     },
-    run: vi.fn(), aplicarCambios: vi.fn(), login: vi.fn(), logout: vi.fn(),
+    run: vi.fn(), aplicarCambios: vi.fn(), refrescar: vi.fn(), login: vi.fn(), logout: vi.fn(),
   }), [db]);
   return (
     <AppContext.Provider value={store}>
@@ -124,22 +124,30 @@ describe("Pedido rápido · visibilidad de seriales", () => {
     expect(screen.getByText("4", { selector: ".nx-quick-summary strong" })).toBeTruthy();
   });
 
-  it("mantiene selección de color cuando el IMEI no tiene color definido en inventario", async () => {
+  it("solicita color y cantidad una vez, completa el lote y pregunta de nuevo", async () => {
     const user = userEvent.setup();
     render(<I18nextProvider i18n={i18n}><Almacen withColors /></I18nextProvider>);
     await user.click(screen.getByRole("combobox"));
     await user.click(await screen.findByRole("option", { name: "Iphone America" }));
     await user.type(screen.getByPlaceholderText("Escanea IMEI y presiona Enter"), seriales[0] + "{Enter}");
-
-    const list = screen.getByRole("region", { name: "Seriales agrupados por referencia" });
-    expect(within(list).getByRole("button", { name: "Copiar serial " + seriales[0] })).toBeTruthy();
-    expect(within(list).getByRole("button", { name: "Quitar serial " + seriales[0] })).toBeTruthy();
-    expect(within(list).getByRole("combobox")).toBeTruthy();
-    // El color sigue siendo obligatorio para confirmar; la elección continúa en la etiqueta.
-    expect(screen.getByText(/Selecciona los 1 colores pendientes/)).toBeTruthy();
-    await user.click(within(list).getByRole("combobox"));
+    const config = screen.getByLabelText("Configurar lote de color");
+    await user.click(within(config).getByRole("combobox"));
     await user.click(await screen.findByRole("option", { name: "Negro" }));
-    expect(screen.queryByText(/Selecciona los 1 colores pendientes/)).toBeNull();
+    const qty = within(config).getByRole("spinbutton");
+    await user.clear(qty);
+    await user.type(qty, "2");
+    await user.click(within(config).getByRole("button", { name: "Iniciar lote" }));
+    expect(screen.getByText("Faltan 1 IMEI de este color.")).toBeTruthy();
+    await user.type(screen.getByPlaceholderText("Escanea IMEI y presiona Enter"), seriales[1] + "{Enter}");
+    expect(screen.queryByLabelText("Lote de color activo")).toBeNull();
+    expect(readQuickOrderDraft(quickOrderDraftKey("admin", 1)).draft.serials).toEqual(
+      seriales.slice(0, 2).map(serial => ({ serial, color: "Negro" })));
+    await user.type(screen.getByPlaceholderText("Escanea IMEI y presiona Enter"), seriales[2] + "{Enter}");
+    const next = screen.getByLabelText("Configurar lote de color");
+    await user.click(within(next).getByRole("combobox"));
+    await user.click(await screen.findByRole("option", { name: "Azul" }));
+    await user.click(within(next).getByRole("button", { name: "Iniciar lote" }));
+    expect(readQuickOrderDraft(quickOrderDraftKey("admin", 1)).draft.serials[2]).toEqual({ serial: seriales[2], color: "Azul" });
   });
 });
 
@@ -150,16 +158,22 @@ describe("Pedido rápido · autoguardado", () => {
     await user.click(screen.getByRole("combobox"));
     await user.click(await screen.findByRole("option", { name: "Iphone America" }));
     await user.type(screen.getByPlaceholderText("Escanea IMEI y presiona Enter"), seriales[0] + "{Enter}");
-    const list = screen.getByRole("region", { name: "Seriales agrupados por referencia" });
-    await user.click(within(list).getByRole("combobox"));
+    const config = screen.getByLabelText("Configurar lote de color");
+    await user.click(within(config).getByRole("combobox"));
     await user.click(await screen.findByRole("option", { name: "Negro" }));
+    const qty = within(config).getByRole("spinbutton");
+    await user.clear(qty);
+    await user.type(qty, "3");
+    await user.click(within(config).getByRole("button", { name: "Iniciar lote" }));
     expect(readQuickOrderDraft(quickOrderDraftKey("admin", 1)).draft.serials).toEqual([{ serial: seriales[0], color: "Negro" }]);
     first.unmount();
     render(<I18nextProvider i18n={i18n}><Almacen withColors /></I18nextProvider>);
     expect(screen.getByText("Borrador recuperado")).toBeTruthy();
     expect(screen.getByText(seriales[0])).toBeTruthy();
     expect(readQuickOrderDraft(quickOrderDraftKey("admin", 1)).draft.customerId).toBe("buyer");
-    expect(screen.queryByText(/Selecciona los 1 colores pendientes/)).toBeNull();
+    expect(screen.getByText("Faltan 2 IMEI de este color.")).toBeTruthy();
+    await user.type(screen.getByPlaceholderText("Escanea IMEI y presiona Enter"), seriales[1] + "{Enter}");
+    expect(screen.getByText("Faltan 1 IMEI de este color.")).toBeTruthy();
   });
 
   it("aísla usuarios y espacios Next, y solo elimina la captura confirmada", () => {
