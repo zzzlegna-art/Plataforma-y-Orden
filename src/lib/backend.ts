@@ -649,6 +649,44 @@ const leerAjustes = async (): Promise<Db["settings"]> => {
   return { companyName: texto(fila.company_name) ?? "Bodega 6A" };
 };
 
+export interface SerialSnapshot {
+  unit: Unit;
+  product: Product;
+  assignments: OrderItemUnit[];
+  lines: OrderItem[];
+  orders: Order[];
+}
+
+/** Una sola consulta autenticada: unidad, referencia y vínculos actuales.
+ * No usa el historial de salidas para decidir disponibilidad ni modifica stock.
+ */
+export const pullSerialSnapshot = async (serial: string): Promise<SerialSnapshot | null> => {
+  const { data, error } = await nube.from("bodega_units")
+    .select("*,product:bodega_products!bodega_units_product_id_fkey(*),assignments:bodega_order_item_units!bodega_order_item_units_unit_id_fkey(*,line:bodega_order_items!bodega_order_item_units_order_item_id_fkey(*,order:bodega_orders!bodega_order_items_order_id_fkey(*)))")
+    .eq("serial", serial.trim()).maybeSingle();
+  if (error) throw new Error("No se pudo verificar el IMEI: " + error.message);
+  if (!data) return null;
+  const row = data as Fila;
+  if (!row.product || !Array.isArray(row.assignments)) throw new Error("Respuesta incompleta del IMEI");
+  const convert = <T,>(collection: Coleccion, value: unknown): T => {
+    const spec = ESPECIFICACIONES.find((s) => s.coleccion === collection);
+    if (!spec || !value || typeof value !== "object") throw new Error("Vínculo de inventario incompleto");
+    return spec.desdeFila(value as Fila) as T;
+  };
+  const assignments: OrderItemUnit[] = [];
+  const lines: OrderItem[] = [];
+  const orders: Order[] = [];
+  for (const value of row.assignments as Fila[]) {
+    const line = value.line as Fila | null;
+    if (!line || !line.order) throw new Error("Vínculo de pedido incompleto");
+    assignments.push(convert<OrderItemUnit>("orderItemUnits", value));
+    lines.push(convert<OrderItem>("orderItems", line));
+    orders.push(convert<Order>("orders", line.order));
+  }
+  return { unit: convert<Unit>("units", row), product: convert<Product>("products", row.product),
+    assignments, lines, orders };
+};
+
 /** Carga completa del inventario desde el servidor. */
 export const pullDb = async (): Promise<Db> => {
   const db = emptyDb();
@@ -1242,6 +1280,7 @@ export const suscribirCambios = (
     incluirAuditoria?: boolean;
     perfilUsuarioId?: string;
     alCambiarPerfil?: () => void;
+    alEstado?: (estado: string) => void;
   } = {},
 ) => {
   let canal = supabase.channel("bodega-6a-tiempo-real");
@@ -1291,6 +1330,7 @@ export const suscribirCambios = (
   }
 
   canal.subscribe((estado, error) => {
+    opciones.alEstado?.(estado);
     if (estado === "SUBSCRIBED") {
       console.log("Tiempo real conectado");
     } else if (estado === "CHANNEL_ERROR" || estado === "TIMED_OUT") {
