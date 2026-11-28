@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
   pullDb: vi.fn(),
+  pullSerialSnapshot: vi.fn(),
   pushDb: vi.fn(),
   leerPerfil: vi.fn(),
   consultarPerfilSesion: vi.fn(),
@@ -27,6 +28,7 @@ vi.mock("@/lib/backend", () => ({
   consultarPerfilSesion: mocks.consultarPerfilSesion,
   leerPerfil: mocks.leerPerfil,
   pullDb: mocks.pullDb,
+  pullSerialSnapshot: mocks.pullSerialSnapshot,
   pushDb: mocks.pushDb,
   suscribirCambios: mocks.suscribirCambios,
 }));
@@ -250,5 +252,52 @@ describe("AppProvider · recuperación de resincronización", () => {
     expect(mocks.signOut).not.toHaveBeenCalled();
     expect(consultasPerfil).toBeGreaterThanOrEqual(5);
     errorSpy.mockRestore();
+  });
+});
+
+describe("AppProvider · disponibilidad de IMEI tras una devolución o recepción", () => {
+  it("actualiza el IMEI desde el servidor sin descargar todo ni tocar otros vínculos", async () => {
+    const db = emptyDb();
+    const fecha = "2026-11-28T00:00:00.000Z";
+    const product = { id: "p", sku: "IP14-128", name: "iPhone 14", isActive: true, minStock: 0, createdAt: fecha, updatedAt: fecha };
+    const unit = { id: "u", productId: "p", serial: "351000000000001", condition: "seminuevo" as const, status: "vendido" as const, receivedAt: fecha, createdBy: "user-1" };
+    const newUnit = { ...unit, id: "new", serial: "351000000000002", status: "en_bodega" as const };
+    db.products.push(product);
+    db.units.push(unit);
+    db.orderItemUnits.push(
+      { id: "old-link", unitId: unit.id, orderItemId: "old-line", createdAt: fecha },
+      { id: "unrelated", unitId: "other-unit", orderItemId: "other-line", createdAt: fecha },
+    );
+    mocks.onAuthStateChange.mockReturnValue({ data: { subscription: { unsubscribe: vi.fn() } } });
+    mocks.getSession.mockResolvedValue({ data: { session } });
+    mocks.consultarPerfilSesion.mockResolvedValue(perfil);
+    mocks.setAuth.mockResolvedValue(undefined);
+    mocks.suscribirCambios.mockReturnValue(vi.fn());
+    mocks.pullDb.mockResolvedValue(db);
+    mocks.pullSerialSnapshot.mockImplementation(async (serial: string) => ({
+      unit: serial === unit.serial ? { ...unit, status: "en_bodega" } : newUnit,
+      product, assignments: [], lines: [], orders: [],
+    }));
+
+    const Consulta = () => {
+      const app = useContext(AppContext);
+      if (!app) return null;
+      return <>
+        <div data-testid="stock">{app.db.units.map(u => u.serial + ":" + u.status).join(",")}</div>
+        <div data-testid="links">{app.db.orderItemUnits.map(a => a.id).join(",")}</div>
+        <button onClick={() => void app.refrescarSerial?.(unit.serial)}>Verificar devolución</button>
+        <button onClick={() => void app.refrescarSerial?.(newUnit.serial)}>Verificar recepción</button>
+      </>;
+    };
+    render(<AppProvider><Consulta /></AppProvider>);
+    await waitFor(() => expect(screen.getByTestId("stock").textContent).toContain(unit.serial + ":vendido"));
+    fireEvent.click(screen.getByRole("button", { name: "Verificar devolución" }));
+    await waitFor(() => expect(screen.getByTestId("stock").textContent).toContain(unit.serial + ":en_bodega"));
+    expect(screen.getByTestId("links").textContent).toBe("unrelated");
+    fireEvent.click(screen.getByRole("button", { name: "Verificar recepción" }));
+    await waitFor(() => expect(screen.getByTestId("stock").textContent).toContain(newUnit.serial + ":en_bodega"));
+    expect(mocks.pullSerialSnapshot).toHaveBeenCalledTimes(2);
+    expect(mocks.pullDb).toHaveBeenCalledTimes(1);
+    expect(mocks.pushDb).not.toHaveBeenCalled();
   });
 });
