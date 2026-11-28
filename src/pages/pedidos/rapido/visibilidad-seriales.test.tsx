@@ -6,7 +6,7 @@ import userEvent from "@testing-library/user-event";
 import i18n from "i18next";
 import { I18nextProvider, initReactI18next } from "react-i18next";
 import { MemoryRouter } from "react-router-dom";
-import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, beforeAll, describe, expect, it, vi } from "vitest";
 
 vi.mock("@/lib/backend", () => ({}));
 vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn(), warning: vi.fn() } }));
@@ -15,6 +15,8 @@ import { emptyDb } from "@/lib/db";
 import type { Db, Unit } from "@/lib/types";
 import { AppContext, type AppValue } from "@/store/contexts";
 import PedidoRapido from "./index";
+import { NEXT_SESSION_KEY } from "@/lib/next-workspaces";
+import { quickOrderDraftKey, readQuickOrderDraft, writeQuickOrderDraft, clearConfirmedQuickOrderDraft } from "@/lib/quick-order-draft";
 
 const seriales = Array.from({ length: 5 }, (_, i) => "35000000000000" + i);
 const initialDb = (withColors = false): Db => {
@@ -69,7 +71,15 @@ beforeAll(async () => {
   Element.prototype.hasPointerCapture = vi.fn().mockReturnValue(false);
   Element.prototype.releasePointerCapture = vi.fn();
 });
-afterEach(cleanup);
+beforeEach(() => {
+  window.localStorage.clear();
+  window.sessionStorage.setItem(NEXT_SESSION_KEY, "1");
+});
+afterEach(() => {
+  cleanup();
+  window.localStorage.clear();
+  window.sessionStorage.clear();
+});
 
 describe("Pedido rápido · visibilidad de seriales", () => {
   it("reserva la mayor parte del ancho al listado y conserva scroll interno accesible", () => {
@@ -130,5 +140,49 @@ describe("Pedido rápido · visibilidad de seriales", () => {
     await user.click(within(list).getByRole("combobox"));
     await user.click(await screen.findByRole("option", { name: "Negro" }));
     expect(screen.queryByText(/Selecciona los 1 colores pendientes/)).toBeNull();
+  });
+});
+
+describe("Pedido rápido · autoguardado", () => {
+  it("recupera cliente, IMEI y color tras desmontar y volver a abrir la pantalla", async () => {
+    const user = userEvent.setup();
+    const first = render(<I18nextProvider i18n={i18n}><Almacen withColors /></I18nextProvider>);
+    await user.click(screen.getByRole("combobox"));
+    await user.click(await screen.findByRole("option", { name: "Iphone America" }));
+    await user.type(screen.getByPlaceholderText("Escanea IMEI y presiona Enter"), seriales[0] + "{Enter}");
+    const list = screen.getByRole("region", { name: "Seriales agrupados por referencia" });
+    await user.click(within(list).getByRole("combobox"));
+    await user.click(await screen.findByRole("option", { name: "Negro" }));
+    expect(readQuickOrderDraft(quickOrderDraftKey("admin", 1)).draft.serials).toEqual([{ serial: seriales[0], color: "Negro" }]);
+    first.unmount();
+    render(<I18nextProvider i18n={i18n}><Almacen withColors /></I18nextProvider>);
+    expect(screen.getByText("Borrador recuperado")).toBeTruthy();
+    expect(screen.getByText(seriales[0])).toBeTruthy();
+    expect(readQuickOrderDraft(quickOrderDraftKey("admin", 1)).draft.customerId).toBe("buyer");
+    expect(screen.queryByText(/Selecciona los 1 colores pendientes/)).toBeNull();
+  });
+
+  it("aísla usuarios y espacios Next, y solo elimina la captura confirmada", () => {
+    const k1 = quickOrderDraftKey("admin", 1);
+    const k2 = quickOrderDraftKey("admin", 2);
+    const draft = { version: 1 as const, customerId: "buyer", serials: [{ serial: seriales[0], color: "Azul" }] };
+    const newer = { ...draft, serials: [...draft.serials, { serial: seriales[1], color: "Negro" }] };
+    expect(writeQuickOrderDraft(k1, draft)).toBe(true);
+    expect(writeQuickOrderDraft(k2, newer)).toBe(true);
+    expect(readQuickOrderDraft(quickOrderDraftKey("otro", 1)).status).toBe("empty");
+    expect(clearConfirmedQuickOrderDraft(k2, draft)).toBe(false);
+    expect(clearConfirmedQuickOrderDraft(k1, draft)).toBe(true);
+    expect(readQuickOrderDraft(k1).status).toBe("empty");
+    expect(readQuickOrderDraft(k2).draft).toEqual(newer);
+  });
+
+  it("no borra el borrador si el navegador bloquea su almacenamiento", () => {
+    const blocked = { getItem: () => { throw new Error("denied"); }, setItem: () => { throw new Error("denied"); }, removeItem: vi.fn() };
+    const key = quickOrderDraftKey("admin", 1);
+    const draft = { version: 1 as const, customerId: "buyer", serials: [{ serial: seriales[0] }] };
+    expect(readQuickOrderDraft(key, blocked).status).toBe("unavailable");
+    expect(writeQuickOrderDraft(key, draft, blocked)).toBe(false);
+    expect(clearConfirmedQuickOrderDraft(key, draft, blocked)).toBe(false);
+    expect(blocked.removeItem).not.toHaveBeenCalled();
   });
 });
