@@ -22,6 +22,8 @@ export interface AppValue {
   aplicarCambios: (cambios: CambioRemoto[]) => void;
   /** Resincroniza una foto completa del servidor sin aplicar miles de cambios uno por uno. */
   refrescar: () => Promise<void>;
+  /** Consulta puntual del IMEI para recuperar cambios perdidos sin descargar todo. */
+  refrescarSerial?: (serial: string) => Promise<Db | null>;
   login: (email: string, password: string) => Promise<{ ok: boolean; error?: string }>;
   logout: () => Promise<void>;
 }
